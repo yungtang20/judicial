@@ -1,11 +1,17 @@
-<div align="center">
+# Smart Legal Assistant
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+This is an AI-powered legal toolkit that provides 7 major tools:
 
-  <h1>Built with AI Studio</h2>
+1. 智能裁判分析與比對 (Smart Appeal Assistant / Judgment Analysis)
+2. 刑事偵查知識庫 (Criminal Investigation Knowledge Base)
+3. 證據清單與時序生成 (Evidence List Generator)
+4. 爭點整理表格生成 (Issue Table Generator)
+5. 實務見解與判例檢索 (Judgment Search Tool)
+6. 司法院資料開放平台連線 (Judicial OpenData Tool)
+7. 警察刑事卷宗智慧判讀 (Police Dossier Tool)
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+## 啟動方式
+npm run dev
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
-
-</div>
+## 測試指令
+npm run test:eval

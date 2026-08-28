@@ -1,0 +1,6 @@
+{
+  "name": "楊時綱律師法律工具箱",
+  "description": "由楊時綱律師團隊與執法司法實務製作之線上法律、判決書，以及警詢筆錄與陳報單專屬智慧判讀辨識解析器。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,22 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
+
+@theme {
+  --font-sans: 'Noto Sans TC', 'Segoe UI', 'Helvetica Neue', 'Arial', sans-serif;
+  
+  --color-karoshi-bg: #F5EFE6;
+  --color-karoshi-sidebar: #E8DFCA;
+  --color-karoshi-content: #FFFDF9;
+  --color-karoshi-text: #1D5B79;
+  --color-karoshi-text-light: #4A7A8C;
+  --color-karoshi-accent: #E8A87C;
+  --color-karoshi-border: #e0d8c8;
+  --color-karoshi-hover: #F5EFE6;
+  --color-karoshi-civil: #675c4c;
+}
+
+body {
+  background-color: var(--color-karoshi-bg);
+  color: var(--color-karoshi-text);
+  font-family: var(--font-sans);
+}
