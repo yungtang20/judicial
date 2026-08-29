@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { markLowConfidenceRegions, type PaddleTextRegion } from './paddleConfidence.js';
 
 const execFileAsync = promisify(execFile);
 const DEFAULT_SCRIPT_PATH = 'D:\\工作用\\ocr.py';
@@ -16,19 +17,33 @@ export interface PaddleOcrOptions {
   execute?: (command: string, args: string[], options: { timeout: number; maxBuffer: number; env: NodeJS.ProcessEnv }) => Promise<{ stdout: string; stderr: string }>;
 }
 
-function parseResult(stdout: string) {
-  const start = stdout.lastIndexOf('\n{') + 1;
-  const jsonText = start > 0 ? stdout.slice(start) : stdout.trim();
-  try {
-    const result = JSON.parse(jsonText) as { text?: unknown; status?: string };
-    if (typeof result.text !== 'string') throw new Error('Paddle OCR response has no text');
-    return { text: result.text as string, status: result.status };
-  } catch {
-    throw Object.assign(new Error('Paddle OCR returned invalid JSON'), { code: 'PADDLE_OCR_INVALID_RESPONSE' });
-  }
+export interface PaddleOcrResult {
+  text: string;
+  source: 'paddleocr';
+  confidenceAvailable: boolean;
+  needsManualReview: boolean;
+  lowConfidenceRegions: PaddleTextRegion[];
 }
 
-export async function runPaddleOcrPdf(pdf: Buffer, options: PaddleOcrOptions = {}) {
+export function parseResult(stdout: string): { text: string; status?: string; confidence_regions?: unknown } {
+  const starts = [...stdout.matchAll(/(?:^|\n)[ \t]*\{/g)].map((match) => match.index! + match[0].lastIndexOf('{'));
+  for (const start of starts.reverse()) {
+    try {
+      const result = JSON.parse(stdout.slice(start)) as { text?: unknown; status?: string; confidence_regions?: unknown };
+      if (typeof result.text !== 'string') continue;
+      return {
+        text: result.text as string,
+        ...(result.status === undefined ? {} : { status: result.status }),
+        ...(result.confidence_regions === undefined ? {} : { confidence_regions: result.confidence_regions })
+      };
+    } catch {
+      // Try the next line that could contain the outer JSON object.
+    }
+  }
+  throw Object.assign(new Error('Paddle OCR returned invalid JSON'), { code: 'PADDLE_OCR_INVALID_RESPONSE' });
+}
+
+export async function runPaddleOcrPdf(pdf: Buffer, options: PaddleOcrOptions = {}): Promise<PaddleOcrResult> {
   if (!options.token?.trim()) {
     throw Object.assign(new Error('Paddle OCR token is not configured'), { code: 'PADDLE_OCR_NOT_CONFIGURED' });
   }
@@ -45,7 +60,15 @@ export async function runPaddleOcrPdf(pdf: Buffer, options: PaddleOcrOptions = {
       env: { ...process.env, PADDLE_OCR_TOKEN: options.token }
     });
     const result = parseResult(stdout);
-    return { text: result.text, source: 'paddleocr' as const };
+    const regions = Array.isArray(result.confidence_regions) ? result.confidence_regions as PaddleTextRegion[] : [];
+    const marked = markLowConfidenceRegions(regions);
+    return {
+      text: regions.length > 0 ? marked.text : result.text,
+      source: 'paddleocr' as const,
+      confidenceAvailable: regions.length > 0,
+      needsManualReview: regions.length > 0 ? marked.needsManualReview : true,
+      lowConfidenceRegions: marked.lowConfidenceRegions
+    };
   } catch (error) {
     if (error && typeof error === 'object' && 'code' in error && typeof error.code === 'string' && error.code.startsWith('PADDLE_OCR_')) throw error;
     throw Object.assign(new Error('Paddle OCR execution failed'), { code: 'PADDLE_OCR_FAILED', cause: error });

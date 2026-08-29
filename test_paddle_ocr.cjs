@@ -2,7 +2,8 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 
 (async () => {
-  const { runPaddleOcrPdf } = await import('./src/lib/paddleOcr.ts');
+  const { runPaddleOcrPdf, parseResult } = await import('./src/lib/paddleOcr.ts');
+  assert.deepEqual(parseResult(`log before\n${JSON.stringify({ text: '內容\n{引用}' })}`), { text: '內容\n{引用}' });
   const calls = [];
   const result = await runPaddleOcrPdf(Buffer.from('pdf'), {
     scriptPath: 'D:/工作用/ocr.py',
@@ -10,11 +11,13 @@ const fs = require('node:fs');
     command: 'python-test',
     execute: async (command, args, options) => {
       calls.push({ command, args, options });
-      return { stdout: '{"status":"TEXT_EXTRACTED","text":"臺灣臺北地方法院判決"}', stderr: '' };
+      return { stdout: `progress {not-json}\n${JSON.stringify({ status: 'TEXT_EXTRACTED', text: '忽略原始文字', confidence_regions: [{ text: '臺灣臺北地方法院', confidence: 0.98 }, { text: '模糊字', confidence: 0.42 }] })}`, stderr: '' };
     }
   });
-  assert.equal(result.text, '臺灣臺北地方法院判決');
+  assert.equal(result.text, '臺灣臺北地方法院[不確定]模糊字');
   assert.equal(result.source, 'paddleocr');
+  assert.equal(result.confidenceAvailable, true);
+  assert.equal(result.needsManualReview, true);
   assert.equal(calls[0].command, 'python-test');
   assert.ok(calls[0].args.includes('--extract-text-only'));
   assert.ok(calls[0].args.includes('D:/工作用/ocr.py'));

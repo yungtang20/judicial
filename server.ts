@@ -258,8 +258,11 @@ app.post("/api/ocr", async (req, res) => {
           const paddleResult = await runPaddleOcrPdf(Buffer.from(pdfBase64, "base64"), {
             token: process.env.PADDLE_OCR_TOKEN
           });
-          const quality = assessOcrText(paddleResult.text);
-          return res.json({ text: paddleResult.text, ...quality, rejectedImages: [], source: paddleResult.source });
+          if (paddleResult.confidenceAvailable) {
+            const quality = assessOcrText(paddleResult.text);
+            return res.json({ text: paddleResult.text, ...quality, needsManualReview: paddleResult.needsManualReview || quality.needsManualReview, rejectedImages: [], source: paddleResult.source, lowConfidenceRegions: paddleResult.lowConfidenceRegions });
+          }
+          console.warn("Paddle OCR returned no confidence regions; falling back to Gemini Vision");
         } catch (paddleError) {
           console.warn("Paddle OCR failed; falling back to Gemini Vision:", paddleError);
         }
