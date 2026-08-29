@@ -10,6 +10,15 @@ async function run() {
   assert.equal(result.judgmentSummary, null);
   assert.deepEqual(result.suggestedIssues, []);
   assert.deepEqual(result.suggestedEvidences, []);
+
+  const { buildFallbackPoliceAnalysis } = await import('./src/utils/fallbacks.ts');
+  const policeResult = buildFallbackPoliceAnalysis('');
+  assert.equal(policeResult.isFallback, true);
+  assert.equal(policeResult.caseOverview, null);
+  assert.equal(policeResult.incidentSummary, '');
+  assert.deepEqual(policeResult.timeline, []);
+  assert.deepEqual(policeResult.interrogationQA, []);
+  assert.deepEqual(policeResult.proceduralVerification, []);
 }
 
 run().then(() => console.log('fail-closed fallback tests passed'));

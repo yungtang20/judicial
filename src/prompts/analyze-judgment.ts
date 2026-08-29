@@ -68,7 +68,7 @@ export const getAnalyzeJudgmentPrompt = (judgmentText: string, secondJudgmentTex
       "originalHolding": "原審/原決定機關之認定與理由",
       "appealArgument": "我方擬提出之反駁與上訴/覆審理由",
       "relatedEvidenceCodes": "1",
-      "legalBasis": "最高法院相關判例或法條",
+      "legalBasis": "只能填可由輸入原文支持的法條名稱與條文；禁止填具體判例字號、裁判字號或函釋字號。判例請交由判例檢索功能另行查證。",
       "legalStrength": "HIGH"
     }
   ],
