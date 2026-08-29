@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
-    "test:eval": "node test_eval.cjs"
+    "test:eval": "node --import tsx test_eval.cjs"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

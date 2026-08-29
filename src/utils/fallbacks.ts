@@ -129,28 +129,7 @@ export function buildFallbackJudgmentAnalysis(judgmentText: string) {
       overview: story,
       mainHolding: defaultHolding
     },
-    suggestedPrecedents: isCriminalComp ? [
-      {
-        type: "最高法院刑事判例",
-        citation: "最高法院 76 年台上字第 4986 號 刑事判例",
-        summary: "認定犯罪事實所憑之證據，須於通常一般之人均不致有所懷疑，而得確信其為真實之程度者，始得據為有罪之認定。倘其證明尚未達到此一程度，而有合理之懷疑存在時，即應為被告有利之認定。",
-        applicationReason: "用以指摘原審採認證據未達超越合理懷疑程度，違反刑事訴訟法第 154 條第 2 項無罪推定原則。"
-      }
-    ] : isCriminal ? [
-      {
-        type: "最高法院刑事判例",
-        citation: "最高法院 76 年台上字第 4986 號 刑事判例",
-        summary: "認定犯罪事實所憑之證據，須於通常一般之人均不致有所懷疑，而得確信其為真實之程度者，始得據為有罪之認定。倘其證明尚未達到此一程度，而有合理之懷疑存在時，即應為被告有利之認定。",
-        applicationReason: "用以指摘原審採認證據未達超越合理懷疑程度，違反刑事訴訟法第 154 條第 2 項無罪推定原則。"
-      }
-    ] : [
-      {
-        type: "最高法院民事大法庭裁定",
-        citation: "最高法院 108 年度台上大字第 1884 號 民事裁定",
-        summary: "當事人主張有利於己之事實者，就其事實有舉證之責任。法院認定事實應憑證據，不得憑空推測。",
-        applicationReason: "用以指摘原審認定事實不憑證據，違反民事訴訟法第 277 條規定與舉證責任分配原則。"
-      }
-    ],
+    suggestedPrecedents: [],
     suggestedIssues: [
       {
         title: "原審認定事實未憑客觀證據，心證採認違反證據法則",

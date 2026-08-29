@@ -83,14 +83,7 @@ export const getAnalyzeJudgmentPrompt = (judgmentText: string, secondJudgmentTex
     }
   ],
   "recommendedKeywords": "精準檢索關鍵字（例如：強制猥褻 接續犯 違背經驗法則 簡易判決上訴）",
-  "suggestedPrecedents": [
-    {
-      "type": "最高法院刑事判例",
-      "citation": "最高法院 76 年台上字第 4986 號 刑事判例",
-      "summary": "認定犯罪事實所憑之證據，須於通常一般之人均不致有所懷疑，而得確信其為真實之程度者，始得據為有罪之認定。",
-      "applicationReason": "用以指摘原審採認證據未達超越合理懷疑程度，違反刑事訴訟法第 154 條第 2 項無罪推定原則。"
-    }
-  ]
+  "suggestedPrecedents": []
 }
 
 ${secondJudgmentText ? '以下是【我方撰寫之草稿或補充文件】，請將其論點融入並優化上述的分析結果：\n' + secondJudgmentText + '\n\n' : ''}

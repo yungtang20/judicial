@@ -44,6 +44,9 @@ import * as cheerio from "cheerio";
 import { getGenerateAppealPetitionPrompt } from "./src/prompts/generate-appeal-petition.js";
 import { getAnalyzeJudgmentPrompt } from "./src/prompts/analyze-judgment.js";
 import { buildFallbackJudgmentAnalysis, buildFallbackPetition, buildFallbackPoliceAnalysis } from "./src/utils/fallbacks.js";
+import { buildPrecedentFallback, verifyPrecedents } from "./src/lib/precedentVerification.js";
+import { resolveJudicialCredentials } from "./src/lib/judicialCredentials.js";
+import { generateContentWithFallback } from "./src/lib/geminiGeneration.js";
 
 dotenv.config();
 
@@ -130,90 +133,6 @@ function getCandidateModels(): string[] {
 interface GenerateResult {
   text: string;
   modelUsed: string;
-}
-
-// 執行通用 AI 呼叫並自動進行模型降級與重試
-// 執行通用 AI 呼叫並自動進行多模型降級與智慧重試
-async function executeGenerateContent(
-  ai: GoogleGenAI,
-  contents: any,
-  config?: any
-): Promise<GenerateResult> {
-  const candidates = getCandidateModels();
-  let lastError: any = null;
-
-  for (const model of candidates) {
-    for (let attempt = 1; attempt <= 2; attempt++) {
-      try {
-        console.log(`[Gemini API] Calling generateContent with model: ${model} (Attempt ${attempt})`);
-        const response = await ai.models.generateContent({
-          model,
-          contents,
-          config
-        } as any);
-
-        if (response && response.text) {
-          return { text: response.text, modelUsed: model };
-        }
-      } catch (err: any) {
-        lastError = err;
-        const errMsg = err?.message || String(err);
-        console.warn(`[Gemini API] Model ${model} (Attempt ${attempt}) failed: ${errMsg.slice(0, 150)}`);
-
-        const isQuotaExhausted = /Quota exceeded|RESOURCE_EXHAUSTED|exceeded your current quota|429/i.test(errMsg);
-        const isServerOverloaded = /503|UNAVAILABLE|high demand|overloaded/i.test(errMsg);
-
-        // 如果該模型的日配額已耗盡 (Quota Exceeded)，無需在同一個模型等待重試，直接切換下一個候選模型
-        if (isQuotaExhausted) {
-          console.warn(`[Gemini API] Model ${model} quota exhausted, fast-switching to next candidate model...`);
-          break;
-        }
-
-        if (isServerOverloaded && attempt === 1) {
-          await new Promise(r => setTimeout(r, 600));
-        } else {
-          break;
-        }
-      }
-    }
-  }
-
-  throw lastError || new Error("Gemini API generateContent 呼叫失敗且無可用模型");
-}
-
-// 多模式 API 呼叫包裝函式（自動降級搜尋工具與模型）
-// 多模式 API 呼叫包裝函式（自動嘗試 Search Grounding，失敗則平滑降級為標準生成）
-async function safeGenerateContent(ai: GoogleGenAI, prompt: string, useSearch = true): Promise<GenerateResult> {
-  const candidates = getCandidateModels();
-  
-  if (useSearch) {
-    for (const model of candidates) {
-      try {
-        console.log(`[Gemini API] Attempting search grounding with model: ${model}`);
-        const response = await ai.models.generateContent({
-          model,
-          contents: prompt,
-          config: {
-            tools: [{ googleSearch: {} }]
-          }
-        } as any);
-
-        if (response && response.text) {
-          return { text: response.text, modelUsed: `${model} (Search Grounded)` };
-        }
-      } catch (err: any) {
-        const errMsg = err?.message || String(err);
-        console.warn(`[Gemini API] Search mode failed on ${model}: ${errMsg.slice(0, 100)}...`);
-        // 如果是配額限制，直接退出搜尋嘗試，降級至純文字模式以節省時間
-        if (/Quota exceeded|RESOURCE_EXHAUSTED|429/i.test(errMsg)) {
-          break;
-        }
-      }
-    }
-  }
-
-  // 降級至純文字模式
-  return await executeGenerateContent(ai, prompt);
 }
 
 
@@ -389,13 +308,14 @@ app.post("/api/ocr", async (req, res) => {
         const pagePrompt = `你是一位精通繁體中文、法律文書、警察卷宗與法院裁判書的專業 OCR 光學文字識讀專家。
 目前正在解析第 ${idx + 1} 頁影像。請仔細、完整地辨識並轉錄此頁影像中的所有文字（包含手寫簽名、手寫字跡、蓋章、印刷文字、表格欄位與數值、問答筆錄、身分證件等）。
 請保持最真實、最精準的排版與段落格式，100% 逐字逐句完整重現，絕對不要遺漏任何一頁筆錄、問答或表格！不要進行任何總結、解釋、潤飾或添加多餘的提示字首尾。
+對任何辨識把握度低、字元無法可靠確認的片段，保留原位置並使用固定格式 [不確定] 標記；不要猜測或用相似字替換。高把握度文字不要加此標記。
 直接輸出此頁轉錄完成的全文內容：`;
         console.log(`[OCR] 正在辨識第 ${idx + 1}/${parsedImages.length} 頁影像...`);
         let pageText = "";
         const ocrMaxRetries = 2;
         for (let attempt = 1; attempt <= ocrMaxRetries; attempt++) {
           try {
-            const result = await executeGenerateContent(ai, [pagePrompt, parsedImg]);
+            const result = await generateContentWithFallback(ai, [pagePrompt, parsedImg], false);
             pageText = result.text || "";
             break;
           } catch (err) {
@@ -464,7 +384,7 @@ ${pageText}
       let responseText = "";
       let modelUsed = "";
       try {
-        const result = await safeGenerateContent(ai, prompt, true);
+        const result = await generateContentWithFallback(ai, prompt, true);
         responseText = result.text;
         modelUsed = result.modelUsed;
       } catch (genErr) {
@@ -640,8 +560,7 @@ app.post("/api/tlr/fulltext", async (req, res) => {
   });
   app.post("/api/judicial/member-token", async (req, res) => {
     try {
-      const memberAccount = req.body.account || process.env.JUDICIAL_OPENDATA_ACCOUNT || "";
-      const pwd = req.body.password || process.env.JUDICIAL_OPENDATA_PASSWORD || "";
+      const { memberAccount, pwd } = resolveJudicialCredentials(process.env);
       if (!memberAccount || !pwd) {
         return res.status(400).json({ succeeded: false, message: "請提供司法院資料開放平臺帳號與密碼，或於環境變數中設定" });
       }
@@ -658,8 +577,7 @@ app.post("/api/tlr/fulltext", async (req, res) => {
   });
   app.post("/api/judicial/jdg/auth", async (req, res) => {
     try {
-      const user = req.body.user || process.env.JUDICIAL_OPENDATA_ACCOUNT || "";
-      const password = req.body.password || process.env.JUDICIAL_OPENDATA_PASSWORD || "";
+      const { memberAccount: user, pwd: password } = resolveJudicialCredentials(process.env);
       if (!user || !password) {
         return res.status(400).json({ error: "缺少帳號或密碼", message: "缺少帳號或密碼" });
       }
@@ -715,7 +633,7 @@ app.post("/api/tlr/fulltext", async (req, res) => {
       res.status(500).json({ error: "取得裁判書內容失敗：" + err.message });
     }
   });
-  app.post("/api/search-precedents", async (req, res) => {
+app.post("/api/search-precedents", async (req, res) => {
     try {
       const { keywords, caseSummary } = req.body;
       const apiKey = resolveApiKey();
@@ -732,7 +650,7 @@ app.post("/api/tlr/fulltext", async (req, res) => {
 
 【極度重要——案由罪名與訴訟法正確分類規範（切勿張冠李戴！）】：
 1. 務必先判斷本案訴訟領域（刑事、民事、行政、刑事補償）：
-   - 若本案為【刑事案件/刑事簡易判決/強制猥褻/性自主/傷害/詐欺等】：【嚴禁引用民事訴訟法或民事裁定（如108台上大字1884號民事裁定）】！必須嚴格引用【刑事訴訟法】（如第 154 條無罪推定、第 155 條自由心證與經驗法則、第 161 條檢察官舉證責任）以及【最高法院刑事判例/刑事判決/刑事大法庭裁定】（如最高法院 76 年台上字第 4986 號刑事判例、最高法院 108 年度台上大字第 3570 號刑事裁定、最高法院 99 年度台上字第 700 號刑事判決）！
+   - 若本案為【刑事案件/刑事簡易判決/強制猥褻/性自主/傷害/詐欺等】：嚴禁引用民事訴訟法或民事裁定！必須嚴格引用刑事訴訟法與已由 TLR 驗證之刑事裁判。
    - 若本案為【民事案件】：方得引用【民事訴訟法第 277 條】與【民事裁判/民事大法庭裁定】。
    - 若本案為【刑事補償案件】：引用【刑事補償法第 17 條】與司法院/法務部刑事補償函釋。
 2. 務必引用臺灣實務真實存在之裁判字號、大法庭裁定或主管機關函釋。嚴禁自行虛構編造假案號。
@@ -744,7 +662,7 @@ app.post("/api/tlr/fulltext", async (req, res) => {
 [
   {
     "type": "最高法院刑事判例/最高法院刑事判決/刑事大法庭裁定/行政函釋",
-    "citation": "完整真實字號（刑事範例：最高法院 76 年台上字第 4986 號刑事判例 或 最高法院 108 年度台上大字第 3570 號刑事裁定）",
+    "citation": "完整真實字號（必須可由 TLR 查到）",
     "summary": "該裁判/函釋之核心要旨（白話精簡精準摘要）",
     "applicationReason": "本案運用說明：如何據以論駁原審或補強我方上訴理由"
   }
@@ -752,28 +670,11 @@ app.post("/api/tlr/fulltext", async (req, res) => {
 `;
       let responseText = "";
       try {
-        const result = await safeGenerateContent(ai, prompt, true);
+        const result = await generateContentWithFallback(ai, prompt, true);
         responseText = result.text;
       } catch (gErr) {
-        console.warn("Search precedents AI call failed, using default precedents:", gErr);
-        return res.json({
-          precedents: [
-            {
-              type: "最高法院刑事判例",
-              citation: "最高法院 76 年台上字第 4986 號 刑事判例",
-              summary: "認定犯罪事實所憑之證據，須於通常一般之人均不致有所懷疑，而得確信其為真實之程度者，始得據為有罪之認定。",
-              applicationReason: "用以指摘原審採認證據未達確信程度，違反無罪推定原則與經驗法則。"
-            },
-            {
-              type: "最高法院刑事判決",
-              citation: "最高法院 108 年度台上字第 3570 號 刑事判決",
-              summary: "證據之取捨及事實之認定，固屬事實審法院之職權，惟其心證之形成，仍須符合經驗法則與論理法則。",
-              applicationReason: "指摘原審自由心證之形成違反經驗法則與論理法則。"
-            }
-          ],
-          isFallback: true,
-          warning: "Gemini API 暫時高負載，已為您載入精選標竿實務見解"
-        });
+        console.warn("Search precedents AI call failed; returning fail-closed result:", gErr);
+        return res.json(buildPrecedentFallback(gErr));
       }
       responseText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
       let parsedData = [];
@@ -785,17 +686,26 @@ app.post("/api/tlr/fulltext", async (req, res) => {
           parsedData = JSON.parse(responseText);
         }
       } catch (pErr) {
-        console.warn("Direct JSON parse failed, returning default precedents:", pErr);
-        parsedData = [
-          {
-            type: "最高法院刑事判例",
-            citation: "最高法院 76 年台上字第 4986 號 刑事判例",
-            summary: "認定犯罪事實所憑之證據，須於通常一般之人均不致有所懷疑，而得確信其為真實之程度者，始得據為有罪之認定。",
-            applicationReason: "用以指摘原審採認證據未達確信程度，違反無罪推定原則與經驗法則。"
-          }
-        ];
+        console.warn("Direct JSON parse failed; returning fail-closed result:", pErr);
+        return res.json(buildPrecedentFallback(pErr));
       }
-      return res.json({ precedents: parsedData });
+      try {
+        const verifiedPrecedents = await verifyPrecedents(parsedData, async (citation) => {
+          const verificationResponse = await fetch("https://tlr.dr-legal.com.tw/v1/search", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query: citation, search_type: "hybrid", max_results: 5 })
+          });
+          if (!verificationResponse.ok) {
+            throw new Error(`TLR citation verification failed: ${verificationResponse.status}`);
+          }
+          return await verificationResponse.json();
+        });
+        return res.json({ precedents: verifiedPrecedents });
+      } catch (verificationError) {
+        console.warn("Precedent verification failed; returning fail-closed result:", verificationError);
+        return res.json(buildPrecedentFallback(verificationError));
+      }
     } catch (err) {
       console.error("Search precedents error:", err);
       return res.status(500).json({ error: err.message || "伺服器內部錯誤" });
@@ -816,7 +726,7 @@ app.post("/api/tlr/fulltext", async (req, res) => {
       
       let petitionText = "";
       try {
-        const result = await safeGenerateContent(ai, prompt, false);
+        const result = await generateContentWithFallback(ai, prompt, false);
         petitionText = result.text;
       } catch (genErr) {
         console.warn("Petition AI generation error, using fallback petition:", genErr);

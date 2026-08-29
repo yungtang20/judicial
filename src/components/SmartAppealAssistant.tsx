@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
+import { splitOcrUncertainty } from '../lib/ocrMarkers';
 
 if (typeof window !== 'undefined' && pdfjsLib && pdfjsLib.GlobalWorkerOptions) {
   try {
@@ -56,6 +57,7 @@ export default function SmartAppealAssistant() {
   // Judgment Text & Import State
   const [rawText, setRawText] = useState<string>('');
   const [secondText, setSecondText] = useState<string>('');
+  const [ocrPreviewText, setOcrPreviewText] = useState<string>('');
   const [isDualMode, setIsDualMode] = useState<boolean>(false);
   const [isParsingPdf, setIsParsingPdf] = useState<boolean>(false);
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
@@ -157,24 +159,7 @@ export default function SmartAppealAssistant() {
   // Precedents & Interpretations
   const [keywords, setKeywords] = useState<string>('簡易判決上訴 量刑適法性 違背經驗法則 事實認定不憑證據');
   const [isSearchingPrecedents, setIsSearchingPrecedents] = useState<boolean>(false);
-  const [precedents, setPrecedents] = useState<PrecedentItem[]>([
-    {
-      id: 'p1',
-      type: '最高法院裁判',
-      citation: '最高法院 99 年度台上字第 700 號 刑事判決',
-      summary: '按數行為於密接時間地點實行，侵害同一法益，各行為獨立性極為薄弱，在刑法評價上以視為數個舉動之接續施行，合為包括之一行為，屬接續犯。',
-      applicationReason: '用以論駁原審認定數次行為之罪數與接續犯評價過重或過輕之法律適用疑義。',
-      selected: true
-    },
-    {
-      id: 'p2',
-      type: '最高法院刑事判例',
-      citation: '最高法院 76 年台上字第 4986 號 刑事判例',
-      summary: '認定犯罪事實所憑之證據，須於通常一般之人均不致有所懷疑，而得確信其為真實之程度者，始得據為有罪之認定。倘其證明尚未達到此一程度，而有合理之懷疑存在時，即應為被告有利之認定。',
-      applicationReason: '用以指摘原審採認證據未達超越合理懷疑程度，違反刑事訴訟法第 154 條第 2 項無罪推定原則。',
-      selected: true
-    }
-  ]);
+  const [precedents, setPrecedents] = useState<PrecedentItem[]>([]);
 
   // Appeal Petition Generation State
 
@@ -295,6 +280,7 @@ export default function SmartAppealAssistant() {
               const ocrData = await ocrRes.json();
               if (ocrData.text) {
                 fullText = ocrData.text;
+                if (targetField === 'first') setOcrPreviewText(ocrData.text);
               }
             } else {
               const errData = await ocrRes.json().catch(() => ({}));
@@ -322,6 +308,7 @@ export default function SmartAppealAssistant() {
         setSecondText(text);
       } else {
         setRawText(text);
+        setOcrPreviewText('');
       }
     }
   };
@@ -940,8 +927,18 @@ export default function SmartAppealAssistant() {
                 onChange={e => setRawText(e.target.value)}
                 rows={10}
                 className="w-full border border-karoshi-border rounded-lg p-3 text-xs leading-relaxed font-mono focus:outline-none focus:ring-2 focus:ring-karoshi-accent"
-                placeholder="請在此貼上原審裁判書全文，例如：「臺灣臺北地方法院 113 年度訴字第 1234 號民事判決...」"
+               placeholder="請在此貼上原審裁判書全文，例如：「臺灣臺北地方法院 113 年度訴字第 1234 號民事判決...」"
               />
+              {ocrPreviewText && (
+                <div className="mt-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs leading-relaxed" aria-label="OCR 人工複核預覽">
+                  <div className="mb-1 font-bold text-amber-900">OCR 人工複核提示：紅色片段為低把握度辨識結果</div>
+                  <div className="whitespace-pre-wrap font-mono text-gray-800">
+                    {splitOcrUncertainty(ocrPreviewText).map((segment, index) => segment.uncertain
+                      ? <mark key={index} className="rounded bg-red-300 px-0.5 font-bold text-red-950">{segment.text}</mark>
+                      : <span key={index}>{segment.text}</span>)}
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             /* 雙裁判書對照模式 */
