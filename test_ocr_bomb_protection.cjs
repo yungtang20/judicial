@@ -1,8 +1,9 @@
 const assert = require('node:assert/strict');
 const { PNG } = require('pngjs');
+const jpeg = require('jpeg-js');
 
 (async () => {
-  const { inspectPngDimensions, validateImageDataUrl } = await import('./src/lib/ocrImageValidation.ts');
+  const { inspectPngDimensions, validateImageDataUrl, decodeInWorker } = await import('./src/lib/ocrImageValidation.ts');
   const header = Buffer.alloc(33);
   Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]).copy(header, 0);
   header.writeUInt32BE(13, 8);
@@ -19,11 +20,17 @@ const { PNG } = require('pngjs');
   });
   PNG.sync.read = originalRead;
   assert.equal(decodeCalled, false);
-  const png = new PNG({ width: 100, height: 100 });
-  png.data.fill(128);
-  for (let index = 3; index < png.data.length; index += 4) png.data[index] = 255;
+  const png = new PNG({ width: 2, height: 1 });
+  png.data.set([10, 20, 30, 255, 240, 230, 220, 255]);
   const validPng = `data:image/png;base64,${PNG.sync.write(png).toString('base64')}`;
+  assert.deepEqual(await validateImageDataUrl(validPng), { ok: true });
+  const workerPngResult = await decodeInWorker('image/png', PNG.sync.write(png), 2000);
+  assert.deepEqual({ min: workerPngResult.min, max: workerPngResult.max }, { min: 10, max: 240 });
   assert.deepEqual(await validateImageDataUrl(validPng, { timeoutMs: 0 }), { ok: false, error: 'IMAGE_DECODE_TIMEOUT' });
+
+  const jpegData = jpeg.encode({ data: Buffer.from([10, 20, 30, 255, 240, 230, 220, 255]), width: 2, height: 1 }, 90).data;
+  const validJpeg = `data:image/jpeg;base64,${jpegData.toString('base64')}`;
+  assert.deepEqual(await validateImageDataUrl(validJpeg), { ok: true });
 
   let heartbeat = false;
   setTimeout(() => { heartbeat = true; }, 10);

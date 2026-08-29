@@ -28,7 +28,7 @@ const decodeWorkerSource = `
   });
 `;
 
-async function decodeInWorker(format: string, bytes: Buffer, timeoutMs: number): Promise<{ ok: boolean; min?: number; max?: number; error?: string }> {
+export async function decodeInWorker(format: string, bytes: Buffer, timeoutMs: number): Promise<{ ok: boolean; min?: number; max?: number; error?: string }> {
   const worker = new Worker(decodeWorkerSource, { eval: true });
   return await new Promise<{ ok: boolean; error?: string }>((resolve) => {
     const timer = setTimeout(() => {
@@ -66,7 +66,7 @@ export async function validateImageDataUrl(dataUrl: string, options: { maxBytes?
     }
     const result = await decodeInWorker(match[1], bytes, options.timeoutMs ?? DEFAULT_DECODE_TIMEOUT_MS);
     if (!result.ok) return result;
-    return validateImagePixels(new Uint8Array([result.min, result.max]));
+    return validateImagePixels({ min: result.min ?? 0, max: result.max ?? 0 });
   } catch {
     return { ok: false as const, error: 'IMAGE_INVALID_DATA' };
   }

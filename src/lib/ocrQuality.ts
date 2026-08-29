@@ -3,7 +3,12 @@ export interface OcrQuality {
   untrustedFields: string[];
 }
 
-export function validateImagePixels(pixels: ArrayLike<number>) {
+export function validateImagePixels(pixels: ArrayLike<number> | { min: number; max: number }) {
+  if ('min' in pixels && 'max' in pixels) {
+    return pixels.max - pixels.min <= 1
+      ? { ok: false as const, error: 'IMAGE_BLANK_OR_SOLID' }
+      : { ok: true as const };
+  }
   if (!pixels.length) return { ok: false, error: 'IMAGE_BLANK_OR_SOLID' } as const;
   let min = 255;
   let max = 0;
