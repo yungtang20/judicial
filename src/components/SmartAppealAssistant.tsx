@@ -1,7 +1,5 @@
 import React, { useState, useRef } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
-import { splitOcrUncertainty } from '../lib/ocrMarkers';
-import { validateImagePixels } from '../lib/ocrQuality';
 
 if (typeof window !== 'undefined' && pdfjsLib && pdfjsLib.GlobalWorkerOptions) {
   try {
@@ -58,8 +56,6 @@ export default function SmartAppealAssistant() {
   // Judgment Text & Import State
   const [rawText, setRawText] = useState<string>('');
   const [secondText, setSecondText] = useState<string>('');
-  const [ocrPreviewText, setOcrPreviewText] = useState<string>('');
-  const [ocrNeedsManualReview, setOcrNeedsManualReview] = useState<boolean>(false);
   const [isDualMode, setIsDualMode] = useState<boolean>(false);
   const [isParsingPdf, setIsParsingPdf] = useState<boolean>(false);
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
@@ -247,63 +243,16 @@ export default function SmartAppealAssistant() {
         const arrayBuffer = await file.arrayBuffer();
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         let fullText = '';
-        const imagesToUpload: string[] = [];
-
         for (let i = 1; i <= pdf.numPages; i++) {
           const page = await pdf.getPage(i);
           const textContent = await page.getTextContent();
           const pageText = textContent.items.map((item: any) => item.str).join(' ');
           fullText += pageText + '\n';
-
-          // 渲染頁面成 Canvas 影像
-          try {
-            const viewport = page.getViewport({ scale: 1.5 });
-            const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
-            canvas.height = viewport.height;
-            canvas.width = viewport.width;
-            await page.render({ canvasContext: context!, viewport } as any).promise;
-            const imageQuality = validateImagePixels(context!.getImageData(0, 0, canvas.width, canvas.height).data);
-            if (!imageQuality.ok) {
-              throw new Error('IMAGE_BLANK_OR_SOLID');
-            }
-            const imageDataUrl = canvas.toDataURL('image/jpeg', 0.85);
-            imagesToUpload.push(imageDataUrl);
-          } catch (canvasErr) {
-            console.warn(`Page ${i} canvas render failed:`, canvasErr);
-            if (canvasErr instanceof Error && canvasErr.message === 'IMAGE_BLANK_OR_SOLID') {
-              throw canvasErr;
-            }
-          }
         }
 
-        // 偵測到無內建文字或文字極少（即掃描版 PDF），自動呼叫後端多模態 OCR 服務
-        if (fullText.trim().length < 100 && imagesToUpload.length > 0) {
-          try {
-            const ocrRes = await fetch('/api/ocr', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                images: imagesToUpload,
-                pdfBase64: btoa(Array.from(new Uint8Array(arrayBuffer), (byte) => String.fromCharCode(byte)).join(''))
-              })
-            });
-            if (ocrRes.ok) {
-              const ocrData = await ocrRes.json();
-              if (ocrData.text) {
-                fullText = ocrData.text;
-                if (targetField === 'first') {
-                  setOcrPreviewText(ocrData.text);
-                  setOcrNeedsManualReview(ocrData.needsManualReview === true);
-                }
-              }
-            } else {
-              const errData = await ocrRes.json().catch(() => ({}));
-              alert(errData.error || 'OCR 辨識失敗，請檢查 API Key 設定。');
-            }
-          } catch (ocrErr) {
-            console.warn('OCR fetch failed:', ocrErr.message);
-          }
+        if (!fullText.trim()) {
+          alert('此 PDF 沒有可抽取文字，請提供文字版 PDF 或直接貼上判決內文。');
+          return;
         }
 
         if (targetField === 'second') {
@@ -313,11 +262,7 @@ export default function SmartAppealAssistant() {
         }
       } catch (err) {
         console.warn('PDF Parse Error:', err instanceof Error ? err.message : err);
-        if (err instanceof Error && err.message === 'IMAGE_BLANK_OR_SOLID') {
-          alert('影像為全黑或全白，無法進行 OCR，未產生任何文字。');
-        } else {
-          alert('PDF 解析失敗，請直接複製貼上判決內文。');
-        }
+        alert('PDF 解析失敗，請直接複製貼上判決內文。');
       } finally {
         setIsParsingPdf(false);
       }
@@ -327,8 +272,6 @@ export default function SmartAppealAssistant() {
         setSecondText(text);
       } else {
         setRawText(text);
-        setOcrPreviewText('');
-        setOcrNeedsManualReview(false);
       }
     }
   };
@@ -949,17 +892,6 @@ export default function SmartAppealAssistant() {
                 className="w-full border border-karoshi-border rounded-lg p-3 text-xs leading-relaxed font-mono focus:outline-none focus:ring-2 focus:ring-karoshi-accent"
                placeholder="請在此貼上原審裁判書全文，例如：「臺灣臺北地方法院 113 年度訴字第 1234 號民事判決...」"
               />
-              {ocrPreviewText && (
-                <div className="mt-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs leading-relaxed" aria-label="OCR 人工複核預覽">
-                  <div className="mb-1 font-bold text-amber-900">OCR 人工複核提示：紅色片段為低把握度辨識結果</div>
-                  {ocrNeedsManualReview && <div className="mb-1 font-bold text-red-800">此 OCR 結果包含較高比例的不確定片段，請人工複核後再送出分析。</div>}
-                  <div className="whitespace-pre-wrap font-mono text-gray-800">
-                    {splitOcrUncertainty(ocrPreviewText).map((segment, index) => segment.uncertain
-                      ? <mark key={index} className="rounded bg-red-300 px-0.5 font-bold text-red-950">{segment.text}</mark>
-                      : <span key={index}>{segment.text}</span>)}
-                  </div>
-                </div>
-              )}
             </div>
           ) : (
             /* 雙裁判書對照模式 */

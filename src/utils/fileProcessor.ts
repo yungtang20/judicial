@@ -9,9 +9,7 @@ if (typeof window !== 'undefined' && pdfjsLib && pdfjsLib.GlobalWorkerOptions) {
 }
 
 export interface ProcessResult {
-  imagesToUpload: string[];
   accumulatedText: string;
-  localNativeText: { [key: number]: string };
   hasRichNativeText: boolean;
 }
 
@@ -23,23 +21,13 @@ export async function processUploadedFiles(
 
   onProgress('正在載入並解析卷宗檔案...');
 
-  const imagesToUpload: string[] = [];
   let accumulatedText = '';
-  const localNativeText: { [key: number]: string } = {};
 
   try {
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
 
-      if (file.type.startsWith('image/')) {
-        onProgress(`正在讀取卷宗圖片 (${file.name})...`);
-        const reader = new FileReader();
-        const dataUrl = await new Promise<string>((resolve) => {
-          reader.onload = () => resolve(reader.result as string);
-          reader.readAsDataURL(file);
-        });
-        imagesToUpload.push(dataUrl);
-      } else if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+      if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
         onProgress(`正在解析 PDF 檔案 (${file.name})...`);
         try {
           const arrayBuffer = await file.arrayBuffer();
@@ -62,27 +50,7 @@ export async function processUploadedFiles(
               }
 
               if (pageText && pageText.trim().length > 10) {
-                localNativeText[imagesToUpload.length] = pageText;
-                accumulatedText += `--- Page ${imagesToUpload.length + 1} ---\n${pageText}\n\n`;
-              }
-
-              // 2. 轉換為輕量化圖片供 OCR 使用
-              const viewport = page.getViewport({ scale: 1.5 }); // 1.5x scale 足夠清晰且省記憶體
-              const canvas = document.createElement('canvas');
-              const context = canvas.getContext('2d');
-              if (context) {
-                canvas.height = viewport.height;
-                canvas.width = viewport.width;
-                
-                await (page.render({
-                  canvasContext: context,
-                  viewport: viewport,
-                  canvas: canvas
-                } as any).promise);
-
-                // 使用 0.75 品質 JPEG 壓縮，大幅降低 Base64 體積
-                const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
-                imagesToUpload.push(dataUrl);
+                accumulatedText += `--- Page ${pageNum} ---\n${pageText}\n\n`;
               }
             } catch (pageErr) {
               console.error(`[PDF Parsing Error] 無法解析第 ${pageNum} 頁:`, pageErr);
@@ -104,7 +72,7 @@ export async function processUploadedFiles(
     }
 
     const hasRichNativeText = accumulatedText.trim().length >= 200;
-    return { imagesToUpload, accumulatedText, localNativeText, hasRichNativeText };
+    return { accumulatedText, hasRichNativeText };
   } catch (err) {
     console.error('檔案處理過程發生未預期錯誤:', err);
     throw err;

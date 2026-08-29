@@ -13,10 +13,7 @@ import { normalizeJudicialResponse, resolveJudicialCredentials } from "./src/lib
 import { generateContentWithFallback } from "./src/lib/geminiGeneration.js";
 import { parseStrictJson } from "./src/lib/strictJson.js";
 import { searchTlr } from "./src/lib/tlrSearch.js";
-import { assessOcrText } from "./src/lib/ocrQuality.js";
-import { validateImageDataUrl } from "./src/lib/ocrImageValidation.js";
 import { normalizeTaiwanCaseQuery } from "./src/lib/caseQuery.js";
-import { runPaddleOcrPdf } from "./src/lib/paddleOcr.js";
 
 dotenv.config();
 
@@ -39,21 +36,6 @@ function isApiKeyMissingOrPlaceholder(key?: string): boolean {
     trimmed === "placeholder" ||
     trimmed.startsWith("MY_")
   );
-}
-
-// 剖析 Data URL 格式並轉換為 Gemini SDK 接受的 inlineData 物件
-function parseDataUrl(dataUrl: string) {
-  if (!dataUrl) return null;
-  const matches = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
-  if (matches) {
-    return {
-      inlineData: {
-        mimeType: matches[1],
-        data: matches[2]
-      }
-    };
-  }
-  return null;
 }
 
 // 根據環境狀態決定正確使用的 API Key
@@ -246,93 +228,6 @@ app.post("/api/fetch-url", async (req, res) => {
     return res.status(500).json({ error: err.message || "Failed to fetch URL" });
   }
 });
-
-app.post("/api/ocr", async (req, res) => {
-    try {
-      const { images = [], pdfBase64 } = req.body;
-      if (images.length === 0) {
-        return res.json({ text: "" });
-      }
-      if (typeof pdfBase64 === "string" && process.env.PADDLE_OCR_TOKEN?.trim()) {
-        try {
-          const paddleResult = await runPaddleOcrPdf(Buffer.from(pdfBase64, "base64"), {
-            token: process.env.PADDLE_OCR_TOKEN
-          });
-          if (paddleResult.confidenceAvailable) {
-            const quality = assessOcrText(paddleResult.text);
-            return res.json({ text: paddleResult.text, ...quality, needsManualReview: paddleResult.needsManualReview || quality.needsManualReview, rejectedImages: [], source: paddleResult.source, lowConfidenceRegions: paddleResult.lowConfidenceRegions });
-          }
-          console.warn("Paddle OCR returned no confidence regions; falling back to Gemini Vision");
-        } catch (paddleError) {
-          console.warn("Paddle OCR failed; falling back to Gemini Vision:", paddleError);
-        }
-      }
-      const apiKey = resolveApiKey();
-      if (isApiKeyMissingOrPlaceholder(apiKey)) {
-        console.log("[Gemini API] No valid API key for OCR, returning error.");
-        return res.status(503).json({
-          error: "未設定有效的 GEMINI_API_KEY，無法進行 OCR 光學辨識。請在 AI Studio 中進行設定。",
-          code: "NO_API_KEY"
-        });
-      }
-      const ai = createGeminiClient(apiKey);
-      const imageChecks = [];
-      for (const image of images) {
-        imageChecks.push(await validateImageDataUrl(image));
-      }
-      const rejectedImages = imageChecks
-        .map((check, index) => check.ok ? null : { index, error: check.error })
-        .filter((item) => item !== null);
-      if (rejectedImages.length === images.length) {
-        return res.status(422).json({ text: "", needsManualReview: true, code: "IMAGE_BLANK_OR_SOLID", rejectedImages });
-      }
-      const parsedImages = images
-        .filter((_, index) => imageChecks[index].ok)
-        .map((img) => parseDataUrl(img))
-        .filter((x) => x !== null);
-      const ocrResults = [];
-      for (let idx = 0; idx < parsedImages.length; idx++) {
-        const parsedImg = parsedImages[idx];
-        const pagePrompt = `你是一位精通繁體中文、法律文書、警察卷宗與法院裁判書的專業 OCR 光學文字識讀專家。
-目前正在解析第 ${idx + 1} 頁影像。請仔細、完整地辨識並轉錄此頁影像中的所有文字（包含手寫簽名、手寫字跡、蓋章、印刷文字、表格欄位與數值、問答筆錄、身分證件等）。
-請保持最真實、最精準的排版與段落格式，100% 逐字逐句完整重現，絕對不要遺漏任何一頁筆錄、問答或表格！不要進行任何總結、解釋、潤飾或添加多餘的提示字首尾。
-對任何辨識把握度低、字元無法可靠確認的片段，保留原位置並使用固定格式 [不確定] 標記；不要猜測或用相似字替換。高把握度文字不要加此標記。
-直接輸出此頁轉錄完成的全文內容：`;
-        console.log(`[OCR] 正在辨識第 ${idx + 1}/${parsedImages.length} 頁影像...`);
-        let pageText = "";
-        const ocrMaxRetries = 2;
-        for (let attempt = 1; attempt <= ocrMaxRetries; attempt++) {
-          try {
-            const result = await generateContentWithFallback(ai, [pagePrompt, parsedImg], false);
-            pageText = result.text || "";
-            break;
-          } catch (err) {
-            const errMsg = err?.message || String(err);
-            console.warn(`[OCR] 第 ${idx + 1} 頁第 ${attempt} 次嘗試失敗: ${errMsg.slice(0, 120)}`);
-            if (attempt < ocrMaxRetries) {
-              const waitTime = 1500;
-              console.log(`[OCR] 於 ${waitTime}ms 後重試第 ${idx + 1} 頁...`);
-              await new Promise((r) => setTimeout(r, waitTime));
-            } else {
-              pageText = `[此頁 OCR 辨識失敗：${errMsg}]`;
-            }
-          }
-        }
-        ocrResults.push(`--- Page ${idx + 1} ---
-${pageText}
-`);
-        if (idx < parsedImages.length - 1) {
-          await new Promise((r) => setTimeout(r, 600));
-        }
-      }
-      const combinedText = ocrResults.join("\n");
-      const quality = assessOcrText(combinedText);
-      return res.json({ text: combinedText, ...quality, rejectedImages });
-    } catch (err) {
-      console.error("OCR API error:", err);
-      return res.status(500).json({ error: err.message || "OCR failed" });
-    }
-  });
 
   app.post("/api/analyze-judgment", async (req, res) => {
     try {

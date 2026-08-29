@@ -3,11 +3,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const modules = [
-  'ocrQuality.ts', 'judicialCredentials.ts', 'tlrSearch.ts', 'precedentVerification.ts',
+  'judicialCredentials.ts', 'tlrSearch.ts', 'precedentVerification.ts',
   'caseQuery.ts', 'strictJson.ts', 'geminiGeneration.ts'
 ];
 const indirectEdges = [
-  ['validateImagePixels', 'ocrImageValidation.ts', 'validateImageDataUrl'],
   ['normalizeTaiwanCaseQuery', 'tlrSearch.ts', 'searchTlr'],
   ['judicialUpstreamError', 'judicialCredentials.ts', 'normalizeJudicialResponse'],
   ['normalizeCitation', 'precedentVerification.ts', 'verifyPrecedents']
