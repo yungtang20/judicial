@@ -9,11 +9,12 @@ import { getGenerateAppealPetitionPrompt } from "./src/prompts/generate-appeal-p
 import { getAnalyzeJudgmentPrompt } from "./src/prompts/analyze-judgment.js";
 import { buildFallbackJudgmentAnalysis, buildFallbackPetition, buildFallbackPoliceAnalysis } from "./src/utils/fallbacks.js";
 import { buildPrecedentFallback, verifyPrecedents } from "./src/lib/precedentVerification.js";
-import { resolveJudicialCredentials } from "./src/lib/judicialCredentials.js";
+import { judicialUpstreamError, resolveJudicialCredentials } from "./src/lib/judicialCredentials.js";
 import { generateContentWithFallback } from "./src/lib/geminiGeneration.js";
 import { parseStrictJson } from "./src/lib/strictJson.js";
 import { searchTlr } from "./src/lib/tlrSearch.js";
 import { assessOcrText } from "./src/lib/ocrQuality.js";
+import { validateImageDataUrl } from "./src/lib/ocrImageValidation.js";
 
 dotenv.config();
 
@@ -268,7 +269,17 @@ app.post("/api/ocr", async (req, res) => {
         });
       }
       const ai = createGeminiClient(apiKey);
-      const parsedImages = images.map((img) => parseDataUrl(img)).filter((x) => x !== null);
+      const imageChecks = await Promise.all(images.map((image) => validateImageDataUrl(image)));
+      const rejectedImages = imageChecks
+        .map((check, index) => check.ok ? null : { index, error: check.error })
+        .filter((item) => item !== null);
+      if (rejectedImages.length === images.length) {
+        return res.status(422).json({ text: "", needsManualReview: true, code: "IMAGE_BLANK_OR_SOLID", rejectedImages });
+      }
+      const parsedImages = images
+        .filter((_, index) => imageChecks[index].ok)
+        .map((img) => parseDataUrl(img))
+        .filter((x) => x !== null);
       const ocrResults = [];
       for (let idx = 0; idx < parsedImages.length; idx++) {
         const parsedImg = parsedImages[idx];
@@ -306,7 +317,7 @@ ${pageText}
       }
       const combinedText = ocrResults.join("\n");
       const quality = assessOcrText(combinedText);
-      return res.json({ text: combinedText, ...quality });
+      return res.json({ text: combinedText, ...quality, rejectedImages });
     } catch (err) {
       console.error("OCR API error:", err);
       return res.status(500).json({ error: err.message || "OCR failed" });
@@ -499,9 +510,7 @@ app.post("/api/tlr/fulltext", async (req, res) => {
       });
       const data = await response.json();
       if (!response.ok) {
-        const upstreamError = response.status === 401 || response.status === 403
-          ? { code: "JUDICIAL_AUTH_FAILED", message: "司法院帳密驗證失敗或遭拒絕" }
-          : { code: "JUDICIAL_API_UNAVAILABLE", message: "司法院外部服務暫時無法使用" };
+        const upstreamError = judicialUpstreamError(response.status);
         return res.status(response.status).json({ succeeded: false, ...upstreamError });
       }
       res.json(data);
@@ -522,9 +531,7 @@ app.post("/api/tlr/fulltext", async (req, res) => {
       });
       const data = await response.json();
       if (!response.ok) {
-        const upstreamError = response.status === 401 || response.status === 403
-          ? { code: "JUDICIAL_AUTH_FAILED", message: "司法院帳密驗證失敗或遭拒絕" }
-          : { code: "JUDICIAL_API_UNAVAILABLE", message: "司法院外部服務暫時無法使用" };
+        const upstreamError = judicialUpstreamError(response.status);
         return res.status(response.status).json(upstreamError);
       }
       const token = data?.Token || data?.token;
