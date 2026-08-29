@@ -25,16 +25,16 @@ export interface PaddleOcrResult {
   lowConfidenceRegions: PaddleTextRegion[];
 }
 
-export function parseResult(stdout: string): { text: string; status?: string; confidence_regions?: unknown } {
+export function parseResult(stdout: string): { text: string; status?: string; transcription_confidence_regions?: unknown } {
   const starts = [...stdout.matchAll(/(?:^|\n)[ \t]*\{/g)].map((match) => match.index! + match[0].lastIndexOf('{'));
   for (const start of starts.reverse()) {
     try {
-      const result = JSON.parse(stdout.slice(start)) as { text?: unknown; status?: string; confidence_regions?: unknown };
+      const result = JSON.parse(stdout.slice(start)) as { text?: unknown; status?: string; transcription_confidence_regions?: unknown };
       if (typeof result.text !== 'string') continue;
       return {
         text: result.text as string,
         ...(result.status === undefined ? {} : { status: result.status }),
-        ...(result.confidence_regions === undefined ? {} : { confidence_regions: result.confidence_regions })
+        ...(result.transcription_confidence_regions === undefined ? {} : { transcription_confidence_regions: result.transcription_confidence_regions })
       };
     } catch {
       // Try the next line that could contain the outer JSON object.
@@ -60,7 +60,7 @@ export async function runPaddleOcrPdf(pdf: Buffer, options: PaddleOcrOptions = {
       env: { ...process.env, PADDLE_OCR_TOKEN: options.token }
     });
     const result = parseResult(stdout);
-    const regions = Array.isArray(result.confidence_regions) ? result.confidence_regions as PaddleTextRegion[] : [];
+    const regions = Array.isArray(result.transcription_confidence_regions) ? result.transcription_confidence_regions as PaddleTextRegion[] : [];
     const marked = markLowConfidenceRegions(regions);
     return {
       text: regions.length > 0 ? marked.text : result.text,

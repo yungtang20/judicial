@@ -11,7 +11,7 @@ const fs = require('node:fs');
     command: 'python-test',
     execute: async (command, args, options) => {
       calls.push({ command, args, options });
-      return { stdout: `progress {not-json}\n${JSON.stringify({ status: 'TEXT_EXTRACTED', text: '忽略原始文字', confidence_regions: [{ text: '臺灣臺北地方法院', confidence: 0.98 }, { text: '模糊字', confidence: 0.42 }] })}`, stderr: '' };
+      return { stdout: `progress {not-json}\n${JSON.stringify({ status: 'TEXT_EXTRACTED', text: '忽略原始文字', transcription_confidence_regions: [{ text: '臺灣臺北地方法院', transcriptionConfidence: 0.98 }, { text: '模糊字', transcriptionConfidence: 0.42 }] })}`, stderr: '' };
     }
   });
   assert.equal(result.text, '臺灣臺北地方法院[不確定]模糊字');
