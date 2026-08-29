@@ -1,8 +1,19 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const { PNG } = require('pngjs');
+const jpeg = require('jpeg-js');
 
 (async () => {
   const { validateImageDataUrl, validateImageDataUrls } = await import('./src/lib/ocrImageValidation.ts');
+  const png = new PNG({ width: 2, height: 2 });
+  png.data.set([10, 10, 10, 255, 80, 80, 80, 255, 160, 160, 160, 255, 250, 250, 250, 255]);
+  assert.deepEqual(await validateImageDataUrl(`data:image/png;base64,${PNG.sync.write(png).toString('base64')}`), { ok: true });
+  const jpegBytes = jpeg.encode({
+    data: Buffer.from([10, 10, 10, 255, 80, 80, 80, 255, 160, 160, 160, 255, 250, 250, 250, 255]),
+    width: 2,
+    height: 2
+  }, 90).data;
+  assert.deepEqual(await validateImageDataUrl(`data:image/jpeg;base64,${jpegBytes.toString('base64')}`), { ok: true });
   assert.deepEqual(await validateImageDataUrl('data:image/png;base64,not-a-png'), { ok: false, error: 'IMAGE_INVALID_DATA' });
   assert.deepEqual(await validateImageDataUrl('data:image/webp;base64,AAAA'), { ok: false, error: 'IMAGE_UNSUPPORTED_FORMAT' });
   assert.deepEqual(await validateImageDataUrl(`data:image/png;base64,${Buffer.alloc(50 * 1024 * 1024).toString('base64')}`), { ok: false, error: 'IMAGE_DECODE_TIMEOUT' });
