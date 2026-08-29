@@ -14,6 +14,7 @@ import { generateContentWithFallback } from "./src/lib/geminiGeneration.js";
 import { parseStrictJson } from "./src/lib/strictJson.js";
 import { searchTlr } from "./src/lib/tlrSearch.js";
 import { normalizeTaiwanCaseQuery } from "./src/lib/caseQuery.js";
+import { fetchJudicialUrl, validateJudicialUrl } from "./src/lib/judicialUrlPolicy.js";
 
 dotenv.config();
 
@@ -146,9 +147,19 @@ app.post("/api/fetch-url", async (req, res) => {
   try {
     const { url } = req.body;
     if (!url) return res.status(400).json({ error: "No URL provided" });
-    
+
+    let validatedUrl: URL;
+    try {
+      validatedUrl = await validateJudicialUrl(url);
+    } catch (urlError) {
+      return res.status(400).json({
+        error: "只允許讀取司法院官方 HTTPS 網址",
+        code: urlError?.code || "JUDICIAL_URL_REJECTED"
+      });
+    }
+
     // If it's a Judicial website URL, try resolving via TLR (Taiwan Legal RAG) first!
-    if (url.includes("judicial.gov.tw")) {
+    if (validatedUrl.hostname === "judicial.gov.tw" || validatedUrl.hostname.endsWith(".judicial.gov.tw")) {
       try {
         const urlObj = new URL(url);
         const idParam = urlObj.searchParams.get("id") || urlObj.searchParams.get("jrecno") || urlObj.searchParams.get("kw") || urlObj.searchParams.get("k");
@@ -183,28 +194,8 @@ app.post("/api/fetch-url", async (req, res) => {
       }
     }
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000); // 8 second timeout
-    
     try {
-      const response = await fetch(url, {
-        signal: controller.signal,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-          'Accept-Language': 'zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7',
-          'Cache-Control': 'max-age=0',
-          'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
-          'Sec-Ch-Ua-Mobile': '?0',
-          'Sec-Ch-Ua-Platform': '"Windows"',
-          'Sec-Fetch-Dest': 'document',
-          'Sec-Fetch-Mode': 'navigate',
-          'Sec-Fetch-Site': 'none',
-          'Sec-Fetch-User': '?1',
-          'Upgrade-Insecure-Requests': '1'
-        }
-      });
-      clearTimeout(timeout);
+      const response = await fetchJudicialUrl(fetch, url, {});
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const html = await response.text();
       
@@ -218,7 +209,6 @@ app.post("/api/fetch-url", async (req, res) => {
       const text = $('body').text().replace(/\s+/g, ' ').trim();
       return res.json({ text });
     } catch (fetchErr) {
-      clearTimeout(timeout);
       if (fetchErr.name === 'AbortError') {
         throw new Error('讀取目標網站逾時 (連線無回應)。這通常是因為目標網站的主機防火牆封鎖了來自雲端伺服器的 IP。建議使用【⚖️ 判決檢索載入】搜尋案號，或直接複製貼上。');
       }

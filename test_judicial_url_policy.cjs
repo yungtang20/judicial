@@ -34,6 +34,8 @@ async function run() {
     'https://judicial.gov.tw.evil.example/',
     'https://eviljudicial.gov.tw/',
     'https://judicial.gov.tw@evil.example/'
+    , 'http://2130706433/'
+    , 'http://0177.0.0.1/'
   ]) {
     await assert.rejects(
       () => validateJudicialUrl(input, { lookup: PUBLIC_LOOKUP }),
@@ -41,6 +43,13 @@ async function run() {
       input
     );
   }
+
+  await assert.rejects(
+    () => validateJudicialUrl('https://judgment.judicial.gov.tw/', {
+      lookup: async () => [{ address: '::ffff:127.0.0.1', family: 6 }]
+    }),
+    (error) => error?.code === 'JUDICIAL_URL_PRIVATE_ADDRESS'
+  );
 
   for (const address of ['10.0.0.1', '172.16.0.1', '192.168.1.1', '169.254.1.1', '127.0.0.1', '::1', 'fc00::1', 'fe80::1']) {
     await assert.rejects(
@@ -74,11 +83,20 @@ async function run() {
   assert.equal(allowedCalls.length, 2);
   assert.ok(allowedCalls.every((call) => call.options.redirect === 'manual'));
 
+  await assert.rejects(
+    () => fetchJudicialUrl(async () => response(302, 'https://judicial.gov.tw/loop'), 'https://judicial.gov.tw/start', {
+      lookup: PUBLIC_LOOKUP,
+      maxRedirects: 2
+    }),
+    (error) => error?.code === 'JUDICIAL_URL_REDIRECT_LIMIT'
+  );
+
   const server = fs.readFileSync('./server.ts', 'utf8');
   const route = server.slice(server.indexOf('app.post("/api/fetch-url"'), server.indexOf('app.post("/api/analyze-judgment"'));
   assert.match(server, /from ["']\.\/src\/lib\/judicialUrlPolicy\.js["']/);
   assert.match(route, /await fetchJudicialUrl\(fetch,\s*url/);
   assert.doesNotMatch(route, /await fetch\(url,/);
+  assert.doesNotMatch(route, /Sec-Fetch-|User-Agent/);
 }
 
 run().then(() => console.log('Judicial URL policy tests passed'));
