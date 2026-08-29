@@ -2,48 +2,58 @@ export interface TlrSearchResponse {
   results?: Array<Record<string, unknown>>;
   [key: string]: unknown;
 }
+import { normalizeTaiwanCaseQuery } from './caseQuery.js';
 
-function normalizeTaiwanCaseQuery(input: string): string {
-  let clean = input.trim();
-  if (clean.includes('judgment.judicial.gov.tw') || clean.includes('http://') || clean.includes('https://')) {
-    try {
-      const url = new URL(clean);
-      const id = url.searchParams.get('id') || url.searchParams.get('jrecno') || url.searchParams.get('kw');
-      if (id) clean = decodeURIComponent(id);
-    } catch {
-      // Keep the original query when URL parsing fails.
-    }
+export { normalizeTaiwanCaseQuery };
+
+export class TlrSearchError extends Error {
+  constructor(public readonly code: 'TLR_TIMEOUT' | 'TLR_UPSTREAM_ERROR' | 'TLR_INVALID_RESPONSE', message: string) {
+    super(message);
+    this.name = 'TlrSearchError';
   }
-  if (clean.includes(',')) {
-    const parts = clean.split(',');
-    if (/^\d+$/.test(parts[0]) && parts.length >= 3) return `${parts[0]} ${parts[1]} ${parts[2]}`;
-    if (parts.length >= 4) return `${parts[1]} ${parts[2]} ${parts[3]}`;
-  }
-  const match = clean.match(/(?:[\u4e00-\u9fa5]+院\s*)?(\d{1,3})\s*(?:年度|年)?\s*([\u4e00-\u9fa5()（）]+?)\s*(?:字第|第|字)?\s*(\d+)\s*號?/);
-  if (match) return `${match[1]} ${match[2].replace(/^(?:年度|年)/, '').replace(/(?:字第|第|字)$/, '').trim()} ${match[3]}`;
-  return clean;
 }
 
 export async function searchTlr(
   fetchImpl: typeof fetch,
   query: string,
-  options: { searchType?: string; maxResults?: number } = {}
+  options: { searchType?: string; maxResults?: number; timeoutMs?: number } = {}
 ): Promise<TlrSearchResponse> {
   if (!query.trim()) throw new Error('No search query provided');
   const searchType = options.searchType || 'hybrid';
   const maxResults = options.maxResults || 5;
+  const timeoutMs = options.timeoutMs ?? 8000;
   const normalizedQuery = normalizeTaiwanCaseQuery(query);
   const request = (searchQuery: string) => fetchImpl('https://tlr.dr-legal.com.tw/v1/search', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ query: searchQuery, search_type: searchType, max_results: maxResults })
   });
-  const response = await request(normalizedQuery);
-  if (!response.ok) throw new Error(`TLR API search error: ${response.status}`);
-  let data = await response.json() as TlrSearchResponse;
+  const fetchWithTimeout = async (searchQuery: string) => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        request(searchQuery),
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(() => reject(new TlrSearchError('TLR_TIMEOUT', `TLR API timeout after ${timeoutMs}ms`)), timeoutMs);
+        })
+      ]);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  };
+  const parseResponse = async (response: Response): Promise<TlrSearchResponse> => {
+    if (!response.ok) throw new TlrSearchError('TLR_UPSTREAM_ERROR', `TLR API search error: ${response.status}`);
+    const data = await response.json() as TlrSearchResponse;
+    if (!data || !Array.isArray(data.results)) {
+      throw new TlrSearchError('TLR_INVALID_RESPONSE', 'TLR API returned an invalid response shape');
+    }
+    return data;
+  };
+  const response = await fetchWithTimeout(normalizedQuery);
+  let data = await parseResponse(response);
   if ((!data.results || data.results.length === 0) && normalizedQuery !== query.trim()) {
-    const fallbackResponse = await request(query.trim());
-    if (fallbackResponse.ok) data = await fallbackResponse.json() as TlrSearchResponse;
+    const fallbackResponse = await fetchWithTimeout(query.trim());
+    if (fallbackResponse.ok) data = await parseResponse(fallbackResponse);
   }
   return data;
 }

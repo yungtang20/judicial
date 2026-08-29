@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import { splitOcrUncertainty } from '../lib/ocrMarkers';
+import { validateImagePixels } from '../lib/ocrQuality';
 
 if (typeof window !== 'undefined' && pdfjsLib && pdfjsLib.GlobalWorkerOptions) {
   try {
@@ -58,6 +59,7 @@ export default function SmartAppealAssistant() {
   const [rawText, setRawText] = useState<string>('');
   const [secondText, setSecondText] = useState<string>('');
   const [ocrPreviewText, setOcrPreviewText] = useState<string>('');
+  const [ocrNeedsManualReview, setOcrNeedsManualReview] = useState<boolean>(false);
   const [isDualMode, setIsDualMode] = useState<boolean>(false);
   const [isParsingPdf, setIsParsingPdf] = useState<boolean>(false);
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
@@ -261,10 +263,17 @@ export default function SmartAppealAssistant() {
             canvas.height = viewport.height;
             canvas.width = viewport.width;
             await page.render({ canvasContext: context!, viewport } as any).promise;
+            const imageQuality = validateImagePixels(context!.getImageData(0, 0, canvas.width, canvas.height).data);
+            if (!imageQuality.ok) {
+              throw new Error('IMAGE_BLANK_OR_SOLID');
+            }
             const imageDataUrl = canvas.toDataURL('image/jpeg', 0.85);
             imagesToUpload.push(imageDataUrl);
           } catch (canvasErr) {
             console.warn(`Page ${i} canvas render failed:`, canvasErr);
+            if (canvasErr instanceof Error && canvasErr.message === 'IMAGE_BLANK_OR_SOLID') {
+              throw canvasErr;
+            }
           }
         }
 
@@ -280,7 +289,10 @@ export default function SmartAppealAssistant() {
               const ocrData = await ocrRes.json();
               if (ocrData.text) {
                 fullText = ocrData.text;
-                if (targetField === 'first') setOcrPreviewText(ocrData.text);
+                if (targetField === 'first') {
+                  setOcrPreviewText(ocrData.text);
+                  setOcrNeedsManualReview(ocrData.needsManualReview === true);
+                }
               }
             } else {
               const errData = await ocrRes.json().catch(() => ({}));
@@ -298,7 +310,11 @@ export default function SmartAppealAssistant() {
         }
       } catch (err) {
         console.warn('PDF Parse Error:', err instanceof Error ? err.message : err);
-        alert('PDF 解析失敗，請直接複製貼上判決內文。');
+        if (err instanceof Error && err.message === 'IMAGE_BLANK_OR_SOLID') {
+          alert('影像為全黑或全白，無法進行 OCR，未產生任何文字。');
+        } else {
+          alert('PDF 解析失敗，請直接複製貼上判決內文。');
+        }
       } finally {
         setIsParsingPdf(false);
       }
@@ -309,6 +325,7 @@ export default function SmartAppealAssistant() {
       } else {
         setRawText(text);
         setOcrPreviewText('');
+        setOcrNeedsManualReview(false);
       }
     }
   };
@@ -932,6 +949,7 @@ export default function SmartAppealAssistant() {
               {ocrPreviewText && (
                 <div className="mt-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs leading-relaxed" aria-label="OCR 人工複核預覽">
                   <div className="mb-1 font-bold text-amber-900">OCR 人工複核提示：紅色片段為低把握度辨識結果</div>
+                  {ocrNeedsManualReview && <div className="mb-1 font-bold text-red-800">此 OCR 結果包含較高比例的不確定片段，請人工複核後再送出分析。</div>}
                   <div className="whitespace-pre-wrap font-mono text-gray-800">
                     {splitOcrUncertainty(ocrPreviewText).map((segment, index) => segment.uncertain
                       ? <mark key={index} className="rounded bg-red-300 px-0.5 font-bold text-red-950">{segment.text}</mark>

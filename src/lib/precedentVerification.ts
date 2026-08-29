@@ -9,30 +9,37 @@ export interface TlrSearchResponse {
 
 export type TlrSearch = (query: string) => Promise<TlrSearchResponse>;
 
-function normalizeCitation(value: string): string {
+export function normalizeCitation(value: string): string {
   return value.replace(/[\s\u3000，。,:：；;、()（）「」『』【】\[\]]/g, '').toLowerCase();
 }
 
+function citationIdentity(value: string): string | null {
+  const normalized = normalizeCitation(value);
+  const match = normalized.match(/(?:(最高法院|臺灣[^\d]{1,20}法院|台灣[^\d]{1,20}法院))?(\d{2,3})(?:年度|年)([台臺][^字第]{0,8})(?:字第|第)(\d+)號?/);
+  if (!match) return null;
+  return `${match[1] || ''}|${match[2]}|${match[3].replace(/字$/, '')}|${match[4]}`;
+}
+
 function citationIsVerified(candidate: string, result: { citation_text?: string }): boolean {
-  const expected = normalizeCitation(candidate);
-  const actual = normalizeCitation(result.citation_text || '');
-  return Boolean(expected && actual && (actual.includes(expected) || expected.includes(actual)));
+  const expectedIdentity = citationIdentity(candidate);
+  const actualIdentity = citationIdentity(result.citation_text || '');
+  return Boolean(expectedIdentity && actualIdentity && expectedIdentity === actualIdentity);
 }
 
 export async function verifyPrecedents(
-  precedents: PrecedentCandidate[],
+  precedents: PrecedentCandidate[] | unknown,
   searchTlr: TlrSearch
 ): Promise<PrecedentCandidate[]> {
-  const verified: PrecedentCandidate[] = [];
-  for (const precedent of precedents) {
+  if (!Array.isArray(precedents)) return [];
+  const checks = precedents.map(async (precedent) => {
     const citation = typeof precedent.citation === 'string' ? precedent.citation.trim() : '';
-    if (!citation) continue;
+    if (!citation) return null;
     const searchResult = await searchTlr(citation);
-    if ((searchResult.results || []).some((result) => citationIsVerified(citation, result))) {
-      verified.push(precedent);
-    }
-  }
-  return verified;
+    if (!Array.isArray(searchResult.results)) return null;
+    return searchResult.results.some((result) => citationIsVerified(citation, result)) ? precedent : null;
+  });
+  const settled = await Promise.allSettled(checks);
+  return settled.flatMap((result) => result.status === 'fulfilled' && result.value ? [result.value] : []);
 }
 
 export function buildPrecedentFallback(_error?: unknown) {

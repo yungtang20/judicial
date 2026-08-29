@@ -18,3 +18,9 @@ export function resolveJudicialCredentials(
     pwd: env.JUDICIAL_OPENDATA_PASSWORD || ''
   };
 }
+
+export function judicialUpstreamError(status: number) {
+  return status === 401 || status === 403
+    ? { code: 'JUDICIAL_AUTH_FAILED', message: '司法院帳密驗證失敗或遭拒絕' }
+    : { code: 'JUDICIAL_API_UNAVAILABLE', message: '司法院外部服務暫時無法使用' };
+}

@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
-    "test:eval": "node --import tsx test_eval.cjs && node --import tsx test_precedent_verification.cjs && node --import tsx test_judicial_credentials.cjs && node --import tsx test_gemini_generation.cjs && node --import tsx test_ocr_markers.cjs && node --import tsx test_tlr_search.cjs && node --import tsx test_fail_closed.cjs && node --import tsx test_prompt_contract.cjs"
+    "test:eval": "node --import tsx test_eval.cjs && node --import tsx test_precedent_verification.cjs && node --import tsx test_judicial_credentials.cjs && node --import tsx test_gemini_generation.cjs && node --import tsx test_ocr_markers.cjs && node --import tsx test_ocr_quality.cjs && node --import tsx test_case_query.cjs && node --import tsx test_tlr_search.cjs && node --import tsx test_fail_closed.cjs && node --import tsx test_prompt_contract.cjs && node --import tsx test_ai_json.cjs"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

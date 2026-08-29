@@ -11,7 +11,9 @@ import { buildFallbackJudgmentAnalysis, buildFallbackPetition, buildFallbackPoli
 import { buildPrecedentFallback, verifyPrecedents } from "./src/lib/precedentVerification.js";
 import { resolveJudicialCredentials } from "./src/lib/judicialCredentials.js";
 import { generateContentWithFallback } from "./src/lib/geminiGeneration.js";
+import { parseStrictJson } from "./src/lib/strictJson.js";
 import { searchTlr } from "./src/lib/tlrSearch.js";
+import { assessOcrText } from "./src/lib/ocrQuality.js";
 
 dotenv.config();
 
@@ -303,7 +305,8 @@ ${pageText}
         }
       }
       const combinedText = ocrResults.join("\n");
-      return res.json({ text: combinedText });
+      const quality = assessOcrText(combinedText);
+      return res.json({ text: combinedText, ...quality });
     } catch (err) {
       console.error("OCR API error:", err);
       return res.status(500).json({ error: err.message || "OCR failed" });
@@ -362,15 +365,10 @@ ${pageText}
           warning: `Gemini API 暫時高負載 (${genErr.message || "503"})，已自動使用「離線智慧裁判解析引擎」為您提煉關鍵結果。`
         });
       }
-      responseText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
       let parsedData: any = {};
       try {
-        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          parsedData = JSON.parse(jsonMatch[0]);
-        } else {
-          parsedData = JSON.parse(responseText);
-        }
+        parsedData = parseStrictJson(responseText);
+        if (Array.isArray(parsedData)) throw new Error("Expected JSON object");
         const validCaseTypes = ["civil", "criminal", "administrative", "criminal_compensation"];
         const validAppealEligibilities = ["ALLOWED", "RESTRICTED", "FORBIDDEN"];
         if (!validCaseTypes.includes(parsedData.caseType)) {
@@ -500,6 +498,12 @@ app.post("/api/tlr/fulltext", async (req, res) => {
         body: JSON.stringify({ memberAccount, pwd })
       });
       const data = await response.json();
+      if (!response.ok) {
+        const upstreamError = response.status === 401 || response.status === 403
+          ? { code: "JUDICIAL_AUTH_FAILED", message: "司法院帳密驗證失敗或遭拒絕" }
+          : { code: "JUDICIAL_API_UNAVAILABLE", message: "司法院外部服務暫時無法使用" };
+        return res.status(response.status).json({ succeeded: false, ...upstreamError });
+      }
       res.json(data);
     } catch (err) {
       res.status(500).json({ succeeded: false, message: "取得會員 Token 失敗：" + err.message });
@@ -517,6 +521,12 @@ app.post("/api/tlr/fulltext", async (req, res) => {
         body: JSON.stringify({ user, password })
       });
       const data = await response.json();
+      if (!response.ok) {
+        const upstreamError = response.status === 401 || response.status === 403
+          ? { code: "JUDICIAL_AUTH_FAILED", message: "司法院帳密驗證失敗或遭拒絕" }
+          : { code: "JUDICIAL_API_UNAVAILABLE", message: "司法院外部服務暫時無法使用" };
+        return res.status(response.status).json(upstreamError);
+      }
       const token = data?.Token || data?.token;
       if (token) {
         return res.json({ Token: token, token });
@@ -606,15 +616,11 @@ app.post("/api/search-precedents", async (req, res) => {
         console.warn("Search precedents AI call failed; returning fail-closed result:", gErr);
         return res.json(buildPrecedentFallback(gErr));
       }
-      responseText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
       let parsedData = [];
       try {
-        const jsonMatch = responseText.match(/\[\s*\{[\s\S]*\}\s*\]/);
-        if (jsonMatch) {
-          parsedData = JSON.parse(jsonMatch[0]);
-        } else {
-          parsedData = JSON.parse(responseText);
-        }
+        const strictData = parseStrictJson(responseText);
+        if (!Array.isArray(strictData)) throw new Error("Expected JSON array");
+        parsedData = strictData;
       } catch (pErr) {
         console.warn("Direct JSON parse failed; returning fail-closed result:", pErr);
         return res.json(buildPrecedentFallback(pErr));

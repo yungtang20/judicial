@@ -34,7 +34,44 @@ async function testVerificationFailureReturnsFailClosedFallback() {
   });
 }
 
+async function testOneTlrFailureDoesNotDiscardOtherCitations() {
+  const { verifyPrecedents } = await loadModule();
+  const results = await verifyPrecedents([
+    { citation: '112 年度台上字第 1 號' },
+    { citation: '112 年度台上字第 2 號' }
+  ], async (query) => {
+    if (query.endsWith('第 1 號')) throw Object.assign(new Error('timeout'), { code: 'TLR_TIMEOUT' });
+    return { results: [{ citation_text: query }] };
+  });
+  assert.deepEqual(results, [{ citation: '112 年度台上字第 2 號' }]);
+}
+
+async function testCitationNormalizationAndStrictCourtMatching() {
+  const { verifyPrecedents, normalizeCitation } = await loadModule();
+  assert.equal(normalizeCitation('最高法院　112 年度台上字第 1234 號'), '最高法院112年度台上字第1234號');
+  const results = await verifyPrecedents([
+    { citation: '最高法院 112 年度台上字第 1234 號' },
+    { citation: '最高法院 112 年度台上字第 5678 號' }
+  ], async (query) => ({ results: [{ citation_text: query.endsWith('5678 號') ? '臺灣高等法院 112 年度台上字第 5678 號' : '最高法院112年度台上字第1234號（民事）' }] }));
+  assert.deepEqual(results, [{ citation: '最高法院 112 年度台上字第 1234 號' }]);
+  assert.deepEqual(await verifyPrecedents(null, async () => ({ results: [] })), []);
+}
+
+async function testManyCitationsRemainOrderedWhenResolvedOutOfOrder() {
+  const { verifyPrecedents } = await loadModule();
+  const citations = Array.from({ length: 12 }, (_, index) => ({ citation: `112 年度台上字第 ${index + 1} 號` }));
+  const results = await verifyPrecedents(citations, async (query) => {
+    const number = Number(query.match(/第 (\d+) 號/)?.[1]);
+    await new Promise((resolve) => setTimeout(resolve, (12 - number) * 2));
+    return { results: [{ citation_text: query }] };
+  });
+  assert.deepEqual(results, citations);
+}
+
 Promise.all([
   testVerifiedCitationsAreRetainedAndUnknownOnesRemoved(),
-  testVerificationFailureReturnsFailClosedFallback()
+  testVerificationFailureReturnsFailClosedFallback(),
+  testOneTlrFailureDoesNotDiscardOtherCitations(),
+  testCitationNormalizationAndStrictCourtMatching(),
+  testManyCitationsRemainOrderedWhenResolvedOutOfOrder()
 ]).then(() => console.log('precedent verification tests passed'));
