@@ -9,12 +9,13 @@ import { getGenerateAppealPetitionPrompt } from "./src/prompts/generate-appeal-p
 import { getAnalyzeJudgmentPrompt } from "./src/prompts/analyze-judgment.js";
 import { buildFallbackJudgmentAnalysis, buildFallbackPetition, buildFallbackPoliceAnalysis } from "./src/utils/fallbacks.js";
 import { buildPrecedentFallback, verifyPrecedents } from "./src/lib/precedentVerification.js";
-import { judicialUpstreamError, resolveJudicialCredentials } from "./src/lib/judicialCredentials.js";
+import { normalizeJudicialResponse, resolveJudicialCredentials } from "./src/lib/judicialCredentials.js";
 import { generateContentWithFallback } from "./src/lib/geminiGeneration.js";
 import { parseStrictJson } from "./src/lib/strictJson.js";
 import { searchTlr } from "./src/lib/tlrSearch.js";
 import { assessOcrText } from "./src/lib/ocrQuality.js";
 import { validateImageDataUrl } from "./src/lib/ocrImageValidation.js";
+import { normalizeTaiwanCaseQuery } from "./src/lib/caseQuery.js";
 
 dotenv.config();
 
@@ -169,16 +170,7 @@ app.post("/api/fetch-url", async (req, res) => {
         const urlObj = new URL(url);
         const idParam = urlObj.searchParams.get("id") || urlObj.searchParams.get("jrecno") || urlObj.searchParams.get("kw") || urlObj.searchParams.get("k");
         if (idParam) {
-          const decoded = decodeURIComponent(idParam);
-          const parts = decoded.split(",");
-          let query = decoded;
-          if (/^\d+$/.test(parts[0]) && parts.length >= 3) {
-            // 112,台上,2409,20231108,1
-            query = `${parts[0]} ${parts[1]} ${parts[2]}`;
-          } else if (parts.length >= 4) {
-            // PCDM,115,侵訴,33,20260824,1
-            query = `${parts[1]} ${parts[2]} ${parts[3]}`;
-          }
+          const query = normalizeTaiwanCaseQuery(idParam);
           console.log("[TLR URL Resolver] Searching TLR for:", query);
           const searchRes = await fetch("https://tlr.dr-legal.com.tw/v1/search", {
             method: "POST",
@@ -269,7 +261,10 @@ app.post("/api/ocr", async (req, res) => {
         });
       }
       const ai = createGeminiClient(apiKey);
-      const imageChecks = await Promise.all(images.map((image) => validateImageDataUrl(image)));
+      const imageChecks = [];
+      for (const image of images) {
+        imageChecks.push(await validateImageDataUrl(image));
+      }
       const rejectedImages = imageChecks
         .map((check, index) => check.ok ? null : { index, error: check.error })
         .filter((item) => item !== null);
@@ -509,9 +504,9 @@ app.post("/api/tlr/fulltext", async (req, res) => {
         body: JSON.stringify({ memberAccount, pwd })
       });
       const data = await response.json();
-      if (!response.ok) {
-        const upstreamError = judicialUpstreamError(response.status);
-        return res.status(response.status).json({ succeeded: false, ...upstreamError });
+      const responseError = normalizeJudicialResponse(response.status, data);
+      if (responseError) {
+        return res.status(responseError.statusCode).json(responseError.body);
       }
       res.json(data);
     } catch (err) {
@@ -530,9 +525,9 @@ app.post("/api/tlr/fulltext", async (req, res) => {
         body: JSON.stringify({ user, password })
       });
       const data = await response.json();
-      if (!response.ok) {
-        const upstreamError = judicialUpstreamError(response.status);
-        return res.status(response.status).json(upstreamError);
+      const responseError = normalizeJudicialResponse(response.status, data);
+      if (responseError) {
+        return res.status(responseError.statusCode).json(responseError.body);
       }
       const token = data?.Token || data?.token;
       if (token) {
