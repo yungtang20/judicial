@@ -1,40 +1,4 @@
 
-function normalizeTaiwanCaseQuery(input: string): string {
-  if (!input) return "";
-  let clean = input.trim();
-
-  // 1. If user pastes a judicial URL
-  if (clean.includes("judgment.judicial.gov.tw") || clean.includes("http://") || clean.includes("https://")) {
-    try {
-      const urlObj = new URL(clean);
-      const idParam = urlObj.searchParams.get("id") || urlObj.searchParams.get("jrecno") || urlObj.searchParams.get("kw");
-      if (idParam) {
-        clean = decodeURIComponent(idParam);
-      }
-    } catch(e) {}
-  }
-
-  // 2. If it is JID / comma-separated format: PCDM,115,侵訴,33,20260824,1 or 112,台上,2409,20231108,1
-  if (clean.includes(",")) {
-    const parts = clean.split(",");
-    if (/^\d+$/.test(parts[0]) && parts.length >= 3) {
-      return `${parts[0]} ${parts[1]} ${parts[2]}`;
-    } else if (parts.length >= 4) {
-      return `${parts[1]} ${parts[2]} ${parts[3]}`;
-    }
-  }
-
-  // 3. Regex match for standard Chinese case format
-  const match = clean.match(/(?:[\u4e00-\u9fa5]+院\s*)?(\d{1,3})\s*(?:年度|年)?\s*([\u4e00-\u9fa5\(\)\（\）]+?)\s*(?:字第|第|字)?\s*(\d+)\s*號?/);
-  if (match) {
-    const year = match[1];
-    let type = match[2].replace(/^(?:年度|年)/, "").replace(/(?:字第|第|字)$/, "").trim();
-    const num = match[3];
-    return `${year} ${type} ${num}`;
-  }
-  return clean;
-}
-
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
@@ -47,6 +11,7 @@ import { buildFallbackJudgmentAnalysis, buildFallbackPetition, buildFallbackPoli
 import { buildPrecedentFallback, verifyPrecedents } from "./src/lib/precedentVerification.js";
 import { resolveJudicialCredentials } from "./src/lib/judicialCredentials.js";
 import { generateContentWithFallback } from "./src/lib/geminiGeneration.js";
+import { searchTlr } from "./src/lib/tlrSearch.js";
 
 dotenv.config();
 
@@ -460,42 +425,7 @@ ${pageText}
     const { query, search_type = "hybrid", max_results = 5 } = req.body;
     if (!query) return res.status(400).json({ error: "No search query provided" });
     
-    const normalizedQuery = normalizeTaiwanCaseQuery(query);
-    console.log(`[TLR Search] Raw query: "${query}" => Normalized query: "${normalizedQuery}"`);
-
-    let searchRes = await fetch("https://tlr.dr-legal.com.tw/v1/search", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        query: normalizedQuery,
-        search_type,
-        max_results: Number(max_results) || 5
-      })
-    });
-    
-    if (!searchRes.ok) {
-      const errText = await searchRes.text();
-      return res.status(searchRes.status).json({ error: "TLR API search error: " + errText });
-    }
-    
-    let data = await searchRes.json();
-    
-    // If no results and raw query was different, try raw query as fallback
-    if ((!data.results || data.results.length === 0) && normalizedQuery !== query.trim()) {
-      const fallbackRes = await fetch("https://tlr.dr-legal.com.tw/v1/search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          query: query.trim(),
-          search_type,
-          max_results: Number(max_results) || 5
-        })
-      });
-      if (fallbackRes.ok) {
-        data = await fallbackRes.json();
-      }
-    }
-    
+    const data = await searchTlr(fetch, query, { searchType: search_type, maxResults: Number(max_results) || 5 });
     return res.json(data);
   } catch (err) {
     return res.status(500).json({ error: err.message || "Failed to search Taiwan Legal RAG" });
@@ -690,17 +620,7 @@ app.post("/api/search-precedents", async (req, res) => {
         return res.json(buildPrecedentFallback(pErr));
       }
       try {
-        const verifiedPrecedents = await verifyPrecedents(parsedData, async (citation) => {
-          const verificationResponse = await fetch("https://tlr.dr-legal.com.tw/v1/search", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ query: citation, search_type: "hybrid", max_results: 5 })
-          });
-          if (!verificationResponse.ok) {
-            throw new Error(`TLR citation verification failed: ${verificationResponse.status}`);
-          }
-          return await verificationResponse.json();
-        });
+        const verifiedPrecedents = await verifyPrecedents(parsedData, (citation) => searchTlr(fetch, citation));
         return res.json({ precedents: verifiedPrecedents });
       } catch (verificationError) {
         console.warn("Precedent verification failed; returning fail-closed result:", verificationError);

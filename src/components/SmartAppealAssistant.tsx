@@ -2205,7 +2205,7 @@ export default function SmartAppealAssistant() {
                         onChange={(e) => setTlrQuery(e.target.value)}
                         onFocus={(e) => e.target.select()}
                         onKeyDown={(e) => e.key === 'Enter' && handleTlrSearch()}
-                        placeholder="輸入字號、司法院網址或案由 (例如：115年度侵訴字第33號、112台上2409)..."
+                        placeholder="輸入字號、司法院網址或案由..."
                         className="w-full bg-white border border-gray-300 rounded-lg pl-3 pr-8 py-2 text-xs font-medium text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs"
                       />
                       {tlrQuery && (
