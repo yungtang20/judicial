@@ -16,6 +16,7 @@ import { searchTlr } from "./src/lib/tlrSearch.js";
 import { assessOcrText } from "./src/lib/ocrQuality.js";
 import { validateImageDataUrl } from "./src/lib/ocrImageValidation.js";
 import { normalizeTaiwanCaseQuery } from "./src/lib/caseQuery.js";
+import { runPaddleOcrPdf } from "./src/lib/paddleOcr.js";
 
 dotenv.config();
 
@@ -248,9 +249,20 @@ app.post("/api/fetch-url", async (req, res) => {
 
 app.post("/api/ocr", async (req, res) => {
     try {
-      const { images = [] } = req.body;
+      const { images = [], pdfBase64 } = req.body;
       if (images.length === 0) {
         return res.json({ text: "" });
+      }
+      if (typeof pdfBase64 === "string" && process.env.PADDLE_OCR_TOKEN?.trim()) {
+        try {
+          const paddleResult = await runPaddleOcrPdf(Buffer.from(pdfBase64, "base64"), {
+            token: process.env.PADDLE_OCR_TOKEN
+          });
+          const quality = assessOcrText(paddleResult.text);
+          return res.json({ text: paddleResult.text, ...quality, rejectedImages: [], source: paddleResult.source });
+        } catch (paddleError) {
+          console.warn("Paddle OCR failed; falling back to Gemini Vision:", paddleError);
+        }
       }
       const apiKey = resolveApiKey();
       if (isApiKeyMissingOrPlaceholder(apiKey)) {

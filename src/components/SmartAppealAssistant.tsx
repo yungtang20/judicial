@@ -283,7 +283,10 @@ export default function SmartAppealAssistant() {
             const ocrRes = await fetch('/api/ocr', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ images: imagesToUpload })
+              body: JSON.stringify({
+                images: imagesToUpload,
+                pdfBase64: btoa(Array.from(new Uint8Array(arrayBuffer), (byte) => String.fromCharCode(byte)).join(''))
+              })
             });
             if (ocrRes.ok) {
               const ocrData = await ocrRes.json();
