@@ -48,7 +48,7 @@ export interface ToolDefinition {
   legalBasis: string;
 }
 
-export const LEGAL_TOOLS_25: ToolDefinition[] = [
+export const LEGAL_TOOLS: ToolDefinition[] = [
   // Group 1: 刑事告訴與附帶民事 (7)
   {
     id: 'CRIMINAL_COMPLAINT_TRAFFIC',
@@ -549,7 +549,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId }) => 
 
   // Filtered tools
   const filteredTools = useMemo(() => {
-    return LEGAL_TOOLS_25.filter(tool => {
+    return LEGAL_TOOLS.filter(tool => {
       const matchGroup = selectedGroup === 'ALL' || tool.categoryGroup === selectedGroup;
       const matchQuery = !searchQuery.trim() || 
         tool.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -561,7 +561,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId }) => 
   }, [selectedGroup, searchQuery]);
 
   const currentTool = useMemo(() => {
-    return LEGAL_TOOLS_25.find(t => t.id === activeToolId) || LEGAL_TOOLS_25[0];
+    return LEGAL_TOOLS.find(t => t.id === activeToolId) || LEGAL_TOOLS[0];
   }, [activeToolId]);
 
   // Results & Loading
@@ -639,10 +639,10 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId }) => 
         <div className="relative z-10 space-y-3">
           <div className="flex flex-wrap items-center gap-2">
             <span className="px-2.5 py-1 rounded-md text-xs font-semibold bg-blue-500/20 text-blue-300 border border-blue-500/30 flex items-center gap-1.5">
-              <FolderLock className="w-3.5 h-3.5" /> 25 合 1 全方位實用法務工具總匯
+              <FolderLock className="w-3.5 h-3.5" /> {LEGAL_TOOLS.length} 合 1 全方位實用法務工具總匯
             </span>
             <span className="px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> 100% 司法院接地 · 零幽靈法條保證
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> 引用掃描結果（不等同官方核實）
             </span>
             <span className="px-2 py-0.5 rounded text-[11px] bg-slate-800 text-slate-300 border border-slate-700">
               收錄刑事 / 家事繼承 / 高齡監護 / 票據借貸 / 存證信函 / 強制執行 / 租賃侵權
@@ -654,7 +654,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId }) => 
           </h1>
 
           <p className="text-slate-300 text-sm max-w-4xl leading-relaxed">
-            完整收錄臺灣司法實務 <strong>28 項必備非訟、訴狀、保護令、存證信函與試算工具</strong>。每項工具均內建法定要件防呆機制（如非告訴乃論公訴罪要件、家暴保護令、告訴乃論6個月時效、自書遺囑手寫規範、最高利率16%上限、欠租2個月催告與監護宣告CDR醫療鑑定），並串接司法院公開法規庫實時交叉檢驗，徹底杜絕 AI 虛構法條與假案號。
+            完整收錄臺灣司法實務 <strong>{LEGAL_TOOLS.length} 項必備非訟、訴狀、保護令、存證信函與試算工具</strong>。每項工具均內建法定要件防呆機制，並串接司法院公開法規庫實時交叉檢驗。
           </p>
         </div>
 
@@ -662,7 +662,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId }) => 
         <div className="mt-6 pt-5 border-t border-slate-800 flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar">
             {[
-              { id: 'ALL', label: '全部工具 (28)' },
+              { id: 'ALL', label: `全部工具 (${LEGAL_TOOLS.length})` },
               { id: 'CRIMINAL', label: '刑事告訴/保護令 (7)' },
               { id: 'FAMILY', label: '家事繼承 (5)' },
               { id: 'ELDERLY', label: '高齡監護 (3)' },
@@ -689,7 +689,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId }) => 
             <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="搜尋 25 項工具或法條..."
+              placeholder={`搜尋 ${LEGAL_TOOLS.length} 項工具或法條...`}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-slate-700 bg-slate-950 text-slate-200 focus:border-blue-500 outline-none"
@@ -1942,7 +1942,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId }) => 
               <ShieldCheck className="w-4 h-4 text-emerald-400" /> 司法院接地 · 幽靈法條零容忍防禦機制
             </div>
             <p className="text-slate-300 leading-relaxed text-[11px]">
-              25 項工具全面掛載<strong>司法院全國法規庫</strong>與<strong>最高法院判例資料庫</strong>。系統自動核實條文項次與判決字號，杜絕虛構條項，產製成果可直接提交地方法院、家事庭、郵局與地政機關。
+              {LEGAL_TOOLS.length} 項工具全面掛載<strong>司法院全國法規庫</strong>與<strong>最高法院判例資料庫</strong>。
             </p>
           </div>
         </div>

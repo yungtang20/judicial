@@ -1,3 +1,5 @@
+import { UNIVERSAL_SYLLOGISM_RULES } from './universal-syllogism.js';
+
 /**
  * Prompts for AI Litigation Defense & Client Dual-Track Workflow
  * Covers B-Point Triage, Fact Extraction, Phase 2 Three-Section Communication & 7 Questionnaire,
@@ -11,7 +13,7 @@ export function getBPointTriagePrompt(
   courtName: string = '臺灣臺北地方法院',
   caseNo: string = '113年度訴字第1234號'
 ): string {
-  return `
+  return `${UNIVERSAL_SYLLOGISM_RULES}
 你是一位精通臺灣民事訴訟法（特別是第 277 條舉證責任、第 279 條自認效力）與刑事訴訟法實務之資深訴訟律師。
 現在你需要協助承辦律師針對當事人（客戶）提供的原始陳述、筆記、抱怨或補充意見，執行「B點實益分流判定（B-Point Triage）」。
 

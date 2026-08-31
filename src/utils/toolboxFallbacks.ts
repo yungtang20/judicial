@@ -1396,7 +1396,7 @@ ${dateStr}
       ghostCitationsFound: antiGhost.ghostCount,
       verifiedCitations: antiGhost.results
     },
-    disclaimer: '【防虛構檢核保證】本文書產製已通過司法院公開法規資料庫檢驗，所有法條與裁判引述均經真實性核實。',
+    disclaimer: '已執行引用格式與本機資料比對；結果不等同官方核實，請於正式使用前獨立確認來源。',
     modelUsed: 'Taiwan-Judicial-Grounding-Engine'
   };
 }

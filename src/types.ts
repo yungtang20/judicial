@@ -9,21 +9,6 @@ export interface CaseOverview {
   caseNo?: string;
   caseType?: string;
   offense?: string;
-  policeStation?: string;
-  officers?: string;
-  supervisor?: string;
-  catchTime?: string;
-  catchLocation?: string;
-  suspectName?: string;
-  suspectGender?: string;
-  suspectAge?: string;
-  suspectId?: string;
-  suspectPhone?: string;
-  suspectAddress?: string;
-  suspectJob?: string;
-  suspectRoleText?: string;
-  victimText?: string;
-  witnessText?: string;
 }
 
 /**

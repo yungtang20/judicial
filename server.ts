@@ -47,10 +47,23 @@ import { getGenerateAppealPetitionPrompt } from "./src/prompts/generate-appeal-p
 import { getAnalyzeJudgmentPrompt } from "./src/prompts/analyze-judgment.js";
 import { getBPointTriagePrompt, getMineScanPrompt, getDefensePleadingPrompt } from "./src/prompts/defense-workflow.js";
 import { getLegalToolboxPrompt } from "./src/prompts/toolbox-prompts.js";
-import { buildFallbackJudgmentAnalysis, buildFallbackPetition, buildFallbackPoliceAnalysis } from "./src/utils/fallbacks.js";
+import { UNIVERSAL_SYLLOGISM_RULES } from "./src/prompts/universal-syllogism.js";
+import { buildFallbackJudgmentAnalysis, buildFallbackPetition } from "./src/utils/fallbacks.js";
 import { buildFallbackDefenseTriage, buildFallbackMineScan, buildFallbackDefensePleading } from "./src/utils/defenseFallbacks.js";
 import { buildFallbackToolboxResult } from "./src/utils/toolboxFallbacks.js";
 import { verifyLegalCitations } from "./src/lib/citationVerifier.js";
+
+function verifyGeneratedDocument(documentText: string) {
+  const verification = verifyLegalCitations(documentText || "");
+  return {
+    documentText: verification.sanitizedText,
+    antiGhostVerification: {
+      totalCitationsChecked: verification.totalChecked,
+      ghostCitationsFound: verification.ghostCount,
+      verifiedCitations: verification.results
+    }
+  };
+}
 
 dotenv.config();
 
@@ -841,8 +854,10 @@ app.post("/api/tlr/fulltext", async (req, res) => {
     try {
       const apiKey = resolveApiKey();
       if (isApiKeyMissingOrPlaceholder(apiKey)) {
+        const verified = verifyGeneratedDocument(buildFallbackPetition(req.body));
         return res.json({
-          petitionText: buildFallbackPetition(req.body),
+          petitionText: verified.documentText,
+          antiGhostVerification: verified.antiGhostVerification,
           isFallback: true,
           warning: "未提供有效的 API 金鑰，使用離線備用範本生成"
         });
@@ -857,12 +872,13 @@ app.post("/api/tlr/fulltext", async (req, res) => {
       } catch (genErr) {
         console.warn("Petition AI generation error, using fallback petition:", genErr);
         return res.json({
-          petitionText: buildFallbackPetition(req.body),
+          ...(() => { const verified = verifyGeneratedDocument(buildFallbackPetition(req.body)); return { petitionText: verified.documentText, antiGhostVerification: verified.antiGhostVerification }; })(),
           isFallback: true,
           warning: "Gemini API 暫時高負載，已自動套用標準司法院書狀範本格式生成"
         });
       }
-      return res.json({ petitionText });
+      const verified = verifyGeneratedDocument(petitionText);
+      return res.json({ petitionText: verified.documentText, antiGhostVerification: verified.antiGhostVerification });
     } catch (err: any) {
       console.error("Generate petition catch error:", err);
       return res.status(500).json({ error: err.message || "伺服器內部錯誤" });
@@ -982,7 +998,8 @@ app.post("/api/tlr/fulltext", async (req, res) => {
       if (isApiKeyMissingOrPlaceholder(apiKey)) {
         console.log("[Defense API] No valid API Key, returning fallback pleading.");
         const fallback = buildFallbackDefensePleading(pleadingType, clientInput, caseInfo);
-        return res.json({ ...fallback, modelUsed: "offline-fallback", isFallback: true });
+        const verified = verifyGeneratedDocument(fallback.pleadingText || "");
+        return res.json({ ...fallback, pleadingText: verified.documentText, antiGhostVerification: verified.antiGhostVerification, modelUsed: "offline-fallback", isFallback: true });
       }
 
       const ai = createGeminiClient(apiKey);
@@ -997,7 +1014,8 @@ app.post("/api/tlr/fulltext", async (req, res) => {
       } catch (genErr: any) {
         console.warn("[Defense API] AI Pleading generation failed, using fallback:", genErr);
         const fallback = buildFallbackDefensePleading(pleadingType, clientInput, caseInfo);
-        return res.json({ ...fallback, modelUsed: "offline-fallback", isFallback: true });
+        const verified = verifyGeneratedDocument(fallback.pleadingText || "");
+        return res.json({ ...fallback, pleadingText: verified.documentText, antiGhostVerification: verified.antiGhostVerification, modelUsed: "offline-fallback", isFallback: true });
       }
 
       return res.json({
@@ -1006,7 +1024,8 @@ app.post("/api/tlr/fulltext", async (req, res) => {
         courtName: caseInfo.courtName || "臺灣臺北地方法院",
         caseNo: caseInfo.caseNo || "113年度訴字第1234號",
         submitter: pleadingType === "LAWYER_PLEADING" ? `訴訟代理人：${caseInfo.lawyerName || "訴訟代理人律師"}` : `陳報人：${caseInfo.clientName || "當事人"}`,
-        pleadingText,
+        pleadingText: verifyGeneratedDocument(pleadingText).documentText,
+        antiGhostVerification: verifyGeneratedDocument(pleadingText).antiGhostVerification,
         disclaimer: pleadingType === "LAWYER_PLEADING" ? "本狀由訴訟代理人律師具狀簽章。" : "【責任隔離】本狀由當事人個人具名簽章向法院陳報，律師不列名、不背書。",
         signatoryRole: pleadingType === "LAWYER_PLEADING" ? `訴訟代理人：${caseInfo.lawyerName || "訴訟代理人律師"}` : `陳報人：${caseInfo.clientName || "當事人"}（本人簽名捺印）`,
         modelUsed
@@ -1101,7 +1120,7 @@ app.post("/api/tlr/fulltext", async (req, res) => {
           ghostCitationsFound: antiGhost.ghostCount,
           verifiedCitations: antiGhost.results
         },
-        disclaimer: "【防虛構檢核保證】本文書產製已通過司法院公開法規資料庫檢驗，所有法條與裁判引述均經真實性核實。",
+        disclaimer: "已執行引用格式與本機資料比對；結果不等同官方核實，請於正式使用前獨立確認來源。",
         modelUsed
       });
     } catch (err: any) {
@@ -1630,6 +1649,7 @@ app.post("/api/tlr/fulltext", async (req, res) => {
       // Gemini AI dynamic triage
       const ai = createGeminiClient(apiKey);
       const prompt = `
+${UNIVERSAL_SYLLOGISM_RULES}
 你是一位精通臺灣現行刑法、刑事訴訟法、民法、民事訴訟法、洗錢防制法與司法院實務之資深法官與檢察官等級法務專家。
 使用者提出以下生活法律爭議或犯罪被害情況：
 「${query}」

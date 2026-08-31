@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { LEGAL_TOOLS } from './LegalToolbox';
 import { 
   Compass, 
   Search, 
@@ -817,7 +818,7 @@ export const LegalGuideHome: React.FC<LegalGuideHomeProps> = ({ onSelectTool }) 
                 <FileText className="w-6 h-6" />
               </div>
               <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-950 text-indigo-300 border border-indigo-800/60">
-                28 項實用法務
+                {LEGAL_TOOLS.length} 項實用法務
               </span>
             </div>
             <h3 className="text-base font-bold text-white mt-4 group-hover:text-indigo-300 transition-colors">
