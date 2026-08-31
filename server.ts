@@ -1018,14 +1018,15 @@ app.post("/api/tlr/fulltext", async (req, res) => {
         return res.json({ ...fallback, pleadingText: verified.documentText, antiGhostVerification: verified.antiGhostVerification, modelUsed: "offline-fallback", isFallback: true });
       }
 
+      const verifiedPleading = verifyGeneratedDocument(pleadingText);
       return res.json({
         pleadingType,
         title: pleadingType === "LAWYER_PLEADING" ? (caseInfo.caseType === "criminal" ? "刑事答辯狀" : "民事準備書狀") : (caseInfo.caseType === "criminal" ? "刑事陳報個人意見狀" : "民事陳報個人意見狀"),
         courtName: caseInfo.courtName || "臺灣臺北地方法院",
         caseNo: caseInfo.caseNo || "113年度訴字第1234號",
         submitter: pleadingType === "LAWYER_PLEADING" ? `訴訟代理人：${caseInfo.lawyerName || "訴訟代理人律師"}` : `陳報人：${caseInfo.clientName || "當事人"}`,
-        pleadingText: verifyGeneratedDocument(pleadingText).documentText,
-        antiGhostVerification: verifyGeneratedDocument(pleadingText).antiGhostVerification,
+        pleadingText: verifiedPleading.documentText,
+        antiGhostVerification: verifiedPleading.antiGhostVerification,
         disclaimer: pleadingType === "LAWYER_PLEADING" ? "本狀由訴訟代理人律師具狀簽章。" : "【責任隔離】本狀由當事人個人具名簽章向法院陳報，律師不列名、不背書。",
         signatoryRole: pleadingType === "LAWYER_PLEADING" ? `訴訟代理人：${caseInfo.lawyerName || "訴訟代理人律師"}` : `陳報人：${caseInfo.clientName || "當事人"}（本人簽名捺印）`,
         modelUsed
