@@ -140,7 +140,7 @@ export default function EvidenceListGenerator() {
             <textarea 
               value={submitter} 
               onChange={e => setSubmitter(e.target.value)}
-              rows={2}
+              rows={5}
               className="w-full border border-gray-300 rounded p-1.5 text-xs bg-white"
               placeholder="例如：上訴人 王小明"
             />
@@ -151,7 +151,7 @@ export default function EvidenceListGenerator() {
             <textarea 
               value={submitDate} 
               onChange={e => setSubmitDate(e.target.value)}
-              rows={2}
+              rows={5}
               className="w-full border border-gray-300 rounded p-1.5 text-xs bg-white"
               placeholder="例如：112年12月25日"
             />
@@ -183,7 +183,7 @@ export default function EvidenceListGenerator() {
                   <textarea 
                     value={item.relatedIssue} 
                     onChange={e => updateItem(item.id, 'relatedIssue', e.target.value)}
-                    rows={2}
+                    rows={5}
                     className="w-full border border-gray-300 rounded p-1.5 text-xs bg-white"
                     placeholder="例如：爭點一：消費借貸契約之成立與舉證責任"
                   />
@@ -195,7 +195,7 @@ export default function EvidenceListGenerator() {
                     <textarea 
                       value={item.investigationItem} 
                       onChange={e => updateItem(item.id, 'investigationItem', e.target.value)}
-                      rows={2}
+                      rows={5}
                       className="w-full border border-gray-300 rounded p-1.5 text-xs bg-white"
                       placeholder="例如：訊問證人"
                     />
@@ -206,7 +206,7 @@ export default function EvidenceListGenerator() {
                     <textarea 
                       value={item.investigationTarget} 
                       onChange={e => updateItem(item.id, 'investigationTarget', e.target.value)}
-                      rows={2}
+                      rows={5}
                       className="w-full border border-gray-300 rounded p-1.5 text-xs bg-white"
                       placeholder="姓名或單位"
                     />
@@ -218,7 +218,7 @@ export default function EvidenceListGenerator() {
                   <textarea 
                     value={item.targetAddress} 
                     onChange={e => updateItem(item.id, 'targetAddress', e.target.value)}
-                    rows={2}
+                    rows={5}
                     className="w-full border border-gray-300 rounded p-1.5 text-xs bg-white"
                     placeholder="地址及電話或卷頁"
                   />
@@ -234,7 +234,7 @@ export default function EvidenceListGenerator() {
                   <textarea 
                     value={item.provenFact} 
                     onChange={e => updateItem(item.id, 'provenFact', e.target.value)}
-                    rows={2}
+                    rows={5}
                     maxLength={100}
                     className={`w-full border rounded p-1.5 text-xs bg-white ${(item.provenFact || '').length > 50 ? 'border-red-400 bg-red-50/50' : 'border-gray-300'}`}
                     placeholder="限50字內說明待證事實"

@@ -1,5 +1,12 @@
-import React, { useState, useRef } from 'react';
+import { useAutoSave } from '../hooks/useAutoSave';
+import { parsePdfFile } from '../lib/pdfUtils';
+import { scrubPersonalInfo } from '../lib/deidentifier';
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import * as pdfjsLib from 'pdfjs-dist';
+import { IssueRow, EvidenceRow, PrecedentItem } from "../types";
+import { useAppealStore } from "../store/useAppealStore";
+import { AntiGhostBadge } from "./AntiGhostBadge";
+import { verifyLegalCitations } from "../lib/citationVerifier";
 
 if (typeof window !== 'undefined' && pdfjsLib && pdfjsLib.GlobalWorkerOptions) {
   try {
@@ -9,178 +16,161 @@ if (typeof window !== 'undefined' && pdfjsLib && pdfjsLib.GlobalWorkerOptions) {
   }
 }
 
-interface IssueRow {
-  id: string;
-  issueType?: string; // 爭點類別：程序瑕疵 / 實體事實 / 法律適用 / 裁量賠償
-  title: string;
-  originalHolding: string;
-  appealArgument: string;
-  relatedEvidenceCodes?: string; // 對應證物編號（如：聲調一、上證二）
-  legalBasis?: string; // 引用法條或判例/大法庭裁定
-  legalStrength?: 'HIGH' | 'MEDIUM' | 'NEED_SUPPLEMENT'; // 強勝算 / 中度攻防 / 待補強
-}
-
-interface EvidenceRow {
-  id: string;
-  code: string; // 編號 (例如：1、2 或 聲調一)
-  relatedIssue: string; // 所涉爭點 (例如：爭點一：過失責任與認定瑕疵)
-  investigationItem: string; // 調查事項 (例如：訊問證人 / 現場履勘 / 函調監視錄影檔)
-  investigationTarget: string; // 調查對象 (例如：證人張○○ / 臺中市政府警察局大甲分局)
-  targetAddress: string; // 對象地址及聯絡方式 (例如：臺中市大甲區平安路100號 / 詳卷內住址)
-  provenFact: string; // 待證事實 (限50字)
-  // 保持舊版相容性欄位
-  type?: string;
-  target?: string;
-  method?: string;
-  holder?: string;
-  necessity?: string;
-  note?: string;
-  relatedIssueTitle?: string;
-}
-
-interface PrecedentItem {
-  id: string;
-  type: string;
-  citation: string;
-  summary: string;
-  applicationReason: string;
-  selected: boolean;
-}
-
 export default function SmartAppealAssistant() {
   // Step tracker
-  const [isFallbackMode, setIsFallbackMode] = useState<boolean>(false);
-  const [currentStep, setCurrentStep] = useState<number>(1);
-  const [outputTab, setOutputTab] = useState<'petition' | 'issues_table' | 'evidences_table'>('petition');
+  const isFallbackMode = useAppealStore(s => s.isFallbackMode);
+      const setIsFallbackMode = useAppealStore(s => s.setIsFallbackMode);
+  const currentStep = useAppealStore(s => s.currentStep);
+      const setCurrentStep = useAppealStore(s => s.setCurrentStep);
+  const outputTab = useAppealStore(s => s.outputTab);
+      const setOutputTab = useAppealStore(s => s.setOutputTab);
 
   // Judgment Text & Import State
-  const [rawText, setRawText] = useState<string>('');
-  const [secondText, setSecondText] = useState<string>('');
-  const [isDualMode, setIsDualMode] = useState<boolean>(false);
-  const [isParsingPdf, setIsParsingPdf] = useState<boolean>(false);
-  const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
+  const rawText = useAppealStore(s => s.rawText);
+      const setRawText = useAppealStore(s => s.setRawText);
+  const secondText = useAppealStore(s => s.secondText);
+      const setSecondText = useAppealStore(s => s.setSecondText);
+  const isDualMode = useAppealStore(s => s.isDualMode);
+      const setIsDualMode = useAppealStore(s => s.setIsDualMode);
+  const isParsingPdf = useAppealStore(s => s.isParsingPdf);
+      const setIsParsingPdf = useAppealStore(s => s.setIsParsingPdf);
+  const isAnalyzing = useAppealStore(s => s.isAnalyzing);
+      const setIsAnalyzing = useAppealStore(s => s.setIsAnalyzing);
 
     // 司法院與 Taiwan Legal RAG (TLR) 連線與載入狀態
-  const [showJudicialModal, setShowJudicialModal] = useState<boolean>(false);
-  const [judicialModalTab, setJudicialModalTab] = useState<'tlr' | 'official'>('tlr');
-  const [targetJudicialField, setTargetJudicialField] = useState<'first' | 'second'>('first');
-  const [tlrQuery, setTlrQuery] = useState<string>('');
-  const [tlrSearchType, setTlrSearchType] = useState<'hybrid' | 'keyword' | 'phrase'>('hybrid');
-  const [tlrLoading, setTlrLoading] = useState<boolean>(false);
-  const [tlrResults, setTlrResults] = useState<any[]>([]);
-  const [tlrNote, setTlrNote] = useState<string>('');
-  const [tlrFetchingDocId, setTlrFetchingDocId] = useState<string | null>(null);
-  const [urlFetchSuccessMsg, setUrlFetchSuccessMsg] = useState<string>('');
+  const showJudicialModal = useAppealStore(s => s.showJudicialModal);
+      const setShowJudicialModal = useAppealStore(s => s.setShowJudicialModal);
+  const judicialModalTab = useAppealStore(s => s.judicialModalTab);
+      const setJudicialModalTab = useAppealStore(s => s.setJudicialModalTab);
+  const targetJudicialField = useAppealStore(s => s.targetJudicialField);
+      const setTargetJudicialField = useAppealStore(s => s.setTargetJudicialField);
+  const tlrQuery = useAppealStore(s => s.tlrQuery);
+      const setTlrQuery = useAppealStore(s => s.setTlrQuery);
+  const tlrSearchType = useAppealStore(s => s.tlrSearchType);
+      const setTlrSearchType = useAppealStore(s => s.setTlrSearchType);
+  const tlrLoading = useAppealStore(s => s.tlrLoading);
+      const setTlrLoading = useAppealStore(s => s.setTlrLoading);
+  const tlrResults = useAppealStore(s => s.tlrResults);
+      const setTlrResults = useAppealStore(s => s.setTlrResults);
+  const tlrNote = useAppealStore(s => s.tlrNote);
+      const setTlrNote = useAppealStore(s => s.setTlrNote);
+  const tlrFetchingDocId = useAppealStore(s => s.tlrFetchingDocId);
+      const setTlrFetchingDocId = useAppealStore(s => s.setTlrFetchingDocId);
+  const urlFetchSuccessMsg = useAppealStore(s => s.urlFetchSuccessMsg);
+      const setUrlFetchSuccessMsg = useAppealStore(s => s.setUrlFetchSuccessMsg);
   
   // 司法院官方 API (JDoc / JList) 狀態
-  const [judicialJid, setJudicialJid] = useState<string>('CHDM,105,交訴,51,20161216,1');
-  const [judicialAccount, setJudicialAccount] = useState<string>('');
-  const [judicialPassword, setJudicialPassword] = useState<string>('');
-  const [judicialToken, setJudicialToken] = useState<string>('');
-  const [judicialAuthLoading, setJudicialAuthLoading] = useState<boolean>(false);
-  const [judicialFetchLoading, setJudicialFetchLoading] = useState<boolean>(false);
-  const [judicialMsg, setJudicialMsg] = useState<string>('');
-  const [jlistData, setJlistData] = useState<Array<{ date: string; list: string[] }>>([]);
-  const [jlistLoading, setJlistLoading] = useState<boolean>(false);
+  const judicialJid = useAppealStore(s => s.judicialJid);
+      const setJudicialJid = useAppealStore(s => s.setJudicialJid);
+  const judicialAccount = useAppealStore(s => s.judicialAccount);
+      const setJudicialAccount = useAppealStore(s => s.setJudicialAccount);
+  const judicialPassword = useAppealStore(s => s.judicialPassword);
+      const setJudicialPassword = useAppealStore(s => s.setJudicialPassword);
+  const judicialToken = useAppealStore(s => s.judicialToken);
+      const setJudicialToken = useAppealStore(s => s.setJudicialToken);
+  const judicialAuthLoading = useAppealStore(s => s.judicialAuthLoading);
+      const setJudicialAuthLoading = useAppealStore(s => s.setJudicialAuthLoading);
+  const judicialFetchLoading = useAppealStore(s => s.judicialFetchLoading);
+      const setJudicialFetchLoading = useAppealStore(s => s.setJudicialFetchLoading);
+  const judicialMsg = useAppealStore(s => s.judicialMsg);
+      const setJudicialMsg = useAppealStore(s => s.setJudicialMsg);
+  const jlistData = useAppealStore(s => s.jlistData);
+      const setJlistData = useAppealStore(s => s.setJlistData);
+  const jlistLoading = useAppealStore(s => s.jlistLoading);
+      const setJlistLoading = useAppealStore(s => s.setJlistLoading);
 
   // Case Metadata & Dates
   const todayObj = new Date();
   const todayIso = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, '0')}-${String(todayObj.getDate()).padStart(2, '0')}`;
   const todayRoc = `${todayObj.getFullYear() - 1911}年${todayObj.getMonth() + 1}月${todayObj.getDate()}日`;
 
-  const [caseType, setCaseType] = useState<'civil' | 'criminal' | 'administrative' | 'criminal_compensation'>('civil');
-  const [courtName, setCourtName] = useState<string>('臺灣臺北地方法院');
-  const [appealCourtName, setAppealCourtName] = useState<string>('臺灣高等法院');
-  const [caseNo, setCaseNo] = useState<string>('113年度訴字第1234號');
-  const [sectionCode, setSectionCode] = useState<string>('平股');
-  const [claimAmount, setClaimAmount] = useState<string>('新臺幣 500,000 元');
-  const [deliveryDate, setDeliveryDate] = useState<string>(todayIso);
-  const [travelDays, setTravelDays] = useState<number>(0); // 在途期間
+  const caseType = useAppealStore(s => s.caseType);
+      const setCaseType = useAppealStore(s => s.setCaseType);
+  const courtName = useAppealStore(s => s.courtName);
+      const setCourtName = useAppealStore(s => s.setCourtName);
+  const appealCourtName = useAppealStore(s => s.appealCourtName);
+      const setAppealCourtName = useAppealStore(s => s.setAppealCourtName);
+  const caseNo = useAppealStore(s => s.caseNo);
+      const setCaseNo = useAppealStore(s => s.setCaseNo);
+  const sectionCode = useAppealStore(s => s.sectionCode);
+      const setSectionCode = useAppealStore(s => s.setSectionCode);
+  const claimAmount = useAppealStore(s => s.claimAmount);
+      const setClaimAmount = useAppealStore(s => s.setClaimAmount);
+  const deliveryDate = useAppealStore(s => s.deliveryDate);
+      const setDeliveryDate = useAppealStore(s => s.setDeliveryDate);
+  const travelDays = useAppealStore(s => s.travelDays);
+      const setTravelDays = useAppealStore(s => s.setTravelDays); // 在途期間
 
   // Parties Full Details ( Judicial Yuan Format Requirement )
-  const [appellantRole, setAppellantRole] = useState<string>('上訴人');
-  const [appellantName, setAppellantName] = useState<string>('王小明');
-  const [appellantId, setAppellantId] = useState<string>('A123456789');
-  const [appellantAddress, setAppellantAddress] = useState<string>('臺北市中正區重慶南路一段 124 號');
-  const [appellantPhone, setAppellantPhone] = useState<string>('0912-345-678');
-  const [appellantLegalRep, setAppellantLegalRep] = useState<string>('');
+  const appellantRole = useAppealStore(s => s.appellantRole);
+      const setAppellantRole = useAppealStore(s => s.setAppellantRole);
+  const appellantName = useAppealStore(s => s.appellantName);
+      const setAppellantName = useAppealStore(s => s.setAppellantName);
+  const appellantId = useAppealStore(s => s.appellantId);
+      const setAppellantId = useAppealStore(s => s.setAppellantId);
+  const appellantAddress = useAppealStore(s => s.appellantAddress);
+      const setAppellantAddress = useAppealStore(s => s.setAppellantAddress);
+  const appellantPhone = useAppealStore(s => s.appellantPhone);
+      const setAppellantPhone = useAppealStore(s => s.setAppellantPhone);
+  const appellantLegalRep = useAppealStore(s => s.appellantLegalRep);
+      const setAppellantLegalRep = useAppealStore(s => s.setAppellantLegalRep);
 
-  const [appelleeRole, setAppelleeRole] = useState<string>('被上訴人');
-  const [appelleeName, setAppelleeName] = useState<string>('陳大華');
-  const [appelleeId, setAppelleeId] = useState<string>('B987654321');
-  const [appelleeAddress, setAppelleeAddress] = useState<string>('新北市板橋區縣民大道二段 7 號');
+  const appelleeRole = useAppealStore(s => s.appelleeRole);
+      const setAppelleeRole = useAppealStore(s => s.setAppelleeRole);
+  const appelleeName = useAppealStore(s => s.appelleeName);
+      const setAppelleeName = useAppealStore(s => s.setAppelleeName);
+  const appelleeId = useAppealStore(s => s.appelleeId);
+      const setAppelleeId = useAppealStore(s => s.setAppelleeId);
+  const appelleeAddress = useAppealStore(s => s.appelleeAddress);
+      const setAppelleeAddress = useAppealStore(s => s.setAppelleeAddress);
 
-  const [deliveryAgent, setDeliveryAgent] = useState<string>('');
-  const [deliveryAddress, setDeliveryAddress] = useState<string>('');
+  const deliveryAgent = useAppealStore(s => s.deliveryAgent);
+      const setDeliveryAgent = useAppealStore(s => s.setDeliveryAgent);
+  const deliveryAddress = useAppealStore(s => s.deliveryAddress);
+      const setDeliveryAddress = useAppealStore(s => s.setDeliveryAddress);
 
-  const [claims, setClaims] = useState<string>('一、原判決廢棄。\n二、上開廢棄部分，被上訴人在第一審之訴及假執行之聲請均駁回。\n三、第一、二審訴訟費用由被上訴人負擔。');
+  const claims = useAppealStore(s => s.claims);
+      const setClaims = useAppealStore(s => s.setClaims);
 
   // Attachment Table Metadata ( Karoshibox 調查證據聲請表與爭點整理表標頭欄位 )
-  const [attachmentText, setAttachmentText] = useState<string>('附件');
-  const [tableCourtName, setTableCourtName] = useState<string>('臺灣高等法院');
-  const [tableYear, setTableYear] = useState<string>('112');
-  const [tableWord, setTableWord] = useState<string>('重上');
-  const [tableNo, setTableNo] = useState<string>('123');
-  const [tableSubmitter, setTableSubmitter] = useState<string>('上訴人 王小明');
-  const [tableSubmitDate, setTableSubmitDate] = useState<string>(todayRoc);
+  const attachmentText = useAppealStore(s => s.attachmentText);
+      const setAttachmentText = useAppealStore(s => s.setAttachmentText);
+  const tableCourtName = useAppealStore(s => s.tableCourtName);
+      const setTableCourtName = useAppealStore(s => s.setTableCourtName);
+  const tableYear = useAppealStore(s => s.tableYear);
+      const setTableYear = useAppealStore(s => s.setTableYear);
+  const tableWord = useAppealStore(s => s.tableWord);
+      const setTableWord = useAppealStore(s => s.setTableWord);
+  const tableNo = useAppealStore(s => s.tableNo);
+      const setTableNo = useAppealStore(s => s.setTableNo);
+  const tableSubmitter = useAppealStore(s => s.tableSubmitter);
+      const setTableSubmitter = useAppealStore(s => s.setTableSubmitter);
+  const tableSubmitDate = useAppealStore(s => s.tableSubmitDate);
+      const setTableSubmitDate = useAppealStore(s => s.setTableSubmitDate);
 
   // Issues & Evidences
-  const [issues, setIssues] = useState<IssueRow[]>([
-    {
-      id: '1',
-      issueType: '事實認定瑕疵',
-      title: '爭點一：原審判決就兩造間借貸契約之成立，認定事實顯有違背經驗法則',
-      originalHolding: '原審判決僅憑單方匯款單即認定成立消費借貸契約。',
-      appealArgument: '上訴人匯款實係清償先前欠款，且被上訴人未能提出借貸對話紀錄或借據，原審舉證責任分配顯有違誤。',
-      relatedEvidenceCodes: '1',
-      legalBasis: '最高法院18年上字第2855號判例',
-      legalStrength: 'HIGH'
-    }
-  ]);
+  const issues = useAppealStore(s => s.issues);
+      const setIssues = useAppealStore(s => s.setIssues);
 
-  const [evidences, setEvidences] = useState<EvidenceRow[]>([
-    {
-      id: '1',
-      code: '1',
-      relatedIssue: '爭點一：兩造間消費借貸關係成立與否',
-      investigationItem: '訊問證人 / 函調對話紀錄與銀行明細',
-      investigationTarget: '證人 張○○ / 國泰世華商業銀行大甲分行',
-      targetAddress: '臺中市大甲區平安路100號（詳卷內通訊錄）',
-      provenFact: '證明上訴人匯款實係清償過往舊債，被上訴人並無借貸合意。',
-      type: '人證',
-      target: '證人 張○○',
-      method: '訊問證人到庭具結備詢',
-      holder: '臺中市大甲區平安路100號'
-    }
-  ]);
+  const evidences = useAppealStore(s => s.evidences);
+      const setEvidences = useAppealStore(s => s.setEvidences);
 
   // Precedents & Interpretations
-  const [keywords, setKeywords] = useState<string>('簡易判決上訴 量刑適法性 違背經驗法則 事實認定不憑證據');
-  const [isSearchingPrecedents, setIsSearchingPrecedents] = useState<boolean>(false);
-  const [precedents, setPrecedents] = useState<PrecedentItem[]>([
-    {
-      id: 'p1',
-      type: '最高法院裁判',
-      citation: '最高法院 99 年度台上字第 700 號 刑事判決',
-      summary: '按數行為於密接時間地點實行，侵害同一法益，各行為獨立性極為薄弱，在刑法評價上以視為數個舉動之接續施行，合為包括之一行為，屬接續犯。',
-      applicationReason: '用以論駁原審認定數次行為之罪數與接續犯評價過重或過輕之法律適用疑義。',
-      selected: true
-    },
-    {
-      id: 'p2',
-      type: '最高法院刑事判例',
-      citation: '最高法院 76 年台上字第 4986 號 刑事判例',
-      summary: '認定犯罪事實所憑之證據，須於通常一般之人均不致有所懷疑，而得確信其為真實之程度者，始得據為有罪之認定。倘其證明尚未達到此一程度，而有合理之懷疑存在時，即應為被告有利之認定。',
-      applicationReason: '用以指摘原審採認證據未達超越合理懷疑程度，違反刑事訴訟法第 154 條第 2 項無罪推定原則。',
-      selected: true
-    }
-  ]);
+  const keywords = useAppealStore(s => s.keywords);
+      const setKeywords = useAppealStore(s => s.setKeywords);
+  const isSearchingPrecedents = useAppealStore(s => s.isSearchingPrecedents);
+      const setIsSearchingPrecedents = useAppealStore(s => s.setIsSearchingPrecedents);
+  const precedents = useAppealStore(s => s.precedents);
+      const setPrecedents = useAppealStore(s => s.setPrecedents);
 
   // Appeal Petition Generation State
 
-  const [firstUrl, setFirstUrl] = useState<string>('');
-  const [secondUrl, setSecondUrl] = useState<string>('');
-  const [isFetchingUrl, setIsFetchingUrl] = useState<boolean>(false);
+  const firstUrl = useAppealStore(s => s.firstUrl);
+      const setFirstUrl = useAppealStore(s => s.setFirstUrl);
+  const secondUrl = useAppealStore(s => s.secondUrl);
+      const setSecondUrl = useAppealStore(s => s.setSecondUrl);
+  const isFetchingUrl = useAppealStore(s => s.isFetchingUrl);
+      const setIsFetchingUrl = useAppealStore(s => s.setIsFetchingUrl);
 
     const fetchFromUrl = async (targetField: 'first' | 'second') => {
     setTargetJudicialField(targetField);
@@ -225,29 +215,57 @@ export default function SmartAppealAssistant() {
     }
   };
 
-  const [isGeneratingPetition, setIsGeneratingPetition] = useState<boolean>(false);
-  const [generatedPetition, setGeneratedPetition] = useState<string>('');
+  const isGeneratingPetition = useAppealStore(s => s.isGeneratingPetition);
+      const setIsGeneratingPetition = useAppealStore(s => s.setIsGeneratingPetition);
+  const generatedPetition = useAppealStore(s => s.generatedPetition);
+      const setGeneratedPetition = useAppealStore(s => s.setGeneratedPetition);
+
+  const petitionVerification = useMemo(() => {
+    if (!generatedPetition) return undefined;
+    const v = verifyLegalCitations(generatedPetition);
+    return {
+      totalCitationsChecked: v.totalChecked,
+      ghostCitationsFound: v.ghostCount,
+      verifiedCitations: v.results
+    };
+  }, [generatedPetition]);
 
   // Appeal Eligibility & Admissibility Gatekeeper State
-  const [appealEligibility, setAppealEligibility] = useState<'ALLOWED' | 'RESTRICTED' | 'FORBIDDEN'>('ALLOWED');
-  const [eligibilityStatusTitle, setEligibilityStatusTitle] = useState<string>('🟢 依法准予提起上訴');
-  const [eligibilityReason, setEligibilityReason] = useState<string>('本案屬第一審判決，當事人於 20 日不變期間內得依法提起第二審上訴。');
-  const [proceduralRequirements, setProceduralRequirements] = useState<string>('應於收受判決後 20 日內向原審法院提出上訴狀，並具體記載上訴理由。');
+  const appealEligibility = useAppealStore(s => s.appealEligibility);
+      const setAppealEligibility = useAppealStore(s => s.setAppealEligibility);
+  const eligibilityStatusTitle = useAppealStore(s => s.eligibilityStatusTitle);
+      const setEligibilityStatusTitle = useAppealStore(s => s.setEligibilityStatusTitle);
+  const eligibilityReason = useAppealStore(s => s.eligibilityReason);
+      const setEligibilityReason = useAppealStore(s => s.setEligibilityReason);
+  const proceduralRequirements = useAppealStore(s => s.proceduralRequirements);
+      const setProceduralRequirements = useAppealStore(s => s.setProceduralRequirements);
 
   // Judgment Summary State (原審裁判全文重點摘要)
-  const [judgmentSummary, setJudgmentSummary] = useState<{
-    overview?: string;
-    storyNarrative?: string;
-    evidenceBasis?: string | {
-      witnesses?: string[];
-      documents?: string[];
-      physicalAndExpert?: string[];
-    };
-    mainHolding?: string;
-  } | null>(null);
-  const [isAnalyzingSummaryOnly, setIsAnalyzingSummaryOnly] = useState<boolean>(false);
-  const [showSummaryInStep2, setShowSummaryInStep2] = useState<boolean>(true);
+  const judgmentSummary = useAppealStore(s => s.judgmentSummary);
+      const setJudgmentSummary = useAppealStore(s => s.setJudgmentSummary);
+  const isAnalyzingSummaryOnly = useAppealStore(s => s.isAnalyzingSummaryOnly);
+      const setIsAnalyzingSummaryOnly = useAppealStore(s => s.setIsAnalyzingSummaryOnly);
+  const showSummaryInStep2 = useAppealStore(s => s.showSummaryInStep2);
+      const setShowSummaryInStep2 = useAppealStore(s => s.setShowSummaryInStep2);
   const summaryCardRef = useRef<HTMLDivElement>(null);
+
+  // ---------- Auto Save / Load Mechanism ----------
+  useAutoSave(
+    'SmartAppealAssistant_Draft_v1',
+    { rawText, secondText, caseType, generatedPetition, issues, evidences, judgmentSummary, currentStep },
+    (data: any) => {
+      if (data.rawText) setRawText(data.rawText);
+      if (data.secondText) setSecondText(data.secondText);
+      if (data.caseType) setCaseType(data.caseType);
+      if (data.generatedPetition) setGeneratedPetition(data.generatedPetition);
+      if (data.issues) setIssues(data.issues);
+      if (data.evidences) setEvidences(data.evidences);
+      if (data.judgmentSummary) setJudgmentSummary(data.judgmentSummary);
+      if (data.currentStep) setCurrentStep(data.currentStep);
+    }
+  );
+  // ------------------------------------------------
+
 
   // 1. PDF File Import Handler
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, targetField: 'first' | 'second' = 'first') => {
@@ -257,39 +275,16 @@ export default function SmartAppealAssistant() {
     if (file.type === 'application/pdf') {
       setIsParsingPdf(true);
       try {
-        const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-        let fullText = '';
-        const imagesToUpload: string[] = [];
-
-        for (let i = 1; i <= pdf.numPages; i++) {
-          const page = await pdf.getPage(i);
-          const textContent = await page.getTextContent();
-          const pageText = textContent.items.map((item: any) => item.str).join(' ');
-          fullText += pageText + '\n';
-
-          // 渲染頁面成 Canvas 影像
-          try {
-            const viewport = page.getViewport({ scale: 1.5 });
-            const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
-            canvas.height = viewport.height;
-            canvas.width = viewport.width;
-            await page.render({ canvasContext: context!, viewport } as any).promise;
-            const imageDataUrl = canvas.toDataURL('image/jpeg', 0.85);
-            imagesToUpload.push(imageDataUrl);
-          } catch (canvasErr) {
-            console.warn(`Page ${i} canvas render failed:`, canvasErr);
-          }
-        }
+        const { text, images } = await parsePdfFile(file);
+        let fullText = text;
 
         // 偵測到無內建文字或文字極少（即掃描版 PDF），自動呼叫後端多模態 OCR 服務
-        if (fullText.trim().length < 100 && imagesToUpload.length > 0) {
+        if (fullText.trim().length < 100 && images.length > 0) {
           try {
             const ocrRes = await fetch('/api/ocr', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ images: imagesToUpload })
+              body: JSON.stringify({ images })
             });
             if (ocrRes.ok) {
               const ocrData = await ocrRes.json();
@@ -301,10 +296,10 @@ export default function SmartAppealAssistant() {
               alert(errData.error || 'OCR 辨識失敗，請檢查 API Key 設定。');
             }
           } catch (ocrErr) {
-            console.warn('OCR fetch failed:', ocrErr.message);
+            console.warn('OCR fetch failed:', ocrErr instanceof Error ? ocrErr.message : ocrErr);
           }
         }
-
+        
         if (targetField === 'second') {
           setSecondText(fullText);
         } else {
@@ -535,6 +530,22 @@ export default function SmartAppealAssistant() {
   };
 
   // 2. AI Judgment Analysis (可選全盤分析跳轉至第二步，或僅生成摘要留在第一步)
+  const handleDeidentify = () => {
+    let modified = false;
+    if (rawText) {
+      setRawText(scrubPersonalInfo(rawText));
+      modified = true;
+    }
+    if (secondText) {
+      setSecondText(scrubPersonalInfo(secondText));
+      modified = true;
+    }
+    
+    if (modified) {
+      alert('✅ 已執行基本去識別化（身分證字號、電話、部分地址與當事人稱謂前方）。\n⚠️ 注意：人工閱讀時請再次確認是否還有遺漏個資。');
+    }
+  };
+
   const handleAnalyzeJudgment = async (jumpToStepTwo: boolean = true) => {
     if (!rawText.trim()) {
       alert('請先輸入或匯入第一個裁判書文本');
@@ -1115,6 +1126,14 @@ export default function SmartAppealAssistant() {
             </div>
             <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-end">
               <button
+                onClick={handleDeidentify}
+                disabled={isAnalyzing || isAnalyzingSummaryOnly || (!rawText.trim() && !secondText.trim())}
+                className="bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200 px-4 py-2.5 rounded-lg font-bold text-xs shadow-xs transition-all disabled:opacity-50 flex items-center gap-1.5"
+                title="清除身分證、電話及部分地址資訊"
+              >
+                <span>🛡️ 一鍵去識別化</span>
+              </button>
+              <button
                 onClick={() => handleAnalyzeJudgment(false)}
                 disabled={isAnalyzing || isAnalyzingSummaryOnly || !rawText.trim()}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg font-bold text-xs shadow-xs transition-all disabled:opacity-50 flex items-center gap-1.5"
@@ -1441,7 +1460,7 @@ export default function SmartAppealAssistant() {
                       <textarea
                         value={issue.originalHolding}
                         onChange={e => setIssues(issues.map(i => i.id === issue.id ? { ...i, originalHolding: e.target.value } : i))}
-                        rows={3}
+                        rows={5}
                         className="w-full border rounded-lg p-2 text-xs bg-gray-50 text-gray-800"
                         placeholder="填寫原審認定理由摘要..."
                       />
@@ -1454,7 +1473,7 @@ export default function SmartAppealAssistant() {
                       <textarea
                         value={issue.appealArgument}
                         onChange={e => setIssues(issues.map(i => i.id === issue.id ? { ...i, appealArgument: e.target.value } : i))}
-                        rows={3}
+                        rows={5}
                         className="w-full border border-blue-200 rounded-lg p-2 text-xs bg-blue-50/60 text-blue-950 font-medium"
                         placeholder="詳細填寫指摘原審瑕疵之攻擊攻防主張..."
                       />
@@ -1586,7 +1605,7 @@ export default function SmartAppealAssistant() {
                       <textarea
                         value={item.summary}
                         onChange={e => setPrecedents(precedents.map(p => p.id === item.id ? { ...p, summary: e.target.value } : p))}
-                        rows={2}
+                        rows={5}
                         className="w-full p-2 bg-white rounded border border-gray-300 text-gray-800 leading-relaxed font-serif text-xs"
                         placeholder="請填寫或編輯裁判要旨..."
                       />
@@ -1597,7 +1616,7 @@ export default function SmartAppealAssistant() {
                       <textarea
                         value={item.applicationReason}
                         onChange={e => setPrecedents(precedents.map(p => p.id === item.id ? { ...p, applicationReason: e.target.value } : p))}
-                        rows={2}
+                        rows={5}
                         className="w-full p-2 bg-white rounded border border-blue-200 text-blue-950 font-medium text-xs"
                         placeholder="說明如何據以補強上訴理由..."
                       />
@@ -1784,7 +1803,7 @@ export default function SmartAppealAssistant() {
                     <textarea
                       value={item.relatedIssue || item.relatedIssueTitle || ''}
                       onChange={e => setEvidences(evidences.map(ev => ev.id === item.id ? { ...ev, relatedIssue: e.target.value } : ev))}
-                      rows={2}
+                      rows={5}
                       className="w-full border rounded p-1.5 text-xs bg-white text-gray-900 font-medium"
                       placeholder="填寫本項證據所涉之案件爭點..."
                     />
@@ -1821,7 +1840,7 @@ export default function SmartAppealAssistant() {
                     <textarea
                       value={item.targetAddress || item.holder || ''}
                       onChange={e => setEvidences(evidences.map(ev => ev.id === item.id ? { ...ev, targetAddress: e.target.value } : ev))}
-                      rows={2}
+                      rows={5}
                       className="w-full border rounded p-1.5 text-xs bg-white"
                       placeholder="填寫對象住址、聯絡電話或卷內頁碼..."
                     />
@@ -1838,7 +1857,7 @@ export default function SmartAppealAssistant() {
                     <textarea
                       value={item.provenFact || ''}
                       onChange={e => setEvidences(evidences.map(ev => ev.id === item.id ? { ...ev, provenFact: e.target.value } : ev))}
-                      rows={2}
+                      rows={5}
                       maxLength={100}
                       className={`w-full border rounded p-1.5 text-xs bg-white ${(item.provenFact || '').length > 50 ? 'border-red-400 bg-red-50/30' : ''}`}
                       placeholder="說明待證事實，建請控制在 50 字內..."
@@ -2024,9 +2043,12 @@ export default function SmartAppealAssistant() {
 
           {/* 視圖區域 */}
           {outputTab === 'petition' && (
-            <div className="w-full flex justify-center bg-gray-100 p-6 rounded-xl overflow-y-auto">
-              <div className="bg-white p-12 rounded shadow-lg w-full max-w-[210mm] min-h-[297mm] text-black text-sm leading-relaxed border border-gray-300 font-serif whitespace-pre-wrap">
-                {generatedPetition || '上訴狀生成中...'}
+            <div className="space-y-4">
+              <AntiGhostBadge verification={petitionVerification} />
+              <div className="w-full flex justify-center bg-gray-100 p-6 rounded-xl overflow-y-auto">
+                <div className="bg-white p-12 rounded shadow-lg w-full max-w-[210mm] min-h-[297mm] text-black text-sm leading-relaxed border border-gray-300 font-serif whitespace-pre-wrap">
+                  {generatedPetition || '上訴狀生成中...'}
+                </div>
               </div>
             </div>
           )}

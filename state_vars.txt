@@ -1,0 +1,199 @@
+  const [isFallbackMode, setIsFallbackMode] = useState<boolean>(false);
+  const [currentStep, setCurrentStep] = useState<number>(1);
+  const [outputTab, setOutputTab] = useState<'petition' | 'issues_table' | 'evidences_table'>('petition');
+
+  // Judgment Text & Import State
+  const [rawText, setRawText] = useState<string>('');
+  const [secondText, setSecondText] = useState<string>('');
+  const [isDualMode, setIsDualMode] = useState<boolean>(false);
+  const [isParsingPdf, setIsParsingPdf] = useState<boolean>(false);
+  const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
+
+    // 司法院與 Taiwan Legal RAG (TLR) 連線與載入狀態
+  const [showJudicialModal, setShowJudicialModal] = useState<boolean>(false);
+  const [judicialModalTab, setJudicialModalTab] = useState<'tlr' | 'official'>('tlr');
+  const [targetJudicialField, setTargetJudicialField] = useState<'first' | 'second'>('first');
+  const [tlrQuery, setTlrQuery] = useState<string>('');
+  const [tlrSearchType, setTlrSearchType] = useState<'hybrid' | 'keyword' | 'phrase'>('hybrid');
+  const [tlrLoading, setTlrLoading] = useState<boolean>(false);
+  const [tlrResults, setTlrResults] = useState<any[]>([]);
+  const [tlrNote, setTlrNote] = useState<string>('');
+  const [tlrFetchingDocId, setTlrFetchingDocId] = useState<string | null>(null);
+  const [urlFetchSuccessMsg, setUrlFetchSuccessMsg] = useState<string>('');
+  
+  // 司法院官方 API (JDoc / JList) 狀態
+  const [judicialJid, setJudicialJid] = useState<string>('CHDM,105,交訴,51,20161216,1');
+  const [judicialAccount, setJudicialAccount] = useState<string>('');
+  const [judicialPassword, setJudicialPassword] = useState<string>('');
+  const [judicialToken, setJudicialToken] = useState<string>('');
+  const [judicialAuthLoading, setJudicialAuthLoading] = useState<boolean>(false);
+  const [judicialFetchLoading, setJudicialFetchLoading] = useState<boolean>(false);
+  const [judicialMsg, setJudicialMsg] = useState<string>('');
+  const [jlistData, setJlistData] = useState<Array<{ date: string; list: string[] }>>([]);
+  const [jlistLoading, setJlistLoading] = useState<boolean>(false);
+
+  // Case Metadata & Dates
+  const todayObj = new Date();
+  const todayIso = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, '0')}-${String(todayObj.getDate()).padStart(2, '0')}`;
+  const todayRoc = `${todayObj.getFullYear() - 1911}年${todayObj.getMonth() + 1}月${todayObj.getDate()}日`;
+
+  const [caseType, setCaseType] = useState<'civil' | 'criminal' | 'administrative' | 'criminal_compensation'>('civil');
+  const [courtName, setCourtName] = useState<string>('臺灣臺北地方法院');
+  const [appealCourtName, setAppealCourtName] = useState<string>('臺灣高等法院');
+  const [caseNo, setCaseNo] = useState<string>('113年度訴字第1234號');
+  const [sectionCode, setSectionCode] = useState<string>('平股');
+  const [claimAmount, setClaimAmount] = useState<string>('新臺幣 500,000 元');
+  const [deliveryDate, setDeliveryDate] = useState<string>(todayIso);
+  const [travelDays, setTravelDays] = useState<number>(0); // 在途期間
+
+  // Parties Full Details ( Judicial Yuan Format Requirement )
+  const [appellantRole, setAppellantRole] = useState<string>('上訴人');
+  const [appellantName, setAppellantName] = useState<string>('王小明');
+  const [appellantId, setAppellantId] = useState<string>('A123456789');
+  const [appellantAddress, setAppellantAddress] = useState<string>('臺北市中正區重慶南路一段 124 號');
+  const [appellantPhone, setAppellantPhone] = useState<string>('0912-345-678');
+  const [appellantLegalRep, setAppellantLegalRep] = useState<string>('');
+
+  const [appelleeRole, setAppelleeRole] = useState<string>('被上訴人');
+  const [appelleeName, setAppelleeName] = useState<string>('陳大華');
+  const [appelleeId, setAppelleeId] = useState<string>('B987654321');
+  const [appelleeAddress, setAppelleeAddress] = useState<string>('新北市板橋區縣民大道二段 7 號');
+
+  const [deliveryAgent, setDeliveryAgent] = useState<string>('');
+  const [deliveryAddress, setDeliveryAddress] = useState<string>('');
+
+  const [claims, setClaims] = useState<string>('一、原判決廢棄。\n二、上開廢棄部分，被上訴人在第一審之訴及假執行之聲請均駁回。\n三、第一、二審訴訟費用由被上訴人負擔。');
+
+  // Attachment Table Metadata ( Karoshibox 調查證據聲請表與爭點整理表標頭欄位 )
+  const [attachmentText, setAttachmentText] = useState<string>('附件');
+  const [tableCourtName, setTableCourtName] = useState<string>('臺灣高等法院');
+  const [tableYear, setTableYear] = useState<string>('112');
+  const [tableWord, setTableWord] = useState<string>('重上');
+  const [tableNo, setTableNo] = useState<string>('123');
+  const [tableSubmitter, setTableSubmitter] = useState<string>('上訴人 王小明');
+  const [tableSubmitDate, setTableSubmitDate] = useState<string>(todayRoc);
+
+  // Issues & Evidences
+  const [issues, setIssues] = useState<IssueRow[]>([
+    {
+      id: '1',
+      issueType: '事實認定瑕疵',
+      title: '爭點一：原審判決就兩造間借貸契約之成立，認定事實顯有違背經驗法則',
+      originalHolding: '原審判決僅憑單方匯款單即認定成立消費借貸契約。',
+      appealArgument: '上訴人匯款實係清償先前欠款，且被上訴人未能提出借貸對話紀錄或借據，原審舉證責任分配顯有違誤。',
+      relatedEvidenceCodes: '1',
+      legalBasis: '最高法院18年上字第2855號判例',
+      legalStrength: 'HIGH'
+    }
+  ]);
+
+  const [evidences, setEvidences] = useState<EvidenceRow[]>([
+    {
+      id: '1',
+      code: '1',
+      relatedIssue: '爭點一：兩造間消費借貸關係成立與否',
+      investigationItem: '訊問證人 / 函調對話紀錄與銀行明細',
+      investigationTarget: '證人 張○○ / 國泰世華商業銀行大甲分行',
+      targetAddress: '臺中市大甲區平安路100號（詳卷內通訊錄）',
+      provenFact: '證明上訴人匯款實係清償過往舊債，被上訴人並無借貸合意。',
+      type: '人證',
+      target: '證人 張○○',
+      method: '訊問證人到庭具結備詢',
+      holder: '臺中市大甲區平安路100號'
+    }
+  ]);
+
+  // Precedents & Interpretations
+  const [keywords, setKeywords] = useState<string>('簡易判決上訴 量刑適法性 違背經驗法則 事實認定不憑證據');
+  const [isSearchingPrecedents, setIsSearchingPrecedents] = useState<boolean>(false);
+  const [precedents, setPrecedents] = useState<PrecedentItem[]>([
+    {
+      id: 'p1',
+      type: '最高法院裁判',
+      citation: '最高法院 99 年度台上字第 700 號 刑事判決',
+      summary: '按數行為於密接時間地點實行，侵害同一法益，各行為獨立性極為薄弱，在刑法評價上以視為數個舉動之接續施行，合為包括之一行為，屬接續犯。',
+      applicationReason: '用以論駁原審認定數次行為之罪數與接續犯評價過重或過輕之法律適用疑義。',
+      selected: true
+    },
+    {
+      id: 'p2',
+      type: '最高法院刑事判例',
+      citation: '最高法院 76 年台上字第 4986 號 刑事判例',
+      summary: '認定犯罪事實所憑之證據，須於通常一般之人均不致有所懷疑，而得確信其為真實之程度者，始得據為有罪之認定。倘其證明尚未達到此一程度，而有合理之懷疑存在時，即應為被告有利之認定。',
+      applicationReason: '用以指摘原審採認證據未達超越合理懷疑程度，違反刑事訴訟法第 154 條第 2 項無罪推定原則。',
+      selected: true
+    }
+  ]);
+
+  // Appeal Petition Generation State
+
+  const [firstUrl, setFirstUrl] = useState<string>('');
+  const [secondUrl, setSecondUrl] = useState<string>('');
+  const [isFetchingUrl, setIsFetchingUrl] = useState<boolean>(false);
+
+    const fetchFromUrl = async (targetField: 'first' | 'second') => {
+    setTargetJudicialField(targetField);
+    const targetUrl = targetField === 'first' ? firstUrl : secondUrl;
+    if (!targetUrl) return;
+
+    setIsFetchingUrl(true);
+    setUrlFetchSuccessMsg('');
+    try {
+      const response = await fetch('/api/fetch-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: targetUrl })
+      });
+      
+      if (!response.ok) {
+        let errStr = '無法讀取網址內容';
+        try {
+          const errData = await response.json();
+          if (errData.error) errStr = errData.error;
+        } catch (e) {}
+        throw new Error(errStr);
+      }
+      const data = await response.json();
+      if (data.text) {
+        if (targetField === 'first') {
+          setRawText(data.text);
+        } else {
+          setSecondText(data.text);
+        }
+        if (data.title) {
+          setUrlFetchSuccessMsg(`✅ 已自動透過判決書資料庫帶入【${data.title}】！`);
+        }
+      } else {
+        throw new Error('未讀取到文字內容');
+      }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : '未知錯誤';
+      alert(`網址讀取失敗：\n\n${errorMsg}\n\n您亦可使用上方【⚖️ 判決全文庫檢索】按鈕直接輸入案號調閱，或手動複製貼上裁判內文。`);
+    } finally {
+      setIsFetchingUrl(false);
+    }
+  };
+
+  const [isGeneratingPetition, setIsGeneratingPetition] = useState<boolean>(false);
+  const [generatedPetition, setGeneratedPetition] = useState<string>('');
+
+  // Appeal Eligibility & Admissibility Gatekeeper State
+  const [appealEligibility, setAppealEligibility] = useState<'ALLOWED' | 'RESTRICTED' | 'FORBIDDEN'>('ALLOWED');
+  const [eligibilityStatusTitle, setEligibilityStatusTitle] = useState<string>('🟢 依法准予提起上訴');
+  const [eligibilityReason, setEligibilityReason] = useState<string>('本案屬第一審判決，當事人於 20 日不變期間內得依法提起第二審上訴。');
+  const [proceduralRequirements, setProceduralRequirements] = useState<string>('應於收受判決後 20 日內向原審法院提出上訴狀，並具體記載上訴理由。');
+
+  // Judgment Summary State (原審裁判全文重點摘要)
+  const [judgmentSummary, setJudgmentSummary] = useState<{
+    overview?: string;
+    storyNarrative?: string;
+    evidenceBasis?: string | {
+      witnesses?: string[];
+      documents?: string[];
+      physicalAndExpert?: string[];
+    };
+    mainHolding?: string;
+  } | null>(null);
+  const [isAnalyzingSummaryOnly, setIsAnalyzingSummaryOnly] = useState<boolean>(false);
+  const [showSummaryInStep2, setShowSummaryInStep2] = useState<boolean>(true);
+  const summaryCardRef = useRef<HTMLDivElement>(null);

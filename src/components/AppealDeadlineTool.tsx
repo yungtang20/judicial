@@ -147,6 +147,8 @@ const STATUTORY_RULES = {
   }
 };
 
+import { isWeekendOrHoliday, getNextWorkingDay, calculateDeadline } from '../lib/deadlineCalculator';
+
 export default function AppealDeadlineTool() {
   const [litigationType, setLitigationType] = useState<LitigationType>('criminal');
   const [remedyType, setRemedyType] = useState<RemedyType>('appeal12');
@@ -193,23 +195,6 @@ export default function AppealDeadlineTool() {
   const formatSimpleROC = (date: Date | null) => {
     if (!date) return '';
     return `${date.getFullYear() - 1911}/${date.getMonth() + 1}/${date.getDate()}`;
-  };
-
-  // 判斷是否為週末例假日 (簡化判斷：週六或週日)
-  const isWeekendOrHoliday = (date: Date) => {
-    const day = date.getDay();
-    return day === 0 || day === 6; // 0 是週日, 6 是週六
-  };
-
-  // 將日期順延至下一個工作日 (週一)
-  const getNextWorkingDay = (date: Date) => {
-    const result = new Date(date);
-    let deferredDays = 0;
-    while (isWeekendOrHoliday(result)) {
-      result.setDate(result.getDate() + 1);
-      deferredDays++;
-    }
-    return { date: result, deferredDays };
   };
 
   // 取得救濟期間天數

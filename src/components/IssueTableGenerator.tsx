@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { AntiGhostBadge } from './AntiGhostBadge';
 
 interface FullIssueRow {
   id: string;
@@ -211,7 +212,7 @@ export default function IssueTableGenerator() {
                   <textarea 
                     value={issue.originalHolding} 
                     onChange={e => updateIssue(issue.id, 'originalHolding', e.target.value)}
-                    rows={2}
+                    rows={5}
                     className="w-full border border-gray-300 rounded p-1.5 text-xs bg-white text-gray-800"
                     placeholder="說明原審如何認定與其判決理由..."
                   />
@@ -222,7 +223,7 @@ export default function IssueTableGenerator() {
                   <textarea 
                     value={issue.appealArgument} 
                     onChange={e => updateIssue(issue.id, 'appealArgument', e.target.value)}
-                    rows={3}
+                    rows={5}
                     className="w-full border border-gray-300 rounded p-1.5 text-xs bg-white font-medium text-blue-950"
                     placeholder="說明我方指摘原審之違誤與經驗法則/論理法則瑕疵..."
                   />
