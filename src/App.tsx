@@ -1,10 +1,11 @@
 import * as React from 'react';
-import { useState } from 'react';
+import { useState, Suspense, lazy } from 'react';
 import Sidebar from './components/Sidebar';
-import { LegalGuideHome } from './components/LegalGuideHome';
-import { LitigationWorkspace } from './components/LitigationWorkspace';
-import { JudicialAndAiChecker } from './components/JudicialAndAiChecker';
-import { LegalSdlcWorkbench } from './components/LegalSdlcWorkbench';
+
+const LegalGuideHome = lazy(() => import('./components/LegalGuideHome').then(m => ({ default: m.LegalGuideHome })));
+const LitigationWorkspace = lazy(() => import('./components/LitigationWorkspace').then(m => ({ default: m.LitigationWorkspace })));
+const JudicialAndAiChecker = lazy(() => import('./components/JudicialAndAiChecker').then(m => ({ default: m.JudicialAndAiChecker })));
+const LegalSdlcWorkbench = lazy(() => import('./components/LegalSdlcWorkbench').then(m => ({ default: m.LegalSdlcWorkbench })));
 
 interface Props {
   children: React.ReactNode;
@@ -123,7 +124,9 @@ export default function App() {
       }} />
       <main className="flex-grow flex bg-slate-950 overflow-hidden">
         <ErrorBoundary>
-          {renderTool()}
+          <Suspense fallback={<div className="flex items-center justify-center w-full text-slate-400 text-sm">載入中…</div>}>
+            {renderTool()}
+          </Suspense>
         </ErrorBoundary>
       </main>
     </div>

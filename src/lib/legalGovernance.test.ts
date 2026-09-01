@@ -115,6 +115,16 @@ describe('legal governance regressions', () => {
     expect(read('.env.example')).toContain('TLR_ENABLED');
   });
 
+  it('keeps AI provider selection server-side and key-free in source control', () => {
+    const registry = read('src/ai/providers/providerRegistry.ts');
+    const provider = read('src/ai/providers/OpenAICompatibleProvider.ts');
+    expect(registry).toContain("process.env.AI_PROVIDER");
+    expect(provider).toContain('HCNSEC_API_KEY');
+    expect(provider).toContain('chat/completions');
+    expect(read('.env.example')).toContain('HCNSEC_API_KEY=');
+    expect(read('.env.example')).not.toContain('sk-');
+  });
+
   it('verifies generated documents and retains an external checker', () => {
     const defenseRoute = read('server/routes/defense.ts');
     const appealRoute = read('server/routes/appeal.ts');
