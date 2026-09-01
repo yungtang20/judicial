@@ -1,4 +1,6 @@
-export const getAnalyzeJudgmentPrompt = (judgmentText: string, secondJudgmentText?: string, caseType: string = "civil") => `
+import { UNIVERSAL_SYLLOGISM_RULES } from './universal-syllogism.js';
+
+export const getAnalyzeJudgmentPrompt = (judgmentText: string, secondJudgmentText?: string, caseType: string = "civil") => `${UNIVERSAL_SYLLOGISM_RULES}
 你是一位精通台灣法律體系與法庭紀實文學的資深專家。
 請詳細研讀以下裁判書/決定書全文，精準提煉「案件事實（用說故事的方式）」與「裁判結果」。
 

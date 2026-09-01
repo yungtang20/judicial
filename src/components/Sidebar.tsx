@@ -29,7 +29,7 @@ export default function Sidebar({ activeTool, setActiveTool }: SidebarProps) {
     { 
       id: 'litigation', 
       label: '全生命週期法務與訴訟工作台', 
-      sublabel: '25合1書狀 / 雙軌防禦 / 爭點 / 上訴',
+      sublabel: '整合法律工具箱 / 雙軌防禦 / 爭點 / 上訴',
       icon: Scale, 
       badge: '一站式',
       badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/40'

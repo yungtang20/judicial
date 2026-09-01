@@ -67,7 +67,7 @@ export const LegalDocAiChecker: React.FC = () => {
 
   const filteredCitations = scanResult?.results.filter(r => {
     if (filterType === 'GHOST_ONLY') return r.isGhostOrFake;
-    if (filterType === 'VERIFIED_ONLY') return !r.isGhostOrFake;
+    if (filterType === 'VERIFIED_ONLY') return r.verified && !r.isGhostOrFake;
     return true;
   }) || [];
 
@@ -89,11 +89,11 @@ export const LegalDocAiChecker: React.FC = () => {
           </div>
 
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white flex items-center gap-3">
-            法律文件 AI 檢核器（Anti-Hallucination Citation Verifier）
+            外部法律文件 AI 檢核器（External Legal Document Checker）
           </h1>
 
           <p className="text-slate-300 text-sm max-w-3xl leading-relaxed">
-            專門用於掃描任何由 AI、對造或網路產生的法律文書與書狀。透過即時交叉比對<strong>司法院公開法規庫</strong>與<strong>最高法院實務裁判數據</strong>，全自動揪出「不存在的條文項次」、「捏造的判決字號」與「邏輯矛盾的假實務見解」，徹底防止開庭遭法官糾正或面臨懲戒。
+            專門獨立掃描對造書狀、外部律師文件、ChatGPT / Claude 等 AI 文件、網路法律文章及使用者匯入的法律文書；結果供人工複核，不代表官方認證。
           </p>
         </div>
       </div>
@@ -106,7 +106,7 @@ export const LegalDocAiChecker: React.FC = () => {
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center gap-2">
                 <FileSearch className="w-4 h-4 text-sky-400" />
-                <h2 className="font-bold text-slate-200 text-sm">輸入待檢核之法律書狀 / 條文全文</h2>
+                <h2 className="font-bold text-slate-200 text-sm">貼上或匯入外部法律文件全文</h2>
               </div>
               <button
                 onClick={() => setDocumentInput(defaultSampleDoc)}
@@ -119,7 +119,7 @@ export const LegalDocAiChecker: React.FC = () => {
             <textarea
               value={documentInput}
               onChange={(e) => setDocumentInput(e.target.value)}
-              placeholder="請將 ChatGPT、Claude 或任何 AI 產生的訴狀、理由書或答辯狀貼在此處..."
+              placeholder="請貼上對造書狀、外部律師文件、AI 生成文件或網路法律文章..."
               rows={16}
               className="w-full p-3.5 rounded-lg border border-slate-800 bg-slate-950 text-slate-200 text-xs font-mono focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 outline-none resize-none leading-relaxed"
             />
@@ -206,7 +206,7 @@ export const LegalDocAiChecker: React.FC = () => {
                         filterType === 'VERIFIED_ONLY' ? 'bg-emerald-600 text-white' : 'bg-emerald-950/60 text-emerald-300'
                       }`}
                     >
-                      官方核實 ({scanResult.results.length - scanResult.ghostCount})
+                      本機已知比對 ({scanResult.results.filter(r => r.verified && !r.isGhostOrFake).length})
                     </button>
                   </div>
                 )}
@@ -230,7 +230,7 @@ export const LegalDocAiChecker: React.FC = () => {
                     <div className="font-bold text-sm">
                       {scanResult.ghostCount > 0
                         ? `⚠️ 偵測到 ${scanResult.ghostCount} 處潛在幽靈法條或虛構裁判字號！`
-                        : '✅ 全文引述法規與裁判字號均經司法院資料庫核實無誤！'}
+                    : '✅ 未偵測到明顯格式異常（仍需人工查證）'}
                     </div>
                     <p className="opacity-90 leading-relaxed text-[11px]">
                       {scanResult.ghostCount > 0
@@ -277,7 +277,7 @@ export const LegalDocAiChecker: React.FC = () => {
                                 : 'bg-emerald-950 text-emerald-300 border border-emerald-500/40'
                             }`}
                           >
-                            {item.isGhostOrFake ? '⚠️ 幽靈/虛構案號' : '司法院核實'}
+                            {item.isGhostOrFake ? '⚠️ 幽靈/虛構案號' : item.verified ? '本機已知比對' : '未索引／待查證'}
                           </span>
                         </div>
 

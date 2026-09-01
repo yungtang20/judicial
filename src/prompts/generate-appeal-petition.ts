@@ -1,3 +1,5 @@
+import { UNIVERSAL_SYLLOGISM_RULES } from './universal-syllogism.js';
+
 export function getGenerateAppealPetitionPrompt(body: any): string {
   const {
     caseType,
@@ -66,9 +68,10 @@ export function getGenerateAppealPetitionPrompt(body: any): string {
 - 運用於本案：${item.applicationReason || ""}`).join("\n")
     : "（請依通用實務見解論證）";
 
-  return `你是一位精通台灣訴訟實務與司法院標準書狀規範之資深律師。請為當事人撰寫一份 100% 完全符合司法院官方訴訟書狀範例規格（參考司法院 lp-1370-1-xCat2-21 書狀範例專區標準）之正式 ${petitionTitle}。
+  return `${UNIVERSAL_SYLLOGISM_RULES}
+你是一位精通台灣訴訟實務與司法院標準書狀規範之資深律師。請為當事人撰寫一份符合司法院訴訟書狀範例規格之正式 ${petitionTitle}。
 
-【必須 100% 嚴格遵守之司法院官方訴訟書狀格式與法律公文規範】：
+【訴訟書狀格式與法律公文規範】：
 
 一、狀頭標題（置中粗體）：
    頁首正中間標示正式書狀名稱「${petitionTitle}」。
@@ -125,5 +128,5 @@ ${formattedEvidences}
 
    中華民國 ○○○ 年 ○ 月 ○ 日
 
-請直接輸出極度嚴謹、無任何贅言、100% 完全符合司法院官方書狀規範格式之正式全文內容。`;
+請直接輸出極度嚴謹、無任何贅言、符合司法院書狀規範格式之正式全文內容。`;
 }

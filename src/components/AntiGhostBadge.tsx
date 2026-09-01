@@ -34,7 +34,7 @@ export const AntiGhostBadge: React.FC<AntiGhostBadgeProps> = ({
     return (
       <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 shadow-sm ${className}`}>
         <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-        <span>司法院接地 · 零幽靈法條保證</span>
+        <span>引用掃描結果（不等同官方核實）</span>
         {total > 0 && (
           <span className="ml-1 px-1.5 py-0.2 bg-emerald-900/80 text-[10px] text-emerald-200 rounded font-mono">
             {total} 處核實
@@ -54,13 +54,13 @@ export const AntiGhostBadge: React.FC<AntiGhostBadgeProps> = ({
           </div>
           <div>
             <div className="font-bold text-sm text-emerald-300 flex items-center gap-1.5">
-              司法院接地 · 零幽靈法條保證 (Zero-Ghost Guarantee)
+              引用掃描結果 (Citation Scan)
               <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold">
-                100% 官方接地
+                本機比對
               </span>
             </div>
             <p className="text-[11px] text-slate-400 mt-0.5">
-              全站書狀與分析均經司法院全國法規與最高法院判例資料庫即時核實，杜絕 AI 幻覺虛構條號。
+              顯示本機規則比對結果；未索引或 heuristic 項目仍需人工查證，不代表官方核實。
             </p>
           </div>
         </div>
@@ -86,7 +86,7 @@ export const AntiGhostBadge: React.FC<AntiGhostBadgeProps> = ({
       {citations.length > 0 && (
         <div className="space-y-2 pt-1 border-t border-slate-800/80">
           <div className="text-[11px] text-slate-400 font-medium flex items-center justify-between">
-            <span>官方核實條文與實務判例標籤：</span>
+            <span>比對到的法條與實務判例標籤：</span>
             <span className="text-[10px] text-slate-500">點擊可查看官方要旨與來源</span>
           </div>
 
@@ -119,7 +119,7 @@ export const AntiGhostBadge: React.FC<AntiGhostBadgeProps> = ({
             <div className="mt-3 p-3 bg-slate-900/90 rounded-xl border border-slate-800 space-y-2.5 max-h-60 overflow-y-auto">
               <div className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
                 <FileCheck2 className="w-3.5 h-3.5 text-emerald-400" />
-                司法院與法務部全國法規核實詳情：
+            本機比對詳情與來源連結：
               </div>
               <div className="space-y-2">
                 {citations.map((c, idx) => (
@@ -161,4 +161,3 @@ export const AntiGhostBadge: React.FC<AntiGhostBadgeProps> = ({
   );
 };
 
-export default AntiGhostBadge;

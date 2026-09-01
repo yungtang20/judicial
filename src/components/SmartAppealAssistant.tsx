@@ -1979,7 +1979,7 @@ export default function SmartAppealAssistant() {
             <div className="flex justify-between items-center border-b border-emerald-200/80 pb-2">
               <div className="flex items-center gap-2">
                 <span className="text-emerald-700 font-bold text-sm">✅ 【書狀爭點與證據完全寫入檢核面板】</span>
-                <span className="bg-emerald-600 text-white text-3xs px-2 py-0.5 rounded-full font-bold">100% 完整對應</span>
+                <span className="bg-emerald-600 text-white text-3xs px-2 py-0.5 rounded-full font-bold">逐項整理與對應</span>
               </div>
               <button
                 onClick={() => setCurrentStep(2)}

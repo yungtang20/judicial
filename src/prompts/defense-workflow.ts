@@ -1,3 +1,5 @@
+import { UNIVERSAL_SYLLOGISM_RULES } from './universal-syllogism.js';
+
 /**
  * Prompts for AI Litigation Defense & Client Dual-Track Workflow
  * Covers B-Point Triage, Fact Extraction, Phase 2 Three-Section Communication & 7 Questionnaire,
@@ -11,7 +13,7 @@ export function getBPointTriagePrompt(
   courtName: string = '臺灣臺北地方法院',
   caseNo: string = '113年度訴字第1234號'
 ): string {
-  return `
+  return `${UNIVERSAL_SYLLOGISM_RULES}
 你是一位精通臺灣民事訴訟法（特別是第 277 條舉證責任、第 279 條自認效力）與刑事訴訟法實務之資深訴訟律師。
 現在你需要協助承辦律師針對當事人（客戶）提供的原始陳述、筆記、抱怨或補充意見，執行「B點實益分流判定（B-Point Triage）」。
 
@@ -126,7 +128,7 @@ export function getMineScanPrompt(
   caseType: string = 'civil',
   caseBackground: string = ''
 ): string {
-  return `
+  return `${UNIVERSAL_SYLLOGISM_RULES}
 你是一位專精臺灣民事訴訟法第 279 條（當事人自認之拘束力與撤銷限制）與刑事訴訟法第 156 條（自白法則）之審判防禦專家。
 當事人堅持要將其未經律師過濾的個人意見陳報給法院。在協助其產製《陳報個人意見狀》之前，你必須執行最嚴密的「6 大不利自認地雷掃描（Mine-Scan）」。
 
@@ -199,7 +201,7 @@ export function getDefensePleadingPrompt(
     ? (caseInfo.caseType === 'criminal' ? '刑事答辯狀' : '民事準備書狀')
     : (caseInfo.caseType === 'criminal' ? '刑事陳報個人意見狀' : '民事陳報個人意見狀');
 
-  return `
+  return `${UNIVERSAL_SYLLOGISM_RULES}
 你是一位臺灣頂尖的訴訟書狀撰寫專家。請依據以下案件資訊與指令，產製高水準的臺灣法院標準書狀。
 
 【書狀種類】：${isLawyer ? '【軌道一：律師專業攻防軌（律師具名簽章）】' : '【軌道三：當事人個人陳報軌（當事人個人具名簽章，律師不列名、不背書）】'}

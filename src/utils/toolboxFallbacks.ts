@@ -577,7 +577,7 @@ ${targetAgency}  公鑑
 ${dateStr}
 `;
       checklist = [
-        { rule: '真實法規援引保證', passed: true, detail: '全面經司法院公開法規庫核實，無虛構法條' },
+        { rule: '引用格式檢核（heuristic）', passed: true, detail: '已完成本機規則比對，未代表官方核實' },
         { rule: '實務書狀要件具備', passed: true, detail: '具備當事人、訴之聲明、事實經過與證據方法' }
       ];
       break;
@@ -1396,7 +1396,7 @@ ${dateStr}
       ghostCitationsFound: antiGhost.ghostCount,
       verifiedCitations: antiGhost.results
     },
-    disclaimer: '【防虛構檢核保證】本文書產製已通過司法院公開法規資料庫檢驗，所有法條與裁判引述均經真實性核實。',
+    disclaimer: '已執行引用格式與本機資料比對；結果不等同官方核實，請於正式使用前獨立確認來源。',
     modelUsed: 'Taiwan-Judicial-Grounding-Engine'
   };
 }

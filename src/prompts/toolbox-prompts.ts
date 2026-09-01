@@ -1,5 +1,7 @@
+import { UNIVERSAL_SYLLOGISM_RULES } from './universal-syllogism.js';
+
 /**
- * Prompts for Complete Legal Tools Hub (25 Professional Taiwan Legal Tools)
+ * Prompts for the Taiwan Legal Tools Hub
  * Covers: Criminal, Family & Inheritance, Dementia Defense & Guardianship, Debt & Promissory, Demand Letters, Civil Execution, Real Estate & Contracts.
  * All prompts strictly prohibit hallucinated/ghost citations.
  */
@@ -17,7 +19,7 @@ export function getLegalToolboxPrompt(
 2. 凡引用裁判，僅得引用真實存在之最高法院權威判決（如：最高法院98年度台上字第1045號、43年台上字第377號），若無確切字號請使用「依最高法院穩定裁判見解」之實務通說。
 3. 引用法條項次必須精確真實（如：民事訴訟法第279條僅有3項，切勿引用第4或第5項；民法第205條法定最高利率上限自110年7月20日起調降為週年16%）。
 
-【25合1 法律工具箱類別】：${category}
+【法律工具箱類別】：${category}
 【輸入參數】：
 ${JSON.stringify(params, null, 2)}
 
@@ -56,6 +58,7 @@ ${JSON.stringify(params, null, 2)}
 24. RESIDENTIAL_LEASE_CONTRACT（住宅租賃定型化契約範本）：符合租賃住宅市場發展及管理條例與內政部應記載及不得記載事項（押金不得逾2個月、不得限制申報租金補貼與設籍、水電費計收標準）。
 25. SPOUSAL_RIGHT_INFRINGEMENT（侵害配偶權民事起訴狀）：符合民法第184條第1項後段、第195條第1項/第3項，不法侵害基於配偶關係之身分法益且情節重大，請求非財產上精神損害賠償（慰撫金）。
 
+${UNIVERSAL_SYLLOGISM_RULES}
 【重要防呆與要件審查機制（Syllogism Validation）】
 在撰寫書狀前，你必須先擔任法官/律師的角色，進行「三段論法」的構成要件審查：
 1. 檢視使用者提供的事實（小前提）是否足以該當該罪名/請求權的法律要件（大前提）。
