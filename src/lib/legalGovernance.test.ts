@@ -6,6 +6,7 @@ import { assertGeneratedDocumentVerified, generateVerifiedDocument, verifyGenera
 import { verifyLegalCitations } from './citationVerifier';
 import { LEGAL_TOOLS } from '../components/LegalToolbox';
 import { LEGAL_TOOL_TITLES } from './legalToolTitles';
+import { buildIntelligentRuleBasedTriage } from './universalTriage';
 
 const root = process.cwd();
 const read = (file: string) => fs.readFileSync(path.join(root, file), 'utf8');
@@ -65,5 +66,12 @@ describe('legal governance regressions', () => {
     const result = verifyLegalCitations('民法第999條');
     expect(result.results[0]?.verified).toBe(false);
     expect(result.results[0]?.hallucinationRisk).toBe('UNVERIFIED');
+  });
+
+  it('keeps rule-based triage independent from the HTTP server', () => {
+    const result = buildIntelligentRuleBasedTriage('房東拒絕修繕漏水');
+    expect(result.readyDocumentText).toBeTruthy();
+    expect(result.antiGhostVerification).toBeDefined();
+    expect(result.category).toBe('CIVIL_TORT_GENERAL');
   });
 });
