@@ -63,4 +63,48 @@ describe('apiClient', () => {
     });
     expect(p4.success).toBe(true);
   });
+
+  it('should send the remaining API requests to their documented endpoints', async () => {
+    (global.fetch as any).mockResolvedValue({
+      ok: true,
+      json: async () => ({ success: true })
+    });
+
+    await apiClient.fetchUrl('https://example.com');
+    await apiClient.generatePetition({
+      caseType: 'civil', courtName: '法院', caseNo: '案號', appellantName: '甲', appelleeName: '乙',
+      issues: [], evidences: [], selectedPrecedents: []
+    });
+    await apiClient.searchTlr('關鍵字', 'statutes');
+    await apiClient.fetchTlrFulltext('doc-1', 'judgment');
+    await apiClient.ocr(['data:image/png;base64,test']);
+    await apiClient.searchPrecedents('關鍵字', '民事', '地方法院', '理由');
+    await apiClient.judicialAuth('account', 'password');
+    await apiClient.judicialFetchDoc('token', 'jid');
+    await apiClient.judicialFetchList('token', '2026-01-01', '2026-01-31', '法院', '系統');
+    await apiClient.defenseTriage({ clientInput: '案件事實' });
+    await apiClient.defenseScanMines({ clientInput: '案件事實' });
+    await apiClient.defenseGeneratePleading({ pleadingType: 'LAWYER_PLEADING', clientInput: '案件事實' });
+    await apiClient.toolboxGenerate({ toolCategory: 'CIVIL_TORT_GENERAL', params: {} });
+    await apiClient.toolboxVerifyCitations({ documentText: '民法第184條' });
+
+    const calls = (global.fetch as any).mock.calls;
+    expect(calls.map(([url]: [string]) => url)).toEqual([
+      '/api/fetch-url',
+      '/api/generate-appeal-petition',
+      '/api/tlr/search',
+      '/api/tlr/fulltext',
+      '/api/ocr',
+      '/api/search-precedents',
+      '/api/judicial/jdg/auth',
+      '/api/judicial/jdg/jdoc',
+      '/api/judicial/jdg/jlist',
+      '/api/defense/triage',
+      '/api/defense/scan-mines',
+      '/api/defense/generate-pleading',
+      '/api/toolbox/generate',
+      '/api/toolbox/verify-citations'
+    ]);
+    expect(calls.every(([, options]: [string, RequestInit]) => options.method === 'POST')).toBe(true);
+  });
 });

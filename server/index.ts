@@ -14,8 +14,8 @@ import legalSearchRouter from "./routes/legalSearch.js";
 export function createExpressApp(): Express {
   const app = express();
 
-  // 設置 trust proxy 以正確獲取 X-Forwarded-For 標頭中的客戶端 IP
-  app.set("trust proxy", true);
+  // 僅信任前方一層反向代理，避免用戶端偽造 X-Forwarded-For 繞過限流
+  app.set("trust proxy", 1);
 
   // 1. 中介軟體
   app.use(securityHeaders);
