@@ -12,6 +12,9 @@ import { sdlcRouter } from "./routes/sdlc.js";
 export function createExpressApp(): Express {
   const app = express();
 
+  // 設置 trust proxy 以正確獲取 X-Forwarded-For 標頭中的客戶端 IP
+  app.set("trust proxy", true);
+
   // 1. 中介軟體
   app.use(securityHeaders);
   app.use(express.json({ limit: "10mb" }));

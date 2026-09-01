@@ -10,7 +10,7 @@ export type SchemaType = 'string' | 'number' | 'boolean' | 'object' | 'array';
 
 export interface FieldDefinition {
   type: SchemaType;
-  required?: boolean;
+  required?: boolean | string[];
   enum?: (string | number)[];
   minLength?: number;
   maxLength?: number;
@@ -70,8 +70,8 @@ export class RuntimeSchemaValidator {
 
     // 物件結構檢核
     if (schema.type === 'object' && typeof value === 'object' && !Array.isArray(value)) {
-      const objSchema = schema as ObjectSchema;
-      const requiredFields = objSchema.required || [];
+      const objSchema = schema as ObjectSchema | FieldDefinition;
+      const requiredFields: string[] = Array.isArray(objSchema.required) ? objSchema.required : [];
 
       for (const reqKey of requiredFields) {
         if (value[reqKey] === undefined || value[reqKey] === null || value[reqKey] === '') {

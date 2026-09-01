@@ -108,7 +108,7 @@ export function extractApprovalContextFromRequest(req: any, isProd: boolean): Ap
     const trustedActor = req.user;
     if (!trustedActor) {
       throw new AppError(
-        'UNAUTHORIZED',
+        'UNAUTHORIZED_ACTOR',
         'Production 模式禁止使用 Client 提供的未經授權身分。缺少 Trusted Identity。',
         401
       );

@@ -25,7 +25,9 @@ router.post("/api/triage/universal", async (req: Request, res: Response) => {
   const toolsSummary = LEGAL_TOOLS.map(t => `- [${t.id}] ${t.name}（${t.categoryLabel}）：${t.shortDesc}`).join("\n");
 
   const triagePrompt = `你是一位全領域精準法律診斷專家兼司法程序架構師。
-請根據當事人或委任人之案件敘述，以嚴謹的中華民國實務法理與程序法為基礎進行全能導診分流。
+請根據當事人或委任人之案件敘述，以嚴謹的中華民國實務法理與程序法為基礎進行全能導診分流。特別注意：
+1. 若案件同時涉及民事（如侵權賠償）與刑事（如竊盜、傷害、詐欺、性侵害等）責任，請務必精準指認，並於 detectedDomain 中明確填寫 "CRIMINAL_AND_CIVIL"。
+2. 尤其是性侵害案件（如強制性交），不僅構成刑事犯罪，亦嚴重侵害被害人之性自主權與身體人格權，必定同時伴隨民法第184條、第195條之民事侵權損害賠償（精神慰撫金）責任，請務必辨識為雙軌案件，並推薦相關民事求償或刑事附帶民事訴訟工具。
 
 【本系統已內建之訴訟工具庫（共 ${LEGAL_TOOLS.length} 項）】：
 ${toolsSummary}
@@ -38,8 +40,8 @@ ${rawInput}
 
 請輸出標準 JSON 格式（勿包含 markdown 標籤或額外文字）：
 {
-  "detectedDomain": "CIVIL",
-  "domainTitle": "民事訴訟與損害賠償",
+  "detectedDomain": "CRIMINAL_AND_CIVIL", // 請依案件性質填寫：CIVIL (純民事), CRIMINAL (純刑事), CRIMINAL_AND_CIVIL (民刑雙軌), ADMINISTRATIVE (行政) 等
+  "domainTitle": "刑事竊盜與民事損害賠償", // 根據案件性質自訂精確標題
   "recommendedTools": [
     {
       "toolId": "工具 ID",
@@ -49,13 +51,13 @@ ${rawInput}
     }
   ],
   "syllogism": {
-    "majorPremise": "大前提法律規範與核心構成要件",
+    "majorPremise": "大前提法律規範與核心構成要件（若涉刑案，務必點出罪名與構成要件）",
     "minorPremise": "小前提案件關鍵事實審查",
     "subsumption": "涵攝過程與爭點比對",
-    "conclusion": "法律效果、程序指引與權益處分"
+    "conclusion": "法律效果、程序指引與權益處分（包含刑事告訴與民事求償途徑）"
   },
   "actionableRoadmap": [
-    "具體第一步行動",
+    "具體第一步行動（如：報警/驗傷/存證）",
     "第二步行動",
     "第三步行動"
   ],

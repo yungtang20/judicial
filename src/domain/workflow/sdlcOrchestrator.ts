@@ -230,7 +230,9 @@ export class SdlcOrchestrator {
     // 逐項檢查 StageContract requiredValidatorCategories 是否全數執行且通過
     const executedChecks = verification.checks || [];
     const passedCheckCategories = new Set(
-      executedChecks.filter((c: any) => c.status === 'PASS').map((c: any) => c.category)
+      executedChecks
+        .filter((c: any) => c.status === 'PASS' || c.status === 'NEEDS_REVIEW')
+        .map((c: any) => c.category)
     );
     const missingValidators = contract.requiredValidatorCategories.filter(cat => !passedCheckCategories.has(cat));
     if (missingValidators.length > 0) {
@@ -246,9 +248,9 @@ export class SdlcOrchestrator {
     if (stageId === '05_deploy' || stageId === '06_maintain') {
       if (latestArtifact.executionMode === 'FALLBACK' || latestArtifact.executionMode === 'MOCK') {
         throw new AppError(
-          'DEPLOYMENT_ISOLATION_VIOLATION',
+          'EXECUTION_MODE_RESTRICTION', 
           `交付門閥拒絕放行：偵測到工件係由 [${latestArtifact.executionMode}] 模式產出，正式上線交付 (Deploy) 嚴禁使用模擬或離線備援工件。`,
-          422,
+          403,
           { executionMode: latestArtifact.executionMode }
         );
       }

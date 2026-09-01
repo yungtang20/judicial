@@ -340,39 +340,84 @@ export function buildIntelligentRuleBasedTriage(query: string) {
       };
     }
 
-    // 8. 妨害性自主 / 強制性交 (刑事非告訴乃論公訴重罪)
-    if (q.includes("性侵") || q.includes("強暴") || q.includes("非自願性行為") || q.includes("妨害性自主") || q.includes("強制性交")) {
+    // 8. 妨害性自主 / 強制性交 / 違反意願性交 (刑事非告訴乃論公訴重罪)
+    if (q.includes("性侵") || q.includes("強暴") || q.includes("非自願性行為") || q.includes("妨害性自主") || q.includes("強制性交") || q.includes("強姦")) {
       const cat = "CRIMINAL_COMPLAINT_SEXUAL_ASSAULT";
       const fallbackDoc = buildFallbackToolboxResult(cat, { incidentDetails: query, searchQuery: query });
+      
+      const isDomestic = q.includes("老公") || q.includes("老婆") || q.includes("丈夫") || q.includes("妻子") || q.includes("配偶");
+      const hasImage = q.includes("拍攝") || q.includes("影像") || q.includes("影片") || q.includes("裸照") || q.includes("外流");
+      
+      const tools = [
+          {
+              toolId: cat,
+              toolTitle: "妨害性自主 / 強制性交刑事告訴狀",
+              reason: "針對違反意願之性交行為，提起刑法第221條強制性交罪告訴。",
+              urgency: "HIGH"
+          }
+      ];
+      
+      if (hasImage) {
+          tools.push({
+              toolId: "CRIMINAL_COMPLAINT_PRIVACY",
+              toolTitle: "妨害秘密 / 未經同意散布性影像刑事告訴狀",
+              reason: "針對未經同意拍攝及散布性影像，追加提告刑法妨害秘密及性私密影像防制相關罪名。",
+              urgency: "HIGH"
+          });
+      }
+      
+      if (isDomestic) {
+           tools.push({
+              toolId: "DOMESTIC_VIOLENCE_PROTECTION_ORDER",
+              toolTitle: "親密關係伴侶 / 家暴保護令聲請狀",
+              reason: "行為人為配偶，符合家庭暴力防治法，可一併聲請保護令禁止接近與騷擾。",
+              urgency: "HIGH"
+          });
+      }
+      
+      tools.push({
+          toolId: "CIVIL_TORT_SEXUAL_ASSAULT",
+          toolTitle: "侵害性自主權損害賠償民事起訴狀",
+          reason: "除刑事責任外，可依法提起附帶民事訴訟或獨立民事訴訟請求精神慰撫金。",
+          urgency: "MEDIUM"
+      });
+
       return {
-        identifiedIssue: "妨害性自主 / 強制性交被害案件",
+        identifiedIssue: "妨害性自主被害案件" + (hasImage ? "暨未經同意散布性影像" : "") + (isDomestic ? "（家暴事件）" : ""),
         category: cat,
         caseType: "CRIMINAL_PUBLIC",
-        litigationNatureText: "⚡ 刑事非告訴乃論（公訴重罪，檢警知悉即應主動偵辦）",
+        detectedDomain: "CRIMINAL_AND_CIVIL", // Fix here
+        litigationNatureText: "⚡ 刑事非告訴乃論（公訴重罪，不因夫妻關係而免責）",
         legalBasis: [
           "刑法第221條（強制性交罪）",
-          "刑法第224條（強制猥褻罪）",
-          "性侵害犯罪防治法相關規定",
+          hasImage ? "刑法第315條之1、第319條之3（散布性私密影像罪）" : "",
+          isDomestic ? "家庭暴力防治法（家暴保護令）" : "",
           "民法第184條、第195條（精神慰撫金）"
-        ],
+        ].filter(Boolean),
         statuteAnalysis: "刑法第221條（強制性交罪，非告訴乃論公訴罪）、民法第184條、第195條（精神慰撫金）",
         isPublicProsecution: true,
-        statuteOfLimitations: "【非告訴乃論（公訴重罪）】無6個月限制；黃金72小時內請至急診進行一站式性侵驗傷採證。",
+        statuteOfLimitations: "【非告訴乃論（公訴重罪）】無6個月限制；夫妻間違反意願強行性交仍構成犯罪。黃金72小時內請至急診進行一站式性侵驗傷採證。",
         timeLimit: "【非告訴乃論】公訴重罪無6個月限制",
-        plainExplanation: "違反意願之性交或猥褻行為均屬非告訴乃論公訴重罪。請優先保全生物檢體與對話截圖，並可依法請求損害賠償與精神慰撫金。",
-        recommendedAction: "1. 72小時內急診驗傷採證（勿洗澡更衣） 2. 撥打113或向地檢署提出告訴 3. 聲請保護令並求償精神慰撫金。",
+        plainExplanation: "違反意願之性交行為，即使發生在夫妻或伴侶之間，依然構成刑法強制性交罪（非告訴乃論公訴重罪）。" + 
+                          (hasImage ? "若有未經同意拍攝或散布性影像，另構成妨害秘密與性私密影像犯罪。" : "") +
+                          "請優先保全生物檢體與對話截圖，並可依法聲請保護令與請求精神慰撫金。",
+        recommendedAction: "1. 72小時內急診驗傷採證（勿洗澡更衣） 2. 保全影像散布證據 3. 撥打113或向地檢署提出告訴 4. 聲請保護令並求償精神慰撫金。",
         suggestedActions: [
           "案發72小時內前往公私立醫院急診進行一站式驗傷採樣（切勿沐浴更衣）",
+          hasImage ? "立即將未經同意散布之平台、網址及觀看對象對話完整截圖存證" : "",
           "撥打113專線由社工陪同製作警詢筆錄或具狀向地檢署提出告訴",
-          "聲請親密關係通常保護令並提起刑事附帶民事訴訟請求醫療費與慰撫金"
-        ],
+          isDomestic ? "向管轄法院聲請通常保護令，禁止對方再有施暴或騷擾行為" : "",
+          "提起刑事附帶民事訴訟請求醫療費、心理諮商費與精神慰撫金"
+        ].filter(Boolean),
         evidenceChecklist: [
           "公私立醫院性侵害驗傷診斷書",
           "LINE案發前後通聯對話",
+          hasImage ? "性影像散布網址、群組截圖或原始影片檔" : "",
           "錄音光碟與心理諮商就醫證明"
-        ],
+        ].filter(Boolean),
         targetToolCategory: cat,
         recommendedToolId: cat,
+        recommendedTools: tools, // Export tools array for Triage Engine 
         readyDocumentTitle: fallbackDoc.title,
         readyDocumentText: fallbackDoc.documentText,
         pleadingDraft: fallbackDoc.documentText,

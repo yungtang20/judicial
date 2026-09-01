@@ -100,6 +100,9 @@ describe('SdlcOrchestrator Lifecycle & Governance Integration', () => {
     // 手工塞一個沒有完整驗證器的工件
     proj.artifacts['01_plan'] = [
       {
+        id: 'art-001',
+        stageId: '01_plan',
+        version: 1,
         name: 'test',
         category: 'intent',
         content: 'test',
@@ -134,6 +137,9 @@ describe('SdlcOrchestrator Lifecycle & Governance Integration', () => {
     
     proj.artifacts['05_deploy'] = [
       {
+        id: 'art-002',
+        stageId: '05_deploy',
+        version: 1,
         name: 'test',
         category: 'release_record',
         content: 'test',
@@ -189,9 +195,9 @@ describe('SdlcOrchestrator Lifecycle & Governance Integration', () => {
   it('ensures REAL AI failure sets Verification FAIL and prevents advance', async () => {
     class FailingAI implements AIProvider {
       public name = 'FailingAI';
-      async generate() { throw new Error('Network Error'); }
+      async generate(): Promise<AIProviderResponse> { throw new Error('Network Error'); }
       async generateStructured<T>() { return {} as T; }
-      async healthCheck() { return { ok: false, message: 'down' }; }
+      async healthCheck() { return { ok: false, message: 'down', model: 'fail-model' }; }
     }
     
     const failOrchestrator = new SdlcOrchestrator(repo, new FailingAI(), auditLogger);
