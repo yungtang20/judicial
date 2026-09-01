@@ -28,7 +28,8 @@ describe('legal governance regressions', () => {
 
   it('derives toolbox labels from the LEGAL_TOOLS array', () => {
     const source = read('src/components/LegalToolbox.tsx');
-    expect(source).toContain('export const LEGAL_TOOLS:');
+    const registry = read('src/lib/legalToolRegistry.ts');
+    expect(registry).toContain('export const LEGAL_TOOLS:');
     expect(source).not.toMatch(/全部工具 \(28\)|搜尋 25 項|25 合 1/);
     expect(source).toContain('LEGAL_TOOLS.length');
     const ids = LEGAL_TOOLS.map(tool => tool.id);
