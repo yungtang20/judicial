@@ -4,6 +4,7 @@ import { UNIVERSAL_SYLLOGISM_RULES } from "../../src/prompts/universal-syllogism
 import { buildIntelligentRuleBasedTriage } from "../../src/lib/universalTriage.js";
 import { precheckLegalInput } from "../../src/lib/legalInputPrecheck.js";
 import { LEGAL_TOOLS } from "../../src/lib/legalToolRegistry.js";
+import { searchLegalSources } from "../../src/lib/twLegalRagClient.js";
 
 const router = Router();
 
@@ -75,10 +76,12 @@ ${rawInput}
     } catch {
       parsed = buildIntelligentRuleBasedTriage(rawInput);
     }
+    parsed.sources = await searchLegalSources(rawInput);
     res.json(parsed);
   } catch (err: any) {
     console.warn("[TriageUniversal] AI 降級至本機規則分流引擎:", err.message);
-    const fallback = buildIntelligentRuleBasedTriage(rawInput);
+    const fallback: any = buildIntelligentRuleBasedTriage(rawInput);
+    fallback.sources = await searchLegalSources(rawInput);
     res.json(fallback);
   }
 });

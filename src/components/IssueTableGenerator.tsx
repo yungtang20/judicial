@@ -96,11 +96,11 @@ export default function IssueTableGenerator() {
       if (res.ok) {
         const verifyRes = await res.json();
         const { totalCitationsChecked, ghostCitationsFound } = verifyRes.antiGhostVerification;
-        setVerifyNotice(`全篇 AI 檢核完成：共核對 ${totalCitationsChecked} 處法律引用，幽靈虛構：${ghostCitationsFound} 處。引用準確度 100%。`);
+        setVerifyNotice(`全篇引用檢查完成：共核對 ${totalCitationsChecked} 處法律引用，疑似幽靈引用：${ghostCitationsFound} 處；結果仍需人工查證。`);
       }
     } catch (err: any) {
       console.error('Full AI verification failed:', err);
-      setVerifyNotice('全篇 AI 檢核完成（採用本機法規庫比對）');
+      setVerifyNotice('引用檢查暫時無法完成，請稍後重試並人工查證來源。');
     } finally {
       setIsVerifyingAi(false);
     }

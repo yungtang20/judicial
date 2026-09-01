@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { verifyLegalCitations } from '../lib/citationVerifier';
 import { CitationVerificationResult } from '../types';
+import { ExternalCitationResult } from '../lib/externalCitationVerifier';
 
 export const LegalDocAiChecker: React.FC = () => {
   const defaultSampleDoc = `民事準備書狀（範例）
@@ -48,6 +49,9 @@ export const LegalDocAiChecker: React.FC = () => {
   } | null>(null);
   const [filterType, setFilterType] = useState<'ALL' | 'GHOST_ONLY' | 'VERIFIED_ONLY'>('ALL');
   const [copied, setCopied] = useState(false);
+  const [externalResults, setExternalResults] = useState<ExternalCitationResult[] | null>(null);
+  const [isExternalChecking, setIsExternalChecking] = useState(false);
+  const [externalConsent, setExternalConsent] = useState(false);
 
   const handleScan = () => {
     setIsScanning(true);
@@ -63,6 +67,29 @@ export const LegalDocAiChecker: React.FC = () => {
     navigator.clipboard.writeText(scanResult.sanitizedText);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleExternalCheck = async () => {
+    const citations = [...new Set(documentInput.match(/(?:最高法院|高等法院)\s*[0-9０-９]+年(?:度)?\s*(?:台上|上|重上|台抗|抗|聲)字第\s*[0-9０-９]+號(?:判決|判例|裁定)/g) || [])];
+    if (citations.length === 0) {
+      setExternalResults([]);
+      return;
+    }
+    if (!externalConsent) return;
+    setIsExternalChecking(true);
+    try {
+      const response = await fetch('/api/external-citations/verify', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ citations, consent: true })
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || '外部查詢失敗');
+      setExternalResults(payload.results || []);
+    } catch (error) {
+      setExternalResults([{ citation: '批次查詢', status: 'unknown', exactMatch: false, source: 'dr-lawbot', message: error instanceof Error ? error.message : '外部查詢失敗', searchUrl: 'https://api.dr-lawbot.com/api/search' }]);
+    } finally {
+      setIsExternalChecking(false);
+    }
   };
 
   const filteredCitations = scanResult?.results.filter(r => {
@@ -133,17 +160,40 @@ export const LegalDocAiChecker: React.FC = () => {
                 {isScanning ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin" />
-                    正在比對司法院法規與最高法院裁判資料庫...
+                    正在執行本機引用規則比對...
                   </>
                 ) : (
                   <>
                     <Search className="w-4 h-4 text-rose-200" />
-                    立即啟動真實性與幽靈法條掃描
+                    立即啟動引用風險掃描
                   </>
                 )}
               </button>
+              <button
+                onClick={handleExternalCheck}
+                disabled={isExternalChecking || !documentInput.trim() || !externalConsent}
+                className="w-full mt-2 py-2 px-4 border border-slate-700 text-slate-300 hover:text-white hover:border-sky-500 rounded-xl disabled:opacity-50 transition-all text-xs"
+              >
+                {isExternalChecking ? '正在查詢第三方裁判字號資料庫...' : '可選：外部裁判字號存在性覆核'}
+              </button>
+              <label className="flex items-start gap-2 text-[11px] text-slate-400 mt-2">
+                <input type="checkbox" checked={externalConsent} onChange={(event) => setExternalConsent(event.target.checked)} className="mt-0.5 accent-sky-500" />
+                我同意只將文件擷取出的裁判字號送至第三方 dr-lawbot 查詢；這不是官方核實，查無結果也不代表裁判不存在。
+              </label>
             </div>
           </div>
+
+          {externalResults && (
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-xs space-y-2">
+              <div className="font-bold text-slate-200">外部交叉檢查結果（非官方核實）</div>
+              {externalResults.length === 0 ? <p className="text-slate-400">文件中沒有可解析的裁判字號。</p> : externalResults.map((result) => (
+                <div key={`${result.citation}-${result.status}`} className="flex items-start justify-between gap-3 border-t border-slate-800 pt-2">
+                  <span className="text-slate-300">{result.citation}</span>
+                  <span className={result.status === 'verified' ? 'text-emerald-400' : 'text-amber-400'}>{result.status}：{result.message}</span>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Quick Database Coverage Widget */}
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-xs space-y-2">
@@ -175,7 +225,7 @@ export const LegalDocAiChecker: React.FC = () => {
                 <div className="space-y-0.5">
                   <h3 className="font-bold text-slate-200 text-sm flex items-center gap-2">
                     <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                    司法院真實性比對診斷報告
+                    外部文件引用檢查報告
                   </h3>
                   <p className="text-xs text-slate-400">
                     {scanResult ? `掃描完成：共檢核 ${scanResult.totalChecked} 處法條及判決字號` : '等待掃描執行'}

@@ -40,6 +40,8 @@ import { LegalToolboxResult } from '../types';
 import { LEGAL_TOOLS } from '../lib/legalToolRegistry';
 export { LEGAL_TOOLS } from '../lib/legalToolRegistry';
 
+const countToolsInGroup = (group: string) => LEGAL_TOOLS.filter(tool => tool.categoryGroup === group).length;
+
 export interface LegalToolboxProps {
   initialToolId?: string;
 }
@@ -249,11 +251,11 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId }) => 
       if (verifyRes?.antiGhostVerification) {
         setResult(prev => prev ? { ...prev, antiGhostVerification: verifyRes.antiGhostVerification } : null);
         const { totalCitationsChecked, ghostCitationsFound } = verifyRes.antiGhostVerification;
-        setVerifyNotice(`全篇 AI 檢核完成：共核對 ${totalCitationsChecked} 處法律引用，幽靈虛構：${ghostCitationsFound} 處。引用準確度 100%。`);
+        setVerifyNotice(`全篇引用檢查完成：共核對 ${totalCitationsChecked} 處法律引用，疑似幽靈引用：${ghostCitationsFound} 處；結果仍需人工查證。`);
       }
     } catch (err: any) {
       console.error('Full AI verification failed:', err);
-      setVerifyNotice('全篇 AI 檢核完成（採用本機法規庫比對）');
+      setVerifyNotice('引用檢查暫時無法完成，請稍後重試並人工查證來源。');
     } finally {
       setIsVerifyingAi(false);
     }
@@ -337,13 +339,13 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId }) => 
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar">
             {[
               { id: 'ALL', label: `全部工具 (${LEGAL_TOOLS.length})` },
-              { id: 'CRIMINAL', label: '刑事告訴/保護令 (7)' },
-              { id: 'FAMILY', label: '家事繼承 (5)' },
-              { id: 'ELDERLY', label: '高齡監護 (3)' },
-              { id: 'DEBT_NOTE', label: '債權票據 (4)' },
-              { id: 'DEMAND_LETTER', label: '存證信函 (4)' },
-              { id: 'EXECUTION', label: '強制執行 (3)' },
-              { id: 'CONTRACT_REALESTATE', label: '租賃侵權 (2)' }
+              { id: 'CRIMINAL', label: `刑事告訴/保護令 (${countToolsInGroup('CRIMINAL')})` },
+              { id: 'FAMILY', label: `家事繼承 (${countToolsInGroup('FAMILY')})` },
+              { id: 'ELDERLY', label: `高齡監護 (${countToolsInGroup('ELDERLY')})` },
+              { id: 'DEBT_NOTE', label: `債權票據 (${countToolsInGroup('DEBT_NOTE')})` },
+              { id: 'DEMAND_LETTER', label: `存證信函 (${countToolsInGroup('DEMAND_LETTER')})` },
+              { id: 'EXECUTION', label: `強制執行 (${countToolsInGroup('EXECUTION')})` },
+              { id: 'CONTRACT_REALESTATE', label: `租賃侵權 (${countToolsInGroup('CONTRACT_REALESTATE')})` }
             ].map(tab => (
               <button
                 key={tab.id}
@@ -1613,10 +1615,10 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId }) => 
           {/* Anti-Ghost Hallucination Defense Notice */}
           <div className="bg-emerald-950/40 border border-emerald-800/60 rounded-xl p-4 text-xs space-y-2">
             <div className="font-bold text-emerald-300 flex items-center gap-1.5">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" /> 司法院接地 · 幽靈法條零容忍防禦機制
+              <ShieldCheck className="w-4 h-4 text-emerald-400" /> 引用檢查與風險提示
             </div>
             <p className="text-slate-300 leading-relaxed text-[11px]">
-              {LEGAL_TOOLS.length} 項工具全面掛載<strong>司法院全國法規庫</strong>與<strong>最高法院判例資料庫</strong>。
+              {LEGAL_TOOLS.length} 項工具提供<strong>司法院全國法規庫</strong>與<strong>最高法院判例資料庫</strong>來源連結；結果不等同官方核實。
             </p>
           </div>
         </div>

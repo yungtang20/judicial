@@ -8,6 +8,8 @@ import triageRouter from "./routes/triage.js";
 import judicialRouter from "./routes/judicial.js";
 import healthRouter from "./routes/health.js";
 import { sdlcRouter } from "./routes/sdlc.js";
+import externalCitationRouter from "./routes/externalCitation.js";
+import legalSearchRouter from "./routes/legalSearch.js";
 
 export function createExpressApp(): Express {
   const app = express();
@@ -29,6 +31,8 @@ export function createExpressApp(): Express {
   app.use(toolboxRouter);
   app.use(triageRouter);
   app.use(judicialRouter);
+  app.use(externalCitationRouter);
+  app.use(legalSearchRouter);
   app.use(healthRouter);
   app.use("/api/sdlc", sdlcRouter);
 

@@ -60,6 +60,7 @@ export const LegalGuideHome: React.FC<LegalGuideHomeProps> = ({ onSelectTool }) 
   const [showAiTriageModal, setShowAiTriageModal] = useState(false);
   const [copiedDraft, setCopiedDraft] = useState(false);
   const [syllogismAnswers, setSyllogismAnswers] = useState<Record<number, { option: string, text: string }>>({});
+  const [sourceTab, setSourceTab] = useState<'statutes' | 'judgments' | 'references' | 'literature'>('statutes');
 
   const handleRunAiTriage = async (customQuery?: string) => {
     const q = (customQuery || searchQuery).trim();
@@ -111,9 +112,15 @@ export const LegalGuideHome: React.FC<LegalGuideHomeProps> = ({ onSelectTool }) 
         pleadingDraft: data.pleadingDraft || data.readyDocumentText || '',
         isSyllogismComplete: data.isSyllogismComplete !== false,
         missingQuestions: data.missingQuestions || [],
+        sources: {
+          ...(data.sources || { enabled: false, statutes: [], judgments: [], references: [], literature: [], disclaimer: '目前未啟用外部法律檢索。' }),
+          // 導診已判定的法規依據先作為本機結果顯示；外部 TLR 結果仍單獨標示來源。
+          statutes: (data.sources?.statutes?.length ? data.sources.statutes : (Array.isArray(data.legalBasis) ? data.legalBasis : []).map((citation: string) => ({ kind: 'statutes', citation, title: citation })))
+        },
       };
 
       setAiTriageResult(normalized);
+      setSourceTab('statutes');
     } catch (err) {
       console.error('AI Triage error:', err);
       // Fallback offline triage
@@ -1215,6 +1222,35 @@ export const LegalGuideHome: React.FC<LegalGuideHomeProps> = ({ onSelectTool }) 
                       時效說明：{aiTriageResult.timeLimit}
                     </p>
                   </div>
+                </div>
+
+                {/* 外部法律資料分組檢索 */}
+                <div className="bg-slate-950/70 p-4 rounded-2xl border border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-sky-400 flex items-center gap-1.5"><BookOpen className="w-3.5 h-3.5" /> 法規／裁判／函釋檢索</span>
+                    <div className="flex items-center gap-2"><a href="https://www.lawbank.com.tw/SearchResult.aspx" target="_blank" rel="noreferrer" className="text-[10px] text-sky-400 hover:text-sky-300">Lawbank 外部搜尋 ↗</a><span className="text-[10px] text-slate-500">{aiTriageResult.sources?.enabled ? 'tw-legal-rag 外部資料源' : '未啟用外部資料源'}</span></div>
+                  </div>
+                  <div className="flex flex-wrap gap-2 border-b border-slate-800 pb-2">
+                    {([
+                      ['statutes', '法規'], ['judgments', '裁判'], ['references', '函釋'], ['literature', '論著']
+                    ] as const).map(([key, label]) => (
+                      <button key={key} onClick={() => setSourceTab(key)} className={`px-3 py-1.5 rounded-full text-xs border ${sourceTab === key ? 'border-sky-400 text-sky-300 bg-sky-950/50' : 'border-slate-700 text-slate-400'}`}>
+                        {label} {(aiTriageResult.sources?.[key] || []).length}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="space-y-2">
+                    {(aiTriageResult.sources?.[sourceTab] || []).length === 0 ? (
+                      <p className="text-xs text-slate-500">目前沒有可顯示的結果；查無結果不代表法源不存在。</p>
+                    ) : (aiTriageResult.sources[sourceTab] || []).map((source: any, index: number) => (
+                      <div key={`${source.citation}-${index}`} className="border-b border-slate-800 last:border-0 pb-2 last:pb-0">
+                        <div className="flex items-start justify-between gap-2"><span className="font-semibold text-slate-200">{source.title}</span>{source.status && <span className="text-[10px] text-amber-300">{source.status}</span>}</div>
+                        {source.excerpt && <p className="text-xs text-slate-400 leading-relaxed mt-1">{source.excerpt}</p>}
+                        {source.sourceUrl && <a href={source.sourceUrl} target="_blank" rel="noreferrer" className="text-[11px] text-sky-400 hover:text-sky-300">查看來源 ↗</a>}
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-slate-500">{aiTriageResult.sources?.disclaimer || '外部資料僅供查考，引用前請閱讀原文與官方來源。'}</p>
                 </div>
 
                 {/* 白話診斷分析 */}
