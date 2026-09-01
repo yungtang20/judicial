@@ -4,7 +4,7 @@
  */
 
 import { AIProvider } from '../../ai/providers/AIProvider';
-import { defaultGeminiProvider } from '../../ai/providers/GeminiProvider';
+import { defaultAIProvider as defaultGeminiProvider } from '../../ai/providers/providerRegistry';
 import {
   SdlcStageId,
   SdlcProjectState,

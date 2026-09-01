@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { defaultGeminiProvider } from "../../src/ai/providers/GeminiProvider.js";
+import { defaultAIProvider as defaultGeminiProvider } from "../../src/ai/providers/providerRegistry.js";
 import { UNIVERSAL_SYLLOGISM_RULES } from "../../src/prompts/universal-syllogism.js";
 import { fetchJudicialHtml, parseJudicialJudgment, normalizeTaiwanCaseQuery } from "../services/judicialCrawler.js";
 

@@ -3,6 +3,35 @@
  * Handles network requests, error parsing, and type definitions.
  */
 
+import { EvidenceRow, IssueRow, PrecedentItem } from '../types';
+
+export interface GeneratePetitionPayload {
+  caseType: string;
+  courtName: string;
+  appealCourtName?: string;
+  caseNo: string;
+  sectionCode?: string;
+  claimAmount?: string;
+  judgmentDeliveryDate?: string;
+  appellantRole?: string;
+  appellantName: string;
+  appellantId?: string;
+  appellantAddress?: string;
+  appellantPhone?: string;
+  appellantLegalRep?: string;
+  appelleeRole?: string;
+  appelleeName: string;
+  appelleeId?: string;
+  appelleeAddress?: string;
+  deliveryAgent?: string;
+  deliveryAddress?: string;
+  claims?: string;
+  judgmentSummary?: string;
+  issues: IssueRow[];
+  evidences: EvidenceRow[];
+  selectedPrecedents: PrecedentItem[];
+}
+
 class ApiError extends Error {
   code?: string;
   constructor(message: string, code?: string) {
@@ -47,7 +76,7 @@ export const apiClient = {
     });
   },
   
-  generatePetition: async (payload: any) => {
+  generatePetition: async (payload: GeneratePetitionPayload) => {
     return fetchWithHandler('/api/generate-appeal-petition', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

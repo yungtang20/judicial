@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { getActiveCase, useCaseStore } from '../store/useCaseStore';
 
 interface EvidenceRowItem {
   id: string;
@@ -11,6 +12,8 @@ interface EvidenceRowItem {
 }
 
 export default function EvidenceListGenerator() {
+  const activeCase = useCaseStore(getActiveCase);
+  const updateCaseEvidences = useCaseStore(s => s.updateEvidences);
   // 0. 案件基本資料
   const todayObj = new Date();
   const todayRoc = `${todayObj.getFullYear() - 1911}年${todayObj.getMonth() + 1}月${todayObj.getDate()}日`;
@@ -24,7 +27,15 @@ export default function EvidenceListGenerator() {
   const [submitDate, setSubmitDate] = useState(todayRoc);
 
   // 1. 調查證據列表
-  const [items, setItems] = useState<EvidenceRowItem[]>([
+  const [items, setItems] = useState<EvidenceRowItem[]>(activeCase.evidences.length ? activeCase.evidences.map(item => ({
+    id: item.id,
+    code: item.code,
+    relatedIssue: item.relatedIssue,
+    investigationItem: item.investigationItem,
+    investigationTarget: item.investigationTarget,
+    targetAddress: item.targetAddress,
+    provenFact: item.provenFact
+  })) : [
     {
       id: '1',
       code: '1',
@@ -37,7 +48,7 @@ export default function EvidenceListGenerator() {
   ]);
 
   const addItem = () => {
-    setItems([
+    const next = [
       ...items,
       {
         id: Date.now().toString(),
@@ -48,15 +59,21 @@ export default function EvidenceListGenerator() {
         targetAddress: '',
         provenFact: ''
       }
-    ]);
+    ];
+    setItems(next);
+    updateCaseEvidences(next.map(item => ({ id: item.id, code: item.code, relatedIssue: item.relatedIssue, investigationItem: item.investigationItem, investigationTarget: item.investigationTarget, targetAddress: item.targetAddress, provenFact: item.provenFact })));
   };
 
   const removeItem = (id: string) => {
-    setItems(items.filter(item => item.id !== id));
+    const next = items.filter(item => item.id !== id);
+    setItems(next);
+    updateCaseEvidences(next.map(item => ({ id: item.id, code: item.code, relatedIssue: item.relatedIssue, investigationItem: item.investigationItem, investigationTarget: item.investigationTarget, targetAddress: item.targetAddress, provenFact: item.provenFact })));
   };
 
   const updateItem = (id: string, field: keyof EvidenceRowItem, value: string) => {
-    setItems(items.map(item => item.id === id ? { ...item, [field]: value } : item));
+    const next = items.map(item => item.id === id ? { ...item, [field]: value } : item);
+    setItems(next);
+    updateCaseEvidences(next.map(item => ({ id: item.id, code: item.code, relatedIssue: item.relatedIssue, investigationItem: item.investigationItem, investigationTarget: item.investigationTarget, targetAddress: item.targetAddress, provenFact: item.provenFact })));
   };
 
   const handlePrint = () => {

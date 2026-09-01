@@ -37,6 +37,11 @@ export interface PrecedentItem {
     summary: string;
     applicationReason: string;
     selected: boolean;
+    sourceProvider?: 'tw-legal-rag' | 'judicial-opendata' | 'local' | 'manual';
+    sourceUrl?: string;
+    sourceStatus?: 'RETRIEVED_UNREAD' | 'FULLTEXT_READ' | 'HUMAN_CONFIRMED' | 'REJECTED';
+  fetchedAt?: string;
+  sourceId?: string;
 }
 
 /**
