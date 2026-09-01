@@ -4,6 +4,7 @@ import path from 'node:path';
 import { UNIVERSAL_SYLLOGISM_RULES } from '../prompts/universal-syllogism';
 import { generateVerifiedDocument } from './generatedDocumentPipeline';
 import { verifyLegalCitations } from './citationVerifier';
+import { LEGAL_TOOLS } from '../components/LegalToolbox';
 
 const root = process.cwd();
 const read = (file: string) => fs.readFileSync(path.join(root, file), 'utf8');
@@ -29,6 +30,10 @@ describe('legal governance regressions', () => {
     expect(source).toContain('export const LEGAL_TOOLS:');
     expect(source).not.toMatch(/全部工具 \(28\)|搜尋 25 項|25 合 1/);
     expect(source).toContain('LEGAL_TOOLS.length');
+    const ids = LEGAL_TOOLS.map(tool => tool.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(LEGAL_TOOLS.every(tool => tool.name && tool.shortDesc && tool.legalBasis)).toBe(true);
+    expect(read('src/components/DefenseWorkflowTool.tsx')).toContain('DefenseWorkflowTool');
   });
 
   it('verifies generated documents and retains an external checker', () => {
