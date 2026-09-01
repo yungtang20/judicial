@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import { UNIVERSAL_SYLLOGISM_RULES } from '../prompts/universal-syllogism';
-import { generateVerifiedDocument } from './generatedDocumentPipeline';
+import { assertGeneratedDocumentVerified, generateVerifiedDocument, verifyGeneratedDocument } from './generatedDocumentPipeline';
 import { verifyLegalCitations } from './citationVerifier';
 import { LEGAL_TOOLS } from '../components/LegalToolbox';
 
@@ -40,6 +40,8 @@ describe('legal governance regressions', () => {
     const server = read('server.ts');
     expect(server).toContain('generatedDocumentPipeline');
     expect(server).toContain('verifyGeneratedDocument(pleadingText)');
+    expect(server).toContain('法律文件引用檢核未通過，拒絕回傳未確認引用文件');
+    expect(server).toContain('res.status(422)');
     expect(read('src/components/LegalDocAiChecker.tsx')).toContain('External Legal Document Checker');
   });
 
@@ -52,6 +54,7 @@ describe('legal governance regressions', () => {
     expect(calls).toEqual(['generate', 'verify:民法第184條']);
     expect(result.documentText).toBe('民法第184條');
     await expect(generateVerifiedDocument(() => '  ')).rejects.toThrow('拒絕回傳');
+    expect(() => assertGeneratedDocumentVerified(verifyGeneratedDocument('民法第999條'))).toThrow('引用檢核未通過');
   });
 
   it('does not classify unindexed citations as verified', () => {

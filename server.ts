@@ -52,7 +52,7 @@ import { buildFallbackJudgmentAnalysis, buildFallbackPetition } from "./src/util
 import { buildFallbackDefenseTriage, buildFallbackMineScan, buildFallbackDefensePleading } from "./src/utils/defenseFallbacks.js";
 import { buildFallbackToolboxResult } from "./src/utils/toolboxFallbacks.js";
 import { verifyLegalCitations } from "./src/lib/citationVerifier.js";
-import { verifyGeneratedDocument } from "./src/lib/generatedDocumentPipeline.js";
+import { assertGeneratedDocumentVerified, verifyGeneratedDocument } from "./src/lib/generatedDocumentPipeline.js";
 
 dotenv.config();
 
@@ -843,7 +843,7 @@ app.post("/api/tlr/fulltext", async (req, res) => {
     try {
       const apiKey = resolveApiKey();
       if (isApiKeyMissingOrPlaceholder(apiKey)) {
-        const verified = verifyGeneratedDocument(buildFallbackPetition(req.body));
+        const verified = assertGeneratedDocumentVerified(verifyGeneratedDocument(buildFallbackPetition(req.body)));
         return res.json({
           petitionText: verified.documentText,
           antiGhostVerification: verified.antiGhostVerification,
@@ -861,12 +861,12 @@ app.post("/api/tlr/fulltext", async (req, res) => {
       } catch (genErr) {
         console.warn("Petition AI generation error, using fallback petition:", genErr);
         return res.json({
-          ...(() => { const verified = verifyGeneratedDocument(buildFallbackPetition(req.body)); return { petitionText: verified.documentText, antiGhostVerification: verified.antiGhostVerification }; })(),
+          ...(() => { const verified = assertGeneratedDocumentVerified(verifyGeneratedDocument(buildFallbackPetition(req.body))); return { petitionText: verified.documentText, antiGhostVerification: verified.antiGhostVerification }; })(),
           isFallback: true,
           warning: "Gemini API 暫時高負載，已自動套用標準司法院書狀範本格式生成"
         });
       }
-      const verified = verifyGeneratedDocument(petitionText);
+      const verified = assertGeneratedDocumentVerified(verifyGeneratedDocument(petitionText));
       return res.json({ petitionText: verified.documentText, antiGhostVerification: verified.antiGhostVerification });
     } catch (err: any) {
       console.error("Generate petition catch error:", err);
@@ -987,7 +987,7 @@ app.post("/api/tlr/fulltext", async (req, res) => {
       if (isApiKeyMissingOrPlaceholder(apiKey)) {
         console.log("[Defense API] No valid API Key, returning fallback pleading.");
         const fallback = buildFallbackDefensePleading(pleadingType, clientInput, caseInfo);
-        const verified = verifyGeneratedDocument(fallback.pleadingText || "");
+        const verified = assertGeneratedDocumentVerified(verifyGeneratedDocument(fallback.pleadingText || ""));
         return res.json({ ...fallback, pleadingText: verified.documentText, antiGhostVerification: verified.antiGhostVerification, modelUsed: "offline-fallback", isFallback: true });
       }
 
@@ -1003,11 +1003,11 @@ app.post("/api/tlr/fulltext", async (req, res) => {
       } catch (genErr: any) {
         console.warn("[Defense API] AI Pleading generation failed, using fallback:", genErr);
         const fallback = buildFallbackDefensePleading(pleadingType, clientInput, caseInfo);
-        const verified = verifyGeneratedDocument(fallback.pleadingText || "");
+        const verified = assertGeneratedDocumentVerified(verifyGeneratedDocument(fallback.pleadingText || ""));
         return res.json({ ...fallback, pleadingText: verified.documentText, antiGhostVerification: verified.antiGhostVerification, modelUsed: "offline-fallback", isFallback: true });
       }
 
-      const verifiedPleading = verifyGeneratedDocument(pleadingText);
+      const verifiedPleading = assertGeneratedDocumentVerified(verifyGeneratedDocument(pleadingText));
       return res.json({
         pleadingType,
         title: pleadingType === "LAWYER_PLEADING" ? (caseInfo.caseType === "criminal" ? "刑事答辯狀" : "民事準備書狀") : (caseInfo.caseType === "criminal" ? "刑事陳報個人意見狀" : "民事陳報個人意見狀"),
@@ -1633,7 +1633,15 @@ app.post("/api/tlr/fulltext", async (req, res) => {
       const isMissing = isApiKeyMissingOrPlaceholder(apiKey);
 
       if (isMissing) {
-        return res.json(buildIntelligentRuleBasedTriage(query));
+        const fallbackTriage = buildIntelligentRuleBasedTriage(query);
+        const fallbackVerification = fallbackTriage.antiGhostVerification;
+        if (fallbackVerification && (fallbackVerification.ghostCitationsFound > 0 || fallbackVerification.verifiedCitations.some(citation => !citation.verified))) {
+          return res.status(422).json({
+            error: "離線法律文件引用檢核未通過，拒絕回傳未確認引用文件",
+            antiGhostVerification: fallbackVerification
+          });
+        }
+        return res.json(fallbackTriage);
       }
 
       // Gemini AI dynamic triage
@@ -1690,6 +1698,16 @@ ${UNIVERSAL_SYLLOGISM_RULES}
 
       if (jsonParsed && jsonParsed.readyDocumentText) {
         const antiGhost = verifyLegalCitations(jsonParsed.readyDocumentText);
+        if (antiGhost.ghostCount > 0 || antiGhost.results.some(citation => !citation.verified)) {
+          return res.status(422).json({
+            error: "法律文件引用檢核未通過，拒絕回傳未確認引用文件",
+            antiGhostVerification: {
+              totalCitationsChecked: antiGhost.totalChecked,
+              ghostCitationsFound: antiGhost.ghostCount,
+              verifiedCitations: antiGhost.results
+            }
+          });
+        }
         const legalArr = Array.isArray(jsonParsed.legalBasis) 
           ? jsonParsed.legalBasis 
           : (jsonParsed.statuteAnalysis ? [jsonParsed.statuteAnalysis] : ["民法第184條"]);

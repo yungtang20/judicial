@@ -10,6 +10,14 @@ export interface GeneratedDocumentVerification {
   };
 }
 
+/** Fail closed so callers cannot accidentally return a document with unresolved citations. */
+export function assertGeneratedDocumentVerified(result: GeneratedDocumentVerification): GeneratedDocumentVerification {
+  if (!result.antiGhostVerification.verificationPassed) {
+    throw new Error('法律文件引用檢核未通過，拒絕回傳未確認引用文件');
+  }
+  return result;
+}
+
 type Verifier = typeof verifyLegalCitations;
 
 export function verifyGeneratedDocument(
