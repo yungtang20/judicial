@@ -41,6 +41,7 @@ import {
 } from '../types';
 import { useAppealStore } from '../store/useAppealStore';
 import { AntiGhostBadge } from './AntiGhostBadge';
+import { getActiveCase, useCaseStore } from '../store/useCaseStore';
 
 const PRESET_CASES = [
   {
@@ -100,6 +101,9 @@ const PRESET_CASES = [
 ];
 
 export const DefenseWorkflowTool: React.FC = () => {
+  const activeCase = useCaseStore(getActiveCase);
+  const saveAnalysis = useCaseStore(s => s.saveAnalysis);
+  const addDocument = useCaseStore(s => s.addDocument);
   // Case metadata & input states
   const [caseType, setCaseType] = useState<string>('civil');
   const [courtName, setCourtName] = useState<string>('臺灣臺北地方法院');
@@ -109,8 +113,8 @@ export const DefenseWorkflowTool: React.FC = () => {
   const [opponentRole, setOpponentRole] = useState<string>('原告');
   const [opponentName, setOpponentName] = useState<string>('高利祥');
   const [lawyerName, setLawyerName] = useState<string>('訴訟代理人律師');
-  const [caseBackground, setCaseBackground] = useState<string>('');
-  const [clientStatement, setClientStatement] = useState<string>(PRESET_CASES[0].rawStatement);
+  const [caseBackground, setCaseBackground] = useState<string>(activeCase.facts);
+  const [clientStatement, setClientStatement] = useState<string>(activeCase.facts || PRESET_CASES[0].rawStatement);
 
   // Workflow stages & results
   const [currentStage, setCurrentStage] = useState<'INGEST' | 'B_POINT' | 'PHASE_2' | 'PHASE_3' | 'OUTPUT'>('INGEST');
@@ -162,6 +166,7 @@ export const DefenseWorkflowTool: React.FC = () => {
         caseNo
       });
       setTriageResult(res);
+      saveAnalysis(res, { facts: clientStatement, caseType, issues: activeCase.issues, evidences: activeCase.evidences, citations: activeCase.candidateCitations });
       setCurrentStage('B_POINT');
       
       // If decision is TRACK_1_FACTS, default G-point to COOPERATE; otherwise INSIST_SUBMIT
@@ -225,6 +230,18 @@ export const DefenseWorkflowTool: React.FC = () => {
       } else {
         setPersonalPleading(res);
         setActiveOutputTab('PERSONAL');
+      }
+      if (res?.pleadingText) {
+        addDocument({
+          id: `defense-${type}-${Date.now()}`,
+          kind: type,
+          title: res.title || '防禦書狀',
+          text: res.pleadingText,
+          status: res.antiGhostVerification?.ghostCitationsFound ? 'NEEDS_HUMAN_REVIEW' : 'VERIFIED',
+          sourceTool: 'DefenseWorkflowTool',
+          createdAt: new Date().toISOString(),
+          verification: res.antiGhostVerification
+        });
       }
       setCurrentStage('OUTPUT');
       // Auto-trigger full AI citation verification check upon document generation

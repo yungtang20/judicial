@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { AntiGhostBadge } from './AntiGhostBadge';
 import { verifyLegalCitations } from '../lib/citationVerifier';
+import { getActiveCase, useCaseStore } from '../store/useCaseStore';
 import { ShieldCheck, CheckCircle2 } from 'lucide-react';
 
 interface FullIssueRow {
@@ -14,6 +15,8 @@ interface FullIssueRow {
 }
 
 export default function IssueTableGenerator() {
+  const activeCase = useCaseStore(getActiveCase);
+  const updateCaseIssues = useCaseStore(s => s.updateIssues);
   // 0. 案件基本資料
   const todayObj = new Date();
   const todayRoc = `${todayObj.getFullYear() - 1911}年${todayObj.getMonth() + 1}月${todayObj.getDate()}日`;
@@ -28,7 +31,15 @@ export default function IssueTableGenerator() {
   const [submitter, setSubmitter] = useState('上訴人 王小明');
   const [submitDate, setSubmitDate] = useState(todayRoc);
 
-  const [issues, setIssues] = useState<FullIssueRow[]>([
+  const [issues, setIssues] = useState<FullIssueRow[]>(activeCase.issues.length ? activeCase.issues.map(issue => ({
+    id: issue.id,
+    title: issue.title,
+    originalHolding: issue.originalHolding,
+    appealArgument: issue.appealArgument,
+    relatedEvidences: issue.relatedEvidenceCodes || '',
+    legalBasis: issue.legalBasis || '',
+    legalStrength: issue.legalStrength || 'NEED_SUPPLEMENT'
+  })) : [
     {
       id: '1',
       title: '爭點一：兩造間消費借貸關係成立與否及舉證責任分配',
@@ -41,7 +52,7 @@ export default function IssueTableGenerator() {
   ]);
 
   const addIssue = () => {
-    setIssues([
+    const next = [
       ...issues,
       {
         id: Date.now().toString(),
@@ -52,15 +63,21 @@ export default function IssueTableGenerator() {
         legalBasis: '',
         legalStrength: 'HIGH'
       }
-    ]);
+    ];
+    setIssues(next);
+    updateCaseIssues(next.map(issue => ({ id: issue.id, title: issue.title, originalHolding: issue.originalHolding, appealArgument: issue.appealArgument, relatedEvidenceCodes: issue.relatedEvidences, legalBasis: issue.legalBasis, legalStrength: issue.legalStrength })));
   };
 
   const removeIssue = (id: string) => {
-    setIssues(issues.filter(i => i.id !== id));
+    const next = issues.filter(i => i.id !== id);
+    setIssues(next);
+    updateCaseIssues(next.map(issue => ({ id: issue.id, title: issue.title, originalHolding: issue.originalHolding, appealArgument: issue.appealArgument, relatedEvidenceCodes: issue.relatedEvidences, legalBasis: issue.legalBasis, legalStrength: issue.legalStrength })));
   };
 
   const updateIssue = (id: string, field: keyof FullIssueRow, value: any) => {
-    setIssues(issues.map(i => i.id === id ? { ...i, [field]: value } : i));
+    const next = issues.map(i => i.id === id ? { ...i, [field]: value } : i);
+    setIssues(next);
+    updateCaseIssues(next.map(issue => ({ id: issue.id, title: issue.title, originalHolding: issue.originalHolding, appealArgument: issue.appealArgument, relatedEvidenceCodes: issue.relatedEvidences, legalBasis: issue.legalBasis, legalStrength: issue.legalStrength })));
   };
 
   const handlePrint = () => {

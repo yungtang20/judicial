@@ -4,7 +4,7 @@ import { getBPointTriagePrompt, getMineScanPrompt, getDefensePleadingPrompt } fr
 import { UNIVERSAL_SYLLOGISM_RULES } from "../../src/prompts/universal-syllogism.js";
 import { buildFallbackDefenseTriage, buildFallbackMineScan, buildFallbackDefensePleading } from "../../src/utils/defenseFallbacks.js";
 import { precheckLegalInput } from "../../src/lib/legalInputPrecheck.js";
-import { verifyGeneratedDocument } from "../../src/lib/generatedDocumentPipeline.js";
+import { verifyGeneratedDocument, assertGeneratedDocumentVerified } from "../../src/lib/generatedDocumentPipeline.js";
 
 const router = Router();
 
@@ -108,16 +108,31 @@ router.post("/api/defense/generate-pleading", async (req: Request, res: Response
   try {
     const aiRes = await defaultGeminiProvider.generate(fullPrompt);
     const pleadingText = aiRes.text;
-    const antiGhost = verifyGeneratedDocument(pleadingText);
+    const verified = assertGeneratedDocumentVerified(verifyGeneratedDocument(pleadingText));
 
     res.json({
-      pleadingText,
-      antiGhostVerification: antiGhost
+      pleadingText: verified.documentText,
+      antiGhostVerification: verified.antiGhostVerification
     });
   } catch (err: any) {
+    if (err?.message?.includes('法律文件引用檢核未通過')) {
+      return res.status(422).json({ error: err.message, code: 'DOCUMENT_VERIFICATION_FAILED' });
+    }
     console.warn("[DefenseGeneratePleading] AI 降級至本機書狀產生庫:", err.message);
-    const fallbackResult = buildFallbackDefensePleading(pleadingType, clientInput, caseInfo);
-    res.json(fallbackResult);
+    try {
+      const fallbackResult = buildFallbackDefensePleading(pleadingType, clientInput, caseInfo);
+      const verified = assertGeneratedDocumentVerified(verifyGeneratedDocument(fallbackResult.pleadingText));
+      res.json({
+        ...fallbackResult,
+        pleadingText: verified.documentText,
+        antiGhostVerification: verified.antiGhostVerification
+      });
+    } catch (fallbackErr: any) {
+      return res.status(422).json({
+        error: fallbackErr?.message || '法律文件驗證失敗，拒絕回傳文件',
+        code: 'DOCUMENT_VERIFICATION_FAILED'
+      });
+    }
   }
 });
 

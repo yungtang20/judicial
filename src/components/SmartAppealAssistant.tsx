@@ -5,6 +5,7 @@ import React, { useState, useRef, useEffect, useMemo } from "react";
 import * as pdfjsLib from 'pdfjs-dist';
 import { IssueRow, EvidenceRow, PrecedentItem } from "../types";
 import { useAppealStore } from "../store/useAppealStore";
+import { useCaseStore } from "../store/useCaseStore";
 import { AntiGhostBadge } from "./AntiGhostBadge";
 import { verifyLegalCitations } from "../lib/citationVerifier";
 import { ShieldCheck, CheckCircle2 } from "lucide-react";
@@ -18,6 +19,12 @@ if (typeof window !== 'undefined' && pdfjsLib && pdfjsLib.GlobalWorkerOptions) {
 }
 
 export default function SmartAppealAssistant() {
+  const saveAnalysis = useCaseStore(s => s.saveAnalysis);
+  const addDocument = useCaseStore(s => s.addDocument);
+  const saveRetrievedCitations = useCaseStore(s => s.saveRetrievedCitations);
+  const markCitationFulltextRead = useCaseStore(s => s.markCitationFulltextRead);
+  const confirmDocument = useCaseStore(s => s.confirmDocument);
+  const activeCase = useCaseStore(s => s.cases[s.activeCaseId]);
   // Step tracker
   const isFallbackMode = useAppealStore(s => s.isFallbackMode);
       const setIsFallbackMode = useAppealStore(s => s.setIsFallbackMode);
@@ -220,6 +227,8 @@ export default function SmartAppealAssistant() {
       const setIsGeneratingPetition = useAppealStore(s => s.setIsGeneratingPetition);
   const generatedPetition = useAppealStore(s => s.generatedPetition);
       const setGeneratedPetition = useAppealStore(s => s.setGeneratedPetition);
+  const [generatedDocumentId, setGeneratedDocumentId] = useState<string | null>(null);
+  const [humanGateNote, setHumanGateNote] = useState('');
 
   const petitionVerification = useMemo(() => {
     if (!generatedPetition) return undefined;
@@ -253,15 +262,9 @@ export default function SmartAppealAssistant() {
   // ---------- Auto Save / Load Mechanism ----------
   useAutoSave(
     'SmartAppealAssistant_Draft_v1',
-    { rawText, secondText, caseType, generatedPetition, issues, evidences, judgmentSummary, currentStep },
+    // 法律原文、當事人資料與生成書狀不得自動寫入 localStorage；僅保留非敏感 UI 位置。
+    { currentStep },
     (data: any) => {
-      if (data.rawText) setRawText(data.rawText);
-      if (data.secondText) setSecondText(data.secondText);
-      if (data.caseType) setCaseType(data.caseType);
-      if (data.generatedPetition) setGeneratedPetition(data.generatedPetition);
-      if (data.issues) setIssues(data.issues);
-      if (data.evidences) setEvidences(data.evidences);
-      if (data.judgmentSummary) setJudgmentSummary(data.judgmentSummary);
       if (data.currentStep) setCurrentStep(data.currentStep);
     }
   );
@@ -347,6 +350,19 @@ export default function SmartAppealAssistant() {
       }
       const data = await res.json();
       setTlrResults(data.results || []);
+      saveRetrievedCitations((data.results || []).map((hit: any): PrecedentItem => ({
+        id: hit.doc_id || hit.citation_text,
+        type: '裁判',
+        citation: hit.citation_text || hit.doc_id || '',
+        summary: hit.hit_excerpt || '',
+        applicationReason: '',
+        selected: false,
+        sourceProvider: 'tw-legal-rag',
+        sourceUrl: hit.source_url,
+        sourceStatus: 'RETRIEVED_UNREAD',
+        sourceId: hit.doc_id,
+        fetchedAt: new Date().toISOString()
+      })));
       setTlrNote(data.note || '');
       if ((data.results || []).length === 0) {
         setJudicialMsg(data.note || '查無相符裁判書，請嘗試使用其他案號格式或縮減關鍵字。');
@@ -379,6 +395,7 @@ export default function SmartAppealAssistant() {
       }
       const data = await res.json();
       const textToInsert = data.fulltext || data.text_excerpt || '';
+      markCitationFulltextRead(item.doc_id || item.citation_text, item.source_url);
       if (!textToInsert) {
         throw new Error('回傳之裁判書內容為空');
       }
@@ -669,6 +686,13 @@ export default function SmartAppealAssistant() {
           selected: true
         })));
       }
+      saveAnalysis(data, {
+        facts: rawText,
+        caseType: data.caseType,
+        issues: data.suggestedIssues || [],
+        evidences: data.suggestedEvidences || [],
+        citations: data.suggestedPrecedents || []
+      });
 
       if (jumpToStepTwo) {
         setCurrentStep(2); // 跳轉到步驟二
@@ -772,6 +796,20 @@ export default function SmartAppealAssistant() {
       }
       
       setGeneratedPetition(data.petitionText || '');
+      if (data.petitionText) {
+        const documentId = `appeal-${Date.now()}`;
+        setGeneratedDocumentId(documentId);
+        addDocument({
+          id: documentId,
+          kind: 'APPEAL_PETITION',
+          title: '上訴理由狀',
+          text: data.petitionText,
+          status: data.antiGhostVerification?.verificationPassed === false ? 'NEEDS_HUMAN_REVIEW' : 'VERIFIED',
+          sourceTool: 'SmartAppealAssistant',
+          createdAt: new Date().toISOString(),
+          verification: data.antiGhostVerification
+        });
+      }
       setCurrentStep(4);
       // Auto-trigger full AI citation verification check upon document generation
       if (data.petitionText) {
@@ -1955,7 +1993,11 @@ export default function SmartAppealAssistant() {
 
               {outputTab === 'petition' ? (
                 <button
-                  onClick={() => navigator.clipboard.writeText(generatedPetition)}
+                  onClick={() => {
+                    const approved = activeCase?.documents.some(d => d.id === generatedDocumentId && d.status === 'HUMAN_APPROVED');
+                    if (!approved) { alert('請先完成本機人工確認 Gate，才能匯出書狀。'); return; }
+                    navigator.clipboard.writeText(generatedPetition);
+                  }}
                   className="bg-gray-100 border border-gray-300 text-gray-700 px-3 py-2 rounded text-xs font-bold hover:bg-gray-200"
                 >
                   📋 複製書狀全文
@@ -1992,6 +2034,11 @@ export default function SmartAppealAssistant() {
                     alert('示範模式下無法列印或下載法律文件');
                     return;
                   }
+                  const approved = activeCase?.documents.some(d => d.id === generatedDocumentId && d.status === 'HUMAN_APPROVED');
+                  if (outputTab === 'petition' && !approved) {
+                    alert('請先完成本機人工確認 Gate，才能列印或下載書狀。');
+                    return;
+                  }
                   handlePrint();
                 }}
                 className={`${isFallbackMode ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#2C7873] hover:opacity-90'} text-white px-4 py-2 rounded text-xs font-bold shadow-xs`}
@@ -2001,6 +2048,22 @@ export default function SmartAppealAssistant() {
               </button>
             </div>
           </div>
+
+          {outputTab === 'petition' && generatedPetition && (
+            <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 space-y-2">
+              <div className="font-bold text-amber-900">人工放行 Gate</div>
+              <div className="text-xs text-amber-800">系統驗證不代表法律正確性；請人工核對事實、期限及每一筆引用。此為本機確認，尚未接入帳號身分驗證。</div>
+              <textarea value={humanGateNote} onChange={e => setHumanGateNote(e.target.value)} placeholder="請記錄核對範圍或疑點（至少 5 字）" className="w-full border rounded p-2 text-sm" rows={2} />
+              <button
+                disabled={!generatedDocumentId || !humanGateNote.trim() || humanGateNote.trim().length < 5 || petitionVerification?.ghostCitationsFound !== 0}
+                onClick={() => generatedDocumentId && confirmDocument(generatedDocumentId, humanGateNote.trim())}
+                className="px-3 py-2 rounded bg-amber-700 text-white text-xs font-bold disabled:opacity-50"
+              >
+                ✅ 完成人工確認並放行
+              </button>
+              {activeCase?.documents.find(d => d.id === generatedDocumentId)?.status === 'HUMAN_APPROVED' && <span className="ml-2 text-xs text-green-700 font-bold">已人工放行</span>}
+            </div>
+          )}
 
           {/* 表單切換頁籤 (Tab Switcher) */}
           <div className="flex border-b border-gray-200 text-xs font-bold">

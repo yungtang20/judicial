@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 import { apiClient } from '../lib/apiClient';
 import { LegalToolboxResult } from '../types';
+import { getActiveCase, useCaseStore } from '../store/useCaseStore';
 
 import { LEGAL_TOOLS } from '../lib/legalToolRegistry';
 export { LEGAL_TOOLS } from '../lib/legalToolRegistry';
@@ -47,6 +48,8 @@ export interface LegalToolboxProps {
 }
 
 export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId }) => {
+  const activeCase = useCaseStore(getActiveCase);
+  const addDocument = useCaseStore(s => s.addDocument);
   // Active tool ID (default to traffic accident complaint or passed prop)
   const [activeToolId, setActiveToolId] = useState<string>(initialToolId || 'CRIMINAL_COMPLAINT_TRAFFIC');
   
@@ -191,6 +194,16 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId }) => 
     requestedRelief: '命相對人遠離住居所與工作地100公尺、禁止騷擾與通訊'
   });
 
+  React.useEffect(() => {
+    if (!activeCase.facts && activeCase.issues.length === 0) return;
+    setFormInputs(prev => ({
+      ...prev,
+      incidentDetails: activeCase.facts || prev.incidentDetails,
+      issueSummary: activeCase.issues.map(issue => issue.title).join('\n') || prev.issueSummary,
+      evidenceList: activeCase.evidences.map(evidence => evidence.provenFact).join('\n') || prev.evidenceList
+    }));
+  }, [activeCase]);
+
   const handleInputChange = (field: string, value: any) => {
     setFormInputs(prev => ({ ...prev, [field]: value }));
   };
@@ -226,6 +239,18 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId }) => 
         params: formInputs
       });
       setResult(res);
+      if (res?.documentText) {
+        addDocument({
+          id: `toolbox-${activeToolId}-${Date.now()}`,
+          kind: activeToolId,
+          title: res.title || currentTool.name,
+          text: res.documentText,
+          status: res.antiGhostVerification?.ghostCitationsFound ? 'NEEDS_HUMAN_REVIEW' : 'VERIFIED',
+          sourceTool: 'LegalToolbox',
+          createdAt: new Date().toISOString(),
+          verification: res.antiGhostVerification
+        });
+      }
       // Auto-trigger full AI citation verification check upon document generation
       if (res?.documentText) {
         handleFullVerify(res.documentText);

@@ -133,7 +133,24 @@ describe('legal governance regressions', () => {
     expect(defenseRoute).toContain('verifyGeneratedDocument');
     expect(appealRoute).toContain('verifyGeneratedDocument');
     expect(toolboxRoute).toContain('verifyGeneratedDocument');
+    expect(defenseRoute).toContain('assertGeneratedDocumentVerified');
+    expect(appealRoute).toContain('DOCUMENT_VERIFICATION_FAILED');
+    expect(toolboxRoute).toContain('assertGeneratedDocumentVerified');
+    expect(defenseRoute).toContain('pleadingText: verified.documentText');
+    expect(toolboxRoute).toContain('documentText: verified.documentText');
     expect(read('src/components/LegalDocAiChecker.tsx')).toContain('External Legal Document Checker');
+  });
+
+  it('keeps the current appeal payload fields in the generation prompt', () => {
+    const prompt = getGenerateAppealPetitionPrompt({
+      caseNo: '113年度上字第1號',
+      issues: [{ id: 'i1', title: '爭點', originalHolding: '原審認定', appealArgument: '指摘', relatedEvidenceCodes: '1', legalBasis: '民法第184條' }],
+      evidences: [{ id: 'e1', code: '1', relatedIssue: '爭點', investigationItem: '調查', investigationTarget: '證人', targetAddress: '詳卷', provenFact: '待證事實' }],
+      selectedPrecedents: [{ id: 'p1', type: '判決', citation: '最高法院112年度台上字第1號', summary: '要旨', applicationReason: '適用', selected: true }]
+    });
+    expect(prompt).toContain('113年度上字第1號');
+    expect(prompt).toContain('最高法院112年度台上字第1號');
+    expect(prompt).toContain('待證事實');
   });
 
   it('runs heuristic legal input pre-checks before generation', () => {
@@ -158,6 +175,18 @@ describe('legal governance regressions', () => {
     const verified = await generateVerifiedDocument(async () => '依民法第184條第1項前段規定...');
     expect(verified.antiGhostVerification.totalCitationsChecked).toBeGreaterThanOrEqual(1);
     expect(verified.antiGhostVerification.ghostCitationsFound).toBe(0);
+
+    await expect(
+      generateVerifiedDocument(
+        async () => '依最高法院113年度台上字第999999號判決意旨...',
+        () => ({
+          sanitizedText: '依最高法院113年度台上字第999999號判決意旨...',
+          totalChecked: 1,
+          ghostCount: 1,
+          results: [{ verified: false, isGhostOrFake: true, citationText: '最高法院113年度台上字第999999號' }] as any
+        })
+      )
+    ).rejects.toThrow('法律文件引用檢核未通過');
   });
 
   it('does not classify unindexed citations as verified', () => {

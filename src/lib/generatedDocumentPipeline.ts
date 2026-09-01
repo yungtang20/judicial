@@ -49,5 +49,5 @@ export async function generateVerifiedDocument(
     throw new Error('法律文件生成結果為空，拒絕回傳未檢核文件');
   }
 
-  return verifyGeneratedDocument(generated, verify);
+  return assertGeneratedDocumentVerified(verifyGeneratedDocument(generated, verify));
 }

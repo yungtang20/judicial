@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { LEGAL_TOOLS } from './LegalToolbox';
+import { useCaseStore } from '../store/useCaseStore';
 import { 
   Compass, 
   Search, 
@@ -61,6 +62,26 @@ export const LegalGuideHome: React.FC<LegalGuideHomeProps> = ({ onSelectTool }) 
   const [copiedDraft, setCopiedDraft] = useState(false);
   const [syllogismAnswers, setSyllogismAnswers] = useState<Record<number, { option: string, text: string }>>({});
   const [sourceTab, setSourceTab] = useState<'statutes' | 'judgments' | 'references' | 'literature'>('statutes');
+  const saveTriage = useCaseStore(s => s.saveTriage);
+  const saveRetrievedCitations = useCaseStore(s => s.saveRetrievedCitations);
+
+  useEffect(() => {
+    if (!aiTriageResult || !searchQuery.trim()) return;
+    saveTriage(searchQuery.trim(), aiTriageResult);
+    const retrieved = (aiTriageResult.sources?.judgments || []).map((source: any, index: number) => ({
+      id: source.citation || `retrieved-${index}`,
+      type: 'TLR 檢索結果',
+      citation: source.citation || source.title || '未命名來源',
+      summary: source.excerpt || source.title || '',
+      applicationReason: '導診檢索候選；尚未完成全文閱讀與人工確認。',
+      selected: false,
+      sourceProvider: 'tw-legal-rag',
+      sourceUrl: source.sourceUrl,
+      sourceStatus: 'RETRIEVED_UNREAD',
+      fetchedAt: new Date().toISOString()
+    }));
+    if (retrieved.length) saveRetrievedCitations(retrieved);
+  }, [aiTriageResult, searchQuery, saveTriage, saveRetrievedCitations]);
 
   const handleRunAiTriage = async (customQuery?: string) => {
     const q = (customQuery || searchQuery).trim();

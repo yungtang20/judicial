@@ -4,9 +4,10 @@ import { getLegalToolboxPrompt } from "../../src/prompts/toolbox-prompts.js";
 import { UNIVERSAL_SYLLOGISM_RULES } from "../../src/prompts/universal-syllogism.js";
 import { buildFallbackToolboxResult } from "../../src/utils/toolboxFallbacks.js";
 import { precheckLegalInput } from "../../src/lib/legalInputPrecheck.js";
-import { verifyGeneratedDocument } from "../../src/lib/generatedDocumentPipeline.js";
+import { verifyGeneratedDocument, assertGeneratedDocumentVerified } from "../../src/lib/generatedDocumentPipeline.js";
 import { verifyLegalCitations } from "../../src/lib/citationVerifier.js";
 import { LEGAL_TOOL_TITLES } from "../../src/lib/legalToolTitles.js";
+import { findUnreadRetrievedCitations } from "../../src/domain/case/citationGate.js";
 
 const router = Router();
 
@@ -17,6 +18,10 @@ router.post("/api/toolbox/generate", async (req: Request, res: Response) => {
   const resolvedTitle = toolTitle || (toolId && LEGAL_TOOL_TITLES[toolId]) || "法律文書";
 
   const serializedInput = JSON.stringify(params || {});
+  const unreadCitations = findUnreadRetrievedCitations((params || {}).selectedPrecedents || (params || {}).candidateCitations);
+  if (unreadCitations.length > 0) {
+    return res.status(422).json({ error: '檢索裁判尚未取得全文，拒絕將未讀取來源帶入生成', code: 'CITATION_FULLTEXT_REQUIRED', citations: unreadCitations.map(item => item.citation) });
+  }
   const precheck = precheckLegalInput(serializedInput, "generation");
   if (precheck.status === "reject") {
     return res.status(422).json({
@@ -45,15 +50,31 @@ router.post("/api/toolbox/generate", async (req: Request, res: Response) => {
 
     // Auto verification
     if (parsed.documentText) {
-      const antiGhost = verifyGeneratedDocument(parsed.documentText);
-      parsed.antiGhostVerification = antiGhost;
+      const verified = assertGeneratedDocumentVerified(verifyGeneratedDocument(parsed.documentText));
+      parsed.documentText = verified.documentText;
+      parsed.antiGhostVerification = verified.antiGhostVerification;
     }
 
     res.json(parsed);
   } catch (err: any) {
+    if (err?.message?.includes('法律文件引用檢核未通過')) {
+      return res.status(422).json({ error: err.message, code: 'DOCUMENT_VERIFICATION_FAILED' });
+    }
     console.warn("[ToolboxGenerate] AI 降級至本機工具庫:", err.message);
-    const fallback = buildFallbackToolboxResult(categoryKey, params || {});
-    res.json(fallback);
+    try {
+      const fallback = buildFallbackToolboxResult(categoryKey, params || {});
+      const verified = assertGeneratedDocumentVerified(verifyGeneratedDocument(fallback.documentText));
+      res.json({
+        ...fallback,
+        documentText: verified.documentText,
+        antiGhostVerification: verified.antiGhostVerification
+      });
+    } catch (fallbackErr: any) {
+      return res.status(422).json({
+        error: fallbackErr?.message || '法律文件驗證失敗，拒絕回傳文件',
+        code: 'DOCUMENT_VERIFICATION_FAILED'
+      });
+    }
   }
 });
 
