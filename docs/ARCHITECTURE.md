@@ -13,6 +13,15 @@ To maintain high readability and low technical debt, the application is divided 
   - `pdfUtils.ts`: Encapsulates PDF.js logic, handling text extraction and Canvas-based image rendering for OCR fallbacks.
   - `deidentifier.ts`: A pure function layer executing Regular Expressions to strip PII (Personal Identifiable Information) before LLM submission.
 - **State Persistence (Hooks)**: Auto-save mechanisms are decoupled to prevent UI re-render blocking.
+- **AI-Native SDLC Engine (Domain & Workflow)**:
+  - `sdlcOrchestrator.ts`: Master orchestrator managing 6-stage lifecycle (Plan, Design, Build, Test, Deploy, Maintain).
+  - `stageTransitions.ts`: Deterministic state machine governing sequential progression and blocking invalid stage leaps.
+  - `feedbackPolicy.ts`: Regulated continuous feedback loop generating immutable `FeedbackArtifact`s.
+  - `authorization.ts`: RBAC permission matrix and `ApprovalContext` enforcing that AI entities cannot approve Human Gates.
+  - `verification.ts`: Multi-stage `ValidatorPipeline` (Privacy, Schema, Legal, Citation, Security) executing fail-closed quality checks.
+  - `repository.ts`: Abstracted repository pattern decoupling state persistence from raw memory maps.
+- **AI Boundary Layer (`src/ai/`)**:
+  - `AIProvider.ts` & `GeminiProvider.ts`: Isolate external LLM SDKs from Domain and Express Routes. Server routes only orchestrate through application use cases.
 - **API Proxy Layer (Server)**: `server.ts` handles all external network requests. **Crucially, the Gemini API key and Judicial Open Data tokens are NEVER exposed to the client-side bundle.**
 
 ## 3. Data Flow

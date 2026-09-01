@@ -7,6 +7,8 @@ export type SdlcStageId = '01_plan' | '02_design' | '03_build' | '04_test' | '05
 
 export type StageStatus = 'pending' | 'in_progress' | 'awaiting_human_gate' | 'completed' | 'failed' | 'iterating';
 
+export type ExecutionMode = 'REAL' | 'DEMO' | 'MOCK' | 'FALLBACK';
+
 export interface SdlcArtifact {
   id: string;
   stageId: SdlcStageId;
@@ -16,6 +18,7 @@ export interface SdlcArtifact {
   summary: string;
   createdAt: string;
   version: number;
+  executionMode?: ExecutionMode;
   metadata?: Record<string, unknown>;
 }
 
@@ -58,6 +61,7 @@ export interface SdlcProjectState {
   artifacts: Record<SdlcStageId, SdlcArtifact[]>;
   gates: Record<SdlcStageId, HumanDecisionGate>;
   iterationsCount: number;
+  executionMode?: ExecutionMode;
   feedbackHistory: Array<{
     timestamp: string;
     fromStage: SdlcStageId;

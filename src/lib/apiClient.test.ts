@@ -38,4 +38,29 @@ describe('apiClient', () => {
 
     await expect(apiClient.analyzeJudgment('test')).rejects.toThrow('HTTP Error 500');
   });
+
+  it('should call SDLC endpoints correctly', async () => {
+    (global.fetch as any).mockResolvedValue({
+      ok: true,
+      json: async () => ({ success: true, project: { projectId: 'test_p' } })
+    });
+
+    const p1 = await apiClient.sdlcGetProject('test_p');
+    expect(p1.success).toBe(true);
+
+    const p2 = await apiClient.sdlcExecuteStage({ projectId: 'test_p', stageId: '01_plan', humanInput: 'test' });
+    expect(p2.success).toBe(true);
+
+    const p3 = await apiClient.sdlcAdvanceGate({ projectId: 'test_p', stageId: '01_plan' });
+    expect(p3.success).toBe(true);
+
+    const p4 = await apiClient.sdlcFeedbackLoop({
+      projectId: 'test_p',
+      fromStage: '04_test',
+      targetStage: '03_build',
+      reason: '發現時效漏洞',
+      suggestedAdjustments: '重新校驗請求權時效'
+    });
+    expect(p4.success).toBe(true);
+  });
 });
