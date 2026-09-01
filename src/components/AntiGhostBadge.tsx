@@ -161,4 +161,3 @@ export const AntiGhostBadge: React.FC<AntiGhostBadgeProps> = ({
   );
 };
 
-export default AntiGhostBadge;

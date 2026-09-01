@@ -3,7 +3,7 @@ import { CitationVerificationResult, RealStatuteDatabaseItem, RealPrecedentDatab
 /**
  * Verified Real Statutory Database (Taiwan Major Procedural and Substantive Laws)
  */
-export const VERIFIED_REAL_STATUTES: Record<string, RealStatuteDatabaseItem> = {
+const VERIFIED_REAL_STATUTES: Record<string, RealStatuteDatabaseItem> = {
   // 民法
   '民法第184條': {
     lawName: '民法',
@@ -265,7 +265,7 @@ export const VERIFIED_REAL_STATUTES: Record<string, RealStatuteDatabaseItem> = {
 /**
  * Verified Real Supreme Court Precedents (Taiwan Supreme Court Database)
  */
-export const VERIFIED_REAL_PRECEDENTS: RealPrecedentDatabaseItem[] = [
+const VERIFIED_REAL_PRECEDENTS: RealPrecedentDatabaseItem[] = [
   {
     caseYear: '98',
     court: '最高法院',
