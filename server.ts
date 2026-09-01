@@ -1102,7 +1102,7 @@ app.post("/api/tlr/fulltext", async (req, res) => {
         title: finalTitle,
         documentText: antiGhost.sanitizedText,
         complianceChecklist: [
-          { rule: "司法真確性檢核（Anti-Ghosting）", passed: antiGhost.ghostCount === 0, detail: antiGhost.ghostCount === 0 ? "所有法條與裁判字號均經司法院資料庫核實" : `已自動修正 ${antiGhost.ghostCount} 處疑似虛構之案號` },
+            { rule: "引用檢核（heuristic）", passed: antiGhost.ghostCount === 0 && antiGhost.results.every(citation => citation.verified), detail: antiGhost.ghostCount === 0 && antiGhost.results.every(citation => citation.verified) ? "未發現明顯異常，未索引項目仍需人工查證" : `發現 ${antiGhost.ghostCount} 處疑似虛構或未確認引用` },
           { rule: "現行法規格式合規", passed: true, detail: "符合我國司法機關、非訟中心與郵局實務要件" }
         ],
         antiGhostVerification: {
@@ -1716,7 +1716,7 @@ ${UNIVERSAL_SYLLOGISM_RULES}
           isPublicProsecution: caseType === "CRIMINAL_PUBLIC",
           statuteOfLimitations: jsonParsed.statuteOfLimitations || (caseType === "CIVIL" ? "民事侵權請求權時效為2年（民法第197條）" : "告訴乃論應於6個月內提告"),
           timeLimit: jsonParsed.timeLimit || jsonParsed.statuteOfLimitations || (caseType === "CIVIL" ? "民事請求權時效為 2 年" : "刑事時效警示"),
-          plainExplanation: jsonParsed.plainExplanation || "針對本爭議案件，系統已完成實體法與程序法核實解析。",
+          plainExplanation: jsonParsed.plainExplanation || "針對本爭議案件，系統已完成實體法與程序法初步分析，引用結果仍需人工查證。",
           recommendedAction: jsonParsed.recommendedAction || actionsArr[0],
           suggestedActions: actionsArr,
           evidenceChecklist: jsonParsed.evidenceChecklist || ["通訊軟體對話紀錄", "金流匯款單據", "相關證物照片"],
@@ -1726,7 +1726,7 @@ ${UNIVERSAL_SYLLOGISM_RULES}
           readyDocumentText: antiGhost.sanitizedText,
           pleadingDraft: antiGhost.sanitizedText,
           complianceChecklist: [
-            { rule: "司法院公開法規庫核實（Anti-Ghosting）", passed: antiGhost.ghostCount === 0, detail: "已自動校對引述法規真實性" },
+            { rule: "引用檢核（heuristic）", passed: antiGhost.ghostCount === 0 && antiGhost.results.every(citation => citation.verified), detail: "已自動比對引述格式；未索引項目仍需人工查證" },
             { rule: "司法機關訴狀要件合規", passed: true, detail: "具備當事人、訴之聲明、事實理由與證據清單" }
           ],
           antiGhostVerification: {

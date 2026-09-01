@@ -158,7 +158,7 @@ export const LEGAL_TOOLS: ToolDefinition[] = [
     shortDesc: '自由輸入任意犯罪被害或民事爭議，AI 自動梳理管轄、法條要件、時效防呆並產製專業書狀',
     badge: 'AI 全能診斷',
     icon: Sparkles,
-    legalBasis: '我國實體法與程序法全方位核實'
+    legalBasis: '我國實體法與程序法分析'
   },
   {
     id: 'CRIMINAL_SUPPLEMENTARY_CIVIL',
@@ -1995,7 +1995,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId }) => 
                       <ShieldCheck className="w-4 h-4" /> 司法院真實性檢驗報告
                     </span>
                     <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/30 font-medium">
-                      核實 {result.antiGhostVerification.totalCitationsChecked} 處引述 · 0 處幽靈虛構
+                      比對 {result.antiGhostVerification.totalCitationsChecked} 處引述 · 0 處明顯幽靈虛構
                     </span>
                   </div>
 

@@ -6,6 +6,7 @@ export interface GeneratedDocumentVerification {
     totalCitationsChecked: number;
     ghostCitationsFound: number;
     verifiedCitations: ReturnType<typeof verifyLegalCitations>['results'];
+    verificationPassed: boolean;
   };
 }
 
@@ -24,7 +25,8 @@ export function verifyGeneratedDocument(
     antiGhostVerification: {
       totalCitationsChecked: result.totalChecked,
       ghostCitationsFound: result.ghostCount,
-      verifiedCitations: result.results
+      verifiedCitations: result.results,
+      verificationPassed: result.ghostCount === 0 && result.results.every(citation => citation.verified)
     }
   };
 }

@@ -277,7 +277,7 @@ export const LegalDocAiChecker: React.FC = () => {
                                 : 'bg-emerald-950 text-emerald-300 border border-emerald-500/40'
                             }`}
                           >
-                            {item.isGhostOrFake ? '⚠️ 幽靈/虛構案號' : '司法院核實'}
+                            {item.isGhostOrFake ? '⚠️ 幽靈/虛構案號' : item.verified ? '本機已知比對' : '未索引／待查證'}
                           </span>
                         </div>
 

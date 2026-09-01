@@ -101,7 +101,7 @@ export const LegalGuideHome: React.FC<LegalGuideHomeProps> = ({ onSelectTool }) 
           : (data.statuteAnalysis ? data.statuteAnalysis.split('、') : ['民法第184條']),
         isPublicProsecution: rawCaseType === 'CRIMINAL_PUBLIC',
         timeLimit: data.timeLimit || data.statuteOfLimitations || (rawCaseType === 'CIVIL' ? '民事請求權時效為 2 年' : '知悉犯人起 6 個月內提告'),
-        plainExplanation: data.plainExplanation || data.statuteAnalysis || '針對您的情況，系統已完成實體法與程序法核實解析。',
+        plainExplanation: data.plainExplanation || data.statuteAnalysis || '針對您的情況，系統已完成實體法與程序法初步分析，引用結果仍需人工查證。',
         suggestedActions: Array.isArray(data.suggestedActions)
           ? data.suggestedActions
           : (data.recommendedAction ? [data.recommendedAction] : ['第一時間保全相關證物', '向管轄機關具狀提出']),
@@ -1350,7 +1350,7 @@ export const LegalGuideHome: React.FC<LegalGuideHomeProps> = ({ onSelectTool }) 
                         <ShieldCheck className="w-4 h-4" /> 司法院真實性檢驗報告
                       </span>
                       <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/30 font-medium">
-                        核實 {aiTriageResult.antiGhostVerification.totalCitationsChecked} 處引述 · 0 處幽靈虛構
+                        比對 {aiTriageResult.antiGhostVerification.totalCitationsChecked} 處引述 · 0 處明顯幽靈虛構
                       </span>
                     </div>
                     <div className="flex flex-wrap gap-1.5 pt-1">
