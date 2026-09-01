@@ -11,7 +11,8 @@
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
     "test": "vitest run",
-    "test:eval": "node test_eval.cjs"
+    "test:eval": "node test_eval.cjs",
+    "test:ssrf": "node test-ssrf.cjs"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
@@ -40,7 +41,6 @@
     "esbuild": "^0.25.0",
     "jsdom": "^30.0.1",
     "tailwindcss": "^4.1.14",
-    "ts-morph": "^28.0.0",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
     "vitest": "^4.1.11"
