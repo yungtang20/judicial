@@ -8,6 +8,10 @@ import { LEGAL_TOOLS } from '../components/LegalToolbox';
 import { LEGAL_TOOL_TITLES } from './legalToolTitles';
 import { buildIntelligentRuleBasedTriage } from './universalTriage';
 import { precheckLegalInput } from './legalInputPrecheck';
+import { getAnalyzeJudgmentPrompt } from '../prompts/analyze-judgment';
+import { getGenerateAppealPetitionPrompt } from '../prompts/generate-appeal-petition';
+import { getBPointTriagePrompt, getDefensePleadingPrompt, getMineScanPrompt } from '../prompts/defense-workflow';
+import { getLegalToolboxPrompt } from '../prompts/toolbox-prompts';
 
 const root = process.cwd();
 const read = (file: string) => fs.readFileSync(path.join(root, file), 'utf8');
@@ -19,6 +23,30 @@ describe('legal governance regressions', () => {
     expect(UNIVERSAL_SYLLOGISM_RULES).toContain('小前提');
     expect(UNIVERSAL_SYLLOGISM_RULES).toContain('涵攝');
     expect(UNIVERSAL_SYLLOGISM_RULES).toContain('結論');
+  });
+
+  it('injects the shared universal syllogism into every legal analysis and document prompt', () => {
+    const defenseCase = {
+      caseType: 'civil', courtName: '法院', caseNo: '案號', clientRole: '被告',
+      clientName: '甲', opponentRole: '原告', opponentName: '乙'
+    };
+    const auditedPrompts = [
+      { route: '/api/analyze-judgment', prompt: getAnalyzeJudgmentPrompt('裁判全文') },
+      { route: '/api/generate-appeal-petition', prompt: getGenerateAppealPetitionPrompt({}) },
+      { route: '/api/defense/triage', prompt: getBPointTriagePrompt('案件事實') },
+      { route: '/api/defense/scan-mines', prompt: getMineScanPrompt('案件事實') },
+      { route: '/api/defense/generate-pleading', prompt: getDefensePleadingPrompt('CLIENT_PERSONAL_REPORT', '案件事實', {}, {}, defenseCase) },
+      { route: '/api/toolbox/generate', prompt: getLegalToolboxPrompt('CIVIL_TORT_GENERAL', {}) }
+    ];
+    const normalize = (value: string) => value.replace(/\s+/g, ' ').trim();
+    for (const { prompt } of auditedPrompts) {
+      expect(normalize(prompt)).toContain(normalize(UNIVERSAL_SYLLOGISM_RULES));
+    }
+    const server = read('server.ts');
+    expect(server).toContain('const prompt = `\n${UNIVERSAL_SYLLOGISM_RULES}\n你是一位精通台灣法學裁判');
+    expect(server).toContain('${UNIVERSAL_SYLLOGISM_RULES}\n你是一位精通臺灣現行刑法');
+    const modelLegalRoutes = auditedPrompts.length + 2; // search-precedents and triage/universal are inline prompts.
+    expect(server.match(/safeGenerateContent\(ai,/g)).toHaveLength(modelLegalRoutes);
   });
 
   it('keeps removed police/investigation features out of primary sources', () => {
@@ -56,11 +84,17 @@ describe('legal governance regressions', () => {
   });
 
   it('runs heuristic legal input pre-checks before generation', () => {
-    expect(precheckLegalInput('民法第184條', 'generation').status).toBe('pass');
+    const verified = precheckLegalInput('民法第184條', 'generation');
+    expect(verified.status).toBe('pass');
+    expect(verified.issues).toEqual([]);
     expect(precheckLegalInput('民法第999條', 'generation').status).toBe('reject');
     expect(precheckLegalInput('民法第999條', 'analysis').status).toBe('needs_review');
     expect(precheckLegalInput('   ', 'analysis').status).toBe('reject');
     expect(precheckLegalInput('請分析租賃爭議', 'analysis').status).toBe('pass');
+    const mixed = precheckLegalInput('民法第184條與民法第999條', 'generation');
+    expect(mixed.status).toBe('reject');
+    expect(mixed.issues).toHaveLength(1);
+    expect(mixed.issues[0]?.citation).toBe('民法第999條');
   });
 
   it('enforces generate-then-verify ordering and rejects empty output', async () => {

@@ -769,6 +769,7 @@ app.post("/api/tlr/fulltext", async (req, res) => {
       }
       const ai = createGeminiClient(apiKey);
       const prompt = `
+${UNIVERSAL_SYLLOGISM_RULES}
 你是一位精通台灣法學裁判與實務見解之資深律師。請透過 Google Search 聯網搜尋臺灣「司法院法學資料檢索系統」、「最高法院裁判」、「大法庭裁定」、「司法院主管法規檢索系統」或「法務部函釋系統」，針對以下案件摘要與關鍵字「${Array.isArray(keywords) ? keywords.join(", ") : keywords}」，搜尋並檢索 3-5 筆【真實存在】且具權威代表性之裁判、最高法院大法庭裁定或司法院/法務部函釋。
 
 【極度重要——案由罪名與訴訟法正確分類規範（切勿張冠李戴！）】：

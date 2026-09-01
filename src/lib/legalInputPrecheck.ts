@@ -32,13 +32,15 @@ export function precheckLegalInput(input: unknown, mode: LegalInputMode = 'analy
   }
 
   const verification = verifyLegalCitations(input);
-  const issues: LegalInputPrecheckIssue[] = verification.results.map(citation => ({
-    code: citation.isGhostOrFake ? 'MALFORMED_CITATION' : 'UNVERIFIED_CITATION',
-    message: citation.isGhostOrFake
-      ? '引用格式或案號被本機規則判定為高度可疑。'
-      : '引用未收錄於本機索引，無法由 heuristic 確認。',
-    citation: citation.citationText
-  }));
+  const issues: LegalInputPrecheckIssue[] = verification.results
+    .filter(citation => !citation.verified)
+    .map(citation => ({
+      code: citation.isGhostOrFake ? 'MALFORMED_CITATION' : 'UNVERIFIED_CITATION',
+      message: citation.isGhostOrFake
+        ? '引用格式或案號被本機規則判定為高度可疑。'
+        : '引用未收錄於本機索引，無法由 heuristic 確認。',
+      citation: citation.citationText
+    }));
 
   const hasMalformed = verification.results.some(citation => citation.isGhostOrFake);
   const hasUnverified = verification.results.some(citation => !citation.verified);
