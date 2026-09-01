@@ -33,7 +33,7 @@ describe('legal governance regressions', () => {
 
   it('verifies generated documents and retains an external checker', () => {
     const server = read('server.ts');
-    expect(server).toContain('function verifyGeneratedDocument');
+    expect(server).toContain('generatedDocumentPipeline');
     expect(server).toContain('verifyGeneratedDocument(pleadingText)');
     expect(read('src/components/LegalDocAiChecker.tsx')).toContain('External Legal Document Checker');
   });

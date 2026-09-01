@@ -52,18 +52,7 @@ import { buildFallbackJudgmentAnalysis, buildFallbackPetition } from "./src/util
 import { buildFallbackDefenseTriage, buildFallbackMineScan, buildFallbackDefensePleading } from "./src/utils/defenseFallbacks.js";
 import { buildFallbackToolboxResult } from "./src/utils/toolboxFallbacks.js";
 import { verifyLegalCitations } from "./src/lib/citationVerifier.js";
-
-function verifyGeneratedDocument(documentText: string) {
-  const verification = verifyLegalCitations(documentText || "");
-  return {
-    documentText: verification.sanitizedText,
-    antiGhostVerification: {
-      totalCitationsChecked: verification.totalChecked,
-      ghostCitationsFound: verification.ghostCount,
-      verifiedCitations: verification.results
-    }
-  };
-}
+import { verifyGeneratedDocument } from "./src/lib/generatedDocumentPipeline.js";
 
 dotenv.config();
 
