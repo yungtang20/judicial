@@ -1037,6 +1037,9 @@ app.post("/api/tlr/fulltext", async (req, res) => {
       if (isApiKeyMissingOrPlaceholder(apiKey)) {
         console.log("[Toolbox API] No valid API Key, returning verified rule-based fallback.");
         const fallback = buildFallbackToolboxResult(toolCategory, params);
+        if (fallback.antiGhostVerification.ghostCitationsFound > 0 || fallback.antiGhostVerification.verifiedCitations.some(citation => !citation.verified)) {
+          return res.status(422).json({ error: "離線法律文件引用檢核未通過，拒絕回傳未確認引用文件", antiGhostVerification: fallback.antiGhostVerification });
+        }
         return res.json(fallback);
       }
 
@@ -1052,11 +1055,15 @@ app.post("/api/tlr/fulltext", async (req, res) => {
       } catch (genErr: any) {
         console.warn("[Toolbox API] AI generation failed, using rule fallback:", genErr);
         const fallback = buildFallbackToolboxResult(toolCategory, params);
+        if (fallback.antiGhostVerification.ghostCitationsFound > 0 || fallback.antiGhostVerification.verifiedCitations.some(citation => !citation.verified)) {
+          return res.status(422).json({ error: "離線法律文件引用檢核未通過，拒絕回傳未確認引用文件", antiGhostVerification: fallback.antiGhostVerification });
+        }
         return res.json(fallback);
       }
 
-      // Run real-time Grounding & Anti-Ghost verification
-      const antiGhost = verifyLegalCitations(docText);
+      // Run the shared generate → verify → fail-closed pipeline.
+      const verifiedDocument = assertGeneratedDocumentVerified(verifyGeneratedDocument(docText));
+      const antiGhost = verifiedDocument.antiGhostVerification;
 
       // Dynamic title mapping for tools
       const titleMap: Record<string, string> = {
@@ -1100,15 +1107,16 @@ app.post("/api/tlr/fulltext", async (req, res) => {
       return res.json({
         toolCategory,
         title: finalTitle,
-        documentText: antiGhost.sanitizedText,
+        documentText: verifiedDocument.documentText,
         complianceChecklist: [
-            { rule: "引用檢核（heuristic）", passed: antiGhost.ghostCount === 0 && antiGhost.results.every(citation => citation.verified), detail: antiGhost.ghostCount === 0 && antiGhost.results.every(citation => citation.verified) ? "未發現明顯異常，未索引項目仍需人工查證" : `發現 ${antiGhost.ghostCount} 處疑似虛構或未確認引用` },
+            { rule: "引用檢核（heuristic）", passed: antiGhost.verificationPassed, detail: antiGhost.verificationPassed ? "未發現明顯異常，未索引項目仍需人工查證" : `發現 ${antiGhost.ghostCitationsFound} 處疑似虛構或未確認引用` },
           { rule: "現行法規格式合規", passed: true, detail: "符合我國司法機關、非訟中心與郵局實務要件" }
         ],
         antiGhostVerification: {
-          totalCitationsChecked: antiGhost.totalChecked,
-          ghostCitationsFound: antiGhost.ghostCount,
-          verifiedCitations: antiGhost.results
+          totalCitationsChecked: antiGhost.totalCitationsChecked,
+          ghostCitationsFound: antiGhost.ghostCitationsFound,
+          verifiedCitations: antiGhost.verifiedCitations,
+          verificationPassed: antiGhost.verificationPassed
         },
         disclaimer: "已執行引用格式與本機資料比對；結果不等同官方核實，請於正式使用前獨立確認來源。",
         modelUsed

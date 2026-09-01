@@ -40,6 +40,7 @@ describe('legal governance regressions', () => {
     const server = read('server.ts');
     expect(server).toContain('generatedDocumentPipeline');
     expect(server).toContain('verifyGeneratedDocument(pleadingText)');
+    expect(server).toContain('assertGeneratedDocumentVerified(verifyGeneratedDocument(docText))');
     expect(server).toContain('法律文件引用檢核未通過，拒絕回傳未確認引用文件');
     expect(server).toContain('res.status(422)');
     expect(read('src/components/LegalDocAiChecker.tsx')).toContain('External Legal Document Checker');
