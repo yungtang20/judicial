@@ -20,6 +20,7 @@ To maintain high readability and low technical debt, the application is divided 
 2. **De-identification**: User clicks "De-identify", triggering `deidentifier.ts` to mask sensitive data locally.
 3. **Analysis**: Client calls `/api/analyze-judgment`. The backend validates the payload and invokes `@google/genai` with structured prompts.
 4. **Drafting**: Extracted JSON is populated into the React state, allowing the user to review facts, issues, and evidence before triggering the final `/api/generate-appeal-petition`.
+5. **Legal reasoning and citation checks**: All legal-domain prompts include the shared universal syllogism rule (major premise, minor premise, subsumption, conclusion). Generated legal documents pass through `verifyGeneratedDocument`, while externally supplied documents can be checked independently by `LegalDocAiChecker`.
 
 ## 4. Security & Privacy
 - **Zero-Trust Client**: Client has no direct access to LLMs or external databases.
@@ -28,4 +29,6 @@ To maintain high readability and low technical debt, the application is divided 
 
 ## 5. Testing Strategy
 - **Vitest Framework**: Used for unit testing core business logic (`classifier.ts`, `deadlineCalculator.ts`, `deidentifier.test.ts`).
-- **Coverage Target**: 100% Branch and Statement coverage for mathematical and regulatory algorithms.
+- **Automated gates**: GitHub Actions runs `npm ci`, production dependency audit, TypeScript lint, Vitest, and the production build for pushes and pull requests.
+- **Governance regressions**: `legalGovernance.test.ts` protects universal syllogism coverage, legacy-feature removal, dynamic toolbox counts, generated-document verification, and external-document checking.
+- **Coverage**: Vitest covers core business logic and governance regressions; no unverified 100% coverage claim is made.

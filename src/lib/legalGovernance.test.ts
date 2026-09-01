@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import { UNIVERSAL_SYLLOGISM_RULES } from '../prompts/universal-syllogism';
+import { generateVerifiedDocument } from './generatedDocumentPipeline';
 
 const root = process.cwd();
 const read = (file: string) => fs.readFileSync(path.join(root, file), 'utf8');
@@ -34,5 +35,16 @@ describe('legal governance regressions', () => {
     expect(server).toContain('function verifyGeneratedDocument');
     expect(server).toContain('verifyGeneratedDocument(pleadingText)');
     expect(read('src/components/LegalDocAiChecker.tsx')).toContain('External Legal Document Checker');
+  });
+
+  it('enforces generate-then-verify ordering and rejects empty output', async () => {
+    const calls: string[] = [];
+    const result = await generateVerifiedDocument(
+      () => { calls.push('generate'); return '民法第184條'; },
+      (text) => { calls.push(`verify:${text}`); return { totalChecked: 0, ghostCount: 0, results: [], sanitizedText: text }; }
+    );
+    expect(calls).toEqual(['generate', 'verify:民法第184條']);
+    expect(result.documentText).toBe('民法第184條');
+    await expect(generateVerifiedDocument(() => '  ')).rejects.toThrow('拒絕回傳');
   });
 });
