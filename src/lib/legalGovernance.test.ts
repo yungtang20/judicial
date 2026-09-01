@@ -5,6 +5,7 @@ import { UNIVERSAL_SYLLOGISM_RULES } from '../prompts/universal-syllogism';
 import { assertGeneratedDocumentVerified, generateVerifiedDocument, verifyGeneratedDocument } from './generatedDocumentPipeline';
 import { verifyLegalCitations } from './citationVerifier';
 import { LEGAL_TOOLS } from '../components/LegalToolbox';
+import { LEGAL_TOOL_TITLES } from './legalToolTitles';
 
 const root = process.cwd();
 const read = (file: string) => fs.readFileSync(path.join(root, file), 'utf8');
@@ -33,6 +34,7 @@ describe('legal governance regressions', () => {
     const ids = LEGAL_TOOLS.map(tool => tool.id);
     expect(new Set(ids).size).toBe(ids.length);
     expect(LEGAL_TOOLS.every(tool => tool.name && tool.shortDesc && tool.legalBasis)).toBe(true);
+    expect(LEGAL_TOOL_TITLES.UNIVERSAL_AI_PLEADING).toBeTruthy();
     expect(read('src/components/DefenseWorkflowTool.tsx')).toContain('DefenseWorkflowTool');
   });
 

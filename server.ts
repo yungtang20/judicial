@@ -53,6 +53,7 @@ import { buildFallbackDefenseTriage, buildFallbackMineScan, buildFallbackDefense
 import { buildFallbackToolboxResult } from "./src/utils/toolboxFallbacks.js";
 import { verifyLegalCitations } from "./src/lib/citationVerifier.js";
 import { assertGeneratedDocumentVerified, verifyGeneratedDocument } from "./src/lib/generatedDocumentPipeline.js";
+import { LEGAL_TOOL_TITLES } from "./src/lib/legalToolTitles.js";
 
 dotenv.config();
 
@@ -1065,44 +1066,7 @@ app.post("/api/tlr/fulltext", async (req, res) => {
       const verifiedDocument = assertGeneratedDocumentVerified(verifyGeneratedDocument(docText));
       const antiGhost = verifiedDocument.antiGhostVerification;
 
-      // Dynamic title mapping for tools
-      const titleMap: Record<string, string> = {
-        CRIMINAL_COMPLAINT_TRAFFIC: "車禍過失傷害刑事告訴狀",
-        CRIMINAL_COMPLAINT_FRAUD: "詐欺取財罪刑事告訴狀",
-        CRIMINAL_COMPLAINT_DEFAMATION: "妨害名譽及公然侮辱罪刑事告訴狀",
-        CRIMINAL_COMPLAINT_SEXUAL_ASSAULT: "妨害性自主罪刑事告訴狀",
-        CRIMINAL_COMPLAINT_THEFT: "竊盜罪 / 侵占罪刑事告訴狀",
-        CRIMINAL_COMPLAINT_INTIMIDATION: "恐嚇危害安全罪刑事告訴狀",
-        CRIMINAL_COMPLAINT_PRIVACY: "妨害秘密及散布性私密影像刑事告訴狀",
-        DOMESTIC_VIOLENCE_PROTECTION_ORDER: "親密關係伴侶民事保護令聲請狀",
-        CIVIL_TORT_SEXUAL_ASSAULT: "侵害身體及性自主權損害賠償民事起訴狀",
-        CIVIL_TORT_GENERAL: "返還所有物暨侵權損害賠償民事起訴狀",
-        UNIVERSAL_AI_PLEADING: "全能司法爭議正式起訴告訴狀",
-        CRIMINAL_SUPPLEMENTARY_CIVIL: "刑事附帶民事訴訟起訴狀",
-        INHERITANCE_CALCULATOR: "法定繼承系統表與應繼分分配報告",
-        FORCED_SHARE_CALCULATOR: "遺產特留分扣減權法定試算表",
-        SELF_WRITTEN_WILL: "自書遺囑合規模板（民法第1190條）",
-        WAIVER_OF_INHERITANCE: "民事拋棄繼承聲請狀",
-        DIVORCE_AGREEMENT: "兩願離婚協議書（民法第1050條）",
-        GUARDIANSHIP_PETITION: "民事監護宣告聲請狀（民法第14條）",
-        ASSISTANCE_PETITION: "民事輔助宣告聲請狀（民法第15條之1）",
-        CONTRACTUAL_GUARDIANSHIP: "意定監護契約書（民法第1113條之2）",
-        PROMISSORY_NOTE_RULING: "本票裁定准予強制執行聲請狀",
-        PAYMENT_ORDER_PETITION: "民事支付命令聲請狀（民訴第508條）",
-        LOAN_AGREEMENT: "消費借貸借據契約書（民法第474條）",
-        INTEREST_CALCULATOR: "法定週年利率與利息違約金試算報告",
-        DEMAND_LETTER_DEBT: "借款清償催告存證信函",
-        DEMAND_LETTER_RENT_DEFAULT: "積欠租金催告暨終止租約存證信函",
-        DEMAND_LETTER_DEFECT: "工程瑕疵限期修補催告存證信函",
-        DEMAND_LETTER_LABOR: "勞工終止勞動契約暨請求資遣費存證信函",
-        EXECUTION_SALARY_ATTACHMENT: "強制執行聲請狀（扣押薪資1/3）",
-        EXECUTION_BANK_REAL_ESTATE: "強制執行聲請狀（查封存款與不動產）",
-        PROVISIONAL_ATTACHMENT: "民事假扣押裁定聲請狀（民訴第522條）",
-        RESIDENTIAL_LEASE_CONTRACT: "住宅租賃契約書（符合租賃住宅條例）",
-        SPOUSAL_RIGHT_INFRINGEMENT: "侵害配偶權民事起訴狀"
-      };
-
-      const finalTitle = titleMap[toolCategory] || "專業法律文書";
+      const finalTitle = LEGAL_TOOL_TITLES[toolCategory] || "專業法律文書";
 
       return res.json({
         toolCategory,
