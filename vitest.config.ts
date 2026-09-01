@@ -14,7 +14,13 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],
-      include: ['src/lib/*.ts']
+      include: ['src/lib/*.ts'],
+      thresholds: {
+        statements: 70,
+        lines: 70,
+        branches: 85,
+        functions: 45
+      }
     }
   }
 });

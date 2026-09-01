@@ -11,6 +11,7 @@
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:eval": "node test_eval.cjs",
     "test:ssrf": "node test-ssrf.cjs"
   },
