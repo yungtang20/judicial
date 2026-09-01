@@ -58,7 +58,7 @@ describe('legal governance regressions', () => {
   });
 
   it('keeps removed police/investigation features out of primary sources', () => {
-    for (const file of ['README.md', 'server.ts', 'src/utils/fallbacks.ts', '.env.example']) {
+    for (const file of ['README.md', 'server.ts', 'src/utils/fallbacks.ts', '.env.example', 'docs/architecture/AUDIT.md']) {
       const source = read(file);
       expect(source).not.toMatch(/刑事偵查知識庫|警察刑事卷宗|buildFallbackPoliceAnalysis|Police Dossier/);
     }
@@ -69,6 +69,7 @@ describe('legal governance regressions', () => {
     const registry = read('src/lib/legalToolRegistry.ts');
     expect(registry).toContain('export const LEGAL_TOOLS:');
     expect(source).not.toMatch(/全部工具 \(28\)|搜尋 25 項|25 合 1/);
+    expect(source).not.toMatch(/28 項|司法院接地|全面掛載/);
     expect(source).toContain('LEGAL_TOOLS.length');
     expect(read('src/components/Sidebar.tsx')).not.toContain('25合1');
     expect(read('src/components/LitigationWorkspace.tsx')).not.toContain('25合1');
@@ -78,6 +79,20 @@ describe('legal governance regressions', () => {
     expect(LEGAL_TOOLS.every(tool => tool.name && tool.shortDesc && tool.legalBasis)).toBe(true);
     expect(LEGAL_TOOL_TITLES.UNIVERSAL_AI_PLEADING).toBeTruthy();
     expect(read('src/components/DefenseWorkflowTool.tsx')).toContain('DefenseWorkflowTool');
+  });
+
+  it('keeps verification copy heuristic and external-checker focused', () => {
+    const sources = [
+      read('README.md'),
+      read('src/components/LegalDocAiChecker.tsx'),
+      read('src/components/LegalToolbox.tsx'),
+      read('src/components/DefenseWorkflowTool.tsx'),
+      read('src/components/IssueTableGenerator.tsx'),
+      read('src/components/SmartAppealAssistant.tsx')
+    ];
+    expect(sources.join('\n')).not.toMatch(/司法院真實性檢驗|引用準確度 100%|100% 官方/);
+    expect(read('README.md')).toContain('系統自行生成的文件不需要使用者再次手動貼入檢核器');
+    expect(read('src/components/LegalDocAiChecker.tsx')).toContain('External Legal Document Checker');
   });
 
   it('verifies generated documents and retains an external checker', () => {

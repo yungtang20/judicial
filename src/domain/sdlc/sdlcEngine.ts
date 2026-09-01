@@ -60,7 +60,7 @@ export function createInitialSdlcProject(
       stageId: '04_test',
       gateName: '引註真偽與地雷掃描 (Anti-Ghost & Quality Gate)',
       riskDescription: '法條實效性通過、判決字號無AI幽靈捏造、避開六大敗訴地雷。',
-      requiredCheckpoints: ['現行有效法規100%通過', '判決字號格式與實質可溯', '排除無權處分等六大地雷'],
+      requiredCheckpoints: ['現行法規引用通過 heuristic 檢查', '判決字號格式與實質可溯', '排除無權處分等六大地雷'],
       passed: false
     },
     '05_deploy': {

@@ -133,12 +133,12 @@ export const LegalDocAiChecker: React.FC = () => {
                 {isScanning ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin" />
-                    正在比對司法院法規與最高法院裁判資料庫...
+                    正在執行本機引用規則比對...
                   </>
                 ) : (
                   <>
                     <Search className="w-4 h-4 text-rose-200" />
-                    立即啟動真實性與幽靈法條掃描
+                    立即啟動引用風險掃描
                   </>
                 )}
               </button>
@@ -175,7 +175,7 @@ export const LegalDocAiChecker: React.FC = () => {
                 <div className="space-y-0.5">
                   <h3 className="font-bold text-slate-200 text-sm flex items-center gap-2">
                     <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                    司法院真實性比對診斷報告
+                    外部文件引用檢查報告
                   </h3>
                   <p className="text-xs text-slate-400">
                     {scanResult ? `掃描完成：共檢核 ${scanResult.totalChecked} 處法條及判決字號` : '等待掃描執行'}

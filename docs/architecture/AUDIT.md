@@ -7,7 +7,7 @@
 
 ## 摘要與核心診斷
 
-本專案經過歷次法律功能擴充，已建立非常珍貴且具突破性的核心資產（包含三段論法規則 UNIVERSAL_SYLLOGISM_RULES、本機法規防虛構檢核 citationVerifier、輸入事前防呆 legalInputPrecheck、產製管線 post-check 驗證 generatedDocumentPipeline 及 28 項法律工具註冊表 legalToolRegistry）。
+本專案經過歷次法律功能擴充，已建立核心資產（包含三段論法規則 UNIVERSAL_SYLLOGISM_RULES、本機法規防虛構檢核 citationVerifier、輸入事前防呆 legalInputPrecheck、產製管線 post-check 驗證 generatedDocumentPipeline 及集中式法律工具註冊表 legalToolRegistry）。
 
 然而，目前程式架構仍存在以下結構性瓶頸：
 1. **`server.ts` 承擔單一巨大 God Object 責任**：1290 行的單一檔案混合了 Express 中間件、安全頭、直接調用 `@google/genai`、裁判書 Cheerio 解析爬蟲、後端 Fallback 組裝、全能導診分流、三段論法約束與路由分發。
@@ -21,7 +21,7 @@
 ## 問題深度剖析（A ~ K 題完整診斷）
 
 ### A. 現在架構是什麼？
-- **前端 (Presentation)**：React 19 + Tailwind CSS + Lucide Icons + Zustand。包含 `LegalGuideHome` (導診儀表板), `SmartAppealAssistant` (上訴助理), `DefenseWorkflowTool` (答辯攻防), `LegalToolbox` (28 項訴訟工具箱), `JudicialOpenDataTool` (裁判書檢索) 等。
+- **前端 (Presentation)**：React 19 + Tailwind CSS + Lucide Icons + Zustand。包含 `LegalGuideHome` (導診儀表板), `SmartAppealAssistant` (上訴助理), `DefenseWorkflowTool` (答辯攻防), `LegalToolbox` (集中式訴訟工具箱), `JudicialOpenDataTool` (裁判書檢索) 等。
 - **後端 (Server API)**：Express 4 (由 `server.ts` 集中處理) + Vite dev server middleware。
 - **AI 調用層**：`server.ts` 內部直接初始化 `@google/genai` SDK。
 - **領域規則層 (Domain & Governance)**：分散於 `src/lib/` 與 `src/prompts/`。
@@ -31,7 +31,7 @@
 - `src/lib/legalInputPrecheck.ts`：前端與後端進入 AI 前的事前輸入防呆（檢查是否存在荒謬法條或顯然虛構案號）。
 - `src/lib/generatedDocumentPipeline.ts`：產製後的全篇法律引用掃描管線（Fail-closed 檢驗）。
 - `src/lib/universalTriage.ts`：全能智慧導診的規則分流與結構化推導。
-- `src/lib/legalToolRegistry.ts`：28 項法律工具的集中註冊表。
+- `src/lib/legalToolRegistry.ts`：法律工具的集中註冊表，實際數量由 `LEGAL_TOOLS.length` 決定。
 - `src/prompts/*`：各訴訟模組之 Prompt 範本與三段論法規則注入。
 - `src/components/*`：各訴訟模組的前端視圖與互動邏輯。
 
@@ -48,14 +48,14 @@
 5. 前端巨型 Store 拆分為領域專屬 Store（`appealStore`, `defenseStore`, `documentStore`, `uiStore`）。
 
 ### E. 哪些東西應該保留？
-- **保留所有核心法律規則與知識庫**：中華民國六法全書、司法院裁判字號正則、三段論法四部結構（UNIVERSAL_SYLLOGISM_RULES）、28 項訴訟工具定義。
+- **保留所有核心法律規則與知識庫**：中華民國六法全書、司法院裁判字號正則、三段論法四部結構（UNIVERSAL_SYLLOGISM_RULES）及集中式訴訟工具定義。
 - **保留 Pre-check 與 Post-check 檢核管線**：此為防止 AI 幽靈引用的關鍵核心。
 - **保留 Fallback 降級系統**：在無 API Key 或網路異常時提供的高品質本機三段論法分析。
 
 ### F. 哪些東西應該刪除？
 - 根目錄殘留的臨時 Shell 腳本（`patch_*.sh`）。
 - 根目錄殘留的臨時狀態文字檔（`state_vars.txt`）。
-- 已棄用或過時的警察卷宗、刑事偵查知識庫殘留檔案。
+- 已棄用或過時的功能殘留檔案。
 
 ### G. 哪些地方有安全風險？
 - **SSRF 風險**：雖然 `server.ts` 目前有白名單限制（`judgment.judicial.gov.tw`），但 URL 爬取邏輯應獨立為專屬的 Safe Crawler 服務，並嚴格限制協定、主機與重新導向。

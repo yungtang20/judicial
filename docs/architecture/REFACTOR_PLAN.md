@@ -62,7 +62,7 @@
    - `analyzeJudgment.ts`：裁判書解析端點。
    - `appeal.ts`：上訴狀產製與案件分析端點。
    - `defense.ts`：答辯分流、自認地雷掃描、雙軌書狀產製端點。
-   - `toolbox.ts`：28 項法律工具箱產製與引證檢核端點。
+   - `toolbox.ts`：集中式法律工具箱產製與引證檢核端點。
    - `judicial.ts`：司法院裁判書安全爬取與檢索端點。
    - `triage.ts`：全能智慧導診端點。
    - `health.ts`：系統健康檢核與 Provider 狀態端點。
@@ -91,7 +91,7 @@
 - [ ] `server.ts` 徹底解除 God Object，各 API 路由獨立模組化
 - [ ] `AIProvider` 與 `GeminiProvider` 介面完成抽象化，領域層與前端完全不直接碰 SDK
 - [ ] 法律治理層（三段論法、Pre-check、Post-check、Citation Verifier）統一收攏
-- [ ] 28 項法律工具註冊表成為單一真實來源
+- [x] 法律工具註冊表成為單一真實來源，數量由 `LEGAL_TOOLS.length` 動態決定
 - [ ] 全套單元測試與回歸測試 100% 通過（`npm test`）
 - [ ] TypeScript 型別檢查零錯誤（`tsc --noEmit`）
 - [ ] 正式生產環境編譯打包成功（`npm run build`）

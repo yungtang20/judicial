@@ -199,7 +199,7 @@ export class CitationValidator implements IValidator<string> {
       name: this.name,
       category: 'CITATION',
       status: 'PASS',
-      message: `引註真偽檢驗 100% 通過 (已檢核 ${citationRes.totalChecked} 處法規與裁判字號)。`,
+      message: `引註 heuristic 檢查通過（已檢核 ${citationRes.totalChecked} 處法規與裁判字號；仍需人工查證）。`,
       details: { totalVerified: citationRes.totalChecked }
     };
   }
