@@ -384,13 +384,13 @@ export function verifyLegalCitations(text: string): {
     } else {
       // Unindexed or non-standard article
       results.push({
-        verified: true,
+        verified: false,
         citationText: fullMatch,
         type: 'STATUTE',
         officialTitle: fullMatch,
         officialSourceUrl: 'https://law.moj.gov.tw/',
         isGhostOrFake: false,
-        hallucinationRisk: 'SAFE_VERIFIED'
+        hallucinationRisk: 'UNVERIFIED'
       });
     }
   }
@@ -426,15 +426,15 @@ export function verifyLegalCitations(text: string): {
       const isSuspicious = numVal > 6000 || parseInt(year, 10) > 115;
 
       results.push({
-        verified: !isSuspicious,
+        verified: false,
         citationText: fullMatch,
         type: 'PRECEDENT',
         officialTitle: fullMatch,
         officialSourceUrl: 'https://judgment.judicial.gov.tw/',
         isGhostOrFake: isSuspicious,
-        hallucinationRisk: isSuspicious ? 'FAKE_GHOST_CITATION' : 'SAFE_VERIFIED',
+        hallucinationRisk: isSuspicious ? 'FAKE_GHOST_CITATION' : 'UNVERIFIED',
         correctionSuggestion: isSuspicious ? '建議改用最高法院權威穩定見解（如最高法院98年度台上字第1045號判決），或改為實務通說表述。' : undefined,
-        officialSnippet: isSuspicious ? '⚠️ 司法院公開資料庫未收錄此字號，高度疑似 AI 虛構之幽靈案號！' : '司法院判決字號檢核通過。'
+        officialSnippet: isSuspicious ? '⚠️ 本機規則判定為高度可疑，請至官方資料庫人工查證。' : '本機索引未收錄，無法由 heuristic 判定為真實。'
       });
 
       if (isSuspicious) {

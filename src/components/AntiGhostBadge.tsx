@@ -60,7 +60,7 @@ export const AntiGhostBadge: React.FC<AntiGhostBadgeProps> = ({
               </span>
             </div>
             <p className="text-[11px] text-slate-400 mt-0.5">
-              全站書狀與分析均經司法院全國法規與最高法院判例資料庫即時核實，杜絕 AI 幻覺虛構條號。
+              顯示本機規則比對結果；未索引或 heuristic 項目仍需人工查證，不代表官方核實。
             </p>
           </div>
         </div>
@@ -119,7 +119,7 @@ export const AntiGhostBadge: React.FC<AntiGhostBadgeProps> = ({
             <div className="mt-3 p-3 bg-slate-900/90 rounded-xl border border-slate-800 space-y-2.5 max-h-60 overflow-y-auto">
               <div className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
                 <FileCheck2 className="w-3.5 h-3.5 text-emerald-400" />
-                司法院與法務部全國法規核實詳情：
+            本機比對詳情與來源連結：
               </div>
               <div className="space-y-2">
                 {citations.map((c, idx) => (

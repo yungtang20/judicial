@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { UNIVERSAL_SYLLOGISM_RULES } from '../prompts/universal-syllogism';
 import { generateVerifiedDocument } from './generatedDocumentPipeline';
+import { verifyLegalCitations } from './citationVerifier';
 
 const root = process.cwd();
 const read = (file: string) => fs.readFileSync(path.join(root, file), 'utf8');
@@ -46,5 +47,11 @@ describe('legal governance regressions', () => {
     expect(calls).toEqual(['generate', 'verify:民法第184條']);
     expect(result.documentText).toBe('民法第184條');
     await expect(generateVerifiedDocument(() => '  ')).rejects.toThrow('拒絕回傳');
+  });
+
+  it('does not classify unindexed citations as verified', () => {
+    const result = verifyLegalCitations('民法第999條');
+    expect(result.results[0]?.verified).toBe(false);
+    expect(result.results[0]?.hallucinationRisk).toBe('UNVERIFIED');
   });
 });

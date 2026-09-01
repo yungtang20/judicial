@@ -67,7 +67,7 @@ export const LegalDocAiChecker: React.FC = () => {
 
   const filteredCitations = scanResult?.results.filter(r => {
     if (filterType === 'GHOST_ONLY') return r.isGhostOrFake;
-    if (filterType === 'VERIFIED_ONLY') return !r.isGhostOrFake;
+    if (filterType === 'VERIFIED_ONLY') return r.verified && !r.isGhostOrFake;
     return true;
   }) || [];
 
@@ -206,7 +206,7 @@ export const LegalDocAiChecker: React.FC = () => {
                         filterType === 'VERIFIED_ONLY' ? 'bg-emerald-600 text-white' : 'bg-emerald-950/60 text-emerald-300'
                       }`}
                     >
-                      本機比對 ({scanResult.results.length - scanResult.ghostCount})
+                      本機已知比對 ({scanResult.results.filter(r => r.verified && !r.isGhostOrFake).length})
                     </button>
                   </div>
                 )}
@@ -230,7 +230,7 @@ export const LegalDocAiChecker: React.FC = () => {
                     <div className="font-bold text-sm">
                       {scanResult.ghostCount > 0
                         ? `⚠️ 偵測到 ${scanResult.ghostCount} 處潛在幽靈法條或虛構裁判字號！`
-                        : '✅ 全文引述法規與裁判字號均經司法院資料庫核實無誤！'}
+                    : '✅ 未偵測到明顯格式異常（仍需人工查證）'}
                     </div>
                     <p className="opacity-90 leading-relaxed text-[11px]">
                       {scanResult.ghostCount > 0

@@ -235,7 +235,7 @@ export interface CitationVerificationResult {
   officialTitle: string;
   officialSourceUrl: string;
   isGhostOrFake: boolean;
-  hallucinationRisk: 'SAFE_VERIFIED' | 'SUSPICIOUS_NUMBERING' | 'FAKE_GHOST_CITATION';
+  hallucinationRisk: 'SAFE_VERIFIED' | 'UNVERIFIED' | 'SUSPICIOUS_NUMBERING' | 'FAKE_GHOST_CITATION';
   correctionSuggestion?: string;
   officialSnippet?: string;
 }
