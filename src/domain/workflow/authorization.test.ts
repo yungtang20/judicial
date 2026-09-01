@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AuthorizationPolicy, ApprovalContext } from './authorization';
+import { AuthorizationPolicy, ApprovalContext, extractApprovalContextFromRequest } from './authorization';
 import { AppError } from './errors';
 
 describe('AuthorizationPolicy & Role Permissions', () => {
@@ -81,5 +81,55 @@ describe('AuthorizationPolicy & Role Permissions', () => {
     expect(() => {
       AuthorizationPolicy.assertHumanGateApprover(approverContext, '01_plan Gate');
     }).not.toThrow();
+  });
+});
+
+describe('Production Identity Boundary (extractApprovalContextFromRequest)', () => {
+  it('rejects client supplied identity in production if missing trusted actor', () => {
+    const req = {
+      headers: {
+        'x-actor-type': 'HUMAN',
+        'x-user-role': 'ADMIN'
+      }
+    };
+    
+    expect(() => {
+      extractApprovalContextFromRequest(req, true);
+    }).toThrowError('Production 模式禁止使用 Client 提供的未經授權身分');
+  });
+
+  it('accepts trusted identity in production', () => {
+    const req = {
+      user: {
+        id: 'trusted_01',
+        type: 'HUMAN',
+        role: 'APPROVER',
+        name: 'Trust Auth'
+      }
+    };
+    
+    const ctx = extractApprovalContextFromRequest(req, true);
+    expect(ctx.actorId).toBe('trusted_01');
+    expect(ctx.actorType).toBe('HUMAN');
+    expect(ctx.role).toBe('APPROVER');
+    expect(ctx.source).toBe('TRUSTED_AUTH_PROVIDER');
+  });
+
+  it('allows client supplied identity in development mode', () => {
+    const req = {
+      headers: {
+        'x-actor-type': 'HUMAN',
+        'x-user-role': 'ADMIN'
+      },
+      body: {
+        decidedBy: 'Test Lawyer'
+      }
+    };
+    
+    const ctx = extractApprovalContextFromRequest(req, false);
+    expect(ctx.actorType).toBe('HUMAN');
+    expect(ctx.role).toBe('ADMIN');
+    expect(ctx.name).toBe('Test Lawyer');
+    expect(ctx.source).toBe('HTTP_API_DEV_MOCK');
   });
 });

@@ -5,6 +5,7 @@
 
 import { SdlcStageId } from '../sdlc/types';
 import { AppError } from './errors';
+import { ActorType } from './authorization';
 
 export interface FeedbackArtifact {
   id: string;
@@ -15,7 +16,7 @@ export interface FeedbackArtifact {
   suggestedAdjustments: string;
   requestedBy: {
     actorId: string;
-    actorType: 'HUMAN' | 'SYSTEM';
+    actorType: ActorType;
     role: string;
   };
   createdAt: string;
@@ -44,7 +45,7 @@ export class FeedbackPolicy {
     fromStage: SdlcStageId,
     targetStage: SdlcStageId,
     reason: string,
-    requestedBy: { actorId: string; actorType: 'HUMAN' | 'SYSTEM'; role: string }
+    requestedBy: { actorId: string; actorType: ActorType; role: string }
   ): void {
     if (!reason || reason.trim().length < 5) {
       throw new AppError(
@@ -83,7 +84,7 @@ export class FeedbackPolicy {
     targetStage: SdlcStageId,
     reason: string,
     suggestedAdjustments: string,
-    requestedBy: { actorId: string; actorType: 'HUMAN' | 'SYSTEM'; role: string }
+    requestedBy: { actorId: string; actorType: ActorType; role: string }
   ): FeedbackArtifact {
     this.assertFeedback(fromStage, targetStage, reason, requestedBy);
 

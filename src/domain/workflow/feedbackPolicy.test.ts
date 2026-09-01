@@ -20,7 +20,7 @@ describe('FeedbackPolicy & Governance', () => {
     expect(() => {
       FeedbackPolicy.assertFeedback('04_test', '03_build', '發現引註缺陷需重寫書狀', {
         actorId: 'ai_agent_01',
-        actorType: 'AI' as any,
+        actorType: 'AI',
         role: 'GENERATOR'
       });
     }).toThrowError(/AI Agent 禁止直接觸發/);

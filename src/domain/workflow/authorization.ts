@@ -95,3 +95,47 @@ export class AuthorizationPolicy {
     this.assertPermission(context, 'APPROVE', `審批門閥 ${gateName}`);
   }
 }
+
+/**
+ * 建立 AuthenticatedActorContext 的明確界線
+ * @param req Express Request object (any)
+ * @param isProd 是否為 Production 環境
+ */
+export function extractApprovalContextFromRequest(req: any, isProd: boolean): ApprovalContext {
+  // Production 模式：禁止信任 Client 自報之 header 與 body
+  if (isProd) {
+    // 假設未來會有真正的 Auth Middleware 注入 req.user
+    const trustedActor = req.user;
+    if (!trustedActor) {
+      throw new AppError(
+        'UNAUTHORIZED',
+        'Production 模式禁止使用 Client 提供的未經授權身分。缺少 Trusted Identity。',
+        401
+      );
+    }
+    
+    return {
+      actorId: trustedActor.id,
+      actorType: trustedActor.type as ActorType,
+      role: trustedActor.role as Role,
+      name: trustedActor.name || 'Unknown',
+      source: 'TRUSTED_AUTH_PROVIDER',
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  // Development 模式：允許測試身份注入
+  const actorId = (req.headers && req.headers['x-actor-id']) || (req.body && req.body.actorId) || 'user_client_default';
+  const actorType = ((req.headers && req.headers['x-actor-type']) || (req.body && req.body.actorType) || 'HUMAN') as ActorType;
+  const role = ((req.headers && req.headers['x-user-role']) || (req.body && req.body.role) || 'APPROVER') as Role;
+  const name = (req.body && req.body.decidedBy) || (req.body && req.body.userName) || '測試用律師 (Dev Mode)';
+
+  return {
+    actorId,
+    actorType,
+    role,
+    name,
+    source: 'HTTP_API_DEV_MOCK',
+    timestamp: new Date().toISOString()
+  };
+}

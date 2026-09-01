@@ -62,6 +62,39 @@ describe('Validator Pipeline & Fail-Closed Enforcement', () => {
     expect(result.status).toBe('FAIL');
   });
 
+  it('SchemaValidator validates strict Runtime ObjectSchema when provided in context', async () => {
+    const validator = new SchemaValidator();
+    const schema = {
+      type: 'object',
+      required: ['decision', 'amount'],
+      properties: {
+        decision: { type: 'string', enum: ['GRANT', 'DENY'] },
+        amount: { type: 'number' }
+      }
+    };
+
+    // missing field
+    const res1 = await validator.validate({ decision: 'GRANT' }, { expectedSchema: schema });
+    expect(res1.status).toBe('FAIL');
+    expect(res1.message).toContain('未通過 Runtime Schema');
+
+    // valid obj
+    const res2 = await validator.validate({ decision: 'GRANT', amount: 100 }, { expectedSchema: schema });
+    expect(res2.status).toBe('PASS');
+
+    // valid JSON string
+    const validJson = `\`\`\`json
+{ "decision": "DENY", "amount": 0 }
+\`\`\``;
+    const res3 = await validator.validate(validJson, { expectedSchema: schema });
+    expect(res3.status).toBe('PASS');
+
+    // malformed JSON string
+    const res4 = await validator.validate('{ decision: "DENY"', { expectedSchema: schema });
+    expect(res4.status).toBe('FAIL');
+    expect(res4.message).toContain('JSON 解析失敗');
+  });
+
   it('ValidatorPipeline aggregates all checks and fails closed if any check fails', async () => {
     const pipeline = new ValidatorPipeline();
     const mixedText = '民法第184條第1項前段規定侵權責任，但當事人身分證字號為 B123456789。';

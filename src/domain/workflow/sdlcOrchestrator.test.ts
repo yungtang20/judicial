@@ -89,7 +89,78 @@ describe('SdlcOrchestrator Lifecycle & Governance Integration', () => {
     // 尚未 executeStage 產生工件，直接嘗試 advanceGate
     await expect(
       orchestrator.advanceGate(projectId, '01_plan', lawyerContext)
-    ).rejects.toThrow(AppError);
+    ).rejects.toThrowError(/尚未產出任何必要工件/);
+  });
+
+  it('blocks Gate advance if required validator is missing (Fail Closed)', async () => {
+    const projectId = 'proj_missing_val_test';
+    const proj = await orchestrator.getOrCreateProject(projectId);
+    proj.stageStatuses['01_plan'] = 'in_progress';
+    
+    // 手工塞一個沒有完整驗證器的工件
+    proj.artifacts['01_plan'] = [
+      {
+        name: 'test',
+        category: 'intent',
+        content: 'test',
+        executionMode: 'REAL',
+        summary: 'test',
+        metadata: {
+          verification: {
+            status: 'PASS',
+            checks: [
+              { name: 'SchemaValidator', category: 'SCHEMA', status: 'PASS' }
+            ],
+            errors: [],
+            warnings: [],
+            verifiedAt: new Date().toISOString(),
+            verifierVersion: '1.0'
+          }
+        },
+        createdAt: new Date().toISOString()
+      }
+    ];
+    await repo.save(proj);
+
+    await expect(
+      orchestrator.advanceGate(projectId, '01_plan', lawyerContext)
+    ).rejects.toThrowError(/契約要求之驗證器未全數通過/);
+  });
+
+  it('blocks Production Deploy Gate if execution mode is FALLBACK', async () => {
+    const projectId = 'proj_fallback_deploy_test';
+    const proj = await orchestrator.getOrCreateProject(projectId);
+    proj.stageStatuses['05_deploy'] = 'in_progress';
+    
+    proj.artifacts['05_deploy'] = [
+      {
+        name: 'test',
+        category: 'release_record',
+        content: 'test',
+        executionMode: 'FALLBACK',
+        summary: 'test',
+        metadata: {
+          verification: {
+            status: 'PASS',
+            checks: [
+              { name: 'PrivacyValidator', category: 'PRIVACY', status: 'PASS' },
+              { name: 'SecurityValidator', category: 'SECURITY', status: 'PASS' },
+              { name: 'CitationValidator', category: 'CITATION', status: 'PASS' }
+            ],
+            errors: [],
+            warnings: [],
+            verifiedAt: new Date().toISOString(),
+            verifierVersion: '1.0'
+          }
+        },
+        createdAt: new Date().toISOString()
+      }
+    ];
+    await repo.save(proj);
+
+    await expect(
+      orchestrator.advanceGate(projectId, '05_deploy', { ...lawyerContext, role: 'DEPLOYER' })
+    ).rejects.toThrowError(/正式上線交付 \(Deploy\) 嚴禁使用模擬或離線備援工件/);
   });
 
   it('blocks AI from approving human gate', async () => {
@@ -110,6 +181,27 @@ describe('SdlcOrchestrator Lifecycle & Governance Integration', () => {
 
     await failOrchestrator.executeStage(projectId, '01_plan', '有問題的輸入', lawyerContext);
 
+    await expect(
+      failOrchestrator.advanceGate(projectId, '01_plan', lawyerContext)
+    ).rejects.toThrowError(/最新工件未通過驗證檢核/);
+  });
+
+  it('ensures REAL AI failure sets Verification FAIL and prevents advance', async () => {
+    class FailingAI implements AIProvider {
+      public name = 'FailingAI';
+      async generate() { throw new Error('Network Error'); }
+      async generateStructured<T>() { return {} as T; }
+      async healthCheck() { return { ok: false, message: 'down' }; }
+    }
+    
+    const failOrchestrator = new SdlcOrchestrator(repo, new FailingAI(), auditLogger);
+    const projectId = 'proj_real_fail_test';
+    
+    const result = await failOrchestrator.executeStage(projectId, '01_plan', '測試輸入', lawyerContext);
+    
+    expect(result.artifact.executionMode).toBe('FALLBACK');
+    expect(result.executionResult.verificationResult.status).toBe('FAIL');
+    
     await expect(
       failOrchestrator.advanceGate(projectId, '01_plan', lawyerContext)
     ).rejects.toThrowError(/最新工件未通過驗證檢核/);

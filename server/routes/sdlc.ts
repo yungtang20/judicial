@@ -1,26 +1,15 @@
 import { Router, Request, Response } from 'express';
 import { defaultSdlcOrchestrator } from '../../src/domain/workflow/sdlcOrchestrator';
 import { SdlcStageId, ExecutionMode } from '../../src/domain/sdlc/types';
-import { ApprovalContext, Role, ActorType } from '../../src/domain/workflow/authorization';
+import { extractApprovalContextFromRequest } from '../../src/domain/workflow/authorization';
 import { AppError } from '../../src/domain/workflow/errors';
 
 export const sdlcRouter = Router();
 
 // 輔助函式：自 HTTP Request 提取審批上下文 (ApprovalContext)
-function getApprovalContext(req: Request): ApprovalContext {
-  const actorId = (req.headers['x-actor-id'] as string) || (req.body?.actorId as string) || 'user_client_default';
-  const actorType = ((req.headers['x-actor-type'] as string) || (req.body?.actorType as string) || 'HUMAN') as ActorType;
-  const role = ((req.headers['x-user-role'] as string) || (req.body?.role as string) || 'APPROVER') as Role;
-  const name = (req.body?.decidedBy as string) || (req.body?.userName as string) || '執業律師 / 訴訟代理人';
-
-  return {
-    actorId,
-    actorType,
-    role,
-    name,
-    source: 'HTTP_API',
-    timestamp: new Date().toISOString()
-  };
+function getApprovalContext(req: Request) {
+  const isProd = process.env.NODE_ENV === 'production';
+  return extractApprovalContextFromRequest(req, isProd);
 }
 
 // 統一錯誤響應處理器

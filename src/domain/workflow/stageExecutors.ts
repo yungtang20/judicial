@@ -38,9 +38,32 @@ export abstract class BaseStageExecutor {
         const aiRes = await aiProvider.generate(prompt);
         outputText = aiRes.text;
       } catch (err: any) {
-        // 如果 API Key 缺失或拋錯，切換至 FALLBACK / DEMO
-        executionMode = 'FALLBACK';
-        outputText = `【FALLBACK 離線備援模式】已依據三段論法與 SDLC 規範生成階段 [${this.stageId}] 之工件產物。\n${err.message}`;
+        // REAL 模式下 AI 執行失敗：一律 Fail-Closed，不可偽裝為 REAL 成功或任意放行
+        outputText = `【AI 執行失敗 / AI_EXECUTION_FAILED】階段 [${this.stageId}] 調用模型異常：${err.message}`;
+        const failVerificationResult: VerificationResult = {
+          status: 'FAIL',
+          checks: [
+            {
+              name: 'AIExecutionValidator',
+              category: 'SECURITY',
+              status: 'FAIL',
+              message: `AI Provider 呼叫失敗 (AI_EXECUTION_FAILED): ${err.message}`
+            }
+          ],
+          errors: [`[SECURITY] AI Provider 呼叫失敗: ${err.message}`],
+          warnings: [],
+          verifiedAt: new Date().toISOString(),
+          verifierVersion: 'v2.0-deterministic-fail-closed'
+        };
+
+        return {
+          stageId: this.stageId,
+          artifactContent: outputText,
+          verificationResult: failVerificationResult,
+          artifactCategory: this.category,
+          executionMode: 'FALLBACK',
+          summary: `StageExecutor (${this.stageId}) AI 執行失敗，已阻擋放行。`
+        };
       }
     } else {
       outputText = `【${executionMode} 模擬模式】已依據三段論法與 SDLC 規範生成階段 [${this.stageId}] 之工件產物。`;

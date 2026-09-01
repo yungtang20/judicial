@@ -174,7 +174,7 @@ export class SdlcOrchestrator {
       );
     }
 
-    // 規則 3：檢查 StageContract 前置工件是否齊全
+    // 規則 3：檢查 StageContract 前置工件是否齊全 (逐項 categories 檢查)
     const contract = STAGE_CONTRACTS[stageId];
     const stageArtifacts = project.artifacts[stageId] || [];
     if (stageArtifacts.length === 0) {
@@ -186,10 +186,29 @@ export class SdlcOrchestrator {
       );
     }
 
-    // 規則 4：檢查工件最後一次驗證結果（Fail-Closed 阻擋）
+    const availableCategories = new Set(stageArtifacts.map(a => a.category));
+    const missingArtifactCategories = contract.requiredArtifactCategories.filter(cat => !availableCategories.has(cat));
+    if (missingArtifactCategories.length > 0) {
+      throw new AppError(
+        'MISSING_ARTIFACT',
+        `門閥拒絕放行：階段 [${stageId}] 契約缺少必要工件類別 [${missingArtifactCategories.join(', ')}]。`,
+        422,
+        { missingArtifactCategories, requiredCategories: contract.requiredArtifactCategories }
+      );
+    }
+
+    // 規則 4：檢查工件驗證結果與 StageContract 必備驗證器覆蓋率（Fail-Closed 阻擋）
     const latestArtifact = stageArtifacts[stageArtifacts.length - 1]!;
     const verification = latestArtifact.metadata?.verification as any;
-    if (verification && verification.status === 'FAIL') {
+    if (!verification) {
+      throw new AppError(
+        'VERIFICATION_FAILED',
+        `門閥拒絕放行：階段 [${stageId}] 工件缺少驗證報告記錄 (Fail-Closed)。`,
+        422
+      );
+    }
+
+    if (verification.status === 'FAIL') {
       this.auditLogger.log({
         workflowId: projectId,
         stageId,
@@ -206,6 +225,33 @@ export class SdlcOrchestrator {
         422,
         { verification }
       );
+    }
+
+    // 逐項檢查 StageContract requiredValidatorCategories 是否全數執行且通過
+    const executedChecks = verification.checks || [];
+    const passedCheckCategories = new Set(
+      executedChecks.filter((c: any) => c.status === 'PASS').map((c: any) => c.category)
+    );
+    const missingValidators = contract.requiredValidatorCategories.filter(cat => !passedCheckCategories.has(cat));
+    if (missingValidators.length > 0) {
+      throw new AppError(
+        'VERIFICATION_FAILED',
+        `門閥拒絕放行：階段 [${stageId}] 契約要求之驗證器未全數通過 [${missingValidators.join(', ')}]。`,
+        422,
+        { missingValidators, requiredValidators: contract.requiredValidatorCategories }
+      );
+    }
+
+    // 規則 4.5：環境與執行模式隔離 (Production Deploy 禁止使用 FALLBACK/MOCK 工件)
+    if (stageId === '05_deploy' || stageId === '06_maintain') {
+      if (latestArtifact.executionMode === 'FALLBACK' || latestArtifact.executionMode === 'MOCK') {
+        throw new AppError(
+          'DEPLOYMENT_ISOLATION_VIOLATION',
+          `交付門閥拒絕放行：偵測到工件係由 [${latestArtifact.executionMode}] 模式產出，正式上線交付 (Deploy) 嚴禁使用模擬或離線備援工件。`,
+          422,
+          { executionMode: latestArtifact.executionMode }
+        );
+      }
     }
 
     // 規則 5：計算下一個階段並檢查 Deterministic State Machine
@@ -289,7 +335,7 @@ export class SdlcOrchestrator {
       suggestedAdjustments,
       {
         actorId: context.actorId,
-        actorType: context.actorType === 'AI' ? 'HUMAN' : context.actorType,
+        actorType: context.actorType,
         role: context.role
       }
     );

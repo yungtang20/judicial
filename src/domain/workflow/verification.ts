@@ -5,6 +5,7 @@
 
 import { AppError } from './errors';
 import { verifyLegalCitations } from '../../lib/citationVerifier';
+import { RuntimeSchemaValidator, ObjectSchema } from './runtimeSchemaValidator';
 
 export type VerificationStatus = 'PASS' | 'FAIL' | 'NEEDS_REVIEW';
 
@@ -63,7 +64,10 @@ export class PrivacyValidator implements IValidator<string> {
 // 2. 結構與 Schema 驗證器 (Schema Validator)
 export class SchemaValidator implements IValidator<string | Record<string, any>> {
   public name = 'SchemaValidator';
-  public async validate(content: string | Record<string, any>): Promise<VerificationCheckItem> {
+  public async validate(
+    content: string | Record<string, any>,
+    context?: Record<string, any>
+  ): Promise<VerificationCheckItem> {
     if (!content) {
       return {
         name: this.name,
@@ -73,13 +77,51 @@ export class SchemaValidator implements IValidator<string | Record<string, any>>
       };
     }
 
-    if (typeof content === 'string' && content.trim().length < 20) {
-      return {
-        name: this.name,
-        category: 'SCHEMA',
-        status: 'NEEDS_REVIEW',
-        message: '產物文字長度過短，可能缺乏完整法律三段論結構，需人工複查。'
-      };
+    // 若 Context 中提供目標結構定義，執行 Runtime Schema Validation
+    if (context?.expectedSchema) {
+      const schema = context.expectedSchema as ObjectSchema;
+      let targetObj = content;
+      if (typeof content === 'string') {
+        let jsonStr = content.trim();
+        if (jsonStr.startsWith('```json')) {
+          jsonStr = jsonStr.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+        } else if (jsonStr.startsWith('```')) {
+          jsonStr = jsonStr.replace(/^```\s*/, '').replace(/\s*```$/, '');
+        }
+        try {
+          targetObj = JSON.parse(jsonStr);
+        } catch (e: any) {
+          return {
+            name: this.name,
+            category: 'SCHEMA',
+            status: 'FAIL',
+            message: `JSON 解析失敗，未能符合預期結構契約: ${e.message}`,
+            details: { parseError: e.message }
+          };
+        }
+      }
+
+      const valRes = RuntimeSchemaValidator.validate(targetObj, schema);
+      if (!valRes.valid) {
+        return {
+          name: this.name,
+          category: 'SCHEMA',
+          status: 'FAIL',
+          message: `未通過 Runtime Schema 結構驗證：${valRes.errors.join('；')}`,
+          details: { errors: valRes.errors }
+        };
+      }
+    }
+
+    if (typeof content === 'string') {
+      if (content.trim().length < 20) {
+        return {
+          name: this.name,
+          category: 'SCHEMA',
+          status: 'NEEDS_REVIEW',
+          message: '產物文字長度過短，可能缺乏完整法律三段論結構，需人工複查。'
+        };
+      }
     }
 
     return {
