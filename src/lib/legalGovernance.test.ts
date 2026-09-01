@@ -95,6 +95,26 @@ describe('legal governance regressions', () => {
     expect(read('src/components/LegalDocAiChecker.tsx')).toContain('External Legal Document Checker');
   });
 
+  it('keeps the external citation provider opt-in and non-official', () => {
+    const provider = read('src/lib/externalCitationVerifier.ts');
+    const route = read('server/routes/externalCitation.ts');
+    expect(provider).toContain("export type ExternalCitationStatus = 'verified' | 'not_found' | 'unknown' | 'out_of_coverage'");
+    expect(provider).toContain('不代表引用內容或官方效力已獲核實');
+    expect(route).toContain('consent !== true');
+    expect(route).toContain('不判斷裁判內容是否支持引用主張');
+    expect(read('src/components/LegalDocAiChecker.tsx')).toContain('externalConsent');
+    expect(read('src/components/LegalDocAiChecker.tsx')).toContain('只將文件擷取出的裁判字號送至第三方');
+  });
+
+  it('keeps triage source tabs separated and backed by the TLR adapter', () => {
+    expect(read('server/routes/triage.ts')).toContain('searchLegalSources');
+    expect(read('src/components/LegalGuideHome.tsx')).toContain('法規／裁判／函釋檢索');
+    expect(read('src/components/LegalGuideHome.tsx')).toContain("['statutes', '法規']");
+    expect(read('src/components/LegalGuideHome.tsx')).toContain("['judgments', '裁判']");
+    expect(read('src/components/LegalGuideHome.tsx')).toContain("['references', '函釋']");
+    expect(read('.env.example')).toContain('TLR_ENABLED');
+  });
+
   it('verifies generated documents and retains an external checker', () => {
     const defenseRoute = read('server/routes/defense.ts');
     const appealRoute = read('server/routes/appeal.ts');
