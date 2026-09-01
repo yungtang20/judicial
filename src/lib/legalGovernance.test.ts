@@ -7,6 +7,7 @@ import { verifyLegalCitations } from './citationVerifier';
 import { LEGAL_TOOLS } from '../components/LegalToolbox';
 import { LEGAL_TOOL_TITLES } from './legalToolTitles';
 import { buildIntelligentRuleBasedTriage } from './universalTriage';
+import { precheckLegalInput } from './legalInputPrecheck';
 
 const root = process.cwd();
 const read = (file: string) => fs.readFileSync(path.join(root, file), 'utf8');
@@ -33,6 +34,9 @@ describe('legal governance regressions', () => {
     expect(registry).toContain('export const LEGAL_TOOLS:');
     expect(source).not.toMatch(/全部工具 \(28\)|搜尋 25 項|25 合 1/);
     expect(source).toContain('LEGAL_TOOLS.length');
+    expect(read('src/components/Sidebar.tsx')).not.toContain('25合1');
+    expect(read('src/components/LitigationWorkspace.tsx')).not.toContain('25合1');
+    expect(read('src/prompts/toolbox-prompts.ts')).not.toContain('25 Professional Taiwan Legal Tools');
     const ids = LEGAL_TOOLS.map(tool => tool.id);
     expect(new Set(ids).size).toBe(ids.length);
     expect(LEGAL_TOOLS.every(tool => tool.name && tool.shortDesc && tool.legalBasis)).toBe(true);
@@ -47,7 +51,16 @@ describe('legal governance regressions', () => {
     expect(server).toContain('assertGeneratedDocumentVerified(verifyGeneratedDocument(docText))');
     expect(server).toContain('法律文件引用檢核未通過，拒絕回傳未確認引用文件');
     expect(server).toContain('res.status(422)');
+    expect(server).toContain('precheckLegalInput');
     expect(read('src/components/LegalDocAiChecker.tsx')).toContain('External Legal Document Checker');
+  });
+
+  it('runs heuristic legal input pre-checks before generation', () => {
+    expect(precheckLegalInput('民法第184條', 'generation').status).toBe('pass');
+    expect(precheckLegalInput('民法第999條', 'generation').status).toBe('reject');
+    expect(precheckLegalInput('民法第999條', 'analysis').status).toBe('needs_review');
+    expect(precheckLegalInput('   ', 'analysis').status).toBe('reject');
+    expect(precheckLegalInput('請分析租賃爭議', 'analysis').status).toBe('pass');
   });
 
   it('enforces generate-then-verify ordering and rejects empty output', async () => {

@@ -55,6 +55,7 @@ import { verifyLegalCitations } from "./src/lib/citationVerifier.js";
 import { assertGeneratedDocumentVerified, verifyGeneratedDocument } from "./src/lib/generatedDocumentPipeline.js";
 import { LEGAL_TOOL_TITLES } from "./src/lib/legalToolTitles.js";
 import { buildIntelligentRuleBasedTriage } from "./src/lib/universalTriage.js";
+import { precheckLegalInput } from "./src/lib/legalInputPrecheck.js";
 
 dotenv.config();
 
@@ -426,9 +427,9 @@ app.post("/api/ocr", async (req, res) => {
       const ocrResults = [];
       for (let idx = 0; idx < parsedImages.length; idx++) {
         const parsedImg = parsedImages[idx];
-        const pagePrompt = `你是一位精通繁體中文、法律文書、警察卷宗與法院裁判書的專業 OCR 光學文字識讀專家。
+      const pagePrompt = `你是一位精通繁體中文、法律文書與法院裁判書的專業 OCR 光學文字識讀專家。
 目前正在解析第 ${idx + 1} 頁影像。請仔細、完整地辨識並轉錄此頁影像中的所有文字（包含手寫簽名、手寫字跡、蓋章、印刷文字、表格欄位與數值、問答筆錄、身分證件等）。
-請保持最真實、最精準的排版與段落格式，100% 逐字逐句完整重現，絕對不要遺漏任何一頁筆錄、問答或表格！不要進行任何總結、解釋、潤飾或添加多餘的提示字首尾。
+請保持最真實、最精準的排版與段落格式，逐字逐句完整重現，絕對不要遺漏任何一頁筆錄、問答或表格！不要進行任何總結、解釋、潤飾或添加多餘的提示字首尾。
 直接輸出此頁轉錄完成的全文內容：`;
         console.log(`[OCR] 正在辨識第 ${idx + 1}/${parsedImages.length} 頁影像...`);
         let pageText = "";
@@ -841,8 +842,12 @@ app.post("/api/tlr/fulltext", async (req, res) => {
       return res.status(500).json({ error: err.message || "伺服器內部錯誤" });
     }
   });
-    app.post("/api/generate-appeal-petition", async (req, res) => {
+  app.post("/api/generate-appeal-petition", async (req, res) => {
     try {
+      const legalInputPrecheck = precheckLegalInput(JSON.stringify(req.body ?? {}), "generation");
+      if (legalInputPrecheck.status === "reject") {
+        return res.status(422).json({ error: "法律輸入引用檢核未通過，請先修正或確認引用", legalInputPrecheck });
+      }
       const apiKey = resolveApiKey();
       if (isApiKeyMissingOrPlaceholder(apiKey)) {
         const verified = assertGeneratedDocumentVerified(verifyGeneratedDocument(buildFallbackPetition(req.body)));
@@ -984,6 +989,10 @@ app.post("/api/tlr/fulltext", async (req, res) => {
   app.post("/api/defense/generate-pleading", async (req, res) => {
     try {
       const { pleadingType = "CLIENT_PERSONAL_REPORT", clientInput = "", triageData = {}, mineData = {}, caseInfo = {} } = req.body;
+      const legalInputPrecheck = precheckLegalInput(JSON.stringify({ clientInput, triageData, mineData, caseInfo }), "generation");
+      if (legalInputPrecheck.status === "reject") {
+        return res.status(422).json({ error: "法律輸入引用檢核未通過，請先修正或確認引用", legalInputPrecheck });
+      }
 
       const apiKey = resolveApiKey();
       if (isApiKeyMissingOrPlaceholder(apiKey)) {
@@ -1034,6 +1043,10 @@ app.post("/api/tlr/fulltext", async (req, res) => {
   app.post("/api/toolbox/generate", async (req, res) => {
     try {
       const { toolCategory = "CRIMINAL_COMPLAINT", params = {} } = req.body;
+      const legalInputPrecheck = precheckLegalInput(JSON.stringify(params), "generation");
+      if (legalInputPrecheck.status === "reject") {
+        return res.status(422).json({ error: "法律輸入引用檢核未通過，請先修正或確認引用", legalInputPrecheck });
+      }
 
       const apiKey = resolveApiKey();
       if (isApiKeyMissingOrPlaceholder(apiKey)) {
@@ -1104,6 +1117,10 @@ app.post("/api/tlr/fulltext", async (req, res) => {
       if (!query || typeof query !== "string") {
         return res.status(400).json({ error: "請提供爭議情況敘述" });
       }
+      const legalInputPrecheck = precheckLegalInput(query, "analysis");
+      if (legalInputPrecheck.status === "reject") {
+        return res.status(422).json({ error: "法律輸入引用檢核未通過，請先修正或確認引用", legalInputPrecheck });
+      }
 
       const apiKey = resolveApiKey();
       const isMissing = isApiKeyMissingOrPlaceholder(apiKey);
@@ -1117,7 +1134,7 @@ app.post("/api/tlr/fulltext", async (req, res) => {
             antiGhostVerification: fallbackVerification
           });
         }
-        return res.json(fallbackTriage);
+        return res.json({ ...fallbackTriage, legalInputPrecheck });
       }
 
       // Gemini AI dynamic triage
@@ -1223,6 +1240,7 @@ ${UNIVERSAL_SYLLOGISM_RULES}
             { rule: "引用檢核（heuristic）", passed: antiGhost.ghostCount === 0 && antiGhost.results.every(citation => citation.verified), detail: "已自動比對引述格式；未索引項目仍需人工查證" },
             { rule: "司法機關訴狀要件合規", passed: true, detail: "具備當事人、訴之聲明、事實理由與證據清單" }
           ],
+          legalInputPrecheck,
           antiGhostVerification: {
             totalCitationsChecked: antiGhost.totalChecked,
             ghostCitationsFound: antiGhost.ghostCount,
@@ -1231,7 +1249,7 @@ ${UNIVERSAL_SYLLOGISM_RULES}
         });
       }
 
-      return res.json(buildIntelligentRuleBasedTriage(query));
+      return res.json({ ...buildIntelligentRuleBasedTriage(query), legalInputPrecheck });
     } catch (err: any) {
       console.error("Universal triage error, providing intelligent rule-based triage:", err);
       return res.json(buildIntelligentRuleBasedTriage(req.body?.query || ""));

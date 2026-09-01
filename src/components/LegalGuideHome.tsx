@@ -1347,7 +1347,7 @@ export const LegalGuideHome: React.FC<LegalGuideHomeProps> = ({ onSelectTool }) 
                   <div className="bg-slate-950 border border-slate-800 rounded-xl p-3.5 text-xs text-white space-y-2 mt-4">
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-emerald-400 flex items-center gap-1.5">
-                        <ShieldCheck className="w-4 h-4" /> 司法院真實性檢驗報告
+                        <ShieldCheck className="w-4 h-4" /> 法律引用檢查報告
                       </span>
                       <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/30 font-medium">
                         比對 {aiTriageResult.antiGhostVerification.totalCitationsChecked} 處引述 · 0 處明顯幽靈虛構

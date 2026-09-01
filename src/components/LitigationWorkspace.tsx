@@ -54,7 +54,7 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initia
     {
       id: 'toolbox',
       label: '實用法務與書狀',
-      badge: '25合1',
+      badge: '工具箱',
       icon: Briefcase,
       desc: '日常合約、存證信函與起訴狀產生器'
     },

@@ -300,7 +300,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId }) => 
           </h1>
 
           <p className="text-slate-300 text-sm max-w-4xl leading-relaxed">
-            完整收錄臺灣司法實務 <strong>{LEGAL_TOOLS.length} 項必備非訟、訴狀、保護令、存證信函與試算工具</strong>。每項工具均內建法定要件防呆機制，並串接司法院公開法規庫實時交叉檢驗。
+            完整收錄臺灣司法實務 <strong>{LEGAL_TOOLS.length} 項必備非訟、訴狀、保護令、存證信函與試算工具</strong>。每項工具均內建法定要件防呆機制，並提供法律引用格式與本機索引比對；結果不等同官方核實，重要內容仍需人工查證。
           </p>
         </div>
 
@@ -1570,7 +1570,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId }) => 
                 {isLoading ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    正在產製並執行司法院真實性檢驗...
+                    正在產製並執行法律引用檢查...
                   </>
                 ) : (
                   <>
@@ -1638,7 +1638,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId }) => 
                 <div className="bg-slate-950 border border-slate-800 rounded-xl p-3.5 text-xs text-white space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-emerald-400 flex items-center gap-1.5">
-                      <ShieldCheck className="w-4 h-4" /> 司法院真實性檢驗報告
+                      <ShieldCheck className="w-4 h-4" /> 法律引用檢查報告
                     </span>
                     <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/30 font-medium">
                       比對 {result.antiGhostVerification.totalCitationsChecked} 處引述 · 0 處明顯幽靈虛構
