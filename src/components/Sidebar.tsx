@@ -27,6 +27,14 @@ export default function Sidebar({ activeTool, setActiveTool }: SidebarProps) {
       badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'
     },
     { 
+      id: 'sdlc', 
+      label: 'AI 原生 SDLC 交付工作台', 
+      sublabel: 'Plan ➔ Design ➔ Build ➔ Test ➔ Deploy ➔ Maintain',
+      icon: Sparkles, 
+      badge: '核心骨架',
+      badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+    },
+    { 
       id: 'litigation', 
       label: '全生命週期法務與訴訟工作台', 
       sublabel: '整合法律工具箱 / 雙軌防禦 / 爭點 / 上訴',

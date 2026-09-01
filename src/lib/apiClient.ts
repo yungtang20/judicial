@@ -171,6 +171,55 @@ export const apiClient = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
+  },
+
+  // AI 原生 SDLC (6 階段交付引擎)
+  sdlcGetProject: async (projectId: string, title?: string, legalDomain?: string) => {
+    return fetchWithHandler('/api/sdlc/project', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ projectId, title, legalDomain })
+    });
+  },
+
+  sdlcExecuteStage: async (payload: {
+    projectId: string;
+    stageId: string;
+    contextData?: any;
+    humanInput?: string;
+  }) => {
+    return fetchWithHandler('/api/sdlc/execute-stage', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  },
+
+  sdlcAdvanceGate: async (payload: {
+    projectId: string;
+    stageId: string;
+    decidedBy?: string;
+    decisionNote?: string;
+  }) => {
+    return fetchWithHandler('/api/sdlc/advance-gate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  },
+
+  sdlcFeedbackLoop: async (payload: {
+    projectId: string;
+    fromStage: string;
+    targetStage: string;
+    reason: string;
+    suggestedAdjustments: string;
+  }) => {
+    return fetchWithHandler('/api/sdlc/feedback-loop', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
   }
 };
 

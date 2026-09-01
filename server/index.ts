@@ -7,6 +7,7 @@ import toolboxRouter from "./routes/toolbox.js";
 import triageRouter from "./routes/triage.js";
 import judicialRouter from "./routes/judicial.js";
 import healthRouter from "./routes/health.js";
+import { sdlcRouter } from "./routes/sdlc.js";
 
 export function createExpressApp(): Express {
   const app = express();
@@ -26,6 +27,7 @@ export function createExpressApp(): Express {
   app.use(triageRouter);
   app.use(judicialRouter);
   app.use(healthRouter);
+  app.use("/api/sdlc", sdlcRouter);
 
   // 3. 全域錯誤處理器
   app.use(globalErrorHandler);

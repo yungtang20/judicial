@@ -4,6 +4,7 @@ import Sidebar from './components/Sidebar';
 import { LegalGuideHome } from './components/LegalGuideHome';
 import { LitigationWorkspace } from './components/LitigationWorkspace';
 import { JudicialAndAiChecker } from './components/JudicialAndAiChecker';
+import { LegalSdlcWorkbench } from './components/LegalSdlcWorkbench';
 
 interface Props {
   children: React.ReactNode;
@@ -71,7 +72,11 @@ export default function App() {
       case 'guide':
         return <LegalGuideHome onSelectTool={handleGuideSelect} />;
 
-      // 2. 全生命週期法務與訴訟工作台
+      // 2. AI 原生 SDLC 交付工作台
+      case 'sdlc':
+        return <LegalSdlcWorkbench />;
+
+      // 3. 全生命週期法務與訴訟工作台
       case 'legalToolbox':
       case 'litigation':
       case 'smartAppeal':
