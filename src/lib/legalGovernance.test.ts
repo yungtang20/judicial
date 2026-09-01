@@ -74,4 +74,24 @@ describe('legal governance regressions', () => {
     expect(result.antiGhostVerification).toBeDefined();
     expect(result.category).toBe('CIVIL_TORT_GENERAL');
   });
+
+  it('covers every rule-based triage category', () => {
+    const cases = [
+      ['我的狗被鄰居的貓咬傷', 'CIVIL_PET_DISPUTE'],
+      ['我被打了', 'CRIMINAL_COMPLAINT_ASSAULT'],
+      ['對方在直播辱罵我', 'DEFAMATION_CEASE_AND_DESIST'],
+      ['我車禍受傷需要驗傷', 'CRIMINAL_COMPLAINT_TRAFFIC'],
+      ['我被詐騙且寄出提款卡', 'CRIMINAL_COMPLAINT_FRAUD'],
+      ['借錢不還', 'DEMAND_LETTER_DEBT'],
+      ['遭到性侵', 'CRIMINAL_COMPLAINT_SEXUAL_ASSAULT'],
+      ['有人偷走我的手機', 'CRIMINAL_COMPLAINT_THEFT'],
+      ['房東拒絕處理租屋漏水', 'CIVIL_TORT_GENERAL'],
+      ['一般契約爭議需要法律協助', 'UNIVERSAL_AI_PLEADING']
+    ] as const;
+    for (const [query, category] of cases) {
+      const result = buildIntelligentRuleBasedTriage(query);
+      expect(result.category).toBe(category);
+      expect(result.readyDocumentText).toBeTruthy();
+    }
+  });
 });
