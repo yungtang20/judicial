@@ -73,14 +73,14 @@ describe("Phase 3: LocalLegalKnowledgeBase & Retrieval Evaluation", () => {
       const sources = await retrievalService.search("車禍損害賠償過失相抵");
 
       expect(sources.enabled).toBe(true);
-      expect(sources.provider).toBe("local-index");
+      expect(sources.provider).toBe("local-index-hybrid");
       expect(sources.statutes.length).toBeGreaterThan(0);
       expect(sources.allowedCitations).toContain("民法第184條");
 
       const promptContext = await retrievalService.retrieveContext("車禍侵權");
       expect(promptContext.isExternalRetrievalUsed).toBe(false);
-      expect(promptContext.statusMessage).toContain("自建本機法規與函釋知識庫");
-      expect(promptContext.promptBlock).toContain("【本機知識庫檢索之法規與函釋見解】");
+      expect(promptContext.statusMessage).toContain("自建本機混合知識庫");
+      expect(promptContext.promptBlock).toContain("【本機知識庫檢索之法規、函釋與實務判決見解】");
       expect(promptContext.allowedCitations).toContain("民法第184條");
     });
   });

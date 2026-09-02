@@ -12,6 +12,7 @@ import {
 import { defaultGeminiProvider } from "../../src/ai/providers/GeminiProvider.js";
 import { UNIVERSAL_SYLLOGISM_RULES } from "../../src/prompts/universal-syllogism.js";
 import { LocalLegalKnowledgeBase, defaultLocalKnowledgeBase } from "../knowledge-base/localKnowledgeBase.js";
+import { JudgmentKnowledgeBase, defaultJudgmentKnowledgeBase } from "../knowledge-base/judgmentKnowledgeBase.js";
 
 /**
  * 檢索結果封裝，包含外部 RAG 是否啟用/使用的降級標記
@@ -35,7 +36,8 @@ export interface ILegalRetrievalService {
 export class LegalRetrievalService implements ILegalRetrievalService {
   constructor(
     private fetchImpl: typeof fetch = fetch,
-    private localKb: LocalLegalKnowledgeBase = defaultLocalKnowledgeBase
+    private localKb: LocalLegalKnowledgeBase = defaultLocalKnowledgeBase,
+    private judgmentKb: JudgmentKnowledgeBase = defaultJudgmentKnowledgeBase
   ) {}
 
   async search(query: string): Promise<LegalSearchSources> {
@@ -47,8 +49,26 @@ export class LegalRetrievalService implements ILegalRetrievalService {
     } catch (err: any) {
       console.warn('[LegalRetrievalService] 外部 TW-Legal-RAG 查詢異常，降級本機知識庫:', err?.message || err);
     }
-    // 降級使用自建本機法規與函釋索引庫
-    return this.localKb.retrieveAsSources(query);
+    
+    // 降級使用自建本機知識庫 (Phase 3 法規/函釋 + Phase 4 判決)
+    const [localSources, judgmentSources] = await Promise.all([
+      this.localKb.retrieveAsSources(query),
+      this.judgmentKb.retrieveAsSources(query)
+    ]);
+    
+    return {
+      enabled: true,
+      provider: 'local-index-hybrid',
+      disclaimer: '本資料由系統本機自建之法規、函釋與判決知識庫檢索（Phase 3 & 4 Local Index），僅供輔助參考。',
+      statutes: localSources.statutes,
+      references: localSources.references,
+      judgments: judgmentSources.judgments,
+      literature: [],
+      allowedCitations: [
+        ...(localSources.allowedCitations || []),
+        ...(judgmentSources.allowedCitations || [])
+      ]
+    };
   }
 
   async retrieveContext(query: string): Promise<RetrievalResult> {
@@ -76,16 +96,39 @@ export class LegalRetrievalService implements ILegalRetrievalService {
       };
     }
 
-    // 外部服務未啟用、離線、連線失敗或無有效引用，啟用本機法規與函釋知識庫
-    const localContext = await this.localKb.retrievePromptContext(query);
-    const hasLocalMatches = localContext.hasCitations;
+    // 外部服務未啟用、離線、連線失敗或無有效引用，啟用本機法規/函釋與判決知識庫
+    const sources = await this.search(query);
+    const hasCitations = (sources.allowedCitations?.length || 0) > 0;
+    
+    let promptBlock = '';
+    if (hasCitations) {
+      const parts: string[] = ['【本機知識庫檢索之法規、函釋與實務判決見解】'];
+      if (sources.statutes.length > 0) {
+        parts.push('◆ 適用法規條文：');
+        sources.statutes.forEach(s => parts.push(`- 【${s.citation}】${s.title}：${s.excerpt}`));
+      }
+      if (sources.references.length > 0) {
+        parts.push('◆ 相關主管機關行政函釋：');
+        sources.references.forEach(r => parts.push(`- 【${r.citation}】${r.title}：${r.excerpt}`));
+      }
+      if (sources.judgments.length > 0) {
+        parts.push('◆ 相關實務判決節錄：');
+        sources.judgments.forEach(j => parts.push(`- 【${j.citation}】${j.title}：\n${j.excerpt}`));
+      }
+      parts.push('（生成文書引用條文、函釋及判決時，請優先參酌上述法定規範與實務見解，並嚴格遵循三段論法，禁止捏造判決字號。）');
+      promptBlock = parts.join('\n');
+    }
 
-    const statusMessage = hasLocalMatches
-      ? '外部 TLR 離線或查無結果，已切換至自建本機法規與函釋知識庫（Phase 3 Local Index）'
-      : '外部 TLR 未啟用，且本機知識庫無相符條文，安全降級為現行實體法原則論述';
+    const statusMessage = hasCitations
+      ? '外部 TLR 離線或查無結果，已切換至自建本機混合知識庫（Phase 3 & 4 Local Index）'
+      : '外部 TLR 未啟用，且本機知識庫無相符見解，安全降級為現行實體法原則論述';
 
     return {
-      ...localContext,
+      sources,
+      promptBlock,
+      allowedCitations: sources.allowedCitations || [],
+      disclaimer: sources.disclaimer,
+      hasCitations,
       isExternalRetrievalUsed: false,
       statusMessage
     };
