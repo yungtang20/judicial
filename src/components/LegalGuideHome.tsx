@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { LegalSourcesDisplay } from './LegalSourcesDisplay';
 import { LEGAL_TOOLS } from './LegalToolbox';
 import { useCaseStore } from '../store/useCaseStore';
 import { 
@@ -1367,6 +1368,13 @@ export const LegalGuideHome: React.FC<LegalGuideHomeProps> = ({ onSelectTool }) 
                     {aiTriageResult.plainExplanation}
                   </p>
                 </div>
+                
+                <LegalSourcesDisplay 
+                  sources={aiTriageResult.sources}
+                  isExternal={aiTriageResult.isExternalRetrievalUsed}
+                  statusMessage={aiTriageResult.retrievalStatusMessage}
+                  allowedCitations={aiTriageResult.allowedCitations}
+                />
 
                 {/* 建議行動與必備證據 */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

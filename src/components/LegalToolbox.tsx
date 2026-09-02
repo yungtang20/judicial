@@ -37,6 +37,7 @@ import {
 import { apiClient } from '../lib/apiClient';
 import { LegalToolboxResult } from '../types';
 import { getActiveCase, useCaseStore } from '../store/useCaseStore';
+import { LegalSourcesDisplay } from './LegalSourcesDisplay';
 
 import { LEGAL_TOOLS } from '../lib/legalToolRegistry';
 export { LEGAL_TOOLS } from '../lib/legalToolRegistry';
@@ -1783,6 +1784,16 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId }) => 
                 </div>
               )}
             </div>
+
+            {result && (
+              <LegalSourcesDisplay 
+                sources={result.legalSources}
+                isExternal={result.isExternalRetrievalUsed}
+                statusMessage={result.retrievalStatusMessage}
+                allowedCitations={result.allowedCitations}
+                theme="dark"
+              />
+            )}
 
             {/* Compliance Checklist Footer */}
             {result?.complianceChecklist && (

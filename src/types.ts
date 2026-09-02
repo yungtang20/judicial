@@ -174,6 +174,10 @@ export interface LegalToolboxResult {
   };
   disclaimer: string;
   modelUsed?: string;
+  legalSources?: any;
+  isExternalRetrievalUsed?: boolean;
+  retrievalStatusMessage?: string;
+  allowedCitations?: string[];
 }
 
 export interface RealStatuteDatabaseItem {

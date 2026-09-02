@@ -41,6 +41,7 @@ import {
 } from '../types';
 import { useAppealStore } from '../store/useAppealStore';
 import { AntiGhostBadge } from './AntiGhostBadge';
+import { LegalSourcesDisplay } from './LegalSourcesDisplay';
 import { getActiveCase, useCaseStore } from '../store/useCaseStore';
 
 const PRESET_CASES = [
@@ -1212,6 +1213,13 @@ export const DefenseWorkflowTool: React.FC = () => {
               )}
 
               {/* Anti-Ghost Verification Guarantee */}
+              <LegalSourcesDisplay 
+                sources={lawyerPleading.legalSources}
+                isExternal={lawyerPleading.isExternalRetrievalUsed}
+                statusMessage={lawyerPleading.retrievalStatusMessage}
+                allowedCitations={lawyerPleading.allowedCitations}
+                theme="dark"
+              />
               <AntiGhostBadge 
                 verification={activeOutputTab === 'LAWYER' ? lawyerPleading?.antiGhostVerification : personalPleading?.antiGhostVerification} 
               />

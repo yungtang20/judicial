@@ -7,6 +7,7 @@ import { IssueRow, EvidenceRow, PrecedentItem } from "../types";
 import { useAppealStore } from "../store/useAppealStore";
 import { useCaseStore } from "../store/useCaseStore";
 import { AntiGhostBadge } from "./AntiGhostBadge";
+import { LegalSourcesDisplay } from "./LegalSourcesDisplay";
 import { verifyLegalCitations } from "../lib/citationVerifier";
 import { ShieldCheck, CheckCircle2 } from "lucide-react";
 
@@ -228,6 +229,10 @@ export default function SmartAppealAssistant() {
   const generatedPetition = useAppealStore(s => s.generatedPetition);
       const setGeneratedPetition = useAppealStore(s => s.setGeneratedPetition);
   const [generatedDocumentId, setGeneratedDocumentId] = useState<string | null>(null);
+  const [petitionLegalSources, setPetitionLegalSources] = useState<any>(null);
+  const [isExternalRetrievalUsed, setIsExternalRetrievalUsed] = useState<boolean>(false);
+  const [retrievalStatusMessage, setRetrievalStatusMessage] = useState<string | undefined>(undefined);
+  const [allowedCitations, setAllowedCitations] = useState<string[]>([]);
   const [humanGateNote, setHumanGateNote] = useState('');
 
   const petitionVerification = useMemo(() => {
@@ -797,6 +802,11 @@ export default function SmartAppealAssistant() {
       
       setGeneratedPetition(data.petitionText || '');
       if (data.petitionText) {
+        setPetitionLegalSources(data.legalSources);
+        setIsExternalRetrievalUsed(data.isExternalRetrievalUsed);
+        setRetrievalStatusMessage(data.retrievalStatusMessage);
+        setAllowedCitations(data.allowedCitations || []);
+
         const documentId = `appeal-${Date.now()}`;
         setGeneratedDocumentId(documentId);
         addDocument({
@@ -2175,6 +2185,13 @@ export default function SmartAppealAssistant() {
                   </button>
                 </div>
               )}
+              <LegalSourcesDisplay 
+                sources={petitionLegalSources}
+                isExternal={isExternalRetrievalUsed}
+                statusMessage={retrievalStatusMessage}
+                allowedCitations={allowedCitations}
+                theme="light"
+              />
               <AntiGhostBadge verification={petitionVerification} />
               <div className="w-full flex justify-center bg-gray-100 p-6 rounded-xl overflow-y-auto">
                 <div className="bg-white p-12 rounded shadow-lg w-full max-w-[210mm] min-h-[297mm] text-black text-sm leading-relaxed border border-gray-300 font-serif whitespace-pre-wrap">
