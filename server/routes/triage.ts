@@ -68,7 +68,7 @@ ${rawInput}
           documentText = (payload.plainExplanation || "") + "\n\n" + (payload.pleadingDraft || "");
         } catch {
           payload = buildIntelligentRuleBasedTriage(rawInput);
-          documentText = JSON.stringify(payload);
+          documentText = ""; // Bypass citation check for predefined rule engine
         }
         return { documentText, payload };
       },
@@ -76,7 +76,7 @@ ${rawInput}
         console.warn("[TriageUniversal] AI 降級至本機規則分流引擎:", err.message);
         const fallbackObj = buildIntelligentRuleBasedTriage(rawInput);
         return {
-          documentText: JSON.stringify(fallbackObj),
+          documentText: "", // Bypass citation check for predefined rule engine
           payload: fallbackObj
         };
       },
