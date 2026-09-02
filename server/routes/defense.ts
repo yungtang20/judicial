@@ -115,10 +115,7 @@ router.post("/api/defense/generate-pleading", async (req: Request, res: Response
       antiGhostVerification: verified.antiGhostVerification
     });
   } catch (err: any) {
-    if (err?.message?.includes('法律文件引用檢核未通過')) {
-      return res.status(422).json({ error: err.message, code: 'DOCUMENT_VERIFICATION_FAILED' });
-    }
-    console.warn("[DefenseGeneratePleading] AI 降級至本機書狀產生庫:", err.message);
+    console.warn("[DefenseGeneratePleading] AI 調用異常或檢核未通過，安全降級至本機審定書狀庫:", err?.message || err);
     try {
       const fallbackResult = buildFallbackDefensePleading(pleadingType, clientInput, caseInfo);
       const verified = assertGeneratedDocumentVerified(verifyGeneratedDocument(fallbackResult.pleadingText));
@@ -129,7 +126,7 @@ router.post("/api/defense/generate-pleading", async (req: Request, res: Response
       });
     } catch (fallbackErr: any) {
       return res.status(422).json({
-        error: fallbackErr?.message || '法律文件驗證失敗，拒絕回傳文件',
+        error: fallbackErr?.message || '法律文件引用檢核未通過，拒絕回傳未確認引用文件',
         code: 'DOCUMENT_VERIFICATION_FAILED'
       });
     }

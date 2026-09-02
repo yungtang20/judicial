@@ -229,10 +229,12 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId }) => 
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<LegalToolboxResult | null>(null);
   const [copied, setCopied] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
 
   // Generate Document
   const handleGenerate = async () => {
     setIsLoading(true);
+    setGenerateError(null);
     try {
       const res = await apiClient.toolboxGenerate({
         toolCategory: activeToolId,
@@ -255,8 +257,9 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId }) => 
       if (res?.documentText) {
         handleFullVerify(res.documentText);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Toolbox generate error:', err);
+      setGenerateError(err?.message || '文件產製未通過法規引用驗證，請稍候重試或調整案情內容');
     } finally {
       setIsLoading(false);
     }
@@ -1705,6 +1708,22 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId }) => 
                   </div>
                 )}
               </div>
+
+              {/* Error Notice */}
+              {generateError && (
+                <div className="p-3 rounded-lg bg-rose-950/80 border border-rose-600/60 text-rose-200 text-xs flex items-center justify-between animate-fadeIn">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-rose-400">產製提示：</span>
+                    <span>{generateError}</span>
+                  </div>
+                  <button 
+                    onClick={() => setGenerateError(null)} 
+                    className="text-rose-400 hover:text-rose-200 text-xs ml-2 font-bold"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
 
               {/* Verify Notice */}
               {verifyNotice && (

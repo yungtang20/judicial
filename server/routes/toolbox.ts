@@ -57,21 +57,19 @@ router.post("/api/toolbox/generate", async (req: Request, res: Response) => {
 
     res.json(parsed);
   } catch (err: any) {
-    if (err?.message?.includes('法律文件引用檢核未通過')) {
-      return res.status(422).json({ error: err.message, code: 'DOCUMENT_VERIFICATION_FAILED' });
-    }
-    console.warn("[ToolboxGenerate] AI 降級至本機工具庫:", err.message);
+    console.warn("[ToolboxGenerate] AI 產製或檢核未通過，安全降級至本機審定工具庫:", err?.message || err);
     try {
       const fallback = buildFallbackToolboxResult(categoryKey, params || {});
       const verified = assertGeneratedDocumentVerified(verifyGeneratedDocument(fallback.documentText));
       res.json({
         ...fallback,
         documentText: verified.documentText,
-        antiGhostVerification: verified.antiGhostVerification
+        antiGhostVerification: verified.antiGhostVerification,
+        disclaimer: `${fallback.disclaimer}（本文件已自動套用審定法規標準範本，防幽靈引用檢核合規）`
       });
     } catch (fallbackErr: any) {
       return res.status(422).json({
-        error: fallbackErr?.message || '法律文件驗證失敗，拒絕回傳文件',
+        error: fallbackErr?.message || '法律文件引用檢核未通過，拒絕回傳未確認引用文件',
         code: 'DOCUMENT_VERIFICATION_FAILED'
       });
     }

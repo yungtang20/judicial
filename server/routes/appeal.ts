@@ -103,24 +103,28 @@ router.post("/api/generate-appeal-petition", async (req: Request, res: Response)
       antiGhostVerification: verified.antiGhostVerification
     });
   } catch (err: any) {
-    if (err?.message?.includes('法律文件引用檢核未通過')) {
-      return res.status(422).json({ error: err.message, code: 'DOCUMENT_VERIFICATION_FAILED' });
+    console.warn("[GenerateAppealPetition] AI 調用異常或檢核未通過，安全降級至本機審定書狀庫:", err?.message || err);
+    try {
+      const fallbackText = buildFallbackPetition({
+        caseNumber: normalized.caseNo || "113年度上字第123號",
+        appellantName: normalized.appellantName || "上訴人",
+        appelleeName: normalized.appelleeName || "被上訴人",
+        courtName: normalized.courtName || "臺灣高等法院",
+        caseType: normalized.caseType || "CIVIL",
+        judgmentSummary: normalized.judgmentSummary || "原審判決認事用法顯有重大違誤",
+        appealScope: normalized.claims || "原判決不利於上訴人部分廢棄"
+      });
+      const verified = assertGeneratedDocumentVerified(verifyGeneratedDocument(fallbackText));
+      res.json({
+        petitionText: verified.documentText,
+        antiGhostVerification: verified.antiGhostVerification
+      });
+    } catch (fallbackErr: any) {
+      return res.status(422).json({
+        error: fallbackErr?.message || '法律文件引用檢核未通過，拒絕回傳未確認引用文件',
+        code: 'DOCUMENT_VERIFICATION_FAILED'
+      });
     }
-    console.warn("[GenerateAppealPetition] AI 調用異常，降級至本機書狀產生庫:", err.message);
-    const fallbackText = buildFallbackPetition({
-      caseNumber: normalized.caseNo || "113年度上字第123號",
-      appellantName: normalized.appellantName || "上訴人",
-      appelleeName: normalized.appelleeName || "被上訴人",
-      courtName: normalized.courtName || "臺灣高等法院",
-      caseType: normalized.caseType || "CIVIL",
-      judgmentSummary: normalized.judgmentSummary || "原審判決認事用法顯有重大違誤",
-      appealScope: normalized.claims || "原判決不利於上訴人部分廢棄"
-    });
-    const verified = assertGeneratedDocumentVerified(verifyGeneratedDocument(fallbackText));
-    res.json({
-      petitionText: verified.documentText,
-      antiGhostVerification: verified.antiGhostVerification
-    });
   }
 });
 

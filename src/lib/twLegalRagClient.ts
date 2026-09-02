@@ -13,7 +13,7 @@ export interface LegalSourceItem {
 
 export interface LegalSearchSources {
   enabled: boolean;
-  provider: 'tw-legal-rag' | 'unavailable';
+  provider: 'tw-legal-rag' | 'unavailable' | 'local-index';
   disclaimer: string;
   statutes: LegalSourceItem[];
   judgments: LegalSourceItem[];
