@@ -1,7 +1,15 @@
 import { GoogleGenAI } from "@google/genai";
-import { DatabaseSync } from "node:sqlite";
+import { createRequire } from "node:module";
 import path from "node:path";
 import fs from "node:fs";
+
+const nodeRequire = createRequire(import.meta.url);
+let DatabaseSync: any;
+try {
+  DatabaseSync = nodeRequire("node:sqlite")?.DatabaseSync;
+} catch {
+  DatabaseSync = undefined;
+}
 
 export interface DocumentInput {
   id: string;
@@ -130,7 +138,7 @@ export class LegalEmbedder {
  * Stores documents and embedding vectors; allows modular replacement with pgvector/sqlite-vec.
  */
 export class SQLiteVectorStore implements VectorStore {
-  private db: DatabaseSync;
+  private db: any;
 
   constructor(dbPath?: string) {
     if (!dbPath || dbPath === ":memory:") {

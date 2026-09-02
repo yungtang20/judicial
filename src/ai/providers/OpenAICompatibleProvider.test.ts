@@ -1,7 +1,14 @@
-import { describe, expect, it, afterEach, vi } from 'vitest';
+import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { OpenAICompatibleProvider } from './OpenAICompatibleProvider';
 
 describe('OpenAI-compatible provider', () => {
+  beforeEach(() => {
+    delete process.env.HCNSEC_API_KEY;
+    delete process.env.HCNSEC_BASE_URL;
+    delete process.env.HCNSEC_MODEL;
+    vi.restoreAllMocks();
+  });
+
   afterEach(() => {
     delete process.env.HCNSEC_API_KEY;
     delete process.env.HCNSEC_BASE_URL;

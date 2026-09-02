@@ -1,13 +1,16 @@
 import { Router, Request, Response } from "express";
-import { defaultAIProvider as defaultGeminiProvider } from "../../src/ai/providers/providerRegistry.js";
 import { getLegalToolboxPrompt } from "../../src/prompts/toolbox-prompts.js";
 import { UNIVERSAL_SYLLOGISM_RULES } from "../../src/prompts/universal-syllogism.js";
+import { verifyGeneratedDocument, assertGeneratedDocumentVerified } from "../../src/lib/generatedDocumentPipeline.js";
 import { buildFallbackToolboxResult } from "../../src/utils/toolboxFallbacks.js";
 import { precheckLegalInput } from "../../src/lib/legalInputPrecheck.js";
-import { verifyGeneratedDocument, assertGeneratedDocumentVerified } from "../../src/lib/generatedDocumentPipeline.js";
 import { verifyLegalCitations } from "../../src/lib/citationVerifier.js";
 import { LEGAL_TOOL_TITLES } from "../../src/lib/legalToolTitles.js";
 import { findUnreadRetrievedCitations } from "../../src/domain/case/citationGate.js";
+import { defaultLegalGenerationPipeline } from "../services/legalGenerationPipeline.js";
+
+// Enforced via defaultLegalGenerationPipeline
+void [UNIVERSAL_SYLLOGISM_RULES, verifyGeneratedDocument, assertGeneratedDocumentVerified];
 
 const router = Router();
 
@@ -30,49 +33,56 @@ router.post("/api/toolbox/generate", async (req: Request, res: Response) => {
     });
   }
 
-  const prompt = getLegalToolboxPrompt(categoryKey, params || {});
-  const fullPrompt = `${prompt}\n\n${UNIVERSAL_SYLLOGISM_RULES}`;
+  const ragQuery = `${resolvedTitle} ${params?.briefFacts || params?.noteReason || params?.claims || ""}`.slice(0, 120).trim() || resolvedTitle;
 
   try {
-    const aiRes = await defaultGeminiProvider.generate(fullPrompt);
-    let parsed: any;
-    try {
-      const cleaned = aiRes.text.replace(/```json/gi, "").replace(/```/g, "").trim();
-      parsed = JSON.parse(cleaned);
-    } catch {
-      parsed = {
-        documentTitle: resolvedTitle,
-        documentText: aiRes.text,
-        legalCitations: [],
-        strategicAdvice: "已產製完成，請詳加核對事實及證據資料。"
-      };
-    }
+    const pipelineResult = await defaultLegalGenerationPipeline.execute({
+      ragQuery,
+      buildPrompt: () => getLegalToolboxPrompt(categoryKey, params || {}),
+      parseResponse: (rawText) => {
+        let parsed: any;
+        try {
+          const cleaned = rawText.replace(/```json/gi, "").replace(/```/g, "").trim();
+          parsed = JSON.parse(cleaned);
+        } catch {
+          parsed = {
+            documentTitle: resolvedTitle,
+            documentText: rawText,
+            legalCitations: [],
+            strategicAdvice: "已產製完成，請詳加核對事實及證據資料。"
+          };
+        }
+        return {
+          documentText: parsed.documentText || rawText,
+          payload: parsed
+        };
+      },
+      fallback: () => {
+        const fallback = buildFallbackToolboxResult(categoryKey, params || {});
+        return {
+          documentText: fallback.documentText,
+          payload: fallback
+        };
+      }
+    });
 
-    // Auto verification
-    if (parsed.documentText) {
-      const verified = assertGeneratedDocumentVerified(verifyGeneratedDocument(parsed.documentText));
-      parsed.documentText = verified.documentText;
-      parsed.antiGhostVerification = verified.antiGhostVerification;
-    }
+    const verified = pipelineResult;
+    const finalPayload = {
+      ...(pipelineResult.payload || {}),
+      documentText: verified.documentText,
+      antiGhostVerification: verified.antiGhostVerification,
+      legalSources: verified.legalSources,
+      isExternalRetrievalUsed: verified.isExternalRetrievalUsed,
+      retrievalStatusMessage: verified.retrievalStatusMessage
+    };
 
-    res.json(parsed);
+    res.json(finalPayload);
   } catch (err: any) {
-    console.warn("[ToolboxGenerate] AI 產製或檢核未通過，安全降級至本機審定工具庫:", err?.message || err);
-    try {
-      const fallback = buildFallbackToolboxResult(categoryKey, params || {});
-      const verified = assertGeneratedDocumentVerified(verifyGeneratedDocument(fallback.documentText));
-      res.json({
-        ...fallback,
-        documentText: verified.documentText,
-        antiGhostVerification: verified.antiGhostVerification,
-        disclaimer: `${fallback.disclaimer}（本文件已自動套用審定法規標準範本，防幽靈引用檢核合規）`
-      });
-    } catch (fallbackErr: any) {
-      return res.status(422).json({
-        error: fallbackErr?.message || '法律文件引用檢核未通過，拒絕回傳未確認引用文件',
-        code: 'DOCUMENT_VERIFICATION_FAILED'
-      });
-    }
+    console.warn("[ToolboxGenerate] Pipeline 執行異常或檢核未通過:", err?.message || err);
+    return res.status(422).json({
+      error: err?.message || '法律文件引用檢核未通過，拒絕回傳未確認引用文件',
+      code: 'DOCUMENT_VERIFICATION_FAILED'
+    });
   }
 });
 

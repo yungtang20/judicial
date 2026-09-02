@@ -1,4 +1,4 @@
-import { verifyLegalCitations } from './citationVerifier.js';
+import { verifyLegalCitations, VerifyCitationsOptions } from './citationVerifier.js';
 
 export interface GeneratedDocumentVerification {
   documentText: string;
@@ -18,16 +18,36 @@ export function assertGeneratedDocumentVerified(result: GeneratedDocumentVerific
   return result;
 }
 
-type Verifier = typeof verifyLegalCitations;
+type Verifier = (text: string, options?: VerifyCitationsOptions) => ReturnType<typeof verifyLegalCitations>;
+
+export interface VerifyDocumentOptions extends VerifyCitationsOptions {
+  verify?: Verifier;
+}
 
 export function verifyGeneratedDocument(
   documentText: string,
-  verify: Verifier = verifyLegalCitations
+  optionsOrVerifier: Verifier | VerifyDocumentOptions = verifyLegalCitations
 ): GeneratedDocumentVerification {
   if (!documentText.trim()) {
     throw new Error('法律文件生成結果為空，拒絕回傳未檢核文件');
   }
-  const result = verify(documentText);
+
+  let verifyFn: Verifier = verifyLegalCitations;
+  let options: VerifyCitationsOptions | undefined;
+
+  if (typeof optionsOrVerifier === 'function') {
+    verifyFn = optionsOrVerifier;
+  } else if (optionsOrVerifier && typeof optionsOrVerifier === 'object') {
+    if (optionsOrVerifier.verify) {
+      verifyFn = optionsOrVerifier.verify;
+    }
+    options = {
+      allowedCitations: optionsOrVerifier.allowedCitations,
+      strictAllowedOnly: optionsOrVerifier.strictAllowedOnly
+    };
+  }
+
+  const result = verifyFn(documentText, options);
   return {
     documentText: result.sanitizedText,
     antiGhostVerification: {

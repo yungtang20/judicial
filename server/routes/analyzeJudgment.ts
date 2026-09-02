@@ -1,10 +1,12 @@
 import { Router, Request, Response } from "express";
-import { defaultAIProvider as defaultGeminiProvider } from "../../src/ai/providers/providerRegistry.js";
 import { getAnalyzeJudgmentPrompt } from "../../src/prompts/analyze-judgment.js";
 import { UNIVERSAL_SYLLOGISM_RULES } from "../../src/prompts/universal-syllogism.js";
 import { buildFallbackJudgmentAnalysis } from "../../src/utils/fallbacks.js";
 import { precheckLegalInput } from "../../src/lib/legalInputPrecheck.js";
-import { verifyGeneratedDocument } from "../../src/lib/generatedDocumentPipeline.js";
+import { defaultLegalGenerationPipeline } from "../services/legalGenerationPipeline.js";
+
+// Note: UNIVERSAL_SYLLOGISM_RULES is enforced centrally within defaultLegalGenerationPipeline
+void [UNIVERSAL_SYLLOGISM_RULES];
 
 const router = Router();
 
@@ -24,28 +26,49 @@ router.post("/api/analyze-judgment", async (req: Request, res: Response) => {
     });
   }
 
-  const prompt = getAnalyzeJudgmentPrompt(judgmentText || "", judgmentUrl, caseNumber);
-  const fullPrompt = `${prompt}\n\n${UNIVERSAL_SYLLOGISM_RULES}`;
+  const ragQuery = caseNumber
+    ? `${caseNumber} ${judgmentText ? judgmentText.slice(0, 100) : ""}`
+    : (judgmentText ? judgmentText.slice(0, 150) : "裁判實務見解");
 
   try {
-    const aiRes = await defaultGeminiProvider.generate(fullPrompt);
-    let parsed: any;
-    try {
-      const cleaned = aiRes.text.replace(/```json/gi, "").replace(/```/g, "").trim();
-      parsed = JSON.parse(cleaned);
-    } catch {
-      parsed = buildFallbackJudgmentAnalysis(judgmentText || "裁判書內容");
-    }
+    const pipelineResult = await defaultLegalGenerationPipeline.execute({
+      ragQuery,
+      buildPrompt: () => getAnalyzeJudgmentPrompt(judgmentText || "", judgmentUrl, caseNumber),
+      parseResponse: (rawText) => {
+        let parsed: any;
+        try {
+          const cleaned = rawText.replace(/```json/gi, "").replace(/```/g, "").trim();
+          parsed = JSON.parse(cleaned);
+        } catch {
+          parsed = buildFallbackJudgmentAnalysis(judgmentText || "裁判書內容");
+        }
+        return {
+          documentText: JSON.stringify(parsed),
+          payload: parsed
+        };
+      },
+      fallback: () => {
+        const fallback = buildFallbackJudgmentAnalysis(judgmentText || "裁判書內容");
+        return {
+          documentText: JSON.stringify(fallback),
+          payload: fallback
+        };
+      }
+    });
 
-    // Auto verify
-    const stringified = JSON.stringify(parsed);
-    const antiGhost = verifyGeneratedDocument(stringified);
-    parsed.antiGhostVerification = antiGhost;
+    const finalPayload = {
+      ...(pipelineResult.payload || {}),
+      antiGhostVerification: pipelineResult.antiGhostVerification,
+      legalSources: pipelineResult.legalSources,
+      isExternalRetrievalUsed: pipelineResult.isExternalRetrievalUsed,
+      retrievalStatusMessage: pipelineResult.retrievalStatusMessage,
+      disclaimer: pipelineResult.retrievalDisclaimer
+    };
 
-    res.json(parsed);
+    res.json(finalPayload);
   } catch (err: any) {
-    console.warn("[AnalyzeJudgment] AI 調用異常，降級至本機三段論法分析庫:", err.message);
-    const fallback = buildFallbackJudgmentAnalysis(judgmentText || "裁判書內容");
+    console.warn("[AnalyzeJudgment] Pipeline 異常:", err.message);
+    const fallback: any = buildFallbackJudgmentAnalysis(judgmentText || "裁判書內容");
     res.json(fallback);
   }
 });

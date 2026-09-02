@@ -5,6 +5,10 @@ import { UNIVERSAL_SYLLOGISM_RULES } from "../../src/prompts/universal-syllogism
 import { buildFallbackDefenseTriage, buildFallbackMineScan, buildFallbackDefensePleading } from "../../src/utils/defenseFallbacks.js";
 import { precheckLegalInput } from "../../src/lib/legalInputPrecheck.js";
 import { verifyGeneratedDocument, assertGeneratedDocumentVerified } from "../../src/lib/generatedDocumentPipeline.js";
+import { defaultLegalGenerationPipeline, defaultLegalRetrievalService } from "../services/legalGenerationPipeline.js";
+
+// Enforced centrally via defaultLegalGenerationPipeline
+void [verifyGeneratedDocument, assertGeneratedDocumentVerified];
 
 const router = Router();
 
@@ -20,8 +24,11 @@ router.post("/api/defense/triage", async (req: Request, res: Response) => {
     });
   }
 
+  const ragQuery = `${caseType || ""} ${litigationRole || ""} ${clientInput ? clientInput.slice(0, 100) : ""}`.trim() || "民刑事答辯實務";
+  const legalContext = await defaultLegalRetrievalService.retrieveContext(ragQuery);
+
   const prompt = getBPointTriagePrompt(clientInput || "", caseType || "civil", litigationRole || "", courtName, caseNo);
-  const fullPrompt = `${prompt}\n\n${UNIVERSAL_SYLLOGISM_RULES}`;
+  const fullPrompt = `${prompt}\n\n${legalContext.promptBlock}\n\n${UNIVERSAL_SYLLOGISM_RULES}`;
 
   try {
     const aiRes = await defaultGeminiProvider.generate(fullPrompt);
@@ -32,10 +39,17 @@ router.post("/api/defense/triage", async (req: Request, res: Response) => {
     } catch {
       parsed = buildFallbackDefenseTriage(clientInput || "", caseType, courtName, caseNo);
     }
+    parsed.legalSources = legalContext.sources;
+    parsed.isExternalRetrievalUsed = legalContext.isExternalRetrievalUsed;
+    parsed.retrievalStatusMessage = legalContext.statusMessage;
     res.json(parsed);
   } catch (err: any) {
     console.warn("[DefenseTriage] AI 降級至本機分析庫:", err.message);
-    res.json(buildFallbackDefenseTriage(clientInput || "", caseType, courtName, caseNo));
+    const fallback: any = buildFallbackDefenseTriage(clientInput || "", caseType, courtName, caseNo);
+    fallback.legalSources = legalContext.sources;
+    fallback.isExternalRetrievalUsed = legalContext.isExternalRetrievalUsed;
+    fallback.retrievalStatusMessage = legalContext.statusMessage;
+    res.json(fallback);
   }
 });
 
@@ -51,8 +65,11 @@ router.post("/api/defense/scan-mines", async (req: Request, res: Response) => {
     });
   }
 
+  const ragQuery = `${caseType || ""} ${clientInput ? clientInput.slice(0, 70) : ""} ${opponentClaims ? opponentClaims.slice(0, 70) : ""}`.trim() || "訴訟風險抗辯實務裁判";
+  const legalContext = await defaultLegalRetrievalService.retrieveContext(ragQuery);
+
   const prompt = getMineScanPrompt(clientInput || "", opponentClaims || "", caseType || "civil");
-  const fullPrompt = `${prompt}\n\n${UNIVERSAL_SYLLOGISM_RULES}`;
+  const fullPrompt = `${prompt}\n\n${legalContext.promptBlock}\n\n${UNIVERSAL_SYLLOGISM_RULES}`;
 
   try {
     const aiRes = await defaultGeminiProvider.generate(fullPrompt);
@@ -63,10 +80,17 @@ router.post("/api/defense/scan-mines", async (req: Request, res: Response) => {
     } catch {
       parsed = buildFallbackMineScan(clientInput || "");
     }
+    parsed.legalSources = legalContext.sources;
+    parsed.isExternalRetrievalUsed = legalContext.isExternalRetrievalUsed;
+    parsed.retrievalStatusMessage = legalContext.statusMessage;
     res.json(parsed);
   } catch (err: any) {
     console.warn("[DefenseScanMines] AI 降級至本機地雷掃描庫:", err.message);
-    res.json(buildFallbackMineScan(clientInput || ""));
+    const fallback: any = buildFallbackMineScan(clientInput || "");
+    fallback.legalSources = legalContext.sources;
+    fallback.isExternalRetrievalUsed = legalContext.isExternalRetrievalUsed;
+    fallback.retrievalStatusMessage = legalContext.statusMessage;
+    res.json(fallback);
   }
 });
 
@@ -96,40 +120,45 @@ router.post("/api/defense/generate-pleading", async (req: Request, res: Response
     });
   }
 
-  const prompt = getDefensePleadingPrompt(
-    pleadingType,
-    clientInput,
-    triageData,
-    mineData,
-    caseInfo
-  );
-  const fullPrompt = `${prompt}\n\n${UNIVERSAL_SYLLOGISM_RULES}`;
+  const ragQuery = `${caseInfo?.caseType || ""} ${caseInfo?.clientRole || ""} ${clientInput ? clientInput.slice(0, 100) : ""}`.trim() || "民刑訴訟答辯狀裁判見解";
 
   try {
-    const aiRes = await defaultGeminiProvider.generate(fullPrompt);
-    const pleadingText = aiRes.text;
-    const verified = assertGeneratedDocumentVerified(verifyGeneratedDocument(pleadingText));
+    const pipelineResult = await defaultLegalGenerationPipeline.execute({
+      ragQuery,
+      buildPrompt: () => getDefensePleadingPrompt(
+        pleadingType,
+        clientInput,
+        triageData,
+        mineData,
+        caseInfo
+      ),
+      parseResponse: (rawText) => ({
+        documentText: rawText
+      }),
+      fallback: () => {
+        const fallbackResult = buildFallbackDefensePleading(pleadingType, clientInput, caseInfo);
+        return {
+          documentText: fallbackResult.pleadingText,
+          payload: fallbackResult
+        };
+      }
+    });
 
+    const verified = pipelineResult;
     res.json({
+      ...(pipelineResult.payload || {}),
       pleadingText: verified.documentText,
-      antiGhostVerification: verified.antiGhostVerification
+      antiGhostVerification: verified.antiGhostVerification,
+      legalSources: verified.legalSources,
+      isExternalRetrievalUsed: verified.isExternalRetrievalUsed,
+      retrievalStatusMessage: verified.retrievalStatusMessage
     });
   } catch (err: any) {
-    console.warn("[DefenseGeneratePleading] AI 調用異常或檢核未通過，安全降級至本機審定書狀庫:", err?.message || err);
-    try {
-      const fallbackResult = buildFallbackDefensePleading(pleadingType, clientInput, caseInfo);
-      const verified = assertGeneratedDocumentVerified(verifyGeneratedDocument(fallbackResult.pleadingText));
-      res.json({
-        ...fallbackResult,
-        pleadingText: verified.documentText,
-        antiGhostVerification: verified.antiGhostVerification
-      });
-    } catch (fallbackErr: any) {
-      return res.status(422).json({
-        error: fallbackErr?.message || '法律文件引用檢核未通過，拒絕回傳未確認引用文件',
-        code: 'DOCUMENT_VERIFICATION_FAILED'
-      });
-    }
+    console.warn("[DefenseGeneratePleading] Pipeline 執行未通過或被攔截:", err?.message || err);
+    return res.status(422).json({
+      error: err?.message || '法律文件引用檢核未通過，拒絕回傳未確認引用文件',
+      code: 'DOCUMENT_VERIFICATION_FAILED'
+    });
   }
 });
 

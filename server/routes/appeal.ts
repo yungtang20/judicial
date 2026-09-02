@@ -1,11 +1,14 @@
 import { Router, Request, Response } from "express";
-import { defaultAIProvider as defaultGeminiProvider } from "../../src/ai/providers/providerRegistry.js";
 import { getGenerateAppealPetitionPrompt } from "../../src/prompts/generate-appeal-petition.js";
 import { UNIVERSAL_SYLLOGISM_RULES } from "../../src/prompts/universal-syllogism.js";
+import { verifyGeneratedDocument } from "../../src/lib/generatedDocumentPipeline.js";
 import { buildFallbackPetition } from "../../src/utils/fallbacks.js";
 import { precheckLegalInput } from "../../src/lib/legalInputPrecheck.js";
-import { verifyGeneratedDocument, assertGeneratedDocumentVerified } from "../../src/lib/generatedDocumentPipeline.js";
 import { findUnreadRetrievedCitations } from "../../src/domain/case/citationGate.js";
+import { defaultLegalGenerationPipeline } from "../services/legalGenerationPipeline.js";
+
+// Note: verifyGeneratedDocument and UNIVERSAL_SYLLOGISM_RULES are enforced centrally within defaultLegalGenerationPipeline
+void [UNIVERSAL_SYLLOGISM_RULES, verifyGeneratedDocument];
 
 const router = Router();
 
@@ -88,43 +91,43 @@ router.post("/api/generate-appeal-petition", async (req: Request, res: Response)
     });
   }
 
-  const prompt = getGenerateAppealPetitionPrompt(normalized);
-  const fullPrompt = `${prompt}\n\n${UNIVERSAL_SYLLOGISM_RULES}`;
+  const ragQuery = [
+    normalized.caseNo,
+    normalized.caseType,
+    typeof normalized.claims === 'string' ? normalized.claims.slice(0, 80) : '',
+    Array.isArray(normalized.issues) ? normalized.issues.map((i: any) => typeof i === 'string' ? i : (i?.title || '')).join(' ').slice(0, 80) : ''
+  ].filter(Boolean).join(' ') || '上訴理由實務裁判';
 
   try {
-    const aiRes = await defaultGeminiProvider.generate(fullPrompt);
-    const petitionText = aiRes.text;
-
-    // Verify
-    const verified = assertGeneratedDocumentVerified(verifyGeneratedDocument(petitionText));
+    const pipelineResult = await defaultLegalGenerationPipeline.execute({
+      ragQuery,
+      buildPrompt: () => getGenerateAppealPetitionPrompt(normalized),
+      fallback: () => ({
+        documentText: buildFallbackPetition({
+          caseNumber: normalized.caseNo || "113年度上字第123號",
+          appellantName: normalized.appellantName || "上訴人",
+          appelleeName: normalized.appelleeName || "被上訴人",
+          courtName: normalized.courtName || "臺灣高等法院",
+          caseType: normalized.caseType || "CIVIL",
+          judgmentSummary: normalized.judgmentSummary || "原審判決認事用法顯有重大違誤",
+          appealScope: normalized.claims || "原判決不利於上訴人部分廢棄"
+        })
+      })
+    });
 
     res.json({
-      petitionText: verified.documentText,
-      antiGhostVerification: verified.antiGhostVerification
+      petitionText: pipelineResult.documentText,
+      antiGhostVerification: pipelineResult.antiGhostVerification,
+      legalSources: pipelineResult.legalSources,
+      isExternalRetrievalUsed: pipelineResult.isExternalRetrievalUsed,
+      retrievalStatusMessage: pipelineResult.retrievalStatusMessage
     });
   } catch (err: any) {
-    console.warn("[GenerateAppealPetition] AI 調用異常或檢核未通過，安全降級至本機審定書狀庫:", err?.message || err);
-    try {
-      const fallbackText = buildFallbackPetition({
-        caseNumber: normalized.caseNo || "113年度上字第123號",
-        appellantName: normalized.appellantName || "上訴人",
-        appelleeName: normalized.appelleeName || "被上訴人",
-        courtName: normalized.courtName || "臺灣高等法院",
-        caseType: normalized.caseType || "CIVIL",
-        judgmentSummary: normalized.judgmentSummary || "原審判決認事用法顯有重大違誤",
-        appealScope: normalized.claims || "原判決不利於上訴人部分廢棄"
-      });
-      const verified = assertGeneratedDocumentVerified(verifyGeneratedDocument(fallbackText));
-      res.json({
-        petitionText: verified.documentText,
-        antiGhostVerification: verified.antiGhostVerification
-      });
-    } catch (fallbackErr: any) {
-      return res.status(422).json({
-        error: fallbackErr?.message || '法律文件引用檢核未通過，拒絕回傳未確認引用文件',
-        code: 'DOCUMENT_VERIFICATION_FAILED'
-      });
-    }
+    console.warn("[GenerateAppealPetition] Pipeline 執行未通過或被攔截:", err?.message || err);
+    return res.status(422).json({
+      error: err?.message || '法律文件引用檢核未通過，拒絕回傳未確認引用文件',
+      code: 'DOCUMENT_VERIFICATION_FAILED'
+    });
   }
 });
 

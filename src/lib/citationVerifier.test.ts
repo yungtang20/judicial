@@ -36,4 +36,32 @@ describe('citation verifier boundaries', () => {
     expect(result.results[0]).toMatchObject({ verified: true, type: 'PRECEDENT', hallucinationRisk: 'SAFE_VERIFIED' });
     expect(result.ghostCount).toBe(0);
   });
+
+  it('verifies precedents matching allowedCitations from RAG retrieval', () => {
+    const result = verifyLegalCitations('參照最高法院112年度台上字第9號判決之意旨。', {
+      allowedCitations: ['最高法院112年度台上字第9號']
+    });
+    expect(result.totalChecked).toBe(1);
+    expect(result.ghostCount).toBe(0);
+    expect(result.results[0]).toMatchObject({
+      verified: true,
+      type: 'PRECEDENT',
+      hallucinationRisk: 'SAFE_VERIFIED'
+    });
+    expect(result.sanitizedText).toContain('最高法院112年度台上字第9號判決');
+  });
+
+  it('rejects unapproved precedents as ghost citations when allowedCitations are strictly enforced', () => {
+    const result = verifyLegalCitations('參照最高法院111年度台上字第1234號判決。', {
+      allowedCitations: ['最高法院112年度台上字第9號']
+    });
+    expect(result.totalChecked).toBe(1);
+    expect(result.ghostCount).toBe(1);
+    expect(result.results[0]).toMatchObject({
+      verified: false,
+      isGhostOrFake: true,
+      hallucinationRisk: 'FAKE_GHOST_CITATION'
+    });
+    expect(result.sanitizedText).not.toContain('第1234號判決');
+  });
 });

@@ -5,6 +5,7 @@ import { buildIntelligentRuleBasedTriage } from "../../src/lib/universalTriage.j
 import { precheckLegalInput } from "../../src/lib/legalInputPrecheck.js";
 import { LEGAL_TOOLS } from "../../src/lib/legalToolRegistry.js";
 import { searchLegalSources } from "../../src/lib/twLegalRagClient.js";
+import { defaultLegalRetrievalService } from "../services/legalGenerationPipeline.js";
 
 const router = Router();
 
@@ -22,6 +23,9 @@ router.post("/api/triage/universal", async (req: Request, res: Response) => {
       issues: precheck.issues
     });
   }
+
+  // Pre-retrieve legal context before AI generation
+  const legalContext = await defaultLegalRetrievalService.retrieveContext(rawInput);
 
   const toolsSummary = LEGAL_TOOLS.map(t => `- [${t.id}] ${t.name}（${t.categoryLabel}）：${t.shortDesc}`).join("\n");
 
@@ -65,7 +69,7 @@ ${rawInput}
   "missingFacts": ["待釐清或補正的事實要件清單"]
 }`;
 
-  const fullPrompt = `${triagePrompt}\n\n${UNIVERSAL_SYLLOGISM_RULES}`;
+  const fullPrompt = `${triagePrompt}\n\n${legalContext.promptBlock}\n\n${UNIVERSAL_SYLLOGISM_RULES}`;
 
   try {
     const aiRes = await defaultGeminiProvider.generate(fullPrompt);
@@ -76,12 +80,12 @@ ${rawInput}
     } catch {
       parsed = buildIntelligentRuleBasedTriage(rawInput);
     }
-    parsed.sources = await searchLegalSources(rawInput);
+    parsed.sources = legalContext.sources;
     res.json(parsed);
   } catch (err: any) {
     console.warn("[TriageUniversal] AI 降級至本機規則分流引擎:", err.message);
     const fallback: any = buildIntelligentRuleBasedTriage(rawInput);
-    fallback.sources = await searchLegalSources(rawInput);
+    fallback.sources = legalContext?.sources || (await defaultLegalRetrievalService.search(rawInput));
     res.json(fallback);
   }
 });

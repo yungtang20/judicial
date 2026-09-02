@@ -635,12 +635,20 @@ export const VERIFIED_REAL_PRECEDENTS: RealPrecedentDatabaseItem[] = [
   }
 ];
 
+export interface VerifyCitationsOptions {
+  allowedCitations?: string[];
+  strictAllowedOnly?: boolean;
+}
+
 /**
  * Anti-Hallucination Ghost Citation Verifier
  * Scans generated legal text for statutory articles and case citations,
- * verifying them against official database rules to detect ghost/hallucinated items.
+ * verifying them against official database rules and allowed_citations to detect ghost/hallucinated items.
  */
-export function verifyLegalCitations(text: string): {
+export function verifyLegalCitations(
+  text: string,
+  options?: VerifyCitationsOptions
+): {
   totalChecked: number;
   ghostCount: number;
   results: CitationVerificationResult[];
@@ -648,6 +656,18 @@ export function verifyLegalCitations(text: string): {
 } {
   const results: CitationVerificationResult[] = [];
   let sanitizedText = text;
+  const allowedList = options?.allowedCitations?.filter(Boolean) || [];
+  const hasAllowedConstraint = allowedList.length > 0;
+
+  const isPrecedentAllowed = (fullMatch: string, year: string, caseWord: string, caseNum: string): boolean => {
+    if (!hasAllowedConstraint) return false;
+    for (const allowed of allowedList) {
+      if (allowed === fullMatch) return true;
+      if (allowed.includes(fullMatch) || fullMatch.includes(allowed)) return true;
+      if (allowed.includes(year) && allowed.includes(caseWord) && allowed.includes(caseNum)) return true;
+    }
+    return false;
+  };
 
   const STATUTE_MAX_ARTICLES: Record<string, number> = {
     '民法': 1225,
@@ -746,7 +766,21 @@ export function verifyLegalCitations(text: string): {
       p.caseYear === year && p.caseWord === caseWord && p.caseNum === caseNum
     );
 
-    if (foundPrecedent) {
+    // Check if it matches allowed_citations from RAG retrieval
+    const allowedByRag = isPrecedentAllowed(fullMatch, year, caseWord, caseNum);
+
+    if (allowedByRag) {
+      results.push({
+        verified: true,
+        citationText: fullMatch,
+        type: 'PRECEDENT',
+        officialTitle: fullMatch,
+        officialSourceUrl: 'https://judgment.judicial.gov.tw/',
+        isGhostOrFake: false,
+        hallucinationRisk: 'SAFE_VERIFIED',
+        officialSnippet: '檢索庫 RAG 檢索核可之實務裁判見解（allowed_citations）。'
+      });
+    } else if (foundPrecedent) {
       results.push({
         verified: true,
         citationText: fullMatch,
@@ -758,9 +792,10 @@ export function verifyLegalCitations(text: string): {
         officialSnippet: foundPrecedent.holdingSummary
       });
     } else {
-      // If AI generated an impossible/suspicious high number (e.g. 9999號) or recent fake citation
+      // If AI generated an impossible/suspicious high number (e.g. 9999號) or recent fake citation,
+      // OR if RAG allowed_citations were strictly provided but AI hallucinated an unapproved citation
       const numVal = parseInt(caseNum, 10);
-      const isSuspicious = numVal > 6000 || parseInt(year, 10) > 115;
+      const isSuspicious = numVal > 6000 || parseInt(year, 10) > 115 || hasAllowedConstraint;
 
       results.push({
         verified: false,
@@ -771,7 +806,9 @@ export function verifyLegalCitations(text: string): {
         isGhostOrFake: isSuspicious,
         hallucinationRisk: isSuspicious ? 'FAKE_GHOST_CITATION' : 'UNVERIFIED',
         correctionSuggestion: isSuspicious ? '建議改用最高法院權威穩定見解（如最高法院98年度台上字第1045號判決），或改為實務通說表述。' : undefined,
-        officialSnippet: isSuspicious ? '⚠️ 本機規則判定為高度可疑，請至官方資料庫人工查證。' : '本機索引未收錄，無法由 heuristic 判定為真實。'
+        officialSnippet: hasAllowedConstraint
+          ? '⚠️ 該裁判未在本次檢索之 allowed_citations 列表中，已被安全機制判定為未授權引用。'
+          : (isSuspicious ? '⚠️ 本機規則判定為高度可疑，請至官方資料庫人工查證。' : '本機索引未收錄，無法由 heuristic 判定為真實。')
       });
 
       if (isSuspicious) {
