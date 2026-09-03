@@ -2,6 +2,7 @@ import * as React from 'react';
 import { useState, Suspense, lazy } from 'react';
 import Sidebar from './components/Sidebar';
 
+const UnifiedEntry = lazy(() => import('./components/UnifiedEntry').then(m => ({ default: m.UnifiedEntry })));
 const LegalGuideHome = lazy(() => import('./components/LegalGuideHome').then(m => ({ default: m.LegalGuideHome })));
 const LegalProcessGuide = lazy(() => import('./components/LegalProcessGuide').then(m => ({ default: m.LegalProcessGuide })));
 const LitigationWorkspace = lazy(() => import('./components/LitigationWorkspace').then(m => ({ default: m.LitigationWorkspace })));
@@ -55,8 +56,8 @@ class ErrorBoundary extends React.Component<Props, State> {
 }
 
 export default function App() {
-  // Default to the intuitive Life Scenario Navigator
-  const [activeTool, setActiveTool] = useState('guide');
+  // 預設進入「統一入口自動化工作流」
+  const [activeTool, setActiveTool] = useState('unified');
   const [preselectedSubTab, setPreselectedSubTab] = useState<string | undefined>(undefined);
   const [preselectedToolId, setPreselectedToolId] = useState<string | undefined>(undefined);
 
@@ -70,7 +71,11 @@ export default function App() {
 
   const renderTool = () => {
     switch (activeTool) {
-      // 1. 生活情境智能導診（首頁）
+      // 0. 統一入口自動化工作流 (Unified StateGraph) - 首選核心
+      case 'unified':
+        return <UnifiedEntry onSelectSubTool={(tool) => setActiveTool(tool)} />;
+
+      // 1. 生活情境智能導診
       case 'guide':
         return <LegalGuideHome onSelectTool={handleGuideSelect} />;
 

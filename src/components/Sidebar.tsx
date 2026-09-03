@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { 
+  Layers,
   Compass, 
   FolderLock, 
   Scale, 
@@ -20,27 +21,27 @@ export default function Sidebar({ activeTool, setActiveTool }: SidebarProps) {
 
   const mainNavItems = [
     { 
-      id: 'guide', 
-      label: '生活情境智能導診', 
-      sublabel: '非法律人 3 秒快速找解答',
-      icon: Compass, 
-      badge: '首頁推薦',
+      id: 'unified', 
+      label: '統一入口自動化工作流', 
+      sublabel: 'StateGraph：Router ➔ 追問/保護 ➔ RAG ➔ 涵攝 ➔ 防偽閘門',
+      icon: Layers, 
+      badge: '統一入口',
       badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'
     },
     { 
-      id: 'processGuide', 
-      label: '法律流程引導', 
-      sublabel: '互動式表單 · 性侵/家暴/侵害安全過濾',
-      icon: ShieldAlert, 
-      badge: '安全分流',
-      badgeColor: 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+      id: 'guide', 
+      label: '生活情境智能導診', 
+      sublabel: '非法律人生活問答指引',
+      icon: Compass, 
+      badge: '輔助模式',
+      badgeColor: 'bg-slate-800 text-slate-300 border-slate-700'
     },
     { 
       id: 'sdlc', 
       label: 'AI 原生 SDLC 交付工作台', 
       sublabel: 'Plan ➔ Design ➔ Build ➔ Test ➔ Deploy ➔ Maintain',
       icon: Sparkles, 
-      badge: '核心骨架',
+      badge: '工程骨架',
       badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
     },
     { 
@@ -48,16 +49,16 @@ export default function Sidebar({ activeTool, setActiveTool }: SidebarProps) {
       label: '全生命週期法務與訴訟工作台', 
       sublabel: '整合法律工具箱 / 雙軌防禦 / 爭點 / 上訴',
       icon: Scale, 
-      badge: '一站式',
-      badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+      badge: '歷史工具庫',
+      badgeColor: 'bg-slate-800 text-slate-300 border-slate-700'
     },
     { 
       id: 'checker', 
       label: '判決檢索與 AI 防假檢核', 
       sublabel: '司法院官方API / 防幽靈假法條',
       icon: FileCheck2, 
-      badge: '防幽靈',
-      badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+      badge: '查核專區',
+      badgeColor: 'bg-slate-800 text-slate-300 border-slate-700'
     },
   ];
 
