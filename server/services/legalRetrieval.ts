@@ -297,18 +297,62 @@ function extractSearchTokens(query: string): string[] {
   return Array.from(tokens);
 }
 
+export interface RetrieveOptions {
+  topK?: number;
+  source?: 'statute' | 'judgment';
+  minScore?: number;
+  vectorStore?: VectorStore;
+  embedder?: LegalEmbedder;
+  caseType?: string;
+  category?: string;
+  isSensitive?: boolean;
+}
+
+/**
+ * 判斷是否為無關或受污染條文
+ */
+function isContaminatedCitation(citation: string, fullText: string, opts?: RetrieveOptions): boolean {
+  if (!opts) return false;
+  const isCriminalOrSensitive = 
+    opts.isSensitive === true ||
+    (opts.caseType && opts.caseType.startsWith("CRIMINAL")) ||
+    (opts.category && (
+      opts.category.includes("SEXUAL") ||
+      opts.category.includes("DOMESTIC") ||
+      opts.category.includes("CRIMINAL")
+    ));
+
+  if (isCriminalOrSensitive) {
+    // 刑事/性自主/家暴領域：嚴禁勞動、商業、稅法條文
+    const forbiddenRegex = /(勞動基準法|勞工保險條例|勞退|工會法|公司法|證券交易法|保險法|所得稅法|營業稅法)/;
+    if (forbiddenRegex.test(citation) || forbiddenRegex.test(fullText)) {
+      return true;
+    }
+  }
+
+  const isLaborOrCommercial = opts.category && (
+    opts.category.includes("LABOR") ||
+    opts.category.includes("COMMERCIAL") ||
+    opts.category.includes("CORPORATE")
+  );
+
+  if (isLaborOrCommercial) {
+    // 勞動/商業領域：嚴禁性自主、家暴條文
+    const forbiddenRegex = /(刑法第22[1-9]條|家庭暴力防治法|性侵害犯罪防治法|妨害性自主)/;
+    if (forbiddenRegex.test(citation) || forbiddenRegex.test(fullText)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 /**
  * Retrieve relevant legal chunks given a natural language query
  */
 export async function retrieve(
   query: string,
-  opts?: {
-    topK?: number;
-    source?: 'statute' | 'judgment';
-    minScore?: number;
-    vectorStore?: VectorStore;
-    embedder?: LegalEmbedder;
-  }
+  opts?: RetrieveOptions
 ): Promise<RetrievedChunk[]> {
   const trimmed = query.trim();
   if (!trimmed) return [];
@@ -328,6 +372,11 @@ export async function retrieve(
   const searchTokens = extractSearchTokens(trimmed);
 
   for (const doc of docs) {
+    // 領域過濾機制：阻擋 cross-domain 污染
+    if (isContaminatedCitation(doc.citation, doc.fullText, opts)) {
+      continue;
+    }
+
     let score = cosineSimilarity(queryEmbedding, doc.embedding);
 
     // Exact citation boost or keyword boost

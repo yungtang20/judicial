@@ -341,8 +341,8 @@ export function buildIntelligentRuleBasedTriage(query: string) {
     }
 
         // 8-pre. 乘機性交/猥褻
-    const isPreIncapacitated = q.includes("睡") || q.includes("熟睡") || q.includes("昏睡") || q.includes("意識不清") || q.includes("酒醉") || q.includes("灌醉") || q.includes("麻醉") || q.includes("昏迷") || q.includes("爛醉");
-    const isPreSexualAct = q.includes("含住") || q.includes("口交") || q.includes("性交") || q.includes("猥褻") || q.includes("陰莖") || q.includes("摸") || q.includes("插入");
+    const isPreIncapacitated = q.includes("睡") || q.includes("熟睡") || q.includes("昏睡") || q.includes("意識不清") || q.includes("酒醉") || q.includes("灌醉") || q.includes("麻醉") || q.includes("昏迷") || q.includes("爛醉") || q.includes("不醒") || q.includes("安眠藥");
+    const isPreSexualAct = q.includes("含住") || q.includes("口交") || q.includes("性交") || q.includes("性行為") || q.includes("性關係") || q.includes("猥褻") || q.includes("陰莖") || q.includes("摸") || q.includes("插入") || q.includes("硬上") || q.includes("強上") || q.includes("做愛");
 
     if (isPreIncapacitated && isPreSexualAct) {
       const cat = "CRIMINAL_COMPLAINT_SEXUAL_ASSAULT";
@@ -431,9 +431,9 @@ export function buildIntelligentRuleBasedTriage(query: string) {
     }
 
     // 8. 妨害性自主 / 強制性交 / 違反意願性交 (含配偶間性犯罪、乘機性交)
-    const isIncapacitated = q.includes("睡覺") || q.includes("睡眠") || q.includes("酒醉") || q.includes("下藥") || q.includes("昏迷") || q.includes("不醒") || q.includes("不知抗拒") || q.includes("不能抗拒") || q.includes("乘機");
+    const isIncapacitated = q.includes("睡覺") || q.includes("睡眠") || q.includes("昏睡") || q.includes("酒醉") || q.includes("下藥") || q.includes("昏迷") || q.includes("不醒") || q.includes("不知抗拒") || q.includes("不能抗拒") || q.includes("乘機") || q.includes("安眠藥");
     const isForced = q.includes("強迫") || q.includes("強行") || q.includes("違反意願") || q.includes("強壓") || q.includes("按頭") || q.includes("反抗") || q.includes("拒絕") || q.includes("強暴") || q.includes("脅迫");
-    const isSexualAct = q.includes("口交") || q.includes("性交") || q.includes("猥褻") || q.includes("陰蒂") || q.includes("陰莖") || q.includes("性器") || q.includes("含住");
+    const isSexualAct = q.includes("口交") || q.includes("性交") || q.includes("性行為") || q.includes("性關係") || q.includes("做愛") || q.includes("猥褻") || q.includes("陰蒂") || q.includes("陰莖") || q.includes("性器") || q.includes("含住");
     
     const isSexualAssault = q.includes("性侵") || q.includes("非自願") || q.includes("妨害性自主") || q.includes("強制性交") || q.includes("強姦") || q.includes("乘機性交") || (isSexualAct && (isForced || isIncapacitated));
 
@@ -652,6 +652,83 @@ export function buildIntelligentRuleBasedTriage(query: string) {
 
 
 /**
+ * 時間矛盾檢查機制 (Temporal Conflict Detector)
+ */
+export function detectTemporalConflict(narrative: string): {
+  hasConflict: boolean;
+  conflictDetail?: string;
+  questionPrompt?: string;
+  explicitDate?: string;
+  relativeDate?: string;
+} {
+  if (!narrative) return { hasConflict: false };
+
+  // 1. 具體年代與日期匹配 (如民國 112 年 11 月 15 日 或 2023 年 11 月 10 日)
+  const explicitMatch = narrative.match(/(民國\s*\d+\s*年\s*\d+\s*月(?:\s*\d+\s*日)?|20\d{2}\s*年\s*\d+\s*月(?:\s*\d+\s*日)?)/);
+
+  // 2. 相對近期或當下時間描述 (如最近3天內、昨天、今天、前天、這幾天)
+  const relativeMatch = narrative.match(/(最近\s*(?:\d+|[一二三兩四五六七八九十]+)\s*天(?:內)?|這幾天|昨(?:天|晚)|今(?:天|晨)|前天)/);
+
+  if (explicitMatch && relativeMatch) {
+    const explicitDate = explicitMatch[1].replace(/\s+/g, "");
+    const relativeDate = relativeMatch[1].replace(/\s+/g, "");
+
+    // 若具體年份非當年度或與近期詞彙並存且顯著矛盾
+    const isConflict = !explicitDate.includes("115") && !explicitDate.includes("2026"); // 當前時間為 2026 / 民國 115
+    if (isConflict) {
+      return {
+        hasConflict: true,
+        explicitDate,
+        relativeDate,
+        conflictDetail: `時間陳述存在邏輯矛盾：具體日期「${explicitDate}」與相對時間「${relativeDate}」相互衝突。`,
+        questionPrompt: `請確認日期：是${explicitDate}，還是${relativeDate}的某一天？`
+      };
+    }
+  }
+
+  return { hasConflict: false };
+}
+
+/**
+ * 案情敘述完整性檢查 (Completeness Checker)
+ */
+export function evaluateNarrativeCompleteness(query: string): {
+  isComplete: boolean;
+  missingElements: string[];
+  temporalConflict?: ReturnType<typeof detectTemporalConflict>;
+} {
+  const trimmed = (query || "").trim();
+  const missing: string[] = [];
+
+  // 時間矛盾優先攔截
+  const temporal = detectTemporalConflict(trimmed);
+  if (temporal.hasConflict && temporal.questionPrompt) {
+    missing.push(`【時間矛盾】${temporal.questionPrompt}`);
+  }
+
+  if (!/(民國|年|月|日|昨|今|前天|當時|凌晨|晚上|上週|上個月|天前|天內)/.test(trimmed)) {
+    missing.push("具體發生時間（時）");
+  }
+  if (!/(家|房間|飯店|旅館|客廳|車上|辦公室|現場|路口|處|店|住處|市|縣|區|路|街|巷|號|公司|銀行|租屋處|住家)/.test(trimmed)) {
+    missing.push("發生地點（地）");
+  }
+  if (!/(配偶|先生|太太|同居|前夫|前妻|同事|朋友|男友|女友|房東|房客|對方|加害人|原告|被告|陳|李|張|王|林|黃|某|客戶|雇主)/.test(trimmed)) {
+    missing.push("關係人身分與姓名（人）");
+  }
+  if (!/(診斷書|驗傷|對話紀錄|LINE|截圖|監視器|錄音|照片|證人|匯款|契約|合約|借據|本票|存證信函|單據|紀錄|憑證)/.test(trimmed)) {
+    missing.push("客觀佐證資料（證據）");
+  }
+
+  const isComplete = missing.length === 0 && trimmed.length >= 35 && !temporal.hasConflict;
+
+  return {
+    isComplete,
+    missingElements: missing,
+    temporalConflict: temporal
+  };
+}
+
+/**
  * 雙層校驗機制 (Layer 2 Guardrail)：
  * 針對 LLM 分類後的結果進行強制一致性與法理校正，
  * 避免 LLM 產生幻覺（例如將配偶乘機性交誤判為告訴乃論，或是在性侵害案件中引用物上請求權）。
@@ -659,12 +736,30 @@ export function buildIntelligentRuleBasedTriage(query: string) {
 export function enforceTriageConsistency(payload: any, query: string): any {
   if (!payload) return payload;
   const p = { ...payload };
+  const completeness = evaluateNarrativeCompleteness(query);
+
+  // 寫入完整性與追問欄位
+  p.isComplete = completeness.isComplete;
+  p.missingElements = completeness.missingElements;
+  p.temporalConflict = completeness.temporalConflict;
+
   const isSpouse = query.includes("老公") || query.includes("老婆") || query.includes("配偶") || query.includes("妻子") || query.includes("丈夫");
   
+  const queryHasIncapacitated = /(睡|熟睡|昏睡|意識不清|酒醉|灌醉|麻醉|昏迷|爛醉|不醒|安眠藥)/.test(query);
+  const queryHasSexualAct = /(含住|口交|性交|性行為|性關係|做愛|猥褻|陰莖|摸|插入|硬上|強上)/.test(query);
+  const queryHas225Fact = queryHasIncapacitated && queryHasSexualAct;
+
   const has225 = (p.legalBasis && p.legalBasis.some((b: string) => b.includes("225"))) || 
-                 (p.statuteAnalysis && p.statuteAnalysis.includes("225"));
+                 (p.statuteAnalysis && p.statuteAnalysis.includes("225")) ||
+                 queryHas225Fact;
   
-  const isSexualAssault = p.category === "CRIMINAL_COMPLAINT_SEXUAL_ASSAULT";
+  if (queryHas225Fact && !p.legalBasis?.some((b: string) => b.includes("225"))) {
+    p.category = "CRIMINAL_COMPLAINT_SEXUAL_ASSAULT";
+    p.caseType = "CRIMINAL_PUBLIC";
+    p.legalBasis = ["刑法第225條（乘機性交猥褻罪）", "刑事訴訟法第232條", "民法第184條、第195條"];
+  }
+
+  const isSexualAssault = p.category === "CRIMINAL_COMPLAINT_SEXUAL_ASSAULT" || queryHas225Fact;
 
   // 規則 1：只要成立刑法第225條，無論是否為配偶，絕對是非告訴乃論 (公訴重罪)。
   // 覆寫 LLM 產生的錯誤狀態。
@@ -708,6 +803,56 @@ export function enforceTriageConsistency(payload: any, query: string): any {
     if (p.statuteAnalysis) {
        p.statuteAnalysis = p.statuteAnalysis.replace(/民法第767條/g, "").replace(/物上請求權/g, "").replace(/、、/g, "、");
     }
+  }
+
+  // 規則 3：敏感案件保護路徑（性自主、家暴、跟蹤騷擾）
+  const sensitiveRegex = /(性侵|性騷|乘機性交|強暴|非禮|家暴|毆打|施暴|私密照|裸照|跟蹤|騷擾|保護令|掐脖)/;
+  if (p.isSensitive || sensitiveRegex.test(query) || isSexualAssault || has225) {
+    p.isSensitive = true;
+    p.protectionNotice = "⚠️ 敏感案件保護提醒：\n1. 【緊急專線】：請優先撥打 113 全國婦幼保護專線（24小時）或 110 報案。\n2. 【生物檢體】：性自主案件切勿沐浴更衣，請立即將案發衣物以紙袋保全。\n3. 【驗傷採證】：請儘速於 72 小時內前往醫療院所急診驗傷採證並開立診斷書。\n4. 【心理資源】：可聯繫衛福部安心專線 1925、各縣市性侵害防治中心與心理諮商支持網絡。\n以上分析僅供司法程序參考，絕不影響您尋求即時救助之權利。";
+    
+    // 若案件涉及性侵害或家暴，嚴禁使用泛用侵權模板作為分析起點，必須優先檢討刑法第221條、第225條、家庭暴力防治法等
+    if (p.category === "CIVIL_TORT_GENERAL" || p.category === "UNIVERSAL_AI_PLEADING") {
+      if (has225 || query.includes("乘機") || query.includes("睡著") || query.includes("酒醉")) {
+        p.category = "CRIMINAL_COMPLAINT_SEXUAL_ASSAULT";
+        p.recommendedToolId = "CRIMINAL_COMPLAINT_SEXUAL_ASSAULT";
+        p.identifiedIssue = "妨害性自主（乘機性交/猥褻）刑事與民事責任";
+        p.caseType = "CRIMINAL_PUBLIC";
+        p.legalBasis = ["刑法第225條（乘機性交猥褻罪）", "刑事訴訟法第232條", "民法第184條、第195條"];
+      } else if (sensitiveRegex.test(query)) {
+        p.category = isSexualAssault ? "CRIMINAL_COMPLAINT_SEXUAL_ASSAULT" : "DOMESTIC_VIOLENCE_PROTECTION";
+        p.recommendedToolId = p.category;
+        p.identifiedIssue = "家庭暴力防治與妨害性自主專屬法理分析";
+        p.caseType = "CRIMINAL_PUBLIC";
+        p.legalBasis = [
+          "家庭暴力防治法第2條、第14條（民事通常保護令）",
+          "刑法第277條（普通傷害罪）",
+          "刑法第305條（恐嚇危害安全罪）",
+          "刑法第221條或第225條（妨害性自主）",
+          "民法第184條、第195條"
+        ];
+      }
+    }
+  } else if (p.isSensitive === undefined) {
+    p.isSensitive = false;
+    p.protectionNotice = "";
+  }
+
+  // 規則 4：領域鎖定與防污染
+  const isCriminalOrViolence = p.isSensitive || isSexualAssault || has225 || (p.caseType && p.caseType.startsWith("CRIMINAL"));
+  if (isCriminalOrViolence && p.legalBasis) {
+    // 嚴禁混入勞動法、商業法、稅法
+    p.legalBasis = p.legalBasis.filter((b: string) => 
+      !/(勞動基準法|勞工保險條例|勞工退休金|工會法|公司法|證券交易法|保險法|所得稅法|營業稅法)/.test(b)
+    );
+  }
+
+  const isLaborOrCommercial = /(加班|薪資|資遣|特休|勞保|退休金|公司設立|股東會|董事會|增資|逃漏稅)/.test(query) && !isCriminalOrViolence;
+  if (isLaborOrCommercial && p.legalBasis) {
+    // 嚴禁混入性自主、家暴防治法
+    p.legalBasis = p.legalBasis.filter((b: string) => 
+      !/(刑法第22[1-9]條|家庭暴力防治法|性侵害犯罪防治法)/.test(b)
+    );
   }
 
   return p;

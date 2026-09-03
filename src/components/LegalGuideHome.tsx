@@ -134,6 +134,8 @@ export const LegalGuideHome: React.FC<LegalGuideHomeProps> = ({ onSelectTool }) 
         pleadingDraft: data.pleadingDraft || data.readyDocumentText || '',
         isSyllogismComplete: data.isSyllogismComplete !== false,
         missingQuestions: data.missingQuestions || [],
+        isSensitive: !!data.isSensitive,
+        protectionNotice: data.protectionNotice || '',
         sources: {
           ...(data.sources || { enabled: false, statutes: [], judgments: [], references: [], literature: [], disclaimer: '目前未啟用外部法律檢索。' }),
           // 導診已判定的法規依據先作為本機結果顯示；外部 TLR 結果仍單獨標示來源。
@@ -1232,6 +1234,17 @@ export const LegalGuideHome: React.FC<LegalGuideHomeProps> = ({ onSelectTool }) 
               </div>
             ) : aiTriageResult ? (
               <div className="space-y-5 text-xs md:text-sm">
+                {/* 敏感案件保護路徑強制提醒 */}
+                {aiTriageResult.protectionNotice && (
+                  <div id="triage-sensitive-protection-notice" className="bg-rose-950/80 border-2 border-rose-500/80 text-rose-200 p-4 rounded-2xl shadow-lg flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <div className="font-bold text-sm text-rose-300">緊急人身保護與通報提醒</div>
+                      <div className="text-xs leading-relaxed">{aiTriageResult.protectionNotice}</div>
+                    </div>
+                  </div>
+                )}
+
                 {/* 適用法條與時效防呆提醒 */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="bg-slate-950/70 p-4 rounded-2xl border border-indigo-900/50 space-y-1.5">
