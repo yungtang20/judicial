@@ -38,7 +38,7 @@ export function LegalSourcesDisplay({ sources, isExternal, statusMessage, allowe
                 </span>
               ) : (
                 <span className={`ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${isDark ? 'bg-amber-900/30 text-amber-400 border border-amber-800' : 'bg-amber-100 text-amber-800'}`}>
-                  本機安全降級 (Local Fallback)
+                  {statusMessage?.includes('未啟用') ? '未設定外部檢索 (Local Fallback)' : '外部檢索連線失敗 (Local Fallback)'}
                 </span>
               )}
             </h4>

@@ -6,6 +6,7 @@ const router = Router();
 
 router.get("/api/health", async (req: Request, res: Response) => {
   const providerStatus = await defaultGeminiProvider.healthCheck();
+  const tlrEnabled = process.env.TLR_ENABLED === 'true';
   res.json({
     status: "HEALTHY",
     timestamp: new Date().toISOString(),
@@ -13,7 +14,12 @@ router.get("/api/health", async (req: Request, res: Response) => {
     aiProvider: providerStatus,
     legalToolsCount: LEGAL_TOOLS.length,
     syllogismRulesActive: true,
-    citationVerifierActive: true
+    citationVerifierActive: true,
+    tlrStatus: {
+      enabled: tlrEnabled,
+      baseUrlConfigured: !!process.env.TLR_BASE_URL,
+      apiKeyConfigured: !!process.env.TLR_API_KEY
+    }
   });
 });
 

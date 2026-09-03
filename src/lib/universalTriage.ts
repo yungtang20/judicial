@@ -340,19 +340,23 @@ export function buildIntelligentRuleBasedTriage(query: string) {
       };
     }
 
-    // 8. 妨害性自主 / 強制性交 / 違反意願性交 (刑事非告訴乃論公訴重罪)
-    if (q.includes("性侵") || q.includes("強暴") || q.includes("非自願性行為") || q.includes("妨害性自主") || q.includes("強制性交") || q.includes("強姦")) {
+    // 8. 妨害性自主 / 強制性交 / 違反意願性交 (含配偶間性犯罪)
+    const isSexualAssault = q.includes("性侵") || q.includes("強暴") || q.includes("非自願") || q.includes("妨害性自主") || q.includes("強制性交") || q.includes("強姦") || 
+      ((q.includes("口交") || q.includes("性交") || q.includes("猥褻") || q.includes("陰蒂")) && (q.includes("強迫") || q.includes("強行") || q.includes("違反意願") || q.includes("強壓") || q.includes("按頭") || q.includes("反抗") || q.includes("拒絕")));
+
+    if (isSexualAssault) {
       const cat = "CRIMINAL_COMPLAINT_SEXUAL_ASSAULT";
       const fallbackDoc = buildFallbackToolboxResult(cat, { incidentDetails: query, searchQuery: query });
       
-      const isDomestic = q.includes("老公") || q.includes("老婆") || q.includes("丈夫") || q.includes("妻子") || q.includes("配偶");
+      const isSpouse = q.includes("老公") || q.includes("老婆") || q.includes("丈夫") || q.includes("妻子") || q.includes("配偶");
+      const isDomestic = isSpouse || q.includes("伴侶") || q.includes("同居");
       const hasImage = q.includes("拍攝") || q.includes("影像") || q.includes("影片") || q.includes("裸照") || q.includes("外流");
       
       const tools = [
           {
               toolId: cat,
               toolTitle: "妨害性自主 / 強制性交刑事告訴狀",
-              reason: "針對違反意願之性交行為，提起刑法第221條強制性交罪告訴。",
+              reason: "針對違反意願之性交或猥褻行為，依法提出刑事告訴。",
               urgency: "HIGH"
           }
       ];
@@ -366,11 +370,11 @@ export function buildIntelligentRuleBasedTriage(query: string) {
           });
       }
       
-      if (isDomestic) {
-           tools.push({
+      if (isDomestic) { 
+          tools.push({
               toolId: "DOMESTIC_VIOLENCE_PROTECTION_ORDER",
               toolTitle: "親密關係伴侶 / 家暴保護令聲請狀",
-              reason: "行為人為配偶，符合家庭暴力防治法，可一併聲請保護令禁止接近與騷擾。",
+              reason: "行為人為家庭成員或伴侶，符合家庭暴力防治法，可一併聲請保護令禁止接近與騷擾。",
               urgency: "HIGH"
           });
       }
@@ -385,27 +389,29 @@ export function buildIntelligentRuleBasedTriage(query: string) {
       return {
         identifiedIssue: "妨害性自主被害案件" + (hasImage ? "暨未經同意散布性影像" : "") + (isDomestic ? "（家暴事件）" : ""),
         category: cat,
-        caseType: "CRIMINAL_PUBLIC",
-        detectedDomain: "CRIMINAL_AND_CIVIL", // Fix here
-        litigationNatureText: "⚡ 刑事非告訴乃論（公訴重罪，不因夫妻關係而免責）",
+        caseType: isSpouse ? "CRIMINAL_PRIVATE" : "CRIMINAL_PUBLIC",
+        detectedDomain: "CRIMINAL_AND_CIVIL",
+        litigationNatureText: isSpouse ? "⚡ 刑事告訴乃論（刑法第229條之1）+ 民事侵權 + 家暴保護令" : "⚡ 刑事非告訴乃論（公訴重罪）+ 民事侵權",
         legalBasis: [
-          "刑法第221條（強制性交罪）",
+          "刑法第10條第5項（性交定義）",
+          "刑法第221條（強制性交罪）或第224條（強制猥褻罪）",
+          isSpouse ? "刑法第229條之1（對配偶犯妨害性自主罪之告訴乃論）" : "",
+          isSpouse ? "刑事訴訟法第237條（告訴期間六個月）" : "",
           hasImage ? "刑法第315條之1、第319條之3（散布性私密影像罪）" : "",
-          isDomestic ? "家庭暴力防治法（家暴保護令）" : "",
+          isDomestic ? "家庭暴力防治法第2條（家暴及保護令）" : "",
           "民法第184條、第195條（精神慰撫金）"
         ].filter(Boolean),
-        statuteAnalysis: "刑法第221條（強制性交罪，非告訴乃論公訴罪）、民法第184條、第195條（精神慰撫金）",
-        isPublicProsecution: true,
-        statuteOfLimitations: "【非告訴乃論（公訴重罪）】無6個月限制；夫妻間違反意願強行性交仍構成犯罪。黃金72小時內請至急診進行一站式性侵驗傷採證。",
-        timeLimit: "【非告訴乃論】公訴重罪無6個月限制",
-        plainExplanation: "違反意願之性交行為，即使發生在夫妻或伴侶之間，依然構成刑法強制性交罪（非告訴乃論公訴重罪）。" + 
+        statuteAnalysis: isSpouse ? "刑法第221條/第224條、刑法第229條之1（告訴乃論）、家暴防治法、民法第184/195條" : "刑法第221條/第224條（非告訴乃論）、民法第184/195條",
+        isPublicProsecution: !isSpouse,
+        statuteOfLimitations: isSpouse ? "【告訴乃論】依刑事訴訟法第237條，須於知悉犯人起6個月內提出告訴。黃金72小時內請至急診驗傷。" : "【非告訴乃論（公訴重罪）】無6個月限制；黃金72小時內請至急診驗傷採證。",
+        timeLimit: isSpouse ? "須於知悉後 6 個月內提出刑事告訴" : "公訴重罪無6個月限制",
+        plainExplanation: "強迫進行性交（包含口交）或猥褻，即使發生在夫妻或伴侶之間，依然構成刑法犯罪。" + 
+                          (isSpouse ? "對配偶犯強制性交或強制猥褻罪，依刑法第229條之1為告訴乃論，必須在6個月內提告。" : "") +
                           (hasImage ? "若有未經同意拍攝或散布性影像，另構成妨害秘密與性私密影像犯罪。" : "") +
-                          "請優先保全生物檢體與對話截圖，並可依法聲請保護令與請求精神慰撫金。",
-        recommendedAction: "1. 72小時內急診驗傷採證（勿洗澡更衣） 2. 保全影像散布證據 3. 撥打113或向地檢署提出告訴 4. 聲請保護令並求償精神慰撫金。",
+                          "請優先保全生物檢體與對話截圖，並可依家庭暴力防治法聲請保護令，同時依民法請求精神慰撫金。",
+        recommendedAction: "1. 72小時內急診驗傷採證（勿洗澡更衣） 2. 保全對話截圖 3. 撥打113或向地檢署提出告訴 4. 聲請保護令並求償精神慰撫金。",
         suggestedActions: [
-          "案發72小時內前往公私立醫院急診進行一站式驗傷採樣（切勿沐浴更衣）",
-          hasImage ? "立即將未經同意散布之平台、網址及觀看對象對話完整截圖存證" : "",
-          "撥打113專線由社工陪同製作警詢筆錄或具狀向地檢署提出告訴",
+          isSpouse ? "依刑事訴訟法第237條規定，務必於知悉犯人起6個月內向地檢署提出告訴" : "向管轄地檢署或婦幼警察隊具狀提出告訴",
           isDomestic ? "向管轄法院聲請通常保護令，禁止對方再有施暴或騷擾行為" : "",
           "提起刑事附帶民事訴訟請求醫療費、心理諮商費與精神慰撫金"
         ].filter(Boolean),
@@ -417,7 +423,7 @@ export function buildIntelligentRuleBasedTriage(query: string) {
         ].filter(Boolean),
         targetToolCategory: cat,
         recommendedToolId: cat,
-        recommendedTools: tools, // Export tools array for Triage Engine 
+        recommendedTools: tools, 
         readyDocumentTitle: fallbackDoc.title,
         readyDocumentText: fallbackDoc.documentText,
         pleadingDraft: fallbackDoc.documentText,
@@ -426,7 +432,7 @@ export function buildIntelligentRuleBasedTriage(query: string) {
       };
     }
 
-    // 9. 竊盜 / 侵占 (公訴罪，親屬同居特例為告訴乃論)
+    // 9. 竊盜 / 侵占// 9. 竊盜 / 侵占 (公訴罪，親屬同居特例為告訴乃論)
     if (q.includes("偷") || q.includes("竊盜") || q.includes("侵占") || q.includes("拿走") || q.includes("偷竊")) {
       const cat = "CRIMINAL_COMPLAINT_THEFT";
       const fallbackDoc = buildFallbackToolboxResult(cat, { incidentDetails: query, searchQuery: query });

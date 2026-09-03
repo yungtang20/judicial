@@ -5,6 +5,7 @@ describe('tw-legal-rag source adapter', () => {
   afterEach(() => { delete process.env.TLR_ENABLED; delete process.env.TLR_BASE_URL; });
 
   it('does not call an external provider when disabled', async () => {
+    delete process.env.TLR_ENABLED;
     const fetchMock = vi.fn();
     const result = await searchLegalSources('車禍求償', fetchMock);
     expect(fetchMock).not.toHaveBeenCalled();

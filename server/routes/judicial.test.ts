@@ -1,3 +1,11 @@
+import { vi } from 'vitest';
+vi.mock('../../src/lib/twLegalRagClient', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    searchLegalSources: vi.fn().mockResolvedValue({ enabled: false, statutes: [], judgments: [], references: [] })
+  };
+});
 // @vitest-environment node
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import http from "node:http";

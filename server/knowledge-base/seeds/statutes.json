@@ -10,7 +10,15 @@
     "authority": "立法院/法務部",
     "date": "1929-11-22",
     "sourceUrl": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=B0000001&flno=184",
-    "keywords": ["侵權行為", "損害賠償", "故意", "過失", "違反保護他人之法律", "車禍", "侵權"]
+    "keywords": [
+      "侵權行為",
+      "損害賠償",
+      "故意",
+      "過失",
+      "違反保護他人之法律",
+      "車禍",
+      "侵權"
+    ]
   },
   {
     "id": "statute-civ-213",
@@ -23,7 +31,13 @@
     "authority": "立法院/法務部",
     "date": "1929-11-22",
     "sourceUrl": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=B0000001&flno=213",
-    "keywords": ["回復原狀", "金錢賠償", "修復費用", "利息", "損害賠償方法"]
+    "keywords": [
+      "回復原狀",
+      "金錢賠償",
+      "修復費用",
+      "利息",
+      "損害賠償方法"
+    ]
   },
   {
     "id": "statute-civ-217",
@@ -36,7 +50,13 @@
     "authority": "立法院/法務部",
     "date": "1929-11-22",
     "sourceUrl": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=B0000001&flno=217",
-    "keywords": ["與有過失", "過失相抵", "減輕賠償", "肇事責任", "擴大損害"]
+    "keywords": [
+      "與有過失",
+      "過失相抵",
+      "減輕賠償",
+      "肇事責任",
+      "擴大損害"
+    ]
   },
   {
     "id": "statute-civ-227",
@@ -49,7 +69,13 @@
     "authority": "立法院/法務部",
     "date": "1999-04-21",
     "sourceUrl": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=B0000001&flno=227",
-    "keywords": ["不完全給付", "瑕疵給付", "加害給付", "債務不履行", "違約"]
+    "keywords": [
+      "不完全給付",
+      "瑕疵給付",
+      "加害給付",
+      "債務不履行",
+      "違約"
+    ]
   },
   {
     "id": "statute-civ-125",
@@ -62,7 +88,12 @@
     "authority": "立法院/法務部",
     "date": "1929-05-23",
     "sourceUrl": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=B0000001&flno=125",
-    "keywords": ["消滅時效", "15年", "時效抗辯", "時效完成"]
+    "keywords": [
+      "消滅時效",
+      "15年",
+      "時效抗辯",
+      "時效完成"
+    ]
   },
   {
     "id": "statute-civ-197",
@@ -75,7 +106,12 @@
     "authority": "立法院/法務部",
     "date": "1929-11-22",
     "sourceUrl": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=B0000001&flno=197",
-    "keywords": ["侵權時效", "2年短期時效", "10年消滅時效", "不當得利返還"]
+    "keywords": [
+      "侵權時效",
+      "2年短期時效",
+      "10年消滅時效",
+      "不當得利返還"
+    ]
   },
   {
     "id": "statute-civ-421",
@@ -88,7 +124,14 @@
     "authority": "立法院/法務部",
     "date": "1929-11-22",
     "sourceUrl": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=B0000001&flno=421",
-    "keywords": ["租賃契約", "租金", "使用收益", "房屋租賃", "房東", "房客"]
+    "keywords": [
+      "租賃契約",
+      "租金",
+      "使用收益",
+      "房屋租賃",
+      "房東",
+      "房客"
+    ]
   },
   {
     "id": "statute-civ-440",
@@ -101,7 +144,14 @@
     "authority": "立法院/法務部",
     "date": "1999-04-21",
     "sourceUrl": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=B0000001&flno=440",
-    "keywords": ["欠租", "催告", "終止租約", "二個月租金", "返還房屋", "遷讓房屋"]
+    "keywords": [
+      "欠租",
+      "催告",
+      "終止租約",
+      "二個月租金",
+      "返還房屋",
+      "遷讓房屋"
+    ]
   },
   {
     "id": "statute-pro-277",
@@ -114,7 +164,13 @@
     "authority": "司法院",
     "date": "2000-02-09",
     "sourceUrl": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=B0010001&flno=277",
-    "keywords": ["舉證責任", "民事舉證", "顯失公平", "舉證之所在敗訴之所在", "要件事實"]
+    "keywords": [
+      "舉證責任",
+      "民事舉證",
+      "顯失公平",
+      "舉證之所在敗訴之所在",
+      "要件事實"
+    ]
   },
   {
     "id": "statute-pro-441",
@@ -127,7 +183,13 @@
     "authority": "司法院",
     "date": "2003-02-07",
     "sourceUrl": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=B0010001&flno=441",
-    "keywords": ["第二審上訴", "上訴狀", "聲明廢棄", "上訴理由", "事實及證據"]
+    "keywords": [
+      "第二審上訴",
+      "上訴狀",
+      "聲明廢棄",
+      "上訴理由",
+      "事實及證據"
+    ]
   },
   {
     "id": "statute-cri-339",
@@ -140,7 +202,14 @@
     "authority": "法務部",
     "date": "2014-06-18",
     "sourceUrl": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=C0000001&flno=339",
-    "keywords": ["詐欺罪", "施用詐術", "陷於錯誤", "不法所有意圖", "交付財物", "詐欺取財"]
+    "keywords": [
+      "詐欺罪",
+      "施用詐術",
+      "陷於錯誤",
+      "不法所有意圖",
+      "交付財物",
+      "詐欺取財"
+    ]
   },
   {
     "id": "statute-cri-335",
@@ -153,7 +222,12 @@
     "authority": "法務部",
     "date": "2019-12-25",
     "sourceUrl": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=C0000001&flno=335",
-    "keywords": ["侵占罪", "持有他人之物", "易持有為所有", "不法所有意圖"]
+    "keywords": [
+      "侵占罪",
+      "持有他人之物",
+      "易持有為所有",
+      "不法所有意圖"
+    ]
   },
   {
     "id": "statute-lab-11",
@@ -166,7 +240,14 @@
     "authority": "勞動部",
     "date": "1984-07-30",
     "sourceUrl": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=11",
-    "keywords": ["資遣", "終止勞動契約", "業務緊縮", "不能勝任", "資遣費", "預告期"]
+    "keywords": [
+      "資遣",
+      "終止勞動契約",
+      "業務緊縮",
+      "不能勝任",
+      "資遣費",
+      "預告期"
+    ]
   },
   {
     "id": "statute-lab-14",
@@ -179,6 +260,141 @@
     "authority": "勞動部",
     "date": "2019-05-15",
     "sourceUrl": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=14",
-    "keywords": ["被迫離職", "積欠工資", "不經預告終止", "三十日除斥期間", "資遣費請求"]
+    "keywords": [
+      "被迫離職",
+      "積欠工資",
+      "不經預告終止",
+      "三十日除斥期間",
+      "資遣費請求"
+    ]
+  },
+  {
+    "id": "statute-cri-10-5",
+    "type": "statute",
+    "citation": "刑法第10條第5項",
+    "name": "刑法",
+    "articleOrCaseNo": "第10條第5項",
+    "title": "性交之定義",
+    "content": "稱性交者，謂非基於正當目的所為之下列性侵入行為：一、以性器進入他人之性器、肛門或口腔，或使之接合之行為。二、以性器以外之其他身體部位或器物進入他人之性器、肛門，或使之接合之行為。",
+    "authority": "法務部",
+    "date": "1999-04-21",
+    "sourceUrl": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=C0000001&flno=10",
+    "keywords": [
+      "性交",
+      "口交",
+      "性侵入",
+      "強制性交前提"
+    ]
+  },
+  {
+    "id": "statute-cri-221",
+    "type": "statute",
+    "citation": "刑法第221條",
+    "name": "刑法",
+    "articleOrCaseNo": "第221條",
+    "title": "強制性交罪",
+    "content": "對於男女以強暴、脅迫、恐嚇、催眠術或其他違反其意願之方法而為性交者，處三年以上十年以下有期徒刑。前項之未遂犯罰之。",
+    "authority": "法務部",
+    "date": "1999-04-21",
+    "sourceUrl": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=C0000001&flno=221",
+    "keywords": [
+      "強制性交",
+      "強暴",
+      "違反意願",
+      "性侵害",
+      "性交"
+    ]
+  },
+  {
+    "id": "statute-cri-224",
+    "type": "statute",
+    "citation": "刑法第224條",
+    "name": "刑法",
+    "articleOrCaseNo": "第224條",
+    "title": "強制猥褻罪",
+    "content": "對於男女以強暴、脅迫、恐嚇、催眠術或其他違反其意願之方法，而為猥褻之行為者，處六月以上五年以下有期徒刑。",
+    "authority": "法務部",
+    "date": "1999-04-21",
+    "sourceUrl": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=C0000001&flno=224",
+    "keywords": [
+      "強制猥褻",
+      "猥褻",
+      "違反意願",
+      "強暴"
+    ]
+  },
+  {
+    "id": "statute-cri-229-1",
+    "type": "statute",
+    "citation": "刑法第229條之1",
+    "name": "刑法",
+    "articleOrCaseNo": "第229條之1",
+    "title": "對配偶犯妨害性自主罪之告訴乃論",
+    "content": "對配偶犯第二百二十一條、第二百二十四條之罪者，須告訴乃論。",
+    "authority": "法務部",
+    "date": "1999-04-21",
+    "sourceUrl": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=C0000001&flno=229-1",
+    "keywords": [
+      "配偶",
+      "告訴乃論",
+      "家庭暴力",
+      "夫妻"
+    ]
+  },
+  {
+    "id": "statute-pro-237",
+    "type": "statute",
+    "citation": "刑事訴訟法第237條",
+    "name": "刑事訴訟法",
+    "articleOrCaseNo": "第237條",
+    "title": "告訴乃論之告訴期間",
+    "content": "告訴乃論之罪，其告訴應自得為告訴之人知悉犯人之時起，於六個月內為之。得為告訴之人有數人，其一人遲誤期間者，其效力不及於他人。",
+    "authority": "司法院",
+    "date": "1935-01-01",
+    "sourceUrl": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=C0010001&flno=237",
+    "keywords": [
+      "告訴期間",
+      "六個月",
+      "告訴乃論"
+    ]
+  },
+  {
+    "id": "statute-fam-2",
+    "type": "statute",
+    "citation": "家庭暴力防治法第2條",
+    "name": "家庭暴力防治法",
+    "articleOrCaseNo": "第2條",
+    "title": "家庭暴力及保護令之定義",
+    "content": "本法用詞定義如下：一、家庭暴力：指家庭成員間實施身體、精神或經濟上之騷擾、控制、脅迫或其他不法侵害之行為。二、家庭暴力罪：指家庭成員間故意實施家庭暴力行為而成立其他法律所規定之犯罪。三、騷擾：指任何打擾、警告、嘲弄或辱罵他人之言語、動作或製造使人心生畏怖情境之行為。",
+    "authority": "衛生福利部",
+    "date": "2023-12-06",
+    "sourceUrl": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=D0050071&flno=2",
+    "keywords": [
+      "家庭暴力",
+      "家暴",
+      "騷擾",
+      "保護令",
+      "配偶"
+    ]
+  },
+  {
+    "id": "statute-civ-195",
+    "type": "statute",
+    "citation": "民法第195條",
+    "name": "民法",
+    "articleOrCaseNo": "第195條",
+    "title": "侵害身體健康名譽或自由之非財產上損害賠償",
+    "content": "不法侵害他人之身體、健康、名譽、自由、信用、隱私、貞操，或不法侵害其他人格法益而情節重大者，被害人雖非財產上之損害，亦得請求賠償相當之金額。其名譽被侵害者，並得請求回復名譽之適當處分。",
+    "authority": "立法院/法務部",
+    "date": "1999-04-21",
+    "sourceUrl": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=B0000001&flno=195",
+    "keywords": [
+      "精神撫慰金",
+      "非財產上損害",
+      "貞操",
+      "身體",
+      "健康",
+      "精神賠償"
+    ]
   }
 ]
