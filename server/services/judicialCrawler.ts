@@ -41,19 +41,41 @@ export async function fetchJudicialHtml(url: string): Promise<string> {
   if (parsed.hostname !== "judgment.judicial.gov.tw") {
     throw new Error("SSRF_VIOLATION: 僅允許抓取司法院裁判書系統 (judgment.judicial.gov.tw)");
   }
-
-  const res = await fetch(url, {
-    headers: {
-      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
-    }
-  });
-
-  if (!res.ok) {
-    throw new Error(`司法院伺服器回應異常: ${res.status}`);
+  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+    throw new Error("SSRF_VIOLATION: 不支援的通訊協定");
   }
 
-  return await res.text();
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+  try {
+    const res = await fetch(url, {
+      redirect: "error",
+      signal: controller.signal,
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+      }
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!res.ok) {
+      throw new Error(`司法院伺服器回應異常: ${res.status}`);
+    }
+
+    const text = await res.text();
+    if (text.length > 5 * 1024 * 1024) {
+      throw new Error("RESPONSE_TOO_LARGE: 裁判書內容過大 (超過 5MB)");
+    }
+    return text;
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error("TIMEOUT: 司法院系統連線逾時");
+    }
+    throw error;
+  }
 }
 
 export function parseJudicialJudgment(html: string): { fullText: string; caseNumber?: string; courtName?: string } {

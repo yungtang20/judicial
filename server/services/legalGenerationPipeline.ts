@@ -9,7 +9,7 @@ import {
   assertGeneratedDocumentVerified,
   GeneratedDocumentVerification
 } from "../../src/lib/generatedDocumentPipeline.js";
-import { defaultGeminiProvider } from "../../src/ai/providers/GeminiProvider.js";
+import { defaultAIProvider } from "../../src/ai/providers/providerRegistry.js";
 import { UNIVERSAL_SYLLOGISM_RULES } from "../../src/prompts/universal-syllogism.js";
 import { LocalLegalKnowledgeBase, defaultLocalKnowledgeBase } from "../knowledge-base/localKnowledgeBase.js";
 import { JudgmentKnowledgeBase, defaultJudgmentKnowledgeBase } from "../knowledge-base/judgmentKnowledgeBase.js";
@@ -147,7 +147,7 @@ export interface PipelineExecutionOptions<T = any> {
    */
   buildPrompt: (retrieval: RetrievalResult) => string;
   /**
-   * 可選的自訂 AI Provider，預設為 defaultGeminiProvider
+   * 可選的自訂 AI Provider，預設為 defaultAIProvider
    */
   aiProvider?: { generate: (prompt: string) => Promise<{ text: string }> };
   /**
@@ -189,7 +189,7 @@ export interface PipelineExecutionResult<T = any> {
 export class LegalGenerationPipeline {
   constructor(
     private retrievalService: ILegalRetrievalService = defaultLegalRetrievalService,
-    private defaultProvider = defaultGeminiProvider
+    private defaultProvider = defaultAIProvider
   ) {}
 
   async execute<T = any>(options: PipelineExecutionOptions<T>): Promise<PipelineExecutionResult<T>> {

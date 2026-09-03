@@ -62,13 +62,13 @@ ${rawInput}
         let documentText = rawText;
         try {
           const cleaned = rawText.replace(/```json/gi, "").replace(/```/g, "").trim();
-          payload = JSON.parse(cleaned);
+          payload = enforceTriageConsistency(JSON.parse(cleaned), rawInput);
           // Try stringifying a subset of textual content for citation verification to avoid breaking JSON structure
           // Triage relies heavily on JSON response, so we just run citation check on plainExplanation and pleadingDraft
-          documentText = (payload.plainExplanation || "") + "\n\n" + (payload.pleadingDraft || "");
+          documentText = (payload.plainExplanation || "本件無特殊法理說明") + "\n\n" + (payload.pleadingDraft || "無初步書狀草稿");
         } catch {
           payload = buildIntelligentRuleBasedTriage(rawInput);
-          documentText = ""; // Bypass citation check for predefined rule engine
+          documentText = (payload?.plainExplanation || "本機規則安全檢核") + "\n\n" + (payload?.pleadingDraft || "");
         }
         return { documentText, payload };
       },
@@ -76,7 +76,7 @@ ${rawInput}
         console.warn("[TriageUniversal] AI 降級至本機規則分流引擎:", err.message);
         const fallbackObj = buildIntelligentRuleBasedTriage(rawInput);
         return {
-          documentText: "", // Bypass citation check for predefined rule engine
+          documentText: (fallbackObj.plainExplanation || "本機規則安全檢核") + "\n\n" + (fallbackObj.pleadingDraft || ""), // Bypass citation check for predefined rule engine
           payload: fallbackObj
         };
       },

@@ -379,6 +379,20 @@ export const VERIFIED_REAL_STATUTES: Record<string, RealStatuteDatabaseItem> = {
     keywords: ['普通傷害罪', '傷害人之身體或健康'],
     officialSummary: '傷害人之身體或健康者，處五年以下有期徒刑、拘役或五十萬元以下罰金。'
   },
+    '刑法第10條': {
+    lawName: '刑法',
+    article: '第10條',
+    maxParagraphs: 8,
+    keywords: ['性交', '定義', '公務員', '重傷'],
+    officialSummary: '稱性交者，謂非基於正當目的所為之下列性侵入行為...'
+  },
+  '家庭暴力防治法第2條': {
+    lawName: '家庭暴力防治法',
+    article: '第2條',
+    maxParagraphs: 4,
+    keywords: ['家庭暴力', '騷擾', '跟蹤', '親密關係伴侶'],
+    officialSummary: '本法用詞定義：一、家庭暴力：指家庭成員間實施身體、精神或經濟上之騷擾、控制、脅迫或其他不法侵害之行為。'
+  },
   '刑法第221條': {
     lawName: '刑法',
     article: '第221條',
@@ -399,6 +413,13 @@ export const VERIFIED_REAL_STATUTES: Record<string, RealStatuteDatabaseItem> = {
     maxParagraphs: 1,
     keywords: ['非告訴乃論', '妨害性自主公訴', '告訴乃論除外'],
     officialSummary: '對配偶犯第二百二十一條、第二百二十四條之罪者，或合於第二百二十七條等特定情形者除外，其餘妨害性自主罪均為非告訴乃論（公訴罪）。'
+  },
+  '刑法第225條': {
+    lawName: '刑法',
+    article: '第225條',
+    maxParagraphs: 3,
+    keywords: ['乘機性交猥褻罪', '不能或不知抗拒', '利用精神身體障礙或其他相類情形'],
+    officialSummary: '對於男女利用其精神、身體障礙、心智缺陷或其他相類之情形，不能或不知抗拒而為性交者，處三年以上十年以下有期徒刑；為猥褻之行為者，處六月以上五年以下有期徒刑。'
   },
   '家庭暴力防治法第63條之1': {
     lawName: '家庭暴力防治法',

@@ -340,11 +340,11 @@ export function buildIntelligentRuleBasedTriage(query: string) {
       };
     }
 
-    // 8. 妨害性自主 / 強制性交 / 違反意願性交 (含配偶間性犯罪)
-    const isSexualAssault = q.includes("性侵") || q.includes("強暴") || q.includes("非自願") || q.includes("妨害性自主") || q.includes("強制性交") || q.includes("強姦") || 
-      ((q.includes("口交") || q.includes("性交") || q.includes("猥褻") || q.includes("陰蒂")) && (q.includes("強迫") || q.includes("強行") || q.includes("違反意願") || q.includes("強壓") || q.includes("按頭") || q.includes("反抗") || q.includes("拒絕")));
+        // 8-pre. 乘機性交/猥褻
+    const isPreIncapacitated = q.includes("睡") || q.includes("熟睡") || q.includes("昏睡") || q.includes("意識不清") || q.includes("酒醉") || q.includes("灌醉") || q.includes("麻醉") || q.includes("昏迷") || q.includes("爛醉");
+    const isPreSexualAct = q.includes("含住") || q.includes("口交") || q.includes("性交") || q.includes("猥褻") || q.includes("陰莖") || q.includes("摸") || q.includes("插入");
 
-    if (isSexualAssault) {
+    if (isPreIncapacitated && isPreSexualAct) {
       const cat = "CRIMINAL_COMPLAINT_SEXUAL_ASSAULT";
       const fallbackDoc = buildFallbackToolboxResult(cat, { incidentDetails: query, searchQuery: query });
       
@@ -355,8 +355,8 @@ export function buildIntelligentRuleBasedTriage(query: string) {
       const tools = [
           {
               toolId: cat,
-              toolTitle: "妨害性自主 / 強制性交刑事告訴狀",
-              reason: "針對違反意願之性交或猥褻行為，依法提出刑事告訴。",
+              toolTitle: "妨害性自主刑事告訴狀",
+              reason: "針對利用不能或不知抗拒之情形為性交/猥褻，依法提出刑事告訴。",
               urgency: "HIGH"
           }
       ];
@@ -387,31 +387,29 @@ export function buildIntelligentRuleBasedTriage(query: string) {
       });
 
       return {
-        identifiedIssue: "妨害性自主被害案件" + (hasImage ? "暨未經同意散布性影像" : "") + (isDomestic ? "（家暴事件）" : ""),
+        identifiedIssue: "妨害性自主被害案件（乘機性交/猥褻）" + (hasImage ? "暨未經同意散布性影像" : "") + (isDomestic ? "（家暴事件）" : ""),
         category: cat,
-        caseType: isSpouse ? "CRIMINAL_PRIVATE" : "CRIMINAL_PUBLIC",
+        caseType: "CRIMINAL_PUBLIC",
         detectedDomain: "CRIMINAL_AND_CIVIL",
-        litigationNatureText: isSpouse ? "⚡ 刑事告訴乃論（刑法第229條之1）+ 民事侵權 + 家暴保護令" : "⚡ 刑事非告訴乃論（公訴重罪）+ 民事侵權",
+        litigationNatureText: "⚡ 刑事非告訴乃論（公訴重罪）" + (isSpouse ? "（配偶身分不影響本罪之公訴性質，因第225條不在刑法第229條之1告訴乃論列舉範圍內）" : "") + " + 民事侵權" + (isDomestic ? " + 家暴保護令" : ""),
         legalBasis: [
           "刑法第10條第5項（性交定義）",
-          "刑法第221條（強制性交罪）或第224條（強制猥褻罪）",
-          isSpouse ? "刑法第229條之1（對配偶犯妨害性自主罪之告訴乃論）" : "",
-          isSpouse ? "刑事訴訟法第237條（告訴期間六個月）" : "",
+          "刑法第225條（乘機性交猥褻罪）",
           hasImage ? "刑法第315條之1、第319條之3（散布性私密影像罪）" : "",
           isDomestic ? "家庭暴力防治法第2條（家暴及保護令）" : "",
           "民法第184條、第195條（精神慰撫金）"
         ].filter(Boolean),
-        statuteAnalysis: isSpouse ? "刑法第221條/第224條、刑法第229條之1（告訴乃論）、家暴防治法、民法第184/195條" : "刑法第221條/第224條（非告訴乃論）、民法第184/195條",
-        isPublicProsecution: !isSpouse,
-        statuteOfLimitations: isSpouse ? "【告訴乃論】依刑事訴訟法第237條，須於知悉犯人起6個月內提出告訴。黃金72小時內請至急診驗傷。" : "【非告訴乃論（公訴重罪）】無6個月限制；黃金72小時內請至急診驗傷採證。",
-        timeLimit: isSpouse ? "須於知悉後 6 個月內提出刑事告訴" : "公訴重罪無6個月限制",
-        plainExplanation: "強迫進行性交（包含口交）或猥褻，即使發生在夫妻或伴侶之間，依然構成刑法犯罪。" + 
-                          (isSpouse ? "對配偶犯強制性交或強制猥褻罪，依刑法第229條之1為告訴乃論，必須在6個月內提告。" : "") +
+        statuteAnalysis: `刑法第225條（非告訴乃論）、${isDomestic ? '家暴防治法、' : ''}民法第184/195條`,
+        isPublicProsecution: true,
+        statuteOfLimitations: "【非告訴乃論（公訴重罪）】無6個月限制；黃金72小時內請至急診驗傷採證。",
+        timeLimit: "公訴重罪無6個月限制",
+        plainExplanation: "利用他人睡眠、酒醉或昏迷等不知或不能抗拒之情形進行性行為，構成刑法乘機性交/猥褻罪。此罪與強制性交（強暴、脅迫）不同，即使沒有施加暴力強制，只要利用對方意識不清的狀態即成立。" + 
+                          (isSpouse ? "需特別注意：刑法第225條乘機性交罪不在第229條之1告訴乃論範圍內，即使是對配偶為之，仍屬非告訴乃論（公訴罪）。" : "") +
                           (hasImage ? "若有未經同意拍攝或散布性影像，另構成妨害秘密與性私密影像犯罪。" : "") +
                           "請優先保全生物檢體與對話截圖，並可依家庭暴力防治法聲請保護令，同時依民法請求精神慰撫金。",
         recommendedAction: "1. 72小時內急診驗傷採證（勿洗澡更衣） 2. 保全對話截圖 3. 撥打113或向地檢署提出告訴 4. 聲請保護令並求償精神慰撫金。",
         suggestedActions: [
-          isSpouse ? "依刑事訴訟法第237條規定，務必於知悉犯人起6個月內向地檢署提出告訴" : "向管轄地檢署或婦幼警察隊具狀提出告訴",
+          "向管轄地檢署或婦幼警察隊具狀提出告訴",
           isDomestic ? "向管轄法院聲請通常保護令，禁止對方再有施暴或騷擾行為" : "",
           "提起刑事附帶民事訴訟請求醫療費、心理諮商費與精神慰撫金"
         ].filter(Boolean),
@@ -432,7 +430,110 @@ export function buildIntelligentRuleBasedTriage(query: string) {
       };
     }
 
-    // 9. 竊盜 / 侵占// 9. 竊盜 / 侵占 (公訴罪，親屬同居特例為告訴乃論)
+    // 8. 妨害性自主 / 強制性交 / 違反意願性交 (含配偶間性犯罪、乘機性交)
+    const isIncapacitated = q.includes("睡覺") || q.includes("睡眠") || q.includes("酒醉") || q.includes("下藥") || q.includes("昏迷") || q.includes("不醒") || q.includes("不知抗拒") || q.includes("不能抗拒") || q.includes("乘機");
+    const isForced = q.includes("強迫") || q.includes("強行") || q.includes("違反意願") || q.includes("強壓") || q.includes("按頭") || q.includes("反抗") || q.includes("拒絕") || q.includes("強暴") || q.includes("脅迫");
+    const isSexualAct = q.includes("口交") || q.includes("性交") || q.includes("猥褻") || q.includes("陰蒂") || q.includes("陰莖") || q.includes("性器") || q.includes("含住");
+    
+    const isSexualAssault = q.includes("性侵") || q.includes("非自願") || q.includes("妨害性自主") || q.includes("強制性交") || q.includes("強姦") || q.includes("乘機性交") || (isSexualAct && (isForced || isIncapacitated));
+
+    if (isSexualAssault) {
+      const cat = "CRIMINAL_COMPLAINT_SEXUAL_ASSAULT";
+      const fallbackDoc = buildFallbackToolboxResult(cat, { incidentDetails: query, searchQuery: query });
+      
+      const isSpouse = q.includes("老公") || q.includes("老婆") || q.includes("丈夫") || q.includes("妻子") || q.includes("配偶");
+      const isDomestic = isSpouse || q.includes("伴侶") || q.includes("同居");
+      const hasImage = q.includes("拍攝") || q.includes("影像") || q.includes("影片") || q.includes("裸照") || q.includes("外流");
+      
+      let appliedStatute = "221/224";
+      if (isIncapacitated) appliedStatute = "225";
+      if (isForced) appliedStatute = "221/224"; // 強暴脅迫或反抗則優先檢討221/224
+      
+      const isTell = isSpouse && appliedStatute === "221/224"; // 225不在229-1範圍內，故對配偶乘機性交仍屬非告訴乃論
+      
+      const tools = [
+          {
+              toolId: cat,
+              toolTitle: "妨害性自主刑事告訴狀",
+              reason: appliedStatute === "225" ? "針對利用不能抗拒之情形為性交/猥褻，依法提出刑事告訴。" : "針對違反意願為性交/猥褻，依法提出刑事告訴。",
+              urgency: "HIGH"
+          }
+      ];
+      
+      if (hasImage) {
+          tools.push({
+              toolId: "CRIMINAL_COMPLAINT_PRIVACY",
+              toolTitle: "妨害秘密 / 未經同意散布性影像刑事告訴狀",
+              reason: "針對未經同意拍攝及散布性影像，追加提告刑法妨害秘密及性私密影像防制相關罪名。",
+              urgency: "HIGH"
+          });
+      }
+      
+      if (isDomestic) { 
+          tools.push({
+              toolId: "DOMESTIC_VIOLENCE_PROTECTION_ORDER",
+              toolTitle: "親密關係伴侶 / 家暴保護令聲請狀",
+              reason: "行為人為家庭成員或伴侶，符合家庭暴力防治法，可一併聲請保護令禁止接近與騷擾。",
+              urgency: "HIGH"
+          });
+      }
+      
+      tools.push({
+          toolId: "CIVIL_TORT_SEXUAL_ASSAULT",
+          toolTitle: "侵害性自主權損害賠償民事起訴狀",
+          reason: "除刑事責任外，可依法提起附帶民事訴訟或獨立民事訴訟請求精神慰撫金。",
+          urgency: "MEDIUM"
+      });
+
+      return {
+        identifiedIssue: "妨害性自主被害案件" + (appliedStatute === "225" ? "（乘機性交/猥褻）" : "") + (hasImage ? "暨未經同意散布性影像" : "") + (isDomestic ? "（家暴事件）" : ""),
+        category: cat,
+        caseType: isTell ? "CRIMINAL_PRIVATE" : "CRIMINAL_PUBLIC",
+        detectedDomain: "CRIMINAL_AND_CIVIL",
+        litigationNatureText: isTell ? "⚡ 刑事告訴乃論（刑法第229條之1）+ 民事侵權 + 家暴保護令" : "⚡ 刑事非告訴乃論（公訴重罪）+ 民事侵權",
+        legalBasis: [
+          "刑法第10條第5項（性交定義）",
+          appliedStatute === "225" ? "刑法第225條（乘機性交猥褻罪）" : "刑法第221條（強制性交罪）或第224條（強制猥褻罪）",
+          isTell ? "刑法第229條之1（對配偶犯妨害性自主罪之告訴乃論）" : "",
+          isTell ? "刑事訴訟法第237條（告訴期間六個月）" : "",
+          hasImage ? "刑法第315條之1、第319條之3（散布性私密影像罪）" : "",
+          isDomestic ? "家庭暴力防治法第2條（家暴及保護令）" : "",
+          "民法第184條、第195條（精神慰撫金）"
+        ].filter(Boolean),
+        statuteAnalysis: isTell 
+          ? `刑法第${appliedStatute}條、刑法第229條之1（告訴乃論）、家暴防治法、民法第184/195條` 
+          : `刑法第${appliedStatute}條（非告訴乃論）、${isDomestic ? '家暴防治法、' : ''}民法第184/195條`,
+        isPublicProsecution: !isTell,
+        statuteOfLimitations: isTell ? "【告訴乃論】依刑事訴訟法第237條，須於知悉犯人起6個月內提出告訴。黃金72小時內請至急診驗傷。" : "【非告訴乃論（公訴重罪）】無6個月限制；黃金72小時內請至急診驗傷採證。",
+        timeLimit: isTell ? "須於知悉後 6 個月內提出刑事告訴" : "公訴重罪無6個月限制",
+        plainExplanation: (appliedStatute === "225" ? "利用他人睡眠、酒醉或昏迷等不知或不能抗拒之情形進行性行為，構成刑法乘機性交/猥褻罪。" : "強迫進行性交（包含口交）或猥褻，即使發生在夫妻或伴侶之間，依然構成刑法犯罪。") + 
+                          (isTell ? "對配偶犯強制性交或猥褻罪，依刑法第229條之1為告訴乃論，必須在6個月內提告。" : (isSpouse && appliedStatute === "225" ? "需注意：刑法第225條乘機性交罪不在第229條之1告訴乃論範圍內，即使是對配偶為之，仍屬非告訴乃論（公訴罪）。" : "")) +
+                          (hasImage ? "若有未經同意拍攝或散布性影像，另構成妨害秘密與性私密影像犯罪。" : "") +
+                          "請優先保全生物檢體與對話截圖，並可依家庭暴力防治法聲請保護令，同時依民法請求精神慰撫金。",
+        recommendedAction: "1. 72小時內急診驗傷採證（勿洗澡更衣） 2. 保全對話截圖 3. 撥打113或向地檢署提出告訴 4. 聲請保護令並求償精神慰撫金。",
+        suggestedActions: [
+          isTell ? "依刑事訴訟法第237條規定，務必於知悉犯人起6個月內向地檢署提出告訴" : "向管轄地檢署或婦幼警察隊具狀提出告訴",
+          isDomestic ? "向管轄法院聲請通常保護令，禁止對方再有施暴或騷擾行為" : "",
+          "提起刑事附帶民事訴訟請求醫療費、心理諮商費與精神慰撫金"
+        ].filter(Boolean),
+        evidenceChecklist: [
+          "公私立醫院性侵害驗傷診斷書",
+          "LINE案發前後通聯對話",
+          hasImage ? "性影像散布網址、群組截圖或原始影片檔" : "",
+          "錄音光碟與心理諮商就醫證明"
+        ].filter(Boolean),
+        targetToolCategory: cat,
+        recommendedToolId: cat,
+        recommendedTools: tools, 
+        readyDocumentTitle: fallbackDoc.title,
+        readyDocumentText: fallbackDoc.documentText,
+        pleadingDraft: fallbackDoc.documentText,
+        complianceChecklist: fallbackDoc.complianceChecklist,
+        antiGhostVerification: fallbackDoc.antiGhostVerification
+      };
+    }
+
+    // 9. 竊盜 / 侵占// 9. 竊盜 / 侵占// 9. 竊盜 / 侵占// 9. 竊盜 / 侵占 (公訴罪，親屬同居特例為告訴乃論)
     if (q.includes("偷") || q.includes("竊盜") || q.includes("侵占") || q.includes("拿走") || q.includes("偷竊")) {
       const cat = "CRIMINAL_COMPLAINT_THEFT";
       const fallbackDoc = buildFallbackToolboxResult(cat, { incidentDetails: query, searchQuery: query });
@@ -549,3 +650,65 @@ export function buildIntelligentRuleBasedTriage(query: string) {
     };
   }
 
+
+/**
+ * 雙層校驗機制 (Layer 2 Guardrail)：
+ * 針對 LLM 分類後的結果進行強制一致性與法理校正，
+ * 避免 LLM 產生幻覺（例如將配偶乘機性交誤判為告訴乃論，或是在性侵害案件中引用物上請求權）。
+ */
+export function enforceTriageConsistency(payload: any, query: string): any {
+  if (!payload) return payload;
+  const p = { ...payload };
+  const isSpouse = query.includes("老公") || query.includes("老婆") || query.includes("配偶") || query.includes("妻子") || query.includes("丈夫");
+  
+  const has225 = (p.legalBasis && p.legalBasis.some((b: string) => b.includes("225"))) || 
+                 (p.statuteAnalysis && p.statuteAnalysis.includes("225"));
+  
+  const isSexualAssault = p.category === "CRIMINAL_COMPLAINT_SEXUAL_ASSAULT";
+
+  // 規則 1：只要成立刑法第225條，無論是否為配偶，絕對是非告訴乃論 (公訴重罪)。
+  // 覆寫 LLM 產生的錯誤狀態。
+  if (has225) {
+    p.isPublicProsecution = true;
+    p.caseType = "CRIMINAL_PUBLIC";
+    
+    // 修正訴訟性質文字
+    if (p.litigationNatureText) {
+       p.litigationNatureText = p.litigationNatureText.replace(/告訴乃論/g, "非告訴乃論");
+       if (!p.litigationNatureText.includes("非告訴乃論")) {
+         p.litigationNatureText = "⚡ 刑事非告訴乃論（公訴重罪）" + p.litigationNatureText;
+       }
+    } else {
+       p.litigationNatureText = "⚡ 刑事非告訴乃論（公訴重罪）";
+    }
+    
+    // 補上配偶警告
+    if (isSpouse && !p.litigationNatureText.includes("不影響本罪之公訴性質")) {
+       p.litigationNatureText += "（配偶身分不影響本罪之公訴性質，因第225條不在刑法第229條之1告訴乃論列舉範圍內）";
+    }
+
+    // 修正時效描述
+    p.statuteOfLimitations = "【非告訴乃論（公訴重罪）】無6個月限制；黃金72小時內請至急診驗傷採證。";
+    p.timeLimit = "公訴重罪無6個月限制";
+
+    // 剔除幽靈引用 (225 不適用 229-1)
+    if (p.legalBasis) {
+       p.legalBasis = p.legalBasis.filter((b: string) => !b.includes("229條之1") && !b.includes("229-1"));
+    }
+    if (p.statuteAnalysis) {
+       p.statuteAnalysis = p.statuteAnalysis.replace(/刑法第229條之1/g, "").replace(/告訴乃論/g, "非告訴乃論").replace(/、、/g, "、");
+    }
+  }
+
+  // 規則 2：性自主權案件嚴禁出現財產權之物上請求權 (767)
+  if (isSexualAssault || has225) {
+    if (p.legalBasis) {
+       p.legalBasis = p.legalBasis.filter((b: string) => !b.includes("767"));
+    }
+    if (p.statuteAnalysis) {
+       p.statuteAnalysis = p.statuteAnalysis.replace(/民法第767條/g, "").replace(/物上請求權/g, "").replace(/、、/g, "、");
+    }
+  }
+
+  return p;
+}

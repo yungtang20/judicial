@@ -396,5 +396,64 @@
       "健康",
       "精神賠償"
     ]
+  },
+  {
+    "id": "statute-cri-225",
+    "type": "statute",
+    "citation": "刑法第225條",
+    "name": "刑法",
+    "articleOrCaseNo": "第225條",
+    "title": "乘機性交猥褻罪",
+    "content": "對於男女利用其精神、身體障礙、心智缺陷或其他相類之情形，不能或不知抗拒而為性交者，處三年以上十年以下有期徒刑。對於男女利用其精神、身體障礙、心智缺陷或其他相類之情形，不能或不知抗拒而為猥褻之行為者，處六月以上五年以下有期徒刑。第一項之未遂犯罰之。",
+    "authority": "法務部",
+    "date": "1999-04-21",
+    "sourceUrl": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=C0000001&flno=225",
+    "keywords": [
+      "乘機性交",
+      "不能抗拒",
+      "不知抗拒",
+      "睡眠",
+      "酒醉",
+      "昏迷",
+      "性侵害"
+    ]
+  },
+  {
+    "id": "statute-cri-320",
+    "type": "statute",
+    "citation": "刑法第320條",
+    "name": "刑法",
+    "articleOrCaseNo": "第320條",
+    "title": "普通竊盜罪",
+    "content": "意圖為自己或第三人不法之所有，而竊取他人之動產者，為竊盜罪，處五年以下有期徒刑、拘役或五十萬元以下罰金。意圖為自己或第三人不法之利益，而竊佔他人之不動產者，依前項之規定處斷。前二項之未遂犯罰之。",
+    "authority": "法務部",
+    "date": "2019-12-25",
+    "sourceUrl": "https://law.moj.gov.tw/",
+    "keywords": [
+      "竊盜",
+      "偷",
+      "拿走",
+      "不法所有",
+      "動產"
+    ]
+  },
+  {
+    "id": "statute-cri-324",
+    "type": "statute",
+    "citation": "刑法第324條",
+    "name": "刑法",
+    "articleOrCaseNo": "第324條",
+    "title": "親屬間竊盜",
+    "content": "於直系血親、配偶或同財共居親屬之間，犯本章之罪者，得免除其刑。前項親屬或其他五親等內血親或三親等內姻親之間，犯本章之罪者，須告訴乃論。",
+    "authority": "法務部",
+    "date": "1935-01-01",
+    "sourceUrl": "https://law.moj.gov.tw/",
+    "keywords": [
+      "親屬",
+      "配偶",
+      "告訴乃論",
+      "同財共居",
+      "竊盜"
+    ]
   }
 ]
