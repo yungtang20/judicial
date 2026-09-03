@@ -1,0 +1,174 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  
+  --color-karoshi-bg: #090d16;
+  --color-karoshi-sidebar: #0f172a;
+  --color-karoshi-content: #090d16;
+  --color-karoshi-text: #f8fafc;
+  --color-karoshi-text-light: #94a3b8;
+  --color-karoshi-accent: #38bdf8;
+  --color-karoshi-border: #1e293b;
+  --color-karoshi-hover: #1e293b;
+  --color-karoshi-civil: #334155;
+}
+
+/* Global Dark Theme (黑底 UI) Settings */
+:root {
+  color-scheme: dark;
+}
+
+html, body {
+  background-color: #090d16;
+  color: #f8fafc;
+  font-family: var(--font-sans);
+  min-height: 100vh;
+}
+
+/* Custom Scrollbar for Dark Theme */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0b0f19;
+}
+::-webkit-scrollbar-thumb {
+  background: #23304a;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* Dark Theme Overrides for Components */
+.bg-white {
+  background-color: #111827 !important;
+  color: #f8fafc;
+}
+
+.bg-slate-50, .bg-gray-50 {
+  background-color: #0d1424 !important;
+}
+
+.bg-slate-100, .bg-gray-100 {
+  background-color: #1e293b !important;
+}
+
+.bg-slate-200, .bg-gray-200 {
+  background-color: #334155 !important;
+}
+
+/* Text Colors in Dark Theme */
+.text-slate-900, .text-gray-900, .text-slate-800, .text-gray-800 {
+  color: #f8fafc !important;
+}
+
+.text-slate-700, .text-gray-700 {
+  color: #e2e8f0 !important;
+}
+
+.text-slate-600, .text-gray-600 {
+  color: #cbd5e1 !important;
+}
+
+.text-slate-500, .text-gray-500 {
+  color: #94a3b8 !important;
+}
+
+.text-slate-400, .text-gray-400 {
+  color: #64748b !important;
+}
+
+/* Borders in Dark Theme */
+.border-slate-200, .border-gray-200, .border-slate-100, .border-gray-100, .border-karoshi-border {
+  border-color: #1e293b !important;
+}
+
+.border-slate-300, .border-gray-300 {
+  border-color: #334155 !important;
+}
+
+/* Inputs, Textareas, and Selects in Dark Theme */
+input[type="text"],
+input[type="number"],
+input[type="date"],
+input[type="email"],
+input[type="password"],
+textarea,
+select {
+  background-color: #0b1120 !important;
+  color: #f8fafc !important;
+  border-color: #2a3b5c !important;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="date"]:focus,
+textarea:focus,
+select:focus {
+  border-color: #38bdf8 !important;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25) !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #475569 !important;
+}
+
+/* Badge and Alert Overrides in Dark Theme */
+.bg-blue-50, .bg-blue-50\/50, .bg-blue-50\/70 {
+  background-color: rgba(30, 58, 138, 0.28) !important;
+}
+.text-blue-900, .text-blue-800, .text-blue-950 {
+  color: #93c5fd !important;
+}
+.text-blue-700 {
+  color: #60a5fa !important;
+}
+.border-blue-100, .border-blue-200 {
+  border-color: rgba(59, 130, 246, 0.3) !important;
+}
+
+.bg-emerald-50, .bg-emerald-50\/50, .bg-emerald-50\/70, .bg-green-50 {
+  background-color: rgba(6, 78, 59, 0.28) !important;
+}
+.text-emerald-950, .text-emerald-900, .text-emerald-800, .text-green-800 {
+  color: #6ee7b7 !important;
+}
+.border-emerald-100, .border-emerald-200 {
+  border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+.bg-rose-50, .bg-rose-50\/50, .bg-rose-50\/70, .bg-red-50 {
+  background-color: rgba(136, 19, 55, 0.28) !important;
+}
+.text-rose-950, .text-rose-900, .text-rose-800, .text-red-900, .text-red-800 {
+  color: #fca5a5 !important;
+}
+.border-rose-100, .border-rose-200, .border-red-100, .border-red-200 {
+  border-color: rgba(244, 63, 94, 0.3) !important;
+}
+
+.bg-amber-50, .bg-amber-50\/50, .bg-amber-50\/70, .bg-yellow-50 {
+  background-color: rgba(120, 53, 15, 0.28) !important;
+}
+.text-amber-950, .text-amber-900, .text-amber-800, .text-yellow-800 {
+  color: #fde047 !important;
+}
+.border-amber-100, .border-amber-200, .border-yellow-200 {
+  border-color: rgba(245, 158, 11, 0.3) !important;
+}
+
+.bg-indigo-50, .bg-indigo-50\/50, .bg-indigo-50\/70 {
+  background-color: rgba(49, 46, 129, 0.28) !important;
+}
+.text-indigo-950, .text-indigo-900, .text-indigo-800 {
+  color: #a5b4fc !important;
+}
+.border-indigo-100, .border-indigo-200 {
+  border-color: rgba(99, 102, 241, 0.3) !important;
+}
