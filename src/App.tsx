@@ -3,6 +3,7 @@ import { useState, Suspense, lazy } from 'react';
 import Sidebar from './components/Sidebar';
 
 const LegalGuideHome = lazy(() => import('./components/LegalGuideHome').then(m => ({ default: m.LegalGuideHome })));
+const LegalProcessGuide = lazy(() => import('./components/LegalProcessGuide').then(m => ({ default: m.LegalProcessGuide })));
 const LitigationWorkspace = lazy(() => import('./components/LitigationWorkspace').then(m => ({ default: m.LitigationWorkspace })));
 const JudicialAndAiChecker = lazy(() => import('./components/JudicialAndAiChecker').then(m => ({ default: m.JudicialAndAiChecker })));
 const LegalSdlcWorkbench = lazy(() => import('./components/LegalSdlcWorkbench').then(m => ({ default: m.LegalSdlcWorkbench })));
@@ -72,6 +73,10 @@ export default function App() {
       // 1. 生活情境智能導診（首頁）
       case 'guide':
         return <LegalGuideHome onSelectTool={handleGuideSelect} />;
+
+      // 1-1. 法律流程引導與案件分類（互動表單與安全過濾）
+      case 'processGuide':
+        return <LegalProcessGuide onNavigateToTool={handleGuideSelect} />;
 
       // 2. AI 原生 SDLC 交付工作台
       case 'sdlc':

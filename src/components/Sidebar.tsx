@@ -5,6 +5,7 @@ import {
   Scale, 
   FileCheck2, 
   Sparkles,
+  ShieldAlert,
   Menu,
   X
 } from 'lucide-react';
@@ -25,6 +26,14 @@ export default function Sidebar({ activeTool, setActiveTool }: SidebarProps) {
       icon: Compass, 
       badge: '首頁推薦',
       badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'
+    },
+    { 
+      id: 'processGuide', 
+      label: '法律流程引導', 
+      sublabel: '互動式表單 · 性侵/家暴/侵害安全過濾',
+      icon: ShieldAlert, 
+      badge: '安全分流',
+      badgeColor: 'bg-rose-500/20 text-rose-300 border-rose-500/40'
     },
     { 
       id: 'sdlc', 

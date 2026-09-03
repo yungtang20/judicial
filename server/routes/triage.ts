@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { buildIntelligentRuleBasedTriage } from "../../src/lib/universalTriage.js";
+import { buildIntelligentRuleBasedTriage, enforceTriageConsistency } from "../../src/lib/universalTriage.js";
 import { precheckLegalInput } from "../../src/lib/legalInputPrecheck.js";
 import { LEGAL_TOOLS } from "../../src/lib/legalToolRegistry.js";
 import { defaultLegalGenerationPipeline } from "../services/legalGenerationPipeline.js";
