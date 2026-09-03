@@ -15,7 +15,14 @@ import {
   Clock,
   ShieldCheck,
   ChevronRight,
-  HelpCircle
+  HelpCircle,
+  Cpu,
+  MessageSquareQuote,
+  Layers,
+  BookOpen,
+  Loader2,
+  Copy,
+  Check
 } from 'lucide-react';
 import { 
   filterSensitiveKeywords, 
@@ -23,6 +30,7 @@ import {
   ProcessGuideInput, 
   ProcessGuideResult 
 } from '../lib/legalProcessClassifier';
+import { RouterEvaluationResult } from '../prompts/legalProcessPrompts';
 
 interface LegalProcessGuideProps {
   onNavigateToTool?: (toolId: string, subTab?: string, initialData?: any) => void;
@@ -41,6 +49,21 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
     needsMedicalOrInjury: false,
     happenedWithin72Hours: false
   });
+
+  // 3-Node AI 狀態管理
+  const [routerResult, setRouterResult] = useState<RouterEvaluationResult | null>(null);
+  const [isEvaluatingRouter, setIsEvaluatingRouter] = useState<boolean>(false);
+  const [questioningResult, setQuestioningResult] = useState<{
+    rawMessage: string;
+    suggestedOptions: string[];
+  } | null>(null);
+  const [isLoadingQuestion, setIsLoadingQuestion] = useState<boolean>(false);
+  const [syllogismResult, setSyllogismResult] = useState<{
+    legalElements: string;
+    analysis: string;
+  } | null>(null);
+  const [isLoadingSyllogism, setIsLoadingSyllogism] = useState<boolean>(false);
+  const [isCopied, setIsCopied] = useState<boolean>(false);
 
   // 即時關鍵詞過濾檢測
   const liveKeywordResult = useMemo(() => {
@@ -85,6 +108,96 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
       needsMedicalOrInjury: false,
       happenedWithin72Hours: false
     });
+    setRouterResult(null);
+    setQuestioningResult(null);
+    setSyllogismResult(null);
+  };
+
+  // 節點 1：執行智能路由與完整度檢查
+  const handleRunRouter = async () => {
+    if (!narrative.trim()) return;
+    setIsEvaluatingRouter(true);
+    setQuestioningResult(null);
+    try {
+      const res = await fetch('/api/process/router', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userInput: narrative.trim() })
+      });
+      const data = await res.json();
+      if (data.success && data.data) {
+        setRouterResult(data.data);
+        // 若完整度不足，自動啟動節點 2 動態追問
+        if (!data.data.is_complete) {
+          handleRunQuestioning(data.data.missing_elements);
+        }
+      }
+    } catch (err) {
+      console.error('呼叫 /api/process/router 失敗:', err);
+    } finally {
+      setIsEvaluatingRouter(false);
+    }
+  };
+
+  // 節點 2：動態追問話術生成
+  const handleRunQuestioning = async (missingElements?: string[]) => {
+    if (!narrative.trim()) return;
+    setIsLoadingQuestion(true);
+    try {
+      const res = await fetch('/api/process/question', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          missingElements: missingElements || routerResult?.missing_elements || ['案發時間與關係人身分'],
+          userInput: narrative.trim()
+        })
+      });
+      const data = await res.json();
+      if (data.success && data.data) {
+        setQuestioningResult(data.data);
+      }
+    } catch (err) {
+      console.error('呼叫 /api/process/question 失敗:', err);
+    } finally {
+      setIsLoadingQuestion(false);
+    }
+  };
+
+  // 點選追問選項按鈕，自動追加至案情敘述
+  const handleSelectOption = (option: string) => {
+    const updated = narrative.trim() ? `${narrative.trim()}；【補充事實】：${option}` : option;
+    setNarrative(updated);
+  };
+
+  // 節點 3：三段論涵攝引擎
+  const handleRunSyllogism = async () => {
+    if (!narrative.trim()) return;
+    setIsLoadingSyllogism(true);
+    try {
+      const res = await fetch('/api/process/syllogism', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userFacts: narrative.trim(),
+          queryTopic: routerResult?.cause || guideResult.title || '法律要件涵攝'
+        })
+      });
+      const data = await res.json();
+      if (data.success && data.data) {
+        setSyllogismResult(data.data);
+      }
+    } catch (err) {
+      console.error('呼叫 /api/process/syllogism 失敗:', err);
+    } finally {
+      setIsLoadingSyllogism(false);
+    }
+  };
+
+  const handleCopyAnalysis = () => {
+    if (!syllogismResult?.analysis) return;
+    navigator.clipboard.writeText(syllogismResult.analysis);
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), 2000);
   };
 
   return (
@@ -351,6 +464,148 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
             )}
           </div>
 
+          {/* 節點 1：智能路由與完整度檢查 */}
+          <div className="p-5 rounded-2xl bg-slate-950/90 border border-indigo-500/30 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-indigo-500/20 text-indigo-400">
+                  <Cpu className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    節點 1：智能路由與完整度檢查 (Router Prompt)
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    分析案情描述並輸出標準結構化分流、敏感案件旗標及事實完整度。
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleRunRouter}
+                disabled={!narrative.trim() || isEvaluatingRouter}
+                className="shrink-0 flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-xs font-bold transition-all shadow-md cursor-pointer"
+              >
+                {isEvaluatingRouter ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>AI 分析分流中...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>執行智能路由檢查</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* 節點 1 評估結果呈現 */}
+            {routerResult && (
+              <div className="space-y-3 pt-2 border-t border-slate-800">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+                    <span className="text-[10px] text-slate-400 block">法律領域 (domain)</span>
+                    <span className="text-xs font-bold text-indigo-300">{routerResult.domain}</span>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+                    <span className="text-[10px] text-slate-400 block">罪章/領域 (chapter)</span>
+                    <span className="text-xs font-bold text-white truncate block">{routerResult.chapter}</span>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+                    <span className="text-[10px] text-slate-400 block">案由罪名 (cause)</span>
+                    <span className="text-xs font-bold text-amber-300 truncate block">{routerResult.cause}</span>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+                    <span className="text-[10px] text-slate-400 block">敏感性 (is_sensitive)</span>
+                    <span className={`text-xs font-bold ${routerResult.is_sensitive ? 'text-rose-400' : 'text-emerald-400'}`}>
+                      {routerResult.is_sensitive ? '⚠️ 敏感人身安全' : '一般爭議'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-300 font-medium">事實要素完整度 (is_complete)：</span>
+                    {routerResult.is_complete ? (
+                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-bold flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" />
+                        要件完整 (true)
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-bold flex items-center gap-1">
+                        <AlertTriangle className="w-3 h-3" />
+                        缺少關鍵事實 (false)
+                      </span>
+                    )}
+                  </div>
+                  {!routerResult.is_complete && (
+                    <span className="text-[11px] text-amber-400">已自動觸發節點 2 動態追問</span>
+                  )}
+                </div>
+
+                {routerResult.missing_elements && routerResult.missing_elements.length > 0 && (
+                  <div className="p-3 rounded-xl bg-amber-950/30 border border-amber-800/40 text-xs space-y-1.5">
+                    <span className="font-bold text-amber-300">缺少的關鍵事實（人、事、時、地、證據）：</span>
+                    <ul className="list-disc list-inside space-y-1 text-slate-300">
+                      {routerResult.missing_elements.map((item, idx) => (
+                        <li key={idx}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* 節點 2：動態追問 (Questioning Prompt) */}
+          {(questioningResult || isLoadingQuestion) && (
+            <div className="p-5 rounded-2xl bg-indigo-950/30 border border-indigo-500/40 space-y-4 animate-in fade-in">
+              <div className="flex items-center gap-2 text-indigo-300">
+                <MessageSquareQuote className="w-5 h-5 text-indigo-400" />
+                <h3 className="text-sm font-bold text-white">
+                  節點 2：同理心動態追問引導 (Questioning Prompt)
+                </h3>
+              </div>
+
+              {isLoadingQuestion ? (
+                <div className="flex items-center gap-2 text-xs text-indigo-300 py-3">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>正在為您生成簡明具體的追問問題與快捷選項...</span>
+                </div>
+              ) : questioningResult ? (
+                <div className="space-y-4">
+                  <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 text-xs text-slate-200 leading-relaxed whitespace-pre-line">
+                    {questioningResult.rawMessage}
+                  </div>
+
+                  {questioningResult.suggestedOptions && questioningResult.suggestedOptions.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5" />
+                        快捷點選補充（點擊將自動追加至上方案情描述）：
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {questioningResult.suggestedOptions.map((opt, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => handleSelectOption(opt)}
+                            className="px-3 py-1.5 rounded-lg bg-indigo-600/30 hover:bg-indigo-600 border border-indigo-500/50 hover:border-indigo-400 text-indigo-200 hover:text-white text-xs font-semibold transition-all cursor-pointer flex items-center gap-1"
+                          >
+                            <span>＋</span>
+                            <span>{opt}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : null}
+            </div>
+          )}
+
           <div className="flex items-center justify-between pt-4">
             <button
               onClick={() => setCurrentStep(1)}
@@ -609,6 +864,101 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* 節點 3：三段論涵攝引擎 (Syllogism Engine Prompt) */}
+          <div className="p-6 rounded-2xl bg-slate-900/90 border border-indigo-500/40 space-y-4 shadow-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2.5 rounded-xl bg-indigo-500/20 text-indigo-400">
+                  <Scale className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-bold text-white">
+                      節點 3：三段論涵攝引擎 (Syllogism Engine)
+                    </h3>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-bold">
+                      RAG 構成要件注入
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    結合知識庫動態抓取之法定構成要件，嚴格執行大前提、小前提、要件比對涵攝與法律結論。
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleRunSyllogism}
+                disabled={!narrative.trim() || isLoadingSyllogism}
+                className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 disabled:opacity-40 text-white text-xs font-bold shadow-lg shadow-indigo-950/50 transition-all cursor-pointer"
+              >
+                {isLoadingSyllogism ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>RAG 檢索與涵攝計算中...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    <span>{syllogismResult ? '重新執行涵攝分析' : '啟動三段論涵攝分析'}</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* 三段論結果展示 */}
+            {syllogismResult ? (
+              <div className="space-y-4 pt-1">
+                {/* RAG 大前提構成要件預覽 */}
+                {syllogismResult.legalElements && (
+                  <div className="p-3.5 rounded-xl bg-slate-950/80 border border-indigo-500/20 text-xs space-y-1">
+                    <div className="flex items-center gap-1.5 text-indigo-400 font-bold">
+                      <BookOpen className="w-3.5 h-3.5" />
+                      <span>注入的大前提構成要件來源（由 tw-legal-rag / 知識庫檢索）：</span>
+                    </div>
+                    <p className="text-slate-300 leading-relaxed max-h-32 overflow-y-auto whitespace-pre-line font-mono text-[11px] bg-slate-900/60 p-2.5 rounded-lg">
+                      {syllogismResult.legalElements}
+                    </p>
+                  </div>
+                )}
+
+                {/* 涵攝報告本文 */}
+                <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                      <FileText className="w-3.5 h-3.5 text-indigo-400" />
+                      三段論涵攝評估意見（嚴禁虛構未提供之事實）：
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleCopyAnalysis}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-[11px] text-slate-300 transition-colors"
+                    >
+                      {isCopied ? (
+                        <>
+                          <Check className="w-3 h-3 text-emerald-400" />
+                          <span className="text-emerald-400">已複製</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3 h-3" />
+                          <span>複製涵攝報告</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  <div className="text-xs text-slate-200 leading-relaxed whitespace-pre-line bg-slate-900/40 p-3.5 rounded-xl border border-slate-800/80">
+                    {syllogismResult.analysis}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 rounded-xl bg-slate-950/40 border border-dashed border-slate-800 text-center text-xs text-slate-500">
+                點擊上方按鈕，AI 將自動從實務知識庫中抓取「大前提（法定要件）」並與您填寫的「小前提（案件事實）」進行嚴謹涵攝比對。
+              </div>
+            )}
           </div>
 
           {/* 適用法條依據與舉證清單雙欄 */}

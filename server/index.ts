@@ -10,6 +10,7 @@ import healthRouter from "./routes/health.js";
 import { sdlcRouter } from "./routes/sdlc.js";
 import externalCitationRouter from "./routes/externalCitation.js";
 import legalSearchRouter from "./routes/legalSearch.js";
+import legalProcessRouter from "./routes/legalProcess.js";
 
 export function createExpressApp(): Express {
   const app = express();
@@ -33,6 +34,7 @@ export function createExpressApp(): Express {
   app.use(judicialRouter);
   app.use(externalCitationRouter);
   app.use(legalSearchRouter);
+  app.use(legalProcessRouter);
   app.use(healthRouter);
   app.use("/api/sdlc", sdlcRouter);
 
