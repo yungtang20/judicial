@@ -21,7 +21,7 @@ interface UnifiedEntryProps {
   onSelectSubTool?: (toolId: string) => void;
 }
 
-export const UnifiedEntry: React.FC<UnifiedEntryProps> = () => {
+export const UnifiedEntry: React.FC<UnifiedEntryProps> = ({ onSelectSubTool }) => {
   const defaultSample = `事發於民國112年11月15日晚上約11點，在台北市信義區租屋處。我與房東因退租押金發生爭執，房東以無合理依據之清潔費為由拒絕退還新台幣5萬元押金，並威脅若再爭執將把我的私人物品丟到走廊。我有雙方簽署之房屋租賃契約書、歷次匯款房租水電之銀行明細，以及當日 LINE 對話紀錄截圖。請問我的法律權利為何？`;
 
   const [inputNarrative, setInputNarrative] = useState<string>(defaultSample);
@@ -679,6 +679,26 @@ export const UnifiedEntry: React.FC<UnifiedEntryProps> = () => {
               <h2 className="text-lg font-bold text-white">節點 6：真確性檢核閘門</h2>
             </div>
             <p className="text-sm text-slate-300">{workflowState.verification.notes}</p>
+          </div>
+        )}
+        {/* Cross-feature navigation bar */}
+        {onSelectSubTool && workflowState?.verification?.gate_passed && (
+          <div className="flex flex-wrap items-center gap-2 mt-4">
+            <span className="text-xs text-slate-400 font-semibold">還需要：</span>
+            <button
+              onClick={() => onSelectSubTool('guide')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-colors"
+            >
+              <ArrowRight className="w-3.5 h-3.5" />
+              生活情境導診
+            </button>
+            <button
+              onClick={() => onSelectSubTool('legalToolbox')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition-colors"
+            >
+              <ArrowRight className="w-3.5 h-3.5" />
+              法律工具箱
+            </button>
           </div>
         )}
 

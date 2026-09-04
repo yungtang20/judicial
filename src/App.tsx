@@ -38,7 +38,7 @@ export default function App() {
   const renderContent = () => {
     switch (activeTool) {
       case 'unified':
-        return <UnifiedEntry />;
+        return <UnifiedEntry onSelectSubTool={handleSelectTool} />;
       case 'guide':
         return <LegalGuideHome onSelectTool={handleSelectTool} />;
       case 'sdlc':
@@ -54,9 +54,9 @@ export default function App() {
       case 'judgmentSearch':
         return <JudicialAndAiChecker />;
       case 'legalToolbox':
-        return <LegalToolbox initialToolId={initialData?.preselectedToolId} />;
+        return <LegalToolbox initialToolId={initialData?.preselectedToolId} onNavigate={handleSelectTool} />;
       default:
-        return <UnifiedEntry />;
+        return <UnifiedEntry onSelectSubTool={handleSelectTool} />;
     }
   };
 
