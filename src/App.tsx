@@ -9,6 +9,7 @@ const LegalSdlcWorkbench = React.lazy(() => import('./components/LegalSdlcWorkbe
 const LitigationWorkspace = React.lazy(() => import('./components/LitigationWorkspace'));
 const AgentChat = React.lazy(() => import('./components/AgentChat'));
 const JudicialAndAiChecker = React.lazy(() => import('./components/JudicialAndAiChecker'));
+const LegalToolbox = React.lazy(() => import('./components/LegalToolbox'));
 
 function LoadingFallback() {
   return (
@@ -23,12 +24,14 @@ function LoadingFallback() {
 
 export default function App() {
   const [activeTool, setActiveTool] = useState('unified');
+  const [initialData, setInitialData] = useState<any>(undefined);
 
   useEffect(() => {
     trackToolUsage(activeTool);
   }, [activeTool]);
 
-  const handleSelectTool = (toolId: string) => {
+  const handleSelectTool = (toolId: string, _subTab?: string, initialData?: any) => {
+    setInitialData(initialData);
     setActiveTool(toolId);
   };
 
@@ -37,7 +40,7 @@ export default function App() {
       case 'unified':
         return <UnifiedEntry />;
       case 'guide':
-        return <LegalGuideHome />;
+        return <LegalGuideHome onSelectTool={handleSelectTool} />;
       case 'sdlc':
         return <LegalSdlcWorkbench />;
       case 'litigation':
@@ -50,6 +53,8 @@ export default function App() {
         return <JudicialAndAiChecker />;
       case 'judgmentSearch':
         return <JudicialAndAiChecker />;
+      case 'legalToolbox':
+        return <LegalToolbox initialToolId={initialData?.preselectedToolId} />;
       default:
         return <UnifiedEntry />;
     }
