@@ -27,7 +27,9 @@ import {
   Zap,
   BookOpen,
   PhoneCall,
-  ShieldCheck
+  ShieldCheck,
+  ChevronDown,
+  GripVertical
 } from 'lucide-react';
 
 interface LegalGuideHomeProps {
@@ -56,6 +58,12 @@ interface ScenarioItem {
 export const LegalGuideHome: React.FC<LegalGuideHomeProps> = ({ onSelectTool, onNavigate }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
+    const loadTagClicks = (): Record<string, number> => {
+    try { return JSON.parse(localStorage.getItem(QUICK_TAG_CLICK_KEY) || "{}"); } catch { return {}; }
+  };
+const [tagClicks, setTagClicks] = useState<Record<string, number>>(loadTagClicks);
+  const [showExtendedTags, setShowExtendedTags] = useState<boolean>(false);
+  const [draggedTag, setDraggedTag] = useState<string | null>(null);
   const [selectedScenario, setSelectedScenario] = useState<ScenarioItem | null>(null);
 
   // Dynamic AI Universal Triage state
@@ -326,17 +334,56 @@ export const LegalGuideHome: React.FC<LegalGuideHomeProps> = ({ onSelectTool, on
     }
   };
 
-  // 熱門關鍵字快捷搜尋
-  const QUICK_TAGS = [
-    { label: "車禍", tool: "litigation" as const, tag: "traffic" },
-    { label: "離婚", tool: "litigation" as const, tag: "divorce" },
-    { label: "欠錢", tool: "legalToolbox" as const, tag: "debt" },
-    { label: "租屋糾紛", tool: "litigation" as const, tag: "rent" },
-    { label: "職場霸凌", tool: "legalToolbox" as const, tag: "labor" },
-    { label: "詐騙", tool: "litigation" as const, tag: "fraud" },
-    { label: "遺產繼承", tool: "litigation" as const, tag: "inheritance" },
-    { label: "過失傷害", tool: "litigation" as const, tag: "negligence" },
+  // --- 快捷標籤 localStorage helpers ---
+  const QUICK_TAG_STORAGE_KEY = "legal_guide_tag_order";
+  const QUICK_TAG_CLICK_KEY = "legal_guide_tag_clicks";
+
+  type QuickTagItem = { label: string; tool: "litigation" | "legalToolbox"; tag: string };
+
+  const ALL_CORE_TAGS: QuickTagItem[] = [
+    { label: "車禍求償", tool: "litigation", tag: "traffic_accident" },
+    { label: "家事糾紛", tool: "litigation", tag: "family_dispute" },
+    { label: "欠款追討", tool: "legalToolbox", tag: "debt_collection" },
+    { label: "詐騙受害", tool: "litigation", tag: "fraud_victim" },
+    { label: "租屋爭議", tool: "litigation", tag: "rental_dispute" },
+    { label: "勞動爭議", tool: "legalToolbox", tag: "labor_dispute" },
   ];
+
+  const EXTENDED_TAGS: QuickTagItem[] = [
+    { label: "離婚", tool: "litigation", tag: "divorce" },
+    { label: "遺產繼承", tool: "litigation", tag: "inheritance" },
+    { label: "過失傷害", tool: "litigation", tag: "negligence" },
+    { label: "職場霸凌", tool: "legalToolbox", tag: "workplace_bullying" },
+    { label: "家暴保護令", tool: "legalToolbox", tag: "domestic_violence" },
+    { label: "人頭帳戶", tool: "litigation", tag: "money_mule" },
+    { label: "卡債", tool: "legalToolbox", tag: "credit_card_debt" },
+    { label: "遷讓房屋", tool: "litigation", tag: "eviction" },
+  ];
+
+
+  const saveTagClicks = (clicks: Record<string, number>) => {
+    try { localStorage.setItem(QUICK_TAG_CLICK_KEY, JSON.stringify(clicks)); } catch {}
+  };
+
+  const loadTagOrder = (): string[] | null => {
+    try { return JSON.parse(localStorage.getItem(QUICK_TAG_STORAGE_KEY) || "null"); } catch { return null; }
+  };
+
+  const saveTagOrder = (order: string[]) => {
+    try { localStorage.setItem(QUICK_TAG_STORAGE_KEY, JSON.stringify(order)); } catch {}
+  };
+
+  const getSortedCoreTags = (clicks: Record<string, number>): QuickTagItem[] => {
+    const saved = loadTagOrder();
+    const tagMap = new Map(ALL_CORE_TAGS.map(t => [t.tag, t]));
+    if (saved && saved.length === ALL_CORE_TAGS.length) {
+      return saved.filter(t => tagMap.has(t)).map(t => tagMap.get(t)!);
+    }
+    return [...ALL_CORE_TAGS].sort((a, b) => (clicks[b.tag] || 0) - (clicks[a.tag] || 0));
+  };
+
+  // 熱門關鍵字快捷搜尋（核心6標籤，按使用頻率排序）
+  const CORE_TAGS: QuickTagItem[] = getSortedCoreTags(loadTagClicks());
 
   const scenarios: ScenarioItem[] = [
     // 0. 性侵害 / 妨害性自主 / 伴侶非自願性行為
@@ -973,28 +1020,76 @@ export const LegalGuideHome: React.FC<LegalGuideHomeProps> = ({ onSelectTool, on
           ))}
         </div>
 
-          {/* 熱門關鍵字快捷搜尋 */}
-          <div className="flex flex-wrap items-center gap-2 pb-4 border-b border-slate-800/50">
-            <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1.5 mr-1">
-              <Zap className="w-3.5 h-3.5 text-amber-400" />
-              快捷搜尋
-            </span>
-            {QUICK_TAGS.map((qt) => (
+          {/* 熱門關鍵字快捷搜尋（核心標籤 + 可展開更多標籤） */}
+          <div className="pb-4 border-b border-slate-800/50 space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1.5 mr-1">
+                <Zap className="w-3.5 h-3.5 text-amber-400" />
+                快捷搜尋
+              </span>
+              {CORE_TAGS.map((qt) => (
+                <button
+                  key={qt.tag}
+                  draggable
+                  onDragStart={(e) => { setDraggedTag(qt.tag); e.dataTransfer.effectAllowed = "move"; }}
+                  onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    if (!draggedTag || draggedTag === qt.tag) return;
+                    const saved = loadTagOrder() || ALL_CORE_TAGS.map(t => t.tag);
+                    const fromIdx = saved.indexOf(draggedTag);
+                    const toIdx = saved.indexOf(qt.tag);
+                    if (fromIdx === -1 || toIdx === -1) return;
+                    const newOrder = [...saved];
+                    newOrder.splice(fromIdx, 1);
+                    newOrder.splice(toIdx, 0, draggedTag);
+                    saveTagOrder(newOrder);
+                    setDraggedTag(null);
+                    window.location.reload();
+                  }}
+                  onDragEnd={() => setDraggedTag(null)}
+                  onClick={() => {
+                    const newClicks = { ...tagClicks, [qt.tag]: (tagClicks[qt.tag] || 0) + 1 };
+                    setTagClicks(newClicks);
+                    saveTagClicks(newClicks);
+                    setSearchQuery(qt.label);
+                    setSelectedCategory(qt.tag);
+                  }}
+                  className={`px-3 py-1.5 rounded-full text-[11px] font-semibold border transition-all cursor-grab active:cursor-grabbing
+                    selectedCategory === qt.tag
+                      ? "bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/30"
+                      : "bg-slate-900/80 text-slate-300 border-slate-700/50 hover:border-indigo-600/50 hover:text-indigo-300"
+                  }`}
+                >
+                  <span className="flex items-center gap-1"><GripVertical className="w-3 h-3 opacity-40" />#{qt.label}</span>
+                </button>
+              ))}
+              {/* 更多標籤折疊按鈕 */}
               <button
-                key={qt.tag}
-                onClick={() => {
-                  setSearchQuery(qt.label);
-                  setSelectedCategory(qt.tag);
-                }}
-                className={`px-3 py-1.5 rounded-full text-[11px] font-semibold border transition-all
-                  selectedCategory === qt.tag
-                    ? "bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/30"
-                    : "bg-slate-900/80 text-slate-300 border-slate-700/50 hover:border-indigo-600/50 hover:text-indigo-300"
-                }`}
+                onClick={() => setShowExtendedTags(!showExtendedTags)}
+                className="px-2.5 py-1.5 rounded-full text-[11px] font-semibold border border-dashed border-slate-600 text-slate-400 hover:text-slate-200 hover:border-slate-500 transition-all flex items-center gap-1"
               >
-                #{qt.label}
+                <ChevronDown className={`w-3 h-3 transition-transform ${showExtendedTags ? "rotate-180" : ""}`} />
+                更多標籤
               </button>
-            ))}
+            </div>
+            {/* 展開的更多標籤區域 */}
+            {showExtendedTags && (
+              <div className="flex flex-wrap items-center gap-2 pl-6 animate-in slide-in-from-top-1 duration-200">
+                {EXTENDED_TAGS.map((qt) => (
+                  <button
+                    key={qt.tag}
+                    onClick={() => {
+                      setSearchQuery(qt.label);
+                      setSelectedCategory(qt.tag);
+                    }}
+                    className="px-2.5 py-1 rounded-full text-[11px] font-medium border border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-600 transition-all"
+                  >
+                    {qt.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
         {/* 生活情境清單 */}

@@ -428,17 +428,24 @@ export const UnifiedEntry: React.FC<UnifiedEntryProps> = ({ onSelectSubTool }) =
             </button>
             <button
               type="button"
-              onClick={() => setInputNarrative("我借了朋友一筆錢，結果現在到期了對方都不還我，還封鎖我。")}
-              className="px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-xs transition-colors border border-amber-500/30"
+              onClick={() => setInputNarrative("我的同居伴侶長期對我施暴，昨天又動手毆打我致全身多處瘀傷，還在未經我同意下偷拍我的私密影像，威脅若我報警就要將影像散布到網路。我已前往醫院驗傷並取得診斷證明書，現場亦有破碎家具與血跡。")}
+              className="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 text-xs transition-colors border border-rose-500/30"
             >
-              範例 2：欠款爭議（觸發追問節點）
+              範例 2：家暴與私密影像威脅（觸發安全保護節點）
             </button>
             <button
               type="button"
-              onClick={() => setInputNarrative("昨晚在住處前夫動手毆打我，搶走手機並威脅要散布私密照片，我非常害怕。")}
-              className="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 text-xs transition-colors border border-rose-500/30"
+              onClick={() => setInputNarrative("我三年前借了朋友新台幣十萬元，當時只有口頭約定，沒有簽借條。對方一直拖延說會還，但至今分文未付且已讀不回。我手上只有銀行轉帳記錄可以證明有匯款。")}
+              className="px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-xs transition-colors border border-amber-500/30"
             >
-              範例 3：家庭暴力與私密影像（觸發安全保護節點）
+              範例 3：欠款追討（觸發追問節點）
+            </button>
+            <button
+              type="button"
+              onClick={() => setInputNarrative("上週騎機車行經台北市忠孝東路與復興南路口時收到一張闖紅燈罰單，但我確定當時是綠燈才通過。我有行車記錄器畫面可以佐證，路口也有監視器。希望針對這張罰單提出異議。")}
+              className="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 text-xs transition-colors border border-emerald-500/30"
+            >
+              範例 4：交通罰單異議（行政爭訟）
             </button>
           </div>
 
