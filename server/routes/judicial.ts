@@ -4,6 +4,7 @@ import { UNIVERSAL_SYLLOGISM_RULES } from "../../src/prompts/universal-syllogism
 import { fetchJudicialHtml, parseJudicialJudgment, normalizeTaiwanCaseQuery } from "../services/judicialCrawler.js";
 import { retrieve, defaultVectorStore } from "../services/legalRetrieval.js";
 import { ingestSeedCorpus } from "../services/corpusIngest.js";
+import { fetchFromOpenData } from "../services/judicialDataFetcher.js";
 
 const router = Router();
 
@@ -33,7 +34,34 @@ router.post("/api/judicial/fetch-judgment", async (req: Request, res: Response) 
     res.json(result);
   } catch (err: any) {
     console.error("[JudicialFetchError]:", err.message);
-    res.status(500).json({ error: err.message || "讀取司法院裁判書失敗" });
+    res.status(500).json({ error: err.message || "無法讀取裁判書頁面" });
+  }
+});
+
+// 1b. Fetch from Judicial OpenData (5-layer gated: feature toggle, service hours, circuit breaker, credentials, content validation)
+router.post("/api/judicial/fetch-opendata", async (req: Request, res: Response) => {
+  const { caseId } = req.body;
+  if (!caseId) {
+    return res.status(400).json({ error: "請提供 caseId 欄位" });
+  }
+
+  const result = await fetchFromOpenData(caseId, { timeoutMs: 5000 });
+
+  if (!result.success) {
+    return res.status(503).json({
+      error: result.error,
+      source: result.source,
+      fallback: "建議使用 /api/judicial/search-precedents 搜尋本地知識庫"
+    });
+  }
+
+  // Parse the HTML into structured judgment data
+  try {
+    const parsed = parseJudicialJudgment(result.html!);
+    res.json({ ...parsed, source: "opendata" });
+  } catch (err: any) {
+    console.error("[JudicialFetchOpenData] Parse error:", err.message);
+    res.status(500).json({ error: "無法解析裁判書 HTML", source: "opendata" });
   }
 });
 

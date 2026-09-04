@@ -18,6 +18,8 @@ import {
   enforceTriageConsistency,
   detectTemporalConflict 
 } from "../../src/lib/universalTriage.js";
+import { fetchFromOpenData } from "../services/judicialDataFetcher.js";
+import { isWithinServiceHours } from "../services/judicialServiceHours.js";
 
 const router = Router();
 
@@ -184,7 +186,36 @@ async function runRagNode(
       legalElements = retrieval.promptBlock;
     }
   } catch (err) {
-    console.warn("[UnifiedWorkflow] RAGNode 檢索構成要件降級:", err);
+    console.warn("[UnifiedWorkflow] RAGNode 檢索失敗:", err);
+  }
+
+  // Tier 3 fallback: Try Judicial OpenData if no precedents found locally
+  if (precedents.length === 0) {
+    try {
+      const hoursCheck = isWithinServiceHours();
+      if (hoursCheck.withinHours) {
+        // Extract case ID from query or use queryTopic as case reference
+        const opendataResult = await fetchFromOpenData(searchQuery, { timeoutMs: 5000 });
+        if (opendataResult.success && opendataResult.html) {
+          // Extract first 500 chars of main legal content as summary
+          const summaryMatch = opendataResult.html.match(/主文[\s\S]{0,50}/) ||
+                               opendataResult.html.match(/理由[\s\S]{0,50}/);
+          if (summaryMatch) {
+            precedents.push({
+              caseNumber: searchQuery.slice(0, 30),
+              courtName: "司法院/地方法院",
+              summary: summaryMatch[0].replace(/<[^>]+>/g, "").slice(0, 200),
+              sourceUrl: undefined
+            });
+            console.log("[UnifiedWorkflow] OpenData fallback succeeded for query:", searchQuery.slice(0, 30));
+          }
+        }
+      } else {
+        console.log("[UnifiedWorkflow] OpenData fallback skipped — outside service hours");
+      }
+    } catch (odErr) {
+      console.warn("[UnifiedWorkflow] OpenData fallback failed:", odErr);
+    }
   }
 
   const statuteCitations = Array.from(dynamicStatuteSet).filter(Boolean);

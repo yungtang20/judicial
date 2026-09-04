@@ -74,7 +74,7 @@ export async function searchLegalSources(query: string, fetchImpl: typeof fetch 
   const baseUrl = process.env.TLR_BASE_URL || DEFAULT_BASE_URL;
   try {
     const [judgmentPayload, referencePayload] = await Promise.all([
-      requestJson(`${baseUrl}/v1/search`, { query, max_results: 5, read_top: 5 }, fetchImpl),
+      requestJson(`${baseUrl}/v1/search`, { query, max_results: 5 }, fetchImpl),
       requestJson(`${baseUrl}/v1/legal_references/search`, { query, max_results: 5 }, fetchImpl)
     ]);
     sources.judgments = asItems('judgments', judgmentPayload);

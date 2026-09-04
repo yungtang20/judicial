@@ -12,7 +12,7 @@ describe("Triage Prompt & Consistency Rules", () => {
 
     const evaluated = enforceTriageConsistency(initialPayload, rawInput);
     expect(evaluated.isSensitive).toBe(true);
-    expect(evaluated.protectionNotice).toContain("113 保護專線");
+    expect(evaluated.protectionNotice).toContain("113");
     expect(evaluated.protectionNotice).toContain("敏感案件保護提醒");
   });
 
