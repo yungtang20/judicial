@@ -8,6 +8,7 @@ const LegalProcessGuide = lazy(() => import('./components/LegalProcessGuide').th
 const LitigationWorkspace = lazy(() => import('./components/LitigationWorkspace').then(m => ({ default: m.LitigationWorkspace })));
 const JudicialAndAiChecker = lazy(() => import('./components/JudicialAndAiChecker').then(m => ({ default: m.JudicialAndAiChecker })));
 const LegalSdlcWorkbench = lazy(() => import('./components/LegalSdlcWorkbench').then(m => ({ default: m.LegalSdlcWorkbench })));
+const AgentChat = lazy(() => import('./components/AgentChat').then(m => ({ default: m.AgentChat })));
 
 interface Props {
   children: React.ReactNode;
@@ -108,6 +109,10 @@ export default function App() {
       }
 
       // 4. 判決檢索與 AI 防假檢核
+      // 3.5 Agent Chat
+      case 'agent-chat':
+        return <AgentChat />;
+
       case 'checker':
       case 'docAiChecker':
       case 'judicialOpenData':

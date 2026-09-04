@@ -249,6 +249,15 @@ export const apiClient = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
-  }
+  },
+
+  // Agent Chat API
+  agentChat: async (userInput: string, history?: Array<{ role: string; content: string; timestamp: string }>) => {
+    return fetchWithHandler('/api/agent-chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userInput, history })
+    });
+  },
 };
 

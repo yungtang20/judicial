@@ -12,6 +12,7 @@ import externalCitationRouter from "./routes/externalCitation.js";
 import legalSearchRouter from "./routes/legalSearch.js";
 import legalProcessRouter from "./routes/legalProcess.js";
 import unifiedWorkflowRouter from "./routes/unifiedWorkflow.js";
+import agentChatRouter from "./routes/agentChat.js";
 import fetchUrlRouter from "./routes/fetchUrl.js";
 
 export function createExpressApp(): Express {
@@ -38,6 +39,7 @@ export function createExpressApp(): Express {
   app.use(legalSearchRouter);
   app.use(legalProcessRouter);
   app.use(unifiedWorkflowRouter);
+  app.use(agentChatRouter);
   app.use(fetchUrlRouter);
   app.use(healthRouter);
   app.use("/api/sdlc", sdlcRouter);

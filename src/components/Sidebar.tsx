@@ -7,6 +7,7 @@ import {
   FileCheck2, 
   Sparkles,
   ShieldAlert,
+  MessageSquare,
   Menu,
   X
 } from 'lucide-react';
@@ -52,7 +53,15 @@ export default function Sidebar({ activeTool, setActiveTool }: SidebarProps) {
       badge: '歷史工具庫',
       badgeColor: 'bg-slate-800 text-slate-300 border-slate-700'
     },
-    { 
+    {
+      id: 'agent-chat',
+      label: '法律智慧助理對話',
+      sublabel: '狀態對話式法律談詢',
+      icon: MessageSquare,
+      badge: '智慧對話',
+      badgeColor: 'bg-sky-500/20 text-sky-300 border-sky-500/40'
+    },
+    {
       id: 'checker', 
       label: '判決檢索與 AI 防假檢核', 
       sublabel: '司法院官方API / 防幽靈假法條',
