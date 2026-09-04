@@ -6,22 +6,52 @@
  * 2. Current time is within service hours (00:00–05:59 Asia/Taipei)
  * 3. Circuit breaker is closed (not too many recent failures)
  *
- * Uses existing `judicialCrawler.ts` SSRF protection as the base layer.
+ * Uses existing judicialCrawler.ts SSRF protection as the base layer.
  * This service adds authentication, service-hours gating, and circuit-breaking.
+ *
+ * Tier 1: TLR (tw-legal-rag) semantic search with JID priority matching
+ * Tier 2: Judicial OpenData authenticated fetch (rate-limited)
+ * Tier 3: Scraper fallback (external)
  */
 
+import { searchLegalSources } from "../../src/lib/twLegalRagClient.js";
 import { getAuthToken, isCircuitOpen } from "./judicialAuthService.js";
 import { isWithinServiceHours } from "./judicialServiceHours.js";
 
 const OPENDATA_BASE = "https://judgment.judicial.gov.tw/FJUD";
 const DEFAULT_TIMEOUT_MS = 3000;
+const OPENDATA_RATE_WINDOW_MS = 60 * 1000;
+const OPENDATA_RATE_LIMIT = 10;
 
 export interface FetchResult {
   success: boolean;
   html?: string;
   error?: string;
-  source: "opendata" | "unavailable";
+  source: "opendata" | "tlr" | "unavailable";
 }
+
+// --- Rate limiting state ---
+const openDataCallTracker = { count: 0, lastResetTime: Date.now() };
+
+/**
+ * Check OpenData API rate limit (max 10 calls per 60 seconds).
+ * Returns true if rate limit is exceeded.
+ */
+function checkOpenDataRateLimit(): boolean {
+  const now = Date.now();
+  if (now - openDataCallTracker.lastResetTime > OPENDATA_RATE_WINDOW_MS) {
+    openDataCallTracker.count = 0;
+    openDataCallTracker.lastResetTime = now;
+  }
+  if (openDataCallTracker.count >= OPENDATA_RATE_LIMIT) {
+    return true;
+  }
+  openDataCallTracker.count++;
+  return false;
+}
+
+// --- JID regex ---
+const JID_REGEX = /^[A-Z]{2,4},\d{2,4},[^,]+,\d+,(\d{8}|\d{7}),\d+$/;
 
 /**
  * Check if OpenData fetching is enabled via environment.
@@ -39,6 +69,16 @@ export function getOpenDataTimeoutMs(): number {
   if (!raw) return DEFAULT_TIMEOUT_MS;
   const parsed = parseInt(raw, 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_TIMEOUT_MS;
+}
+
+/**
+ * Validate crawled content: must be long enough and contain legal keywords.
+ */
+export function validateCrawledContent(content: string): boolean {
+  const trimmed = content.trim();
+  if (trimmed.length < 100) return false;
+  const legalKeywords = ["裁判", "法院", "字號"];
+  return legalKeywords.some((kw) => trimmed.includes(kw));
 }
 
 /**
@@ -79,6 +119,47 @@ export async function fetchFromOpenData(
     };
   }
 
+  // ── Tier 1: TLR semantic search with JID priority matching ──
+  try {
+    const tlrEnabled = process.env.TLR_ENABLED === "true";
+    if (tlrEnabled) {
+      const tlrResult = await searchLegalSources(caseId);
+
+      let bestMatch: { excerpt?: string; title?: string; citation?: string } | null = null;
+      const isJid = JID_REGEX.test(caseId);
+
+      if (isJid && tlrResult?.judgments?.length) {
+        bestMatch =
+          tlrResult.judgments.find(
+            (r) =>
+              r.citation?.includes(caseId) || r.title?.includes(caseId)
+          ) || tlrResult.judgments[0];
+      } else if (tlrResult?.judgments?.length) {
+        bestMatch = tlrResult.judgments[0];
+      }
+
+      if (bestMatch) {
+        const html = bestMatch.excerpt || bestMatch.title || "";
+        if (validateCrawledContent(html)) {
+          return { success: true, html, source: "tlr" };
+        }
+      }
+    }
+  } catch (err: any) {
+    console.warn("[DataFetcher] TLR Tier 1 failed:", err.message);
+  }
+
+  // ── Tier 2: OpenData authenticated fetch ──
+  // Rate limit check — skip to unavailable if exceeded
+  if (checkOpenDataRateLimit()) {
+    console.warn("[DataFetcher] OpenData rate limit exceeded, skipping Tier 2");
+    return {
+      success: false,
+      error: "OpenData API 限流（每分鐘最多 10 次），請稍後再試",
+      source: "unavailable",
+    };
+  }
+
   // Gate 4: Get auth token
   const account = process.env.JUDICIAL_OPENDATA_ACCOUNT;
   const password = process.env.JUDICIAL_OPENDATA_PASSWORD;
@@ -96,6 +177,18 @@ export async function fetchFromOpenData(
     return {
       success: false,
       error: "無法取得司法院認證 token",
+      source: "unavailable",
+    };
+  }
+
+  // ── Problem 1: Cross-06:00 recheck ──
+  // After auth (which may take time), verify we're still within service hours.
+  // If we crossed 06:00 during auth, abort instead of sending a doomed request.
+  if (!isWithinServiceHours().withinHours) {
+    console.warn("[DataFetcher] Auth 後跨 06:00，跳過 OpenData 降級爬取");
+    return {
+      success: false,
+      error: "Auth 後跨 06:00，服務時段已結束",
       source: "unavailable",
     };
   }
@@ -133,26 +226,11 @@ export async function fetchFromOpenData(
 
     const html = await res.text();
 
-    // Content validation
-    if (html.length < 100) {
+    // Content validation — must contain legal keywords and be long enough
+    if (!validateCrawledContent(html)) {
       return {
         success: false,
-        error: "回應內容過短，可能不是有效判決 HTML",
-        source: "unavailable",
-      };
-    }
-
-    // Basic keyword validation — must contain legal markers
-    const hasLegalContent =
-      html.includes("判決") ||
-      html.includes("裁定") ||
-      html.includes("主文") ||
-      html.includes("理由");
-
-    if (!hasLegalContent) {
-      return {
-        success: false,
-        error: "回應內容不含法律文書標記，可能不是有效判決",
+        error: "回應內容不含法律文書標記或過短，可能不是有效判決",
         source: "unavailable",
       };
     }

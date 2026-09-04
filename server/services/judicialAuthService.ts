@@ -139,6 +139,17 @@ export async function getAuthToken(
     const authCookieHeader = authCookies.map((c) => c.split(";")[0]).join("; ");
 
     if (!authCookieHeader || authCookieHeader.length === 0) {
+      // Problem 2: If this looks like a service-hours error, do NOT record
+      // toward the circuit breaker — it's an expected condition, not a real failure.
+      const loginBody = await loginRes.text().catch(() => "");
+      if (looksLikeServiceHoursError(loginRes.status, loginBody)) {
+        console.warn(
+          `[JudicialAuth] Service-hours error detected (HTTP ${loginRes.status}), not counting toward circuit breaker`
+        );
+        cachedToken = null;
+        cachedTokenExpiry = 0;
+        return null;
+      }
       recordFailure();
       console.error("[JudicialAuth] No auth cookie returned — login may have failed");
       return null;
@@ -154,6 +165,28 @@ export async function getAuthToken(
     console.error(`[JudicialAuth] getAuthToken error: ${err.message}`);
     return null;
   }
+}
+
+/**
+ * Check whether an error response looks like a service-hours restriction.
+ * Service-hours errors are expected conditions during non-business hours
+ * and MUST NOT count toward the circuit breaker.
+ */
+function looksLikeServiceHoursError(status: number, body: string): boolean {
+  if (status === 403 || status === 503) {
+    const lower = body.toLowerCase();
+    const keywords = [
+      "非服務時間",
+      "系統維護",
+      "服務時間",
+      "暫停服務",
+      "維護中",
+      "maintenance",
+      "outside.*hours",
+    ];
+    return keywords.some((kw) => new RegExp(kw, "i").test(lower));
+  }
+  return false;
 }
 
 /**
