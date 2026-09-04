@@ -16,6 +16,7 @@ import {
 import {
   exportAsHtml, exportAsText, printReport
 } from '../lib/exportReport';
+import { saveCrossFeatureContext } from '../lib/crossFeatureContext';
 
 interface UnifiedEntryProps {
   onSelectSubTool?: (toolId: string) => void;
@@ -28,6 +29,7 @@ export const UnifiedEntry: React.FC<UnifiedEntryProps> = ({ onSelectSubTool }) =
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [workflowState, setWorkflowState] = useState<LegalWorkflowState | null>(null);
   const [supplementInput, setSupplementInput] = useState<string>('');
+  const [showDocTypeModal, setShowDocTypeModal] = useState<boolean>(false);
   const [isCopied, setIsCopied] = useState<boolean>(false);
   const [acknowledgeSafetyInSession, setAcknowledgeSafetyInSession] = useState<boolean>(false);
 
@@ -699,6 +701,88 @@ export const UnifiedEntry: React.FC<UnifiedEntryProps> = ({ onSelectSubTool }) =
               <ArrowRight className="w-3.5 h-3.5" />
               法律工具箱
             </button>
+          </div>
+        )}
+
+        {/* Quick action buttons — jump to document generation or guide */}
+        {onSelectSubTool && workflowState?.verification?.gate_passed && (
+          <div className="flex flex-wrap items-center gap-3 mt-4">
+            <button
+              onClick={() => setShowDocTypeModal(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-bold shadow-lg transition-colors"
+            >
+              <FileText className="w-4 h-4" />
+              生成對應文書
+            </button>
+            <button
+              onClick={() => {
+                saveCrossFeatureContext({
+                  scenarioKeywords: workflowState?.router?.cause || '',
+                  domain: workflowState?.router?.domain,
+                  cause: workflowState?.router?.cause,
+                  sourceTool: 'unified'
+                });
+                onSelectSubTool('guide');
+              }}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-lg transition-colors"
+            >
+              <ArrowRight className="w-4 h-4" />
+              獲取後續導診建議
+            </button>
+          </div>
+        )}
+
+        {/* Document Type Selection Modal */}
+        {showDocTypeModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+            <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-[380px] shadow-2xl space-y-4">
+              <h3 className="text-base font-bold text-white">選擇文書類型</h3>
+              <p className="text-xs text-slate-400">根據您的案件類型，推薦以下文書：</p>
+              <div className="space-y-2">
+                <button
+                  onClick={() => {
+                    setShowDocTypeModal(false);
+                    saveCrossFeatureContext({
+                      documentType: 'appeal',
+                      partyName: workflowState?.router?.cause || '',
+                      scenarioKeywords: workflowState?.router?.cause || '',
+                      domain: workflowState?.router?.domain,
+                      cause: workflowState?.router?.cause,
+                      sourceTool: 'unified'
+                    });
+                    onSelectSubTool?.('legalToolbox');
+                  }}
+                  className="w-full text-left p-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors"
+                >
+                  <div className="font-bold text-sm text-white">上訴狀</div>
+                  <div className="text-xs text-slate-400 mt-1">不服地方法院判決，向上級法院提起上訴</div>
+                </button>
+                <button
+                  onClick={() => {
+                    setShowDocTypeModal(false);
+                    saveCrossFeatureContext({
+                      documentType: 'demand_letter',
+                      partyName: workflowState?.router?.cause || '',
+                      scenarioKeywords: workflowState?.router?.cause || '',
+                      domain: workflowState?.router?.domain,
+                      cause: workflowState?.router?.cause,
+                      sourceTool: 'unified'
+                    });
+                    onSelectSubTool?.('legalToolbox');
+                  }}
+                  className="w-full text-left p-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors"
+                >
+                  <div className="font-bold text-sm text-white">存證信函</div>
+                  <div className="text-xs text-slate-400 mt-1">以正式書面通知對方，留存法律證據</div>
+                </button>
+              </div>
+              <button
+                onClick={() => setShowDocTypeModal(false)}
+                className="w-full text-xs text-slate-500 hover:text-slate-300 py-1 transition-colors"
+              >
+                取消
+              </button>
+            </div>
           </div>
         )}
 
