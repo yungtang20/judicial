@@ -40,7 +40,7 @@ export default function App() {
       case 'unified':
         return <UnifiedEntry onSelectSubTool={handleSelectTool} />;
       case 'guide':
-        return <LegalGuideHome onSelectTool={handleSelectTool} />;
+        return <LegalGuideHome onSelectTool={handleSelectTool} onNavigate={(toolId) => handleSelectTool(toolId)} />;
       case 'sdlc':
         return <LegalSdlcWorkbench />;
       case 'litigation':

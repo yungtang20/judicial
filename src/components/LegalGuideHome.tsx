@@ -32,6 +32,7 @@ import {
 
 interface LegalGuideHomeProps {
   onSelectTool: (toolId: string, subTab?: string, initialData?: any) => void;
+  onNavigate?: (toolId: string) => void;
 }
 
 interface ScenarioItem {
@@ -52,7 +53,7 @@ interface ScenarioItem {
   tags: string[];
 }
 
-export const LegalGuideHome: React.FC<LegalGuideHomeProps> = ({ onSelectTool }) => {
+export const LegalGuideHome: React.FC<LegalGuideHomeProps> = ({ onSelectTool, onNavigate }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [selectedScenario, setSelectedScenario] = useState<ScenarioItem | null>(null);
@@ -1681,6 +1682,31 @@ export const LegalGuideHome: React.FC<LegalGuideHomeProps> = ({ onSelectTool }) 
                 </div>
               </div>
             ) : null}
+
+          {/* 跨功能快捷導航列 */}
+          <div className="mt-4 p-4 rounded-2xl bg-gradient-to-r from-slate-800/50 to-indigo-900/30 border border-slate-600/30">
+            <div className="flex items-center gap-2 mb-3">
+              <Zap className="w-4 h-4 text-yellow-400" />
+              <span className="text-xs font-bold text-slate-300">快速導航</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => onNavigate?.('unified')}
+                className="px-3 py-1.5 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 text-xs font-medium transition-all border border-indigo-500/30"
+              >
+                <Scale className="w-3 h-3 inline mr-1" />
+                判決分析
+              </button>
+              <button
+                onClick={() => onNavigate?.('legalToolbox')}
+                className="px-3 py-1.5 rounded-lg bg-purple-600/30 hover:bg-purple-600/50 text-purple-300 text-xs font-medium transition-all border border-purple-500/30"
+              >
+                <FileText className="w-3 h-3 inline mr-1" />
+                法律工具箱
+              </button>
+            </div>
+          </div>
+
           </div>
         </div>
       )}
