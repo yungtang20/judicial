@@ -1,148 +1,92 @@
-import * as React from 'react';
-import { useState, Suspense, lazy } from 'react';
+import React, { useState, Suspense, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
+import { RecentUsage, trackToolUsage } from './components/RecentUsage';
+import { Scale } from 'lucide-react';
 
-const UnifiedEntry = lazy(() => import('./components/UnifiedEntry').then(m => ({ default: m.UnifiedEntry })));
-const LegalGuideHome = lazy(() => import('./components/LegalGuideHome').then(m => ({ default: m.LegalGuideHome })));
-const LegalProcessGuide = lazy(() => import('./components/LegalProcessGuide').then(m => ({ default: m.LegalProcessGuide })));
-const LitigationWorkspace = lazy(() => import('./components/LitigationWorkspace').then(m => ({ default: m.LitigationWorkspace })));
-const JudicialAndAiChecker = lazy(() => import('./components/JudicialAndAiChecker').then(m => ({ default: m.JudicialAndAiChecker })));
-const LegalSdlcWorkbench = lazy(() => import('./components/LegalSdlcWorkbench').then(m => ({ default: m.LegalSdlcWorkbench })));
-const AgentChat = lazy(() => import('./components/AgentChat').then(m => ({ default: m.AgentChat })));
+const UnifiedEntry = React.lazy(() => import('./components/UnifiedEntry'));
+const LegalGuideHome = React.lazy(() => import('./components/LegalGuideHome'));
+const LegalSdlcWorkbench = React.lazy(() => import('./components/LegalSdlcWorkbench'));
+const LitigationWorkspace = React.lazy(() => import('./components/LitigationWorkspace'));
+const AgentChat = React.lazy(() => import('./components/AgentChat'));
+const JudicialAndAiChecker = React.lazy(() => import('./components/JudicialAndAiChecker'));
 
-interface Props {
-  children: React.ReactNode;
-}
-
-interface State {
-  hasError: boolean;
-  error: Error | null;
-}
-
-class ErrorBoundary extends React.Component<Props, State> {
-  public state: State = {
-    hasError: false,
-    error: null,
-  };
-
-  public static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
-  }
-
-  public componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('Uncaught error:', error, errorInfo);
-  }
-
-  public render() {
-    if ((this as any).state.hasError) {
-      return (
-        <div className="p-8 max-w-2xl mx-auto my-12 bg-rose-950/40 border border-rose-800/60 rounded-2xl text-rose-200">
-          <h2 className="text-lg font-bold mb-2 text-rose-300">系統組件載入異常</h2>
-          <p className="text-sm mb-4 text-slate-300">很抱歉，元件渲染時發生錯誤：</p>
-          <pre className="bg-slate-950 p-4 rounded-xl text-xs font-mono border border-rose-900/50 overflow-auto max-h-40 text-rose-300">
-            {(this as any).state.error?.toString()}
-          </pre>
-          <button
-            onClick={() => window.location.reload()}
-            className="mt-4 px-4 py-2 bg-rose-600 text-white text-xs font-bold rounded-lg hover:bg-rose-500 shadow-md transition-colors"
-          >
-            重新載入頁面
-          </button>
-        </div>
-      );
-    }
-
-    return (this as any).props.children;
-  }
+function LoadingFallback() {
+  return (
+    <div className="flex-1 flex items-center justify-center bg-[#0a0e1a]">
+      <div className="text-center space-y-4">
+        <div className="w-12 h-12 mx-auto border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+        <p className="text-slate-400 text-sm">載入中...</p>
+      </div>
+    </div>
+  );
 }
 
 export default function App() {
-  // 預設進入「統一入口自動化工作流」
   const [activeTool, setActiveTool] = useState('unified');
-  const [preselectedSubTab, setPreselectedSubTab] = useState<string | undefined>(undefined);
-  const [preselectedToolId, setPreselectedToolId] = useState<string | undefined>(undefined);
 
-  const handleGuideSelect = (toolId: string, subTab?: string, initialData?: any) => {
+  useEffect(() => {
+    trackToolUsage(activeTool);
+  }, [activeTool]);
+
+  const handleSelectTool = (toolId: string) => {
     setActiveTool(toolId);
-    if (subTab) setPreselectedSubTab(subTab);
-    if (initialData?.preselectedToolId) {
-      setPreselectedToolId(initialData.preselectedToolId);
-    }
   };
 
-  const renderTool = () => {
+  const renderContent = () => {
     switch (activeTool) {
-      // 0. 統一入口自動化工作流 (Unified StateGraph) - 首選核心
       case 'unified':
-        return <UnifiedEntry onSelectSubTool={(tool) => setActiveTool(tool)} />;
-
-      // 1. 生活情境智能導診
+        return <UnifiedEntry />;
       case 'guide':
-        return <LegalGuideHome onSelectTool={handleGuideSelect} />;
-
-      // 1-1. 法律流程引導與案件分類（互動表單與安全過濾）
-      case 'processGuide':
-        return <LegalProcessGuide onNavigateToTool={handleGuideSelect} />;
-
-      // 2. AI 原生 SDLC 交付工作台
+        return <LegalGuideHome />;
       case 'sdlc':
         return <LegalSdlcWorkbench />;
-
-      // 3. 全生命週期法務與訴訟工作台
-      case 'legalToolbox':
       case 'litigation':
-      case 'smartAppeal':
-      case 'defenseWorkflow':
-      case 'appealDeadline':
-      case 'issueTableGenerator':
-      case 'evidenceListGenerator': {
-        const subTabMap: Record<string, 'toolbox' | 'defense' | 'issues' | 'evidence' | 'appeal' | 'deadline'> = {
-          legalToolbox: 'toolbox',
-          smartAppeal: 'appeal',
-          defenseWorkflow: 'defense',
-          issueTableGenerator: 'issues',
-          evidenceListGenerator: 'evidence',
-          appealDeadline: 'deadline',
-        };
-        const initialTab = (preselectedSubTab as any) || subTabMap[activeTool] || 'toolbox';
-        return <LitigationWorkspace initialTab={initialTab as any} initialToolId={preselectedToolId} />;
-      }
-
-      // 4. 判決檢索與 AI 防假檢核
-      // 3.5 Agent Chat
+        return <LitigationWorkspace />;
       case 'agent-chat':
         return <AgentChat />;
-
       case 'checker':
+        return <JudicialAndAiChecker />;
       case 'docAiChecker':
-      case 'judicialOpenData':
-      case 'judgmentSearch': {
-        const checkerTabMap: Record<string, 'antiGhost' | 'openData' | 'localSearch'> = {
-          docAiChecker: 'antiGhost',
-          judicialOpenData: 'openData',
-          judgmentSearch: 'localSearch'
-        };
-        const initialCheckerTab = (preselectedSubTab as any) || checkerTabMap[activeTool] || 'antiGhost';
-        return <JudicialAndAiChecker initialTab={initialCheckerTab} />;
-      }
-
+        return <JudicialAndAiChecker />;
+      case 'judgmentSearch':
+        return <JudicialAndAiChecker />;
       default:
-        return <LegalGuideHome onSelectTool={handleGuideSelect} />;
+        return <UnifiedEntry />;
     }
   };
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-slate-950 font-sans text-slate-100">
-      <Sidebar activeTool={activeTool} setActiveTool={(tool) => {
-        setPreselectedSubTab(undefined);
-        setActiveTool(tool);
-      }} />
-      <main className="flex-grow flex bg-slate-950 overflow-hidden">
-        <ErrorBoundary>
-          <Suspense fallback={<div className="flex items-center justify-center w-full text-slate-400 text-sm">載入中…</div>}>
-            {renderTool()}
-          </Suspense>
-        </ErrorBoundary>
+    <div className="flex h-screen bg-[#0a0e1a] text-white overflow-hidden font-sans">
+      <Sidebar activeTool={activeTool} setActiveTool={setActiveTool} />
+      <main className="flex-1 overflow-y-auto">
+        <Suspense fallback={<LoadingFallback />}>
+          {/* Show RecentUsage at top when on unified entry */}
+          {activeTool === 'unified' && (
+            <div className="max-w-4xl mx-auto px-6 pt-6 space-y-6">
+              {/* Hero header */}
+              <div className="text-center space-y-2 pt-8">
+                <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-indigo-500 to-sky-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                  <Scale className="w-8 h-8 text-white" />
+                </div>
+                <h1 className="text-2xl font-extrabold text-white">智慧法律書狀系統</h1>
+                <p className="text-slate-400 text-sm max-w-md mx-auto">
+                  司法院資料庫整合 · AI 防幽靈法條 · StateGraph 自動化工作流
+                </p>
+              </div>
+
+              {/* Recent Usage */}
+              <RecentUsage onSelectTool={handleSelectTool} />
+
+              {/* Main content (UnifiedEntry will render below) */}
+              <div className="pb-12">
+                {renderContent()}
+              </div>
+            </div>
+          )}
+
+          {/* All other tools: full height, no extra chrome */}
+          {activeTool !== 'unified' && renderContent()}
+        </Suspense>
       </main>
     </div>
   );
