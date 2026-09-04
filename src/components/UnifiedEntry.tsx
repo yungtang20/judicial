@@ -1,31 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import {
-  Send,
-  Sparkles,
-  ShieldAlert,
-  ShieldCheck,
-  AlertTriangle,
-  CheckCircle2,
-  Cpu,
-  Layers,
-  FileCheck2,
-  FileText,
-  RotateCcw,
-  Copy,
-  Check,
-  PhoneCall,
-  Loader2,
-  ChevronRight,
-  ArrowRight,
-  HelpCircle,
-  Clock,
-  BookOpen,
-  Scale
+  Send, Sparkles, ShieldAlert, ShieldCheck, AlertTriangle, CheckCircle2,
+  Cpu, Layers, FileCheck2, FileText, RotateCcw, Copy, Check, Loader2,
+  ChevronRight, ArrowRight, HelpCircle, Clock, BookOpen, Scale,
+  Upload, History, Download, Printer, Trash2, X, FilePlus, ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import {
   LegalWorkflowState,
   createInitialWorkflowState
 } from '../lib/workflow/unifiedStateGraph';
+import {
+  loadHistory, saveToHistory, deleteFromHistory, AnalysisRecord
+} from '../lib/analysisHistory';
+import {
+  exportAsHtml, exportAsText, printReport
+} from '../lib/exportReport';
 
 interface UnifiedEntryProps {
   onSelectSubTool?: (toolId: string) => void;
@@ -41,7 +31,87 @@ export const UnifiedEntry: React.FC<UnifiedEntryProps> = () => {
   const [isCopied, setIsCopied] = useState<boolean>(false);
   const [acknowledgeSafetyInSession, setAcknowledgeSafetyInSession] = useState<boolean>(false);
 
-  // 執行統一工作流入口 (POST /api/workflow/execute)
+  // Batch upload
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isDragOver, setIsDragOver] = useState<boolean>(false);
+  const [batchQueue, setBatchQueue] = useState<string[]>([]);
+  const [batchIndex, setBatchIndex] = useState<number>(0);
+  const [isBatchRunning, setIsBatchRunning] = useState<boolean>(false);
+
+  // History
+  const [showHistory, setShowHistory] = useState<boolean>(false);
+  const [historyList, setHistoryList] = useState<AnalysisRecord[]>(loadHistory());
+
+  // Handle file upload (single or batch)
+  const handleFiles = useCallback((files: FileList | File[]) => {
+    const textFiles = Array.from(files).filter(f => f.type === 'text/plain' || f.name.endsWith('.txt'));
+    if (textFiles.length === 0) {
+      alert('請上傳 .txt 格式的判決書文本');
+      return;
+    }
+
+    const readers = textFiles.map(file => {
+      return new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target?.result as string || '');
+        reader.readAsText(file, 'utf-8');
+      });
+    });
+
+    Promise.all(readers).then(texts => {
+      const validTexts = texts.filter(t => t.trim().length > 10);
+      if (validTexts.length === 0) {
+        alert('上傳的檔案內容過短或為空');
+        return;
+      }
+      if (validTexts.length === 1) {
+        setInputNarrative(validTexts[0]);
+      } else {
+        setBatchQueue(validTexts);
+        setBatchIndex(0);
+        setInputNarrative(validTexts[0]);
+      }
+    });
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    if (e.dataTransfer.files.length > 0) {
+      handleFiles(e.dataTransfer.files);
+    }
+  }, [handleFiles]);
+
+  const handleBatchNext = () => {
+    if (batchIndex < batchQueue.length - 1) {
+      const next = batchIndex + 1;
+      setBatchIndex(next);
+      setInputNarrative(batchQueue[next]);
+      setWorkflowState(null);
+    }
+  };
+
+  const handleBatchPrev = () => {
+    if (batchIndex > 0) {
+      const prev = batchIndex - 1;
+      setBatchIndex(prev);
+      setInputNarrative(batchQueue[prev]);
+      setWorkflowState(null);
+    }
+  };
+
+  // Save to history after analysis completes
+  const saveCurrentToHistory = () => {
+    if (!workflowState) return;
+    const record = saveToHistory({
+      inputText: workflowState.userNarrative,
+      workflowState,
+      title: workflowState.router?.cause || workflowState.userNarrative.slice(0, 30) + '...',
+    });
+    setHistoryList(loadHistory());
+  };
+
+  // Auto-save when analysis completes
   const handleExecuteWorkflow = async (textToRun?: string, safetyAck?: boolean) => {
     const text = (textToRun !== undefined ? textToRun : inputNarrative).trim();
     if (!text) return;
@@ -61,6 +131,15 @@ export const UnifiedEntry: React.FC<UnifiedEntryProps> = () => {
       const data = await res.json();
       if (data.success && data.data) {
         setWorkflowState(data.data);
+        // Auto-save to history
+        setTimeout(() => {
+          saveToHistory({
+            inputText: data.data.userNarrative,
+            workflowState: data.data,
+            title: data.data.router?.cause || data.data.userNarrative.slice(0, 30) + '...',
+          });
+          setHistoryList(loadHistory());
+        }, 100);
       } else {
         alert(data.error || '工作流執行失敗，請檢查輸入');
       }
@@ -72,7 +151,6 @@ export const UnifiedEntry: React.FC<UnifiedEntryProps> = () => {
     }
   };
 
-  // 處理動態追問之補充事實送出 (POST /api/workflow/supplement)
   const handleSupplementFact = async (supplementText?: string) => {
     const supplement = (supplementText !== undefined ? supplementText : supplementInput).trim();
     if (!supplement || !workflowState) return;
@@ -104,12 +182,10 @@ export const UnifiedEntry: React.FC<UnifiedEntryProps> = () => {
     }
   };
 
-  // 點選追問選項按鈕，自動追加送出
   const handleSelectSuggestedOption = (option: string) => {
     handleSupplementFact(option);
   };
 
-  // 略過或確認安全引導，繼續進行後續實體法律分析
   const handleProceedFromSafety = () => {
     setAcknowledgeSafetyInSession(true);
     if (workflowState) {
@@ -122,6 +198,8 @@ export const UnifiedEntry: React.FC<UnifiedEntryProps> = () => {
     setInputNarrative(defaultSample);
     setSupplementInput('');
     setAcknowledgeSafetyInSession(false);
+    setBatchQueue([]);
+    setBatchIndex(0);
   };
 
   const handleCopyAnalysis = () => {
@@ -131,11 +209,17 @@ export const UnifiedEntry: React.FC<UnifiedEntryProps> = () => {
     setTimeout(() => setIsCopied(false), 2000);
   };
 
+  const loadFromHistory = (record: AnalysisRecord) => {
+    setWorkflowState(record.workflowState);
+    setInputNarrative(record.inputText);
+    setShowHistory(false);
+  };
+
   return (
     <div className="flex-1 flex flex-col h-full overflow-y-auto bg-slate-950 text-slate-100 p-4 md:p-8">
       <div className="max-w-5xl mx-auto w-full space-y-6">
 
-        {/* 頂部 Header：統一入口說明 */}
+        {/* 頂部 Header */}
         <div className="p-6 rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border border-indigo-500/30 shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
             <Layers className="w-48 h-48 text-indigo-400" />
@@ -156,88 +240,181 @@ export const UnifiedEntry: React.FC<UnifiedEntryProps> = () => {
               </p>
             </div>
 
-            {workflowState && (
+            <div className="flex items-center gap-2">
+              {/* History button */}
               <button
                 type="button"
-                onClick={handleResetWorkflow}
+                onClick={() => setShowHistory(!showHistory)}
                 className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 transition-colors shadow-md"
               >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>開立新案件分析</span>
+                <History className="w-3.5 h-3.5" />
+                <span>歷史記錄 ({historyList.length})</span>
               </button>
-            )}
+
+              {workflowState && (
+                <button
+                  type="button"
+                  onClick={handleResetWorkflow}
+                  className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 transition-colors shadow-md"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>開立新案件分析</span>
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
+        {/* History Panel (collapsible) */}
+        {showHistory && (
+          <div className="p-4 rounded-2xl bg-slate-900/95 border border-slate-800 shadow-xl max-h-64 overflow-y-auto space-y-2">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <History className="w-4 h-4 text-indigo-400" />
+                分析歷史記錄
+              </h3>
+              <button onClick={() => setShowHistory(false)} className="text-slate-400 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            {historyList.length === 0 ? (
+              <p className="text-xs text-slate-500">尚無歷史記錄</p>
+            ) : (
+              historyList.map((record) => (
+                <div
+                  key={record.id}
+                  className="flex items-center justify-between p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/50 cursor-pointer transition-colors group"
+                  onClick={() => loadFromHistory(record)}
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-slate-200 truncate">{record.title}</p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      {new Date(record.timestamp).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })}
+                      {' · '}
+                      <span className="text-indigo-400">{record.workflowState?.router?.domain || '—'}</span>
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); deleteFromHistory(record.id); setHistoryList(loadHistory()); }}
+                      className="p-1 rounded hover:bg-slate-700 text-slate-400 hover:text-rose-400"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                    <ChevronRight className="w-4 h-4 text-slate-500" />
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
         {/* 狀態導航節點進度列 (StateGraph Timeline) */}
         <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs">
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl font-bold ${
-            workflowState ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' : 'bg-slate-800 text-slate-400'
-          }`}>
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl font-bold ${workflowState ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' : 'bg-slate-800 text-slate-400'}`}>
             <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[10px]">1</span>
             <span>文本輸入 (Entry)</span>
           </div>
           <ChevronRight className="w-4 h-4 text-slate-600 hidden sm:block" />
 
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl font-bold ${
-            workflowState?.router ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' : 'bg-slate-800 text-slate-500'
-          }`}>
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl font-bold ${workflowState?.router ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' : 'bg-slate-800 text-slate-500'}`}>
             <span className="w-5 h-5 rounded-full bg-slate-700 text-white flex items-center justify-center text-[10px]">2</span>
             <span>Router 路由 (JSON)</span>
           </div>
           <ChevronRight className="w-4 h-4 text-slate-600 hidden sm:block" />
 
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl font-bold ${
-            workflowState?.currentStep === 'QUESTIONING' 
-              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse'
-              : workflowState?.currentStep === 'SAFETY_PROTECTION'
-              ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse'
-              : workflowState?.router?.is_complete
-              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-              : 'bg-slate-800 text-slate-500'
-          }`}>
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl font-bold ${workflowState?.currentStep === 'QUESTIONING' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse' : workflowState?.currentStep === 'SAFETY_PROTECTION' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse' : workflowState?.router?.is_complete ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-slate-800 text-slate-500'}`}>
             <span className="w-5 h-5 rounded-full bg-slate-700 text-white flex items-center justify-center text-[10px]">3</span>
             <span>條件邊界分流</span>
           </div>
           <ChevronRight className="w-4 h-4 text-slate-600 hidden sm:block" />
 
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl font-bold ${
-            workflowState?.rag ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' : 'bg-slate-800 text-slate-500'
-          }`}>
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl font-bold ${workflowState?.rag ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' : 'bg-slate-800 text-slate-500'}`}>
             <span className="w-5 h-5 rounded-full bg-slate-700 text-white flex items-center justify-center text-[10px]">4</span>
             <span>RAG 要件庫</span>
           </div>
           <ChevronRight className="w-4 h-4 text-slate-600 hidden sm:block" />
 
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl font-bold ${
-            workflowState?.syllogism ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' : 'bg-slate-800 text-slate-500'
-          }`}>
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl font-bold ${workflowState?.syllogism ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' : 'bg-slate-800 text-slate-500'}`}>
             <span className="w-5 h-5 rounded-full bg-slate-700 text-white flex items-center justify-center text-[10px]">5</span>
             <span>三段論涵攝</span>
           </div>
           <ChevronRight className="w-4 h-4 text-slate-600 hidden sm:block" />
 
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl font-bold ${
-            workflowState?.verification ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-slate-800 text-slate-500'
-          }`}>
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl font-bold ${workflowState?.verification ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-slate-800 text-slate-500'}`}>
             <span className="w-5 h-5 rounded-full bg-slate-700 text-white flex items-center justify-center text-[10px]">6</span>
             <span>真確性檢核閘門</span>
           </div>
         </div>
 
-        {/* 節點 1：單一入口文本輸入 (UnifiedEntry) */}
-        <div className="p-6 rounded-3xl bg-slate-900/90 border border-slate-800 shadow-xl space-y-4">
+        {/* Batch upload bar */}
+        {batchQueue.length > 1 && (
+          <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 text-xs text-amber-300">
+              <FilePlus className="w-4 h-4" />
+              <span className="font-bold">批量模式：第 {batchIndex + 1} / {batchQueue.length} 份</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleBatchPrev}
+                disabled={batchIndex === 0}
+                className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-slate-300 text-xs font-bold border border-slate-700"
+              >
+                上一份
+              </button>
+              <button
+                onClick={handleBatchNext}
+                disabled={batchIndex === batchQueue.length - 1}
+                className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-slate-300 text-xs font-bold border border-slate-700"
+              >
+                下一份
+              </button>
+              <button
+                onClick={() => { setBatchQueue([]); setBatchIndex(0); }}
+                className="px-3 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs font-bold border border-rose-500/30"
+              >
+                結束批量
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* 節點 1：單一入口文本輸入 + 拖曳上傳 */}
+        <div
+          className={`p-6 rounded-3xl bg-slate-900/90 border shadow-xl space-y-4 transition-colors ${isDragOver ? 'border-indigo-400 bg-indigo-500/5' : 'border-slate-800'}`}
+          onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+          onDragLeave={() => setIsDragOver(false)}
+          onDrop={handleDrop}
+        >
           <div className="flex items-center justify-between">
             <label className="text-sm font-bold text-white flex items-center gap-2">
               <FileText className="w-4 h-4 text-indigo-400" />
               <span>案件事實描述 / 法律書狀初稿</span>
             </label>
-            <span className="text-xs text-slate-400">
-              字數：{inputNarrative.length} 字
-            </span>
+            <div className="flex items-center gap-3">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".txt"
+                multiple
+                className="hidden"
+                onChange={(e) => { if (e.target.files) handleFiles(e.target.files); e.target.value = ''; }}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold border border-slate-700 transition-colors"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                <span>上傳判決書</span>
+              </button>
+              <span className="text-xs text-slate-400">
+                字數：{inputNarrative.length} 字
+              </span>
+            </div>
           </div>
 
-          {/* 快捷情境快速填入按鈕 */}
+          {/* Quick sample buttons */}
           <div className="flex flex-wrap items-center gap-2 pt-1">
             <span className="text-xs text-slate-400">快速載入測試：</span>
             <button
@@ -267,7 +444,7 @@ export const UnifiedEntry: React.FC<UnifiedEntryProps> = () => {
             value={inputNarrative}
             onChange={(e) => setInputNarrative(e.target.value)}
             disabled={isSubmitting}
-            placeholder="請以平鋪直敘方式輸入案發經過（人、事、時、地、已持有或未持有的客觀佐證資料）..."
+            placeholder="請以平鋪直敘方式輸入案發經過（人、事、時、地、已持有或未持有的客觀佐證資料）...&#10;&#10;或拖曳 .txt 判決書檔案到此區域上傳"
             rows={5}
             className="w-full p-4 rounded-2xl bg-slate-950 border border-slate-700 text-slate-100 text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all leading-relaxed placeholder:text-slate-600 disabled:opacity-50"
           />
@@ -275,7 +452,7 @@ export const UnifiedEntry: React.FC<UnifiedEntryProps> = () => {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
             <div className="text-xs text-slate-400 flex items-center gap-1.5">
               <Sparkles className="w-4 h-4 text-indigo-400 shrink-0" />
-              <span>支援直接輸入口語事實，系統將自動啟動 StateGraph 進行要件剖析</span>
+              <span>支援直接輸入口語事實，或拖曳上傳多份 .txt 判決書</span>
             </div>
 
             <button
@@ -332,286 +509,176 @@ export const UnifiedEntry: React.FC<UnifiedEntryProps> = () => {
               </div>
               <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
                 <span className="text-[11px] text-slate-400 block">敏感保護 (is_sensitive)</span>
-                <span className={`text-sm font-bold ${
-                  workflowState.router.is_sensitive ? 'text-rose-400' : 'text-emerald-400'
-                }`}>
-                  {workflowState.router.is_sensitive ? '⚠️ 啟動保護分流' : '一般爭議事件'}
+                <span className={`text-sm font-bold ${workflowState.router.is_sensitive ? 'text-rose-400' : 'text-emerald-400'}`}>
+                  {workflowState.router.is_sensitive ? '⚠ 敏感' : '✓ 一般'}
                 </span>
               </div>
             </div>
 
-            <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 text-xs">
-              <div className="flex items-center gap-2">
-                <span className="text-slate-300 font-semibold">事實完整度 (is_complete)：</span>
-                {workflowState.router.is_complete ? (
-                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    完整充足 (true)
-                  </span>
-                ) : (
-                  <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold flex items-center gap-1">
-                    <AlertTriangle className="w-3.5 h-3.5" />
-                    缺少要素 (false)
-                  </span>
-                )}
+            <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
+              <span className="text-[11px] text-slate-400 block mb-1">事實完整度評估 (completeness)</span>
+              <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-indigo-500 to-emerald-500 rounded-full transition-all"
+                  style={{ width: `${(workflowState.router.completeness || 0) * 100}%` }}
+                />
               </div>
-
-              {!workflowState.router.is_complete && (
-                <span className="text-amber-400 font-medium">已觸發條件邊界 ➔ 導向 QuestioningNode</span>
-              )}
+              <span className="text-xs text-slate-400 mt-1 block">{Math.round((workflowState.router.completeness || 0) * 100)}%</span>
             </div>
           </div>
         )}
 
-        {/* 條件邊界 1：敏感案件保護路徑 (SafetyProtectionNode) */}
-        {workflowState?.currentStep === 'SAFETY_PROTECTION' && workflowState.safety && (
-          <div className="p-6 rounded-3xl bg-rose-950/40 border border-rose-500/50 shadow-2xl space-y-4 animate-in fade-in">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5 text-rose-400">
-                <ShieldAlert className="w-6 h-6" />
-                <h3 className="text-base font-bold text-white">
-                  保護路徑：緊急人身安全與證據保全指引 (Safety Protection Node)
-                </h3>
-              </div>
-              <span className="px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 text-xs font-bold border border-rose-500/40">
-                優先處置
-              </span>
+        {/* Safety Protection Node */}
+        {workflowState?.currentStep === 'SAFETY_PROTECTION' && !acknowledgeSafetyInSession && (
+          <div className="p-6 rounded-3xl bg-rose-950/40 border border-rose-500/40 shadow-xl space-y-4">
+            <div className="flex items-center gap-3">
+              <ShieldAlert className="w-6 h-6 text-rose-400" />
+              <h2 className="text-lg font-bold text-rose-200">安全保護節點觸發</h2>
             </div>
-
-            <p className="text-xs text-rose-200 leading-relaxed">
-              偵測到您的案情涉及家庭暴力、性侵害或人身安全威脅。法律程序固然重要，但您與家人的人身安全永遠是第一要務。
+            <p className="text-sm text-rose-200/80 leading-relaxed">
+              您的案件涉及敏感法律領域（家庭暴力、性侵、自殺等），系統將啟動安全保護機制。
+              分析結果將附帶心理健康資源資訊，並優先建議尋求專業協助。
             </p>
+            <div className="flex gap-3">
+              <button
+                onClick={handleProceedFromSafety}
+                className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-sm font-bold transition-colors"
+              >
+                我已了解，繼續分析
+              </button>
+              <button
+                onClick={handleResetWorkflow}
+                className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-bold border border-slate-700 transition-colors"
+              >
+                重新輸入
+              </button>
+            </div>
+          </div>
+        )}
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              {workflowState.safety.emergencyHotlines.map((h, i) => (
-                <div key={i} className="p-3.5 rounded-2xl bg-slate-950/80 border border-rose-900/60 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-white">{h.label}</span>
-                    <a href={`tel:${h.number}`} className="flex items-center gap-1 text-sm font-black text-rose-400 hover:text-rose-300">
-                      <PhoneCall className="w-3.5 h-3.5" />
-                      {h.number}
-                    </a>
-                  </div>
-                  <p className="text-[11px] text-slate-400 leading-snug">{h.desc}</p>
-                </div>
+        {/* Questioning Node */}
+        {workflowState?.currentStep === 'QUESTIONING' && workflowState.questioning && (
+          <div className="p-6 rounded-3xl bg-amber-500/10 border border-amber-500/30 shadow-xl space-y-4">
+            <div className="flex items-center gap-3">
+              <HelpCircle className="w-6 h-6 text-amber-400" />
+              <h2 className="text-lg font-bold text-amber-200">動態追問節點</h2>
+            </div>
+            <p className="text-sm text-amber-200/80">{workflowState.questioning.question}</p>
+
+            <div className="flex flex-wrap gap-2">
+              {workflowState.questioning.options?.map((opt, i) => (
+                <button
+                  key={i}
+                  onClick={() => handleSelectSuggestedOption(opt)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 hover:border-amber-500/40 transition-all"
+                >
+                  {opt}
+                </button>
               ))}
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-950/90 border border-rose-900/40 text-xs space-y-2">
-              <span className="font-bold text-rose-300 block">⚠️ 關鍵 72 小時證據保全清單：</span>
-              <ul className="list-disc list-inside space-y-1.5 text-slate-300">
-                {workflowState.safety.preservationTips.map((tip, idx) => (
-                  <li key={idx}>{tip}</li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="flex justify-end pt-2">
-              <button
-                type="button"
-                onClick={handleProceedFromSafety}
-                className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-all shadow-md flex items-center gap-2 cursor-pointer"
-              >
-                <span>我已確保自身安全，繼續實體法律分析</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* 條件邊界 2：QuestioningNode 動態追問補正 */}
-        {workflowState?.currentStep === 'QUESTIONING' && workflowState.questioning && (
-          <div className="p-6 rounded-3xl bg-amber-950/30 border border-amber-500/40 shadow-2xl space-y-4 animate-in fade-in">
-            <div className="flex items-center gap-2.5 text-amber-400">
-              <HelpCircle className="w-5 h-5" />
-              <div>
-                <h3 className="text-base font-bold text-white">
-                  節點 3：動態追問與事實要件補全 (QuestioningNode)
-                </h3>
-                <p className="text-xs text-amber-200/70">缺少足以定罪或成案之客觀要素，請撥冗補充</p>
-              </div>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-slate-950/90 border border-slate-800 text-xs text-slate-200 leading-relaxed whitespace-pre-line">
-              {workflowState.questioning.rawMessage}
-            </div>
-
-            {workflowState.questioning.suggestedOptions.length > 0 && (
-              <div className="space-y-2">
-                <span className="text-xs font-bold text-amber-300 flex items-center gap-1">
-                  <Sparkles className="w-3.5 h-3.5" />
-                  點選快捷補充選項（點擊將自動作為事實追加）：
-                </span>
-                <div className="flex flex-wrap gap-2">
-                  {workflowState.questioning.suggestedOptions.map((opt, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => handleSelectSuggestedOption(opt)}
-                      disabled={isSubmitting}
-                      className="px-3.5 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500 border border-amber-500/30 hover:border-amber-400 text-amber-200 hover:text-slate-950 text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5"
-                    >
-                      <span>＋</span>
-                      <span>{opt}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="pt-2 flex gap-2">
+            <div className="flex gap-3">
               <input
-                type="text"
                 value={supplementInput}
                 onChange={(e) => setSupplementInput(e.target.value)}
-                placeholder="或自訂輸入補充（例如：對方是同居伴侶、已於11月16日至和平醫院開立驗傷單）..."
-                className="flex-1 px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-slate-100 focus:outline-none focus:border-amber-500"
+                onKeyDown={(e) => { if (e.key === 'Enter') handleSupplementFact(); }}
+                placeholder="或自行輸入補充事實..."
+                className="flex-1 px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-slate-100 text-sm focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
               />
               <button
-                type="button"
                 onClick={() => handleSupplementFact()}
-                disabled={!supplementInput.trim() || isSubmitting}
-                className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold transition-all disabled:opacity-40 cursor-pointer flex items-center gap-1.5"
+                disabled={!supplementInput.trim()}
+                className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 disabled:opacity-40 text-white text-sm font-bold transition-colors"
               >
-                {isSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                <span>補充事實並重評</span>
+                送出補充
               </button>
             </div>
           </div>
         )}
 
-        {/* 節點 4：RAGNode 檢索構成要件展示 */}
+        {/* RAG Results */}
         {workflowState?.rag && (
-          <div className="p-6 rounded-3xl bg-slate-900/90 border border-indigo-500/30 shadow-xl space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-              <div className="flex items-center gap-2 text-indigo-400">
+          <div className="p-6 rounded-3xl bg-slate-900/90 border border-slate-800 shadow-xl space-y-4">
+            <div className="flex items-center gap-2.5 pb-3 border-b border-slate-800">
+              <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400">
                 <BookOpen className="w-4 h-4" />
-                <h3 className="text-sm font-bold text-white">節點 4：RAGNode 動態法律構成要件庫注入</h3>
               </div>
-              <span className="text-[11px] text-slate-400">
-                依案由「{workflowState.router?.cause}」檢索
-              </span>
+              <h2 className="text-base font-bold text-white">節點 4：RAG 要件庫檢索結果</h2>
             </div>
-
-            <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono text-slate-300 max-h-36 overflow-y-auto whitespace-pre-line leading-relaxed">
-              {workflowState.rag.legalElements}
+            <div className="space-y-3">
+              {workflowState.rag.statutes?.map((statute, i) => (
+                <div key={i} className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+                  <p className="text-sm font-bold text-indigo-300">{statute.title}</p>
+                  <p className="text-xs text-slate-300 leading-relaxed">{statute.content}</p>
+                </div>
+              ))}
             </div>
           </div>
         )}
 
-        {/* 節點 5：SyllogismNode 三段論涵攝引擎 */}
+        {/* Syllogism Analysis + Export buttons */}
         {workflowState?.syllogism && (
-          <div className="p-6 rounded-3xl bg-slate-900/90 border border-indigo-500/40 shadow-xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400">
-                  <Scale className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-white">節點 5：SyllogismNode 三段論涵攝分析</h3>
-                  <p className="text-xs text-slate-400">嚴格依據大前提構成要件與小前提事實進行比對</p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleCopyAnalysis}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 transition-colors"
-              >
-                {isCopied ? (
-                  <>
-                    <Check className="w-3.5 h-3.5 text-emerald-400" />
-                    <span className="text-emerald-400">已複製分析</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-3.5 h-3.5" />
-                    <span>複製報告</span>
-                  </>
-                )}
-              </button>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-xs text-slate-200 leading-relaxed whitespace-pre-line">
-              {workflowState.syllogism.fullAnalysis}
-            </div>
-          </div>
-        )}
-
-        {/* 節點 6：VerificationGateNode (合併 External Document Checker) */}
-        {workflowState?.verification && (
-          <div className="p-6 rounded-3xl bg-slate-900/90 border border-emerald-500/40 shadow-2xl space-y-4">
+          <div className="p-6 rounded-3xl bg-slate-900/90 border border-emerald-500/30 shadow-xl space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400">
-                  <FileCheck2 className="w-5 h-5" />
+                  <Scale className="w-4 h-4" />
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-base font-bold text-white">
-                      節點 6：External Document Checker 真確性檢核閘門
-                    </h3>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${
-                      workflowState.verification.passGate
-                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                        : 'bg-rose-500/20 text-rose-300 border-rose-500/40'
-                    }`}>
-                      {workflowState.verification.passGate ? '✓ 檢核閘門通過' : '⚠️ 存在疑義法條'}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    自動合併防幽靈假法條驗證與外部裁判字號真實性交叉核對
-                  </p>
-                </div>
+                <h2 className="text-base font-bold text-white">節點 5：三段論涵攝分析</h2>
               </div>
 
-              <div className="flex items-center gap-2 text-xs">
-                <span className="text-slate-400">檢驗法規數：</span>
-                <span className="font-bold text-white">{workflowState.verification.totalChecked}</span>
-                <span className="text-slate-400 ml-2">疑義數：</span>
-                <span className={`font-bold ${workflowState.verification.ghostCount === 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                  {workflowState.verification.ghostCount}
-                </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleCopyAnalysis}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold border border-slate-700 transition-colors"
+                >
+                  {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{isCopied ? '已複製' : '複製分析'}</span>
+                </button>
+                <button
+                  onClick={() => exportAsHtml(workflowState)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold border border-slate-700 transition-colors"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>匯出 HTML</span>
+                </button>
+                <button
+                  onClick={() => exportAsText(workflowState)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold border border-slate-700 transition-colors"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>匯出 TXT</span>
+                </button>
+                <button
+                  onClick={() => printReport(workflowState)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold border border-slate-700 transition-colors"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>列印</span>
+                </button>
               </div>
             </div>
 
-            {/* 警告標語或綠色通行證 */}
-            <div className={`p-3.5 rounded-xl border text-xs flex items-center gap-2.5 ${
-              workflowState.verification.passGate
-                ? 'bg-emerald-950/30 border-emerald-500/30 text-emerald-300'
-                : 'bg-rose-950/30 border-rose-500/30 text-rose-300'
-            }`}>
-              {workflowState.verification.passGate ? (
-                <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+            <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800">
+              <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">
+                {workflowState.syllogism.fullAnalysis}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Verification Gate */}
+        {workflowState?.verification && (
+          <div className={`p-6 rounded-3xl border shadow-xl space-y-3 ${workflowState.verification.gate_passed ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-rose-500/10 border-rose-500/30'}`}>
+            <div className="flex items-center gap-3">
+              {workflowState.verification.gate_passed ? (
+                <ShieldCheck className="w-6 h-6 text-emerald-400" />
               ) : (
-                <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                <AlertTriangle className="w-6 h-6 text-rose-400" />
               )}
-              <span>{workflowState.verification.warningNotice}</span>
+              <h2 className="text-lg font-bold text-white">節點 6：真確性檢核閘門</h2>
             </div>
-
-            {/* 查驗細節清單 */}
-            {workflowState.verification.results.length > 0 && (
-              <div className="space-y-2">
-                <span className="text-xs font-bold text-slate-300">引用法條查驗結果：</span>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                  {workflowState.verification.results.slice(0, 6).map((item, idx) => (
-                    <div key={idx} className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-indigo-300">{item.citation}</span>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                          item.status === 'VERIFIED_REAL'
-                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                            : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
-                        }`}>
-                          {item.status === 'VERIFIED_REAL' ? '真實法條' : '疑義法條'}
-                        </span>
-                      </div>
-                      <p className="text-slate-400 text-[11px] leading-relaxed">{item.explanation}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            <p className="text-sm text-slate-300">{workflowState.verification.notes}</p>
           </div>
         )}
 
@@ -619,3 +686,5 @@ export const UnifiedEntry: React.FC<UnifiedEntryProps> = () => {
     </div>
   );
 };
+
+export default UnifiedEntry;
