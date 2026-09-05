@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { LegalSourcesDisplay } from './LegalSourcesDisplay';
 import { LEGAL_TOOLS } from './LegalToolbox';
+import { QuickExamplesSection } from './QuickExampleCard';
 import { useCaseStore } from '../store/useCaseStore';
 import { 
   Compass, 
@@ -1020,6 +1021,9 @@ const [tagClicks, setTagClicks] = useState<Record<string, number>>(loadTagClicks
             </button>
           ))}
         </div>
+
+          {/* 常見法律情境快速入口卡片（4 大生活情境） */}
+          <QuickExamplesSection onSelectTool={onSelectTool} />
 
           {/* 熱門關鍵字快捷搜尋（核心標籤 + 可展開更多標籤） */}
           <div className="pb-4 border-b border-slate-800/50 space-y-2">

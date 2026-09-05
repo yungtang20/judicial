@@ -54,7 +54,7 @@ export function verifyGeneratedDocument(
       totalCitationsChecked: result.totalChecked,
       ghostCitationsFound: result.ghostCount,
       verifiedCitations: result.results,
-      verificationPassed: result.ghostCount === 0 && result.results.every(citation => citation.verified)
+      verificationPassed: result.ghostCount === 0 && (result.results.length === 0 || result.results.every(citation => citation.verified))
     }
   };
 }

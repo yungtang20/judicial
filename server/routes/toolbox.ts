@@ -60,7 +60,7 @@ router.post("/api/toolbox/generate", async (req: Request, res: Response) => {
       fallback: () => {
         const fallback = buildFallbackToolboxResult(categoryKey, params || {});
         return {
-          documentText: "", // Bypass citation check for predefined rule engine
+          documentText: fallback.documentText,
           payload: fallback
         };
       }
