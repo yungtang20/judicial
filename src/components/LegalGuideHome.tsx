@@ -64,6 +64,7 @@ export const LegalGuideHome: React.FC<LegalGuideHomeProps> = ({ onSelectTool, on
 const [tagClicks, setTagClicks] = useState<Record<string, number>>(loadTagClicks);
   const [showExtendedTags, setShowExtendedTags] = useState<boolean>(false);
   const [draggedTag, setDraggedTag] = useState<string | null>(null);
+  const [tagOrderVersion, setTagOrderVersion] = useState(0);
   const [selectedScenario, setSelectedScenario] = useState<ScenarioItem | null>(null);
 
   // Dynamic AI Universal Triage state
@@ -1045,7 +1046,7 @@ const [tagClicks, setTagClicks] = useState<Record<string, number>>(loadTagClicks
                     newOrder.splice(toIdx, 0, draggedTag);
                     saveTagOrder(newOrder);
                     setDraggedTag(null);
-                    window.location.reload();
+                    setTagOrderVersion(v => v + 1);
                   }}
                   onDragEnd={() => setDraggedTag(null)}
                   onClick={() => {
