@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { BookOpen, AlertCircle, Database, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react';
-import { LegalSearchSources } from '../lib/twLegalRagClient.js';
+import { LegalSearchSources } from '../lib/services/legalSearch';
 
 interface LegalSourcesDisplayProps {
   sources?: LegalSearchSources;

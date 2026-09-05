@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { AntiGhostBadge } from './AntiGhostBadge';
-import { verifyLegalCitations } from '../lib/citationVerifier';
+import { verifyLegalCitations } from '../lib/services/citationCheck';
 import { getActiveCase, useCaseStore } from '../store/useCaseStore';
 import { ShieldCheck, CheckCircle2 } from 'lucide-react';
 

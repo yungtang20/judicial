@@ -8,7 +8,7 @@ import { useAppealStore } from "../store/useAppealStore";
 import { useCaseStore } from "../store/useCaseStore";
 import { AntiGhostBadge } from "./AntiGhostBadge";
 import { LegalSourcesDisplay } from "./LegalSourcesDisplay";
-import { verifyLegalCitations } from "../lib/citationVerifier";
+import { verifyLegalCitations } from "../lib/services/citationCheck";
 import { ShieldCheck, CheckCircle2 } from "lucide-react";
 
 if (typeof window !== 'undefined' && pdfjsLib && pdfjsLib.GlobalWorkerOptions) {

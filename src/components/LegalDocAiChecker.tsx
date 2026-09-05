@@ -20,9 +20,9 @@ import {
   Filter,
   FileCode
 } from 'lucide-react';
-import { verifyLegalCitations } from '../lib/citationVerifier';
+import { verifyLegalCitations } from '../lib/services/citationCheck';
 import { CitationVerificationResult } from '../types';
-import { ExternalCitationResult } from '../lib/externalCitationVerifier';
+import { ExternalCitationResult } from '../lib/services/citationCheck';
 
 export const LegalDocAiChecker: React.FC = () => {
   const defaultSampleDoc = `民事準備書狀（範例）
