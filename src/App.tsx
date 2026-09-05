@@ -11,6 +11,12 @@ const AgentChat = React.lazy(() => import('./components/AgentChat'));
 const JudicialAndAiChecker = React.lazy(() => import('./components/JudicialAndAiChecker'));
 const LegalToolbox = React.lazy(() => import('./components/LegalToolbox'));
 
+// Routes under 案件分析 core entry (show hero header + RecentUsage)
+const ANALYSIS_ROUTES = ['unified', 'guide', 'processGuide'];
+
+// Routes under 文書生成 core entry
+const DOCGEN_ROUTES = ['litigation', 'sdlc', 'agent-chat', 'checker', 'docAiChecker', 'judgmentSearch'];
+
 function LoadingFallback() {
   return (
     <div className="flex-1 flex items-center justify-center bg-[#0a0e1a]">
@@ -60,13 +66,15 @@ export default function App() {
     }
   };
 
+  const isAnalysisRoute = ANALYSIS_ROUTES.includes(activeTool);
+
   return (
     <div className="flex h-screen bg-[#0a0e1a] text-white overflow-hidden font-sans">
       <Sidebar activeTool={activeTool} setActiveTool={setActiveTool} />
       <main className="flex-1 overflow-y-auto">
         <Suspense fallback={<LoadingFallback />}>
-          {/* Show RecentUsage at top when on unified entry */}
-          {activeTool === 'unified' && (
+          {/* 案件分析 routes: show hero header + RecentUsage */}
+          {isAnalysisRoute && (
             <div className="max-w-4xl mx-auto px-6 pt-6 space-y-6">
               {/* Hero header */}
               <div className="text-center space-y-2 pt-8">
@@ -82,15 +90,15 @@ export default function App() {
               {/* Recent Usage */}
               <RecentUsage onSelectTool={handleSelectTool} />
 
-              {/* Main content (UnifiedEntry will render below) */}
+              {/* Main content */}
               <div className="pb-12">
                 {renderContent()}
               </div>
             </div>
           )}
 
-          {/* All other tools: full height, no extra chrome */}
-          {activeTool !== 'unified' && renderContent()}
+          {/* 文書生成 & 法律工具箱 routes: full height, no extra chrome */}
+          {!isAnalysisRoute && renderContent()}
         </Suspense>
       </main>
     </div>
