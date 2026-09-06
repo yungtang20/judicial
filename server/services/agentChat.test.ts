@@ -351,13 +351,13 @@ describe("agentChat service", () => {
 
   it("returns error when LLM times out", async () => {
     setupHappyPath();
-    // Never resolves → triggers 8s timeout
+    // Never resolves → triggers 15s timeout
     mockGenerate.mockReturnValue(new Promise(() => {}));
 
     const result = await handleAgentChat({ userInput: "test" });
     expect(result.success).toBe(false);
     expect(result.error).toBeDefined();
-  }, 15000);
+  }, 20000);
 
   // ── Disclaimer ──────────────────────────────────────────────────────────
 

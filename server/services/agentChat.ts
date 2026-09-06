@@ -204,7 +204,7 @@ export async function handleAgentChat(
   try {
     const aiPromise = defaultAIProvider.generate(prompt, { temperature: 0.3 });
     const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("AGENT_CHAT_TIMEOUT")), 8000)
+      setTimeout(() => reject(new Error("AGENT_CHAT_TIMEOUT")), 15000)
     );
     const response = await Promise.race([aiPromise, timeoutPromise]);
     llmText = response.text;

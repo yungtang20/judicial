@@ -9,7 +9,7 @@ import {
   buildSyllogismEnginePrompt
 } from "../../src/prompts/legalProcessPrompts.js";
 
-describe("3-Node Legal Process Pipeline", { timeout: 15000 }, () => {
+describe("3-Node Legal Process Pipeline", { timeout: 30000 }, () => {
   let server: http.Server;
   let baseUrl: string;
 

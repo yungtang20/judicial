@@ -106,7 +106,7 @@ async function runQuestioningNode(
     const prompt = buildQuestioningPrompt(missing, userInput);
     const aiPromise = defaultAIProvider.generate(prompt, { temperature: 0.3 });
     const timeoutPromise = new Promise<never>((_, reject) => 
-      setTimeout(() => reject(new Error("AI_QUESTION_TIMEOUT")), 2500)
+      setTimeout(() => reject(new Error("AI_QUESTION_TIMEOUT_ERR")), 45000)
     );
     const response = await Promise.race([aiPromise, timeoutPromise]);
     rawMessage = response.text;
@@ -132,7 +132,7 @@ async function runQuestioningNode(
 async function runRagNode(
   queryTopic: string, 
   userFacts: string,
-  triageMeta: { caseType?: string; category?: string; isSensitive?: boolean; legalBasis?: string[] }
+  triageMeta: { caseType?: string; category?: string; isSensitive?: boolean; legalBasis?: string[]; missing_elements?: string[] }
 ): Promise<{
   searchQuery: string;
   legalElements: string;
@@ -234,7 +234,7 @@ async function runRagNode(
 async function runSyllogismNode(
   legalElements: string, 
   userFacts: string,
-  routerMeta: { is_sensitive?: boolean; category?: string; protectionNotice?: string; legalBasis?: string[] }
+  routerMeta: { is_sensitive?: boolean; category?: string; protectionNotice?: string; legalBasis?: string[]; missing_elements?: string[] }
 ): Promise<{
   majorPremise: string;
   minorPremise: string;
@@ -248,10 +248,10 @@ async function runSyllogismNode(
     routerMeta.category?.includes("DOMESTIC");
 
   try {
-    const prompt = buildSyllogismEnginePrompt(legalElements, userFacts.trim());
+    const prompt = buildSyllogismEnginePrompt(legalElements, userFacts.trim(), routerMeta.missing_elements);
     const aiPromise = defaultAIProvider.generate(prompt, { temperature: 0.2 });
     const timeoutPromise = new Promise<never>((_, reject) => 
-      setTimeout(() => reject(new Error("AI_SYLLOGISM_TIMEOUT")), 2500)
+      setTimeout(() => reject(new Error("AI_SYLLOGISM_TIMEOUT")), 45000)
     );
     const response = await Promise.race([aiPromise, timeoutPromise]);
     fullAnalysis = response.text;
@@ -411,8 +411,12 @@ router.post("/api/workflow/execute", async (req: Request, res: Response) => {
         routerResult.temporalConflict
       );
       state.questioning = questionData;
-      // 嚴格終止，不得繼續執行後續節點
-      return res.json({ success: true, data: state });
+      // 時間矛盾屬於重大邏輯錯誤，無法生成草稿，必須嚴格中斷
+      if (routerResult.temporalConflict?.hasConflict) {
+        return res.json({ success: true, data: state });
+      }
+      // 彈性驗證：改為標記缺失並生成草稿
+      // 移除中斷，繼續往下執行
     }
 
     // 條件邊界通過：推進至 RAGNode
@@ -421,7 +425,8 @@ router.post("/api/workflow/execute", async (req: Request, res: Response) => {
       caseType: routerResult.caseType,
       category: routerResult.category,
       isSensitive: routerResult.is_sensitive,
-      legalBasis: routerResult.legalBasis
+      legalBasis: routerResult.legalBasis,
+      missing_elements: routerResult.missing_elements
     });
     state.rag = ragData;
 
@@ -431,7 +436,8 @@ router.post("/api/workflow/execute", async (req: Request, res: Response) => {
       is_sensitive: routerResult.is_sensitive,
       category: routerResult.category,
       protectionNotice: routerResult.protectionNotice,
-      legalBasis: routerResult.legalBasis
+      legalBasis: routerResult.legalBasis,
+      missing_elements: routerResult.missing_elements
     });
     state.syllogism = syllogismData;
 
@@ -510,7 +516,13 @@ router.post("/api/workflow/supplement", async (req: Request, res: Response) => {
         routerResult.temporalConflict
       );
       state.questioning = questionData;
-      return res.json({ success: true, data: state });
+      
+      // 時間矛盾屬於重大邏輯錯誤，無法生成草稿，必須嚴格中斷
+      if (routerResult.temporalConflict?.hasConflict) {
+        return res.json({ success: true, data: state });
+      }
+      
+      // 彈性驗證：不中斷，繼續往下生成初步草稿
     }
 
     // 完整流程推進
@@ -519,7 +531,8 @@ router.post("/api/workflow/supplement", async (req: Request, res: Response) => {
       caseType: routerResult.caseType,
       category: routerResult.category,
       isSensitive: routerResult.is_sensitive,
-      legalBasis: routerResult.legalBasis
+      legalBasis: routerResult.legalBasis,
+      missing_elements: routerResult.missing_elements
     });
     state.rag = ragData;
 
@@ -528,7 +541,8 @@ router.post("/api/workflow/supplement", async (req: Request, res: Response) => {
       is_sensitive: routerResult.is_sensitive,
       category: routerResult.category,
       protectionNotice: routerResult.protectionNotice,
-      legalBasis: routerResult.legalBasis
+      legalBasis: routerResult.legalBasis,
+      missing_elements: routerResult.missing_elements
     });
     state.syllogism = syllogismData;
 
@@ -550,4 +564,35 @@ router.post("/api/workflow/supplement", async (req: Request, res: Response) => {
   }
 });
 
+
+/**
+ * POST /api/workflow/suggest-field
+ * 提供表單欄位的 AI 建議
+ */
+router.post("/api/workflow/suggest-field", async (req: Request, res: Response) => {
+  try {
+    const { fieldLabel, toolName, incidentDetails } = req.body;
+    const prompt = `你是一位專業的法律表單填寫助手。使用者正在準備【${toolName}】，但在「${fieldLabel}」欄位不知道該填什麼。
+請根據以下案件事實（若無則依一般常見情境），提供 3 個簡短、具體、且符合該欄位要求的填寫選項，讓使用者可以直接套用。
+
+案件事實：${incidentDetails || "未提供"}
+
+請直接輸出一個 JSON 陣列，包含 3 個字串，例如：["選項一", "選項二", "選項三"]。絕不輸出任何其他文字或 Markdown 標記（不要有 json 等）。`;
+
+    const response = await defaultAIProvider.generate(prompt, { temperature: 0.7 });
+    let text = response.text.trim();
+    if (text.startsWith('```json')) {
+      text = text.replace(/^```json/, '').replace(/```$/, '').trim();
+    }
+    const match = text.match(/\[.*\]/s);
+    const jsonStr = match ? match[0] : '[]';
+    const options = JSON.parse(jsonStr);
+    return res.json({ success: true, options });
+  } catch (error: any) {
+    console.error('[SuggestField] 取得建議失敗:', error);
+    return res.status(500).json({ error: error.message || "取得建議失敗" });
+  }
+});
+
 export default router;
+

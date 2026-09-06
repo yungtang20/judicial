@@ -342,7 +342,7 @@ export function buildIntelligentRuleBasedTriage(query: string) {
 
         // 8-pre. 乘機性交/猥褻
     const isPreIncapacitated = q.includes("睡") || q.includes("熟睡") || q.includes("昏睡") || q.includes("意識不清") || q.includes("酒醉") || q.includes("灌醉") || q.includes("麻醉") || q.includes("昏迷") || q.includes("爛醉") || q.includes("不醒") || q.includes("安眠藥");
-    const isPreSexualAct = q.includes("含住") || q.includes("口交") || q.includes("性交") || q.includes("性行為") || q.includes("性關係") || q.includes("猥褻") || q.includes("陰莖") || q.includes("摸") || q.includes("插入") || q.includes("硬上") || q.includes("強上") || q.includes("做愛");
+    const isPreSexualAct = q.includes("含住") || q.includes("口交") || q.includes("性交") || q.includes("性行為") || q.includes("性關係") || q.includes("猥褻") || q.includes("陰莖") || q.includes("摸") || q.includes("插入") || q.includes("硬上") || q.includes("強上") || q.includes("做愛") || q.includes("內射") || q.includes("騎");
 
     if (isPreIncapacitated && isPreSexualAct) {
       const cat = "CRIMINAL_COMPLAINT_SEXUAL_ASSAULT";
@@ -432,8 +432,8 @@ export function buildIntelligentRuleBasedTriage(query: string) {
 
     // 8. 妨害性自主 / 強制性交 / 違反意願性交 (含配偶間性犯罪、乘機性交)
     const isIncapacitated = q.includes("睡覺") || q.includes("睡眠") || q.includes("昏睡") || q.includes("酒醉") || q.includes("下藥") || q.includes("昏迷") || q.includes("不醒") || q.includes("不知抗拒") || q.includes("不能抗拒") || q.includes("乘機") || q.includes("安眠藥");
-    const isForced = q.includes("強迫") || q.includes("強行") || q.includes("違反意願") || q.includes("強壓") || q.includes("按頭") || q.includes("反抗") || q.includes("拒絕") || q.includes("強暴") || q.includes("脅迫");
-    const isSexualAct = q.includes("口交") || q.includes("性交") || q.includes("性行為") || q.includes("性關係") || q.includes("做愛") || q.includes("猥褻") || q.includes("陰蒂") || q.includes("陰莖") || q.includes("性器") || q.includes("含住");
+    const isForced = q.includes("強迫") || q.includes("強行") || q.includes("違反意願") || q.includes("強壓") || q.includes("按頭") || q.includes("反抗") || q.includes("拒絕") || q.includes("強暴") || q.includes("脅迫") || q.includes("偷偷");
+    const isSexualAct = q.includes("口交") || q.includes("性交") || q.includes("性行為") || q.includes("性關係") || q.includes("做愛") || q.includes("猥褻") || q.includes("陰蒂") || q.includes("陰莖") || q.includes("性器") || q.includes("含住") || q.includes("內射") || q.includes("騎");
     
     const isSexualAssault = q.includes("性侵") || q.includes("非自願") || q.includes("妨害性自主") || q.includes("強制性交") || q.includes("強姦") || q.includes("乘機性交") || (isSexualAct && (isForced || isIncapacitated));
 
@@ -712,14 +712,11 @@ export function evaluateNarrativeCompleteness(query: string): {
   if (!/(家|房間|飯店|旅館|客廳|車上|辦公室|現場|路口|處|店|住處|市|縣|區|路|街|巷|號|公司|銀行|租屋處|住家)/.test(trimmed)) {
     missing.push("發生地點（地）");
   }
-  if (!/(配偶|先生|太太|同居|前夫|前妻|同事|朋友|男友|女友|房東|房客|對方|加害人|原告|被告|陳|李|張|王|林|黃|某|客戶|雇主)/.test(trimmed)) {
-    missing.push("關係人身分與姓名（人）");
-  }
   if (!/(診斷書|驗傷|對話紀錄|LINE|截圖|監視器|錄音|照片|證人|匯款|契約|合約|借據|本票|存證信函|單據|紀錄|憑證)/.test(trimmed)) {
     missing.push("客觀佐證資料（證據）");
   }
 
-  const isComplete = missing.length === 0 && trimmed.length >= 35 && !temporal.hasConflict;
+  const isComplete = missing.length === 0 && !temporal.hasConflict;
 
   return {
     isComplete,

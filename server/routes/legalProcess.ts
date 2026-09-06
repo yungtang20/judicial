@@ -107,7 +107,7 @@ router.post("/api/process/router", async (req: Request, res: Response) => {
       const prompt = buildRouterPrompt(trimmedInput);
       const aiPromise = defaultAIProvider.generate(prompt, { temperature: 0.1 });
       const timeoutPromise = new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error("AI_ROUTER_TIMEOUT")), 2500)
+        setTimeout(() => reject(new Error("AI_ROUTER_TIMEOUT")), 45000)
       );
       const response = await Promise.race([aiPromise, timeoutPromise]);
       result = extractJsonFromText<RouterEvaluationResult>(response.text);
@@ -167,7 +167,7 @@ router.post("/api/process/question", async (req: Request, res: Response) => {
       const prompt = buildQuestioningPrompt(missing, trimmedInput);
       const aiPromise = defaultAIProvider.generate(prompt, { temperature: 0.3 });
       const timeoutPromise = new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error("AI_QUESTION_TIMEOUT")), 2500)
+        setTimeout(() => reject(new Error("AI_QUESTION_TIMEOUT")), 45000)
       );
       const response = await Promise.race([aiPromise, timeoutPromise]);
 
@@ -230,7 +230,7 @@ router.post("/api/process/syllogism", async (req: Request, res: Response) => {
       const prompt = buildSyllogismEnginePrompt(legalElements, userFacts.trim());
       const aiPromise = defaultAIProvider.generate(prompt, { temperature: 0.2 });
       const timeoutPromise = new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error("AI_SYLLOGISM_TIMEOUT")), 2500)
+        setTimeout(() => reject(new Error("AI_SYLLOGISM_TIMEOUT")), 45000)
       );
       const response = await Promise.race([aiPromise, timeoutPromise]);
       analysis = response.text;

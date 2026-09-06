@@ -11,7 +11,13 @@ export interface AnalysisRecord {
 export function loadHistory(): AnalysisRecord[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (item): item is AnalysisRecord =>
+        Boolean(item && typeof item === 'object' && typeof item.id === 'string' && typeof item.title === 'string')
+    );
   } catch {
     return [];
   }

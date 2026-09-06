@@ -33,88 +33,17 @@ import {
   Gavel,
   BadgeAlert,
   Printer,
-  ArrowRight,
-  Cpu,
-  LayoutTemplate
+  ArrowRight
 } from 'lucide-react';
 import { apiClient } from '../lib/apiClient';
 import { LegalToolboxResult } from '../types';
 import { getActiveCase, useCaseStore } from '../store/useCaseStore';
 import { LegalSourcesDisplay } from './LegalSourcesDisplay';
-import { DocumentProgressTracker, DocumentGenerationStage } from './DocumentProgressTracker';
 
 import { LEGAL_TOOLS } from '../lib/legalToolRegistry';
 export { LEGAL_TOOLS } from '../lib/legalToolRegistry';
 
 const countToolsInGroup = (group: string) => LEGAL_TOOLS.filter(tool => tool.categoryGroup === group).length;
-
-
-const AiSuggestButton: React.FC<{ fieldLabel: string; fieldKey: string; toolName: string; incidentDetails: string; onSelect: (val: string) => void }> = ({ fieldLabel, fieldKey, toolName, incidentDetails, onSelect }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [options, setOptions] = useState<string[]>([]);
-  
-  const handleSuggest = async () => {
-    if (options.length > 0) {
-      setIsOpen(!isOpen);
-      return;
-    }
-    setIsLoading(true);
-    setIsOpen(true);
-    try {
-      const res = await fetch('/api/workflow/suggest-field', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fieldLabel, toolName, incidentDetails })
-      });
-      const data = await res.json();
-      if (data.success && data.options) {
-        setOptions(data.options);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={(e) => { e.preventDefault(); handleSuggest(); }}
-        className="flex items-center gap-1 text-[10px] bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-1.5 py-0.5 rounded transition-all"
-        disabled={isLoading}
-      >
-        <Sparkles className="w-3 h-3" /> AI 建議
-      </button>
-      {isOpen && (
-        <div className="absolute top-full right-0 mt-1 z-50 w-64 bg-slate-800 border border-slate-700 rounded-lg shadow-xl overflow-hidden p-2">
-          {isLoading ? (
-            <div className="text-xs text-slate-400 p-2 text-center animate-pulse">產生中...</div>
-          ) : (
-            <div className="flex flex-col gap-1">
-              <div className="flex justify-between items-center px-1 mb-1">
-                <span className="text-[10px] font-bold text-slate-400">選擇一項快速帶入</span>
-                <button type="button" onClick={() => setIsOpen(false)} className="text-[10px] text-slate-500 hover:text-slate-300">關閉</button>
-              </div>
-              {options.map((opt, i) => (
-                <button
-                  type="button"
-                  key={i}
-                  onClick={(e) => { e.preventDefault(); onSelect(opt); setIsOpen(false); }}
-                  className="text-left text-xs p-1.5 rounded bg-slate-900 hover:bg-slate-700 text-slate-200 border border-slate-700/50 transition-colors"
-                >
-                  {opt}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-};
 
 export interface LegalToolboxProps {
   initialToolId?: string;
@@ -280,9 +209,6 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
 
   const handleInputChange = (field: string, value: any) => {
     setFormInputs(prev => ({ ...prev, [field]: value }));
-    if (generationStage === 'ready' || generationStage === 'error') {
-      setGenerationStage('input');
-    }
   };
 
   // Filtered tools
@@ -302,8 +228,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
     return LEGAL_TOOLS.find(t => t.id === activeToolId) || LEGAL_TOOLS[0];
   }, [activeToolId]);
 
-  // Results, Loading & Progress Stages
-  const [generationStage, setGenerationStage] = useState<DocumentGenerationStage>('input');
+  // Results & Loading
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<LegalToolboxResult | null>(null);
   const [copied, setCopied] = useState(false);
@@ -312,22 +237,13 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
   // Generate Document
   const handleGenerate = async () => {
     setIsLoading(true);
-    setGenerationStage('analyzing');
     setGenerateError(null);
-
-    // 平滑階段推進指示：AI 分析 (約1.2秒後切換為格式排版)
-    const formattingTimer = setTimeout(() => {
-      setGenerationStage('formatting');
-    }, 1200);
-
     try {
       const res = await apiClient.toolboxGenerate({
         toolCategory: activeToolId,
         params: formInputs
       });
-      clearTimeout(formattingTimer);
       setResult(res);
-      setGenerationStage('ready');
       if (res?.documentText) {
         addDocument({
           id: `toolbox-${activeToolId}-${Date.now()}`,
@@ -345,9 +261,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
         handleFullVerify(res.documentText);
       }
     } catch (err: any) {
-      clearTimeout(formattingTimer);
       console.error('Toolbox generate error:', err);
-      setGenerationStage('error');
       setGenerateError(err?.message || '文件產製未通過法規引用驗證，請稍候重試或調整案情內容');
     } finally {
       setIsLoading(false);
@@ -544,16 +458,6 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
         })}
       </div>
 
-      {/* 書狀產生流程進度指示器 */}
-      <DocumentProgressTracker 
-        currentStage={generationStage} 
-        errorMessage={generateError}
-        onResetToInput={() => {
-          setGenerationStage('input');
-          setGenerateError(null);
-        }}
-      />
-
       {/* Main Split View: Dynamic Config Form (Left) & Document Preview (Right) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
@@ -580,7 +484,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
               <div className="space-y-3 text-xs">
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">受文地檢署</label><AiSuggestButton fieldLabel="受文地檢署" fieldKey="prosecutorOffice" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('prosecutorOffice', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">受文地檢署</label><AiSuggestButton fieldLabel="受文地檢署" fieldKey="prosecutorOffice" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('prosecutorOffice', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.prosecutorOffice}
@@ -589,7 +493,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                     />
                   </div>
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">告訴人姓名</label><AiSuggestButton fieldLabel="告訴人姓名" fieldKey="complainantName" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('complainantName', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">告訴人姓名</label><AiSuggestButton fieldLabel="告訴人姓名" fieldKey="complainantName" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('complainantName', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.complainantName}
@@ -600,7 +504,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">告訴人電話</label><AiSuggestButton fieldLabel="告訴人電話" fieldKey="complainantPhone" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('complainantPhone', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">告訴人電話</label><AiSuggestButton fieldLabel="告訴人電話" fieldKey="complainantPhone" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('complainantPhone', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.complainantPhone}
@@ -609,7 +513,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                     />
                   </div>
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">被告（肇事者）姓名</label><AiSuggestButton fieldLabel="被告（肇事者）姓名" fieldKey="accusedName" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('accusedName', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">被告（肇事者）姓名</label><AiSuggestButton fieldLabel="被告（肇事者）姓名" fieldKey="accusedName" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('accusedName', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.accusedName}
@@ -619,7 +523,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                   </div>
                 </div>
                 <div>
-                  <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">案發時間與交岔路口</label><AiSuggestButton fieldLabel="案發時間與交岔路口" fieldKey="incidentDate" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('incidentDate', val)} /></div>
+                  <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">案發時間與交岔路口</label><AiSuggestButton fieldLabel="案發時間與交岔路口" fieldKey="incidentDate" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('incidentDate', val)} /></div>
                   <div className="grid grid-cols-2 gap-2">
                     <input
                       type="text"
@@ -636,7 +540,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                   </div>
                 </div>
                 <div>
-                  <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">車禍肇事情節與傷勢</label><AiSuggestButton fieldLabel="車禍肇事情節與傷勢" fieldKey="incidentDetails" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('incidentDetails', val)} /></div>
+                  <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">車禍肇事情節與傷勢</label><AiSuggestButton fieldLabel="車禍肇事情節與傷勢" fieldKey="incidentDetails" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('incidentDetails', val)} /></div>
                   <textarea
                     rows={5}
                     value={formInputs.incidentDetails}
@@ -652,7 +556,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
               <div className="space-y-3 text-xs">
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">受騙被害人姓名</label><AiSuggestButton fieldLabel="受騙被害人姓名" fieldKey="complainantName" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('complainantName', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">受騙被害人姓名</label><AiSuggestButton fieldLabel="受騙被害人姓名" fieldKey="complainantName" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('complainantName', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.complainantName}
@@ -661,7 +565,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                     />
                   </div>
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">受騙總金額（元）</label><AiSuggestButton fieldLabel="受騙總金額（元）" fieldKey="fraudAmount" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('fraudAmount', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">受騙總金額（元）</label><AiSuggestButton fieldLabel="受騙總金額（元）" fieldKey="fraudAmount" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('fraudAmount', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.fraudAmount}
@@ -671,7 +575,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                   </div>
                 </div>
                 <div>
-                  <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">受款人頭帳戶銀行及帳號</label><AiSuggestButton fieldLabel="受款人頭帳戶銀行及帳號" fieldKey="bankCode" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('bankCode', val)} /></div>
+                  <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">受款人頭帳戶銀行及帳號</label><AiSuggestButton fieldLabel="受款人頭帳戶銀行及帳號" fieldKey="bankCode" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('bankCode', val)} /></div>
                   <div className="grid grid-cols-2 gap-2">
                     <input
                       type="text"
@@ -690,7 +594,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                   </div>
                 </div>
                 <div>
-                  <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">詐騙通訊軟體與假冒手法</label><AiSuggestButton fieldLabel="詐騙通訊軟體與假冒手法" fieldKey="accusedName" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('accusedName', val)} /></div>
+                  <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">詐騙通訊軟體與假冒手法</label><AiSuggestButton fieldLabel="詐騙通訊軟體與假冒手法" fieldKey="accusedName" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('accusedName', val)} /></div>
                   <input
                     type="text"
                     value={formInputs.accusedName}
@@ -707,7 +611,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
               <div className="space-y-3 text-xs">
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">被害人（告訴人）</label><AiSuggestButton fieldLabel="被害人（告訴人）" fieldKey="complainantName" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('complainantName', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">被害人（告訴人）</label><AiSuggestButton fieldLabel="被害人（告訴人）" fieldKey="complainantName" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('complainantName', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.complainantName}
@@ -716,7 +620,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                     />
                   </div>
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">被告（網路ID/真實姓名）</label><AiSuggestButton fieldLabel="被告（網路ID/真實姓名）" fieldKey="accusedName" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('accusedName', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">被告（網路ID/真實姓名）</label><AiSuggestButton fieldLabel="被告（網路ID/真實姓名）" fieldKey="accusedName" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('accusedName', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.accusedName}
@@ -726,7 +630,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                   </div>
                 </div>
                 <div>
-                  <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">侮辱言論與公開媒介</label><AiSuggestButton fieldLabel="侮辱言論與公開媒介" fieldKey="insultWords" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('insultWords', val)} /></div>
+                  <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">侮辱言論與公開媒介</label><AiSuggestButton fieldLabel="侮辱言論與公開媒介" fieldKey="insultWords" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('insultWords', val)} /></div>
                   <textarea
                     rows={5}
                     value={formInputs.insultWords}
@@ -754,7 +658,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">受文地檢署</label><AiSuggestButton fieldLabel="受文地檢署" fieldKey="prosecutorOffice" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('prosecutorOffice', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">受文地檢署</label><AiSuggestButton fieldLabel="受文地檢署" fieldKey="prosecutorOffice" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('prosecutorOffice', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.prosecutorOffice}
@@ -763,7 +667,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                     />
                   </div>
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">告訴人（被害人姓名）</label><AiSuggestButton fieldLabel="告訴人（被害人姓名）" fieldKey="complainantName" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('complainantName', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">告訴人（被害人姓名）</label><AiSuggestButton fieldLabel="告訴人（被害人姓名）" fieldKey="complainantName" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('complainantName', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.complainantName}
@@ -775,7 +679,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">被告（加害人/女友/伴侶）</label><AiSuggestButton fieldLabel="被告（加害人/女友/伴侶）" fieldKey="accusedName" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('accusedName', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">被告（加害人/女友/伴侶）</label><AiSuggestButton fieldLabel="被告（加害人/女友/伴侶）" fieldKey="accusedName" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('accusedName', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.accusedName}
@@ -785,7 +689,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                     />
                   </div>
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">雙方關係</label><AiSuggestButton fieldLabel="雙方關係" fieldKey="relationship" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('relationship', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">雙方關係</label><AiSuggestButton fieldLabel="雙方關係" fieldKey="relationship" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('relationship', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.relationship}
@@ -798,7 +702,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">案發時間</label><AiSuggestButton fieldLabel="案發時間" fieldKey="incidentDate" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('incidentDate', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">案發時間</label><AiSuggestButton fieldLabel="案發時間" fieldKey="incidentDate" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('incidentDate', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.incidentDate}
@@ -808,7 +712,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                     />
                   </div>
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">案發地點</label><AiSuggestButton fieldLabel="案發地點" fieldKey="incidentLocation" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('incidentLocation', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">案發地點</label><AiSuggestButton fieldLabel="案發地點" fieldKey="incidentLocation" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('incidentLocation', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.incidentLocation}
@@ -820,7 +724,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                 </div>
 
                 <div>
-                  <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">違反意願手段與具體案發過程</label><AiSuggestButton fieldLabel="違反意願手段與具體案發過程" fieldKey="incidentDetails" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('incidentDetails', val)} /></div>
+                  <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">違反意願手段與具體案發過程</label><AiSuggestButton fieldLabel="違反意願手段與具體案發過程" fieldKey="incidentDetails" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('incidentDetails', val)} /></div>
                   <textarea
                     rows={5}
                     value={formInputs.incidentDetails}
@@ -831,7 +735,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                 </div>
 
                 <div>
-                  <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">已掌握證據（驗傷單/通訊軟體自承紀錄/錄音等）</label><AiSuggestButton fieldLabel="已掌握證據（驗傷單/通訊軟體自承紀錄/錄音等）" fieldKey="evidenceList" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('evidenceList', val)} /></div>
+                  <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">已掌握證據（驗傷單/通訊軟體自承紀錄/錄音等）</label><AiSuggestButton fieldLabel="已掌握證據（驗傷單/通訊軟體自承紀錄/錄音等）" fieldKey="evidenceList" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('evidenceList', val)} /></div>
                   <input
                     type="text"
                     value={formInputs.evidenceList}
@@ -858,7 +762,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">聲請人（被害人姓名）</label><AiSuggestButton fieldLabel="聲請人（被害人姓名）" fieldKey="complainantName" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('complainantName', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">聲請人（被害人姓名）</label><AiSuggestButton fieldLabel="聲請人（被害人姓名）" fieldKey="complainantName" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('complainantName', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.complainantName}
@@ -867,7 +771,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                     />
                   </div>
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">相對人（加害伴侶姓名）</label><AiSuggestButton fieldLabel="相對人（加害伴侶姓名）" fieldKey="accusedName" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('accusedName', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">相對人（加害伴侶姓名）</label><AiSuggestButton fieldLabel="相對人（加害伴侶姓名）" fieldKey="accusedName" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('accusedName', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.accusedName}
@@ -879,7 +783,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">伴侶關係</label><AiSuggestButton fieldLabel="伴侶關係" fieldKey="relationship" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('relationship', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">伴侶關係</label><AiSuggestButton fieldLabel="伴侶關係" fieldKey="relationship" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('relationship', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.relationship}
@@ -889,7 +793,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                     />
                   </div>
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">管轄地方法院</label><AiSuggestButton fieldLabel="管轄地方法院" fieldKey="courtName" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('courtName', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">管轄地方法院</label><AiSuggestButton fieldLabel="管轄地方法院" fieldKey="courtName" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('courtName', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.courtName || '臺灣臺北地方法院家事法庭'}
@@ -900,7 +804,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                 </div>
 
                 <div>
-                  <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">不法侵害事實與騷擾情節</label><AiSuggestButton fieldLabel="不法侵害事實與騷擾情節" fieldKey="incidentDetails" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('incidentDetails', val)} /></div>
+                  <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">不法侵害事實與騷擾情節</label><AiSuggestButton fieldLabel="不法侵害事實與騷擾情節" fieldKey="incidentDetails" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('incidentDetails', val)} /></div>
                   <textarea
                     rows={5}
                     value={formInputs.incidentDetails}
@@ -911,7 +815,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                 </div>
 
                 <div>
-                  <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">聲請命令項目</label><AiSuggestButton fieldLabel="聲請命令項目" fieldKey="requestedRelief" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('requestedRelief', val)} /></div>
+                  <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">聲請命令項目</label><AiSuggestButton fieldLabel="聲請命令項目" fieldKey="requestedRelief" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('requestedRelief', val)} /></div>
                   <input
                     type="text"
                     value={formInputs.requestedRelief}
@@ -927,7 +831,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
               <div className="space-y-3 text-xs">
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">原告（被害人）姓名</label><AiSuggestButton fieldLabel="原告（被害人）姓名" fieldKey="complainantName" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('complainantName', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">原告（被害人）姓名</label><AiSuggestButton fieldLabel="原告（被害人）姓名" fieldKey="complainantName" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('complainantName', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.complainantName}
@@ -936,7 +840,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                     />
                   </div>
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">被告（加害人）姓名</label><AiSuggestButton fieldLabel="被告（加害人）姓名" fieldKey="accusedName" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('accusedName', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">被告（加害人）姓名</label><AiSuggestButton fieldLabel="被告（加害人）姓名" fieldKey="accusedName" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('accusedName', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.accusedName}
@@ -948,7 +852,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">請求賠償總金額（元）</label><AiSuggestButton fieldLabel="請求賠償總金額（元）" fieldKey="claimTotalAmount" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('claimTotalAmount', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">請求賠償總金額（元）</label><AiSuggestButton fieldLabel="請求賠償總金額（元）" fieldKey="claimTotalAmount" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('claimTotalAmount', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.claimTotalAmount || '1,000,000'}
@@ -957,7 +861,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                     />
                   </div>
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">管轄地方法院</label><AiSuggestButton fieldLabel="管轄地方法院" fieldKey="courtName" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('courtName', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">管轄地方法院</label><AiSuggestButton fieldLabel="管轄地方法院" fieldKey="courtName" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('courtName', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.courtName || '臺灣臺北地方法院民事庭'}
@@ -968,7 +872,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                 </div>
 
                 <div>
-                  <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">侵害情節與精神身心創傷事由</label><AiSuggestButton fieldLabel="侵害情節與精神身心創傷事由" fieldKey="injuryDetails" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('injuryDetails', val)} /></div>
+                  <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">侵害情節與精神身心創傷事由</label><AiSuggestButton fieldLabel="侵害情節與精神身心創傷事由" fieldKey="injuryDetails" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('injuryDetails', val)} /></div>
                   <textarea
                     rows={5}
                     value={formInputs.injuryDetails}
@@ -995,7 +899,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">受文地檢署</label><AiSuggestButton fieldLabel="受文地檢署" fieldKey="prosecutorOffice" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('prosecutorOffice', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">受文地檢署</label><AiSuggestButton fieldLabel="受文地檢署" fieldKey="prosecutorOffice" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('prosecutorOffice', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.prosecutorOffice}
@@ -1004,7 +908,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                     />
                   </div>
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">告訴人（被害人姓名）</label><AiSuggestButton fieldLabel="告訴人（被害人姓名）" fieldKey="complainantName" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('complainantName', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">告訴人（被害人姓名）</label><AiSuggestButton fieldLabel="告訴人（被害人姓名）" fieldKey="complainantName" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('complainantName', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.complainantName}
@@ -1016,7 +920,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">被告（女友/伴侶/他人）</label><AiSuggestButton fieldLabel="被告（女友/伴侶/他人）" fieldKey="accusedName" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('accusedName', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">被告（女友/伴侶/他人）</label><AiSuggestButton fieldLabel="被告（女友/伴侶/他人）" fieldKey="accusedName" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('accusedName', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.accusedName}
@@ -1026,7 +930,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                     />
                   </div>
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">雙方關係</label><AiSuggestButton fieldLabel="雙方關係" fieldKey="relationship" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('relationship', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">雙方關係</label><AiSuggestButton fieldLabel="雙方關係" fieldKey="relationship" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('relationship', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.relationship}
@@ -1038,7 +942,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                 </div>
 
                 <div>
-                  <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">失竊或遭侵占之物品與金額估計</label><AiSuggestButton fieldLabel="失竊或遭侵占之物品與金額估計" fieldKey="stolenItems" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('stolenItems', val)} /></div>
+                  <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">失竊或遭侵占之物品與金額估計</label><AiSuggestButton fieldLabel="失竊或遭侵占之物品與金額估計" fieldKey="stolenItems" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('stolenItems', val)} /></div>
                   <input
                     type="text"
                     value={formInputs.stolenItems || ''}
@@ -1049,7 +953,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                 </div>
 
                 <div>
-                  <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">案發時間、地點與手法事實經過</label><AiSuggestButton fieldLabel="案發時間、地點與手法事實經過" fieldKey="incidentDetails" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('incidentDetails', val)} /></div>
+                  <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">案發時間、地點與手法事實經過</label><AiSuggestButton fieldLabel="案發時間、地點與手法事實經過" fieldKey="incidentDetails" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('incidentDetails', val)} /></div>
                   <textarea
                     rows={5}
                     value={formInputs.incidentDetails}
@@ -1060,7 +964,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                 </div>
 
                 <div>
-                  <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">已掌握之證據清單</label><AiSuggestButton fieldLabel="已掌握之證據清單" fieldKey="evidenceList" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('evidenceList', val)} /></div>
+                  <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">已掌握之證據清單</label><AiSuggestButton fieldLabel="已掌握之證據清單" fieldKey="evidenceList" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('evidenceList', val)} /></div>
                   <input
                     type="text"
                     value={formInputs.evidenceList}
@@ -1077,7 +981,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
               <div className="space-y-3 text-xs">
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">受文地檢署</label><AiSuggestButton fieldLabel="受文地檢署" fieldKey="prosecutorOffice" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('prosecutorOffice', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">受文地檢署</label><AiSuggestButton fieldLabel="受文地檢署" fieldKey="prosecutorOffice" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('prosecutorOffice', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.prosecutorOffice}
@@ -1086,7 +990,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                     />
                   </div>
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">告訴人姓名</label><AiSuggestButton fieldLabel="告訴人姓名" fieldKey="complainantName" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('complainantName', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">告訴人姓名</label><AiSuggestButton fieldLabel="告訴人姓名" fieldKey="complainantName" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('complainantName', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.complainantName}
@@ -1096,7 +1000,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                   </div>
                 </div>
                 <div>
-                  <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">恐嚇威脅具體言論與情節</label><AiSuggestButton fieldLabel="恐嚇威脅具體言論與情節" fieldKey="incidentDetails" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('incidentDetails', val)} /></div>
+                  <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">恐嚇威脅具體言論與情節</label><AiSuggestButton fieldLabel="恐嚇威脅具體言論與情節" fieldKey="incidentDetails" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('incidentDetails', val)} /></div>
                   <textarea
                     rows={5}
                     value={formInputs.incidentDetails}
@@ -1113,7 +1017,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
               <div className="space-y-3 text-xs">
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">告訴人姓名</label><AiSuggestButton fieldLabel="告訴人姓名" fieldKey="complainantName" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('complainantName', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">告訴人姓名</label><AiSuggestButton fieldLabel="告訴人姓名" fieldKey="complainantName" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('complainantName', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.complainantName}
@@ -1122,7 +1026,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                     />
                   </div>
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">被告姓名</label><AiSuggestButton fieldLabel="被告姓名" fieldKey="accusedName" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('accusedName', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">被告姓名</label><AiSuggestButton fieldLabel="被告姓名" fieldKey="accusedName" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('accusedName', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.accusedName}
@@ -1132,7 +1036,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                   </div>
                 </div>
                 <div>
-                  <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">偷拍竊錄或未經同意散布情節</label><AiSuggestButton fieldLabel="偷拍竊錄或未經同意散布情節" fieldKey="incidentDetails" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('incidentDetails', val)} /></div>
+                  <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">偷拍竊錄或未經同意散布情節</label><AiSuggestButton fieldLabel="偷拍竊錄或未經同意散布情節" fieldKey="incidentDetails" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('incidentDetails', val)} /></div>
                   <textarea
                     rows={5}
                     value={formInputs.incidentDetails}
@@ -1149,7 +1053,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
               <div className="space-y-3 text-xs">
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">原告姓名</label><AiSuggestButton fieldLabel="原告姓名" fieldKey="complainantName" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('complainantName', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">原告姓名</label><AiSuggestButton fieldLabel="原告姓名" fieldKey="complainantName" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('complainantName', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.complainantName}
@@ -1158,7 +1062,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                     />
                   </div>
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">被告姓名</label><AiSuggestButton fieldLabel="被告姓名" fieldKey="accusedName" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('accusedName', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">被告姓名</label><AiSuggestButton fieldLabel="被告姓名" fieldKey="accusedName" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('accusedName', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.accusedName}
@@ -1169,7 +1073,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">請求返還之標的物</label><AiSuggestButton fieldLabel="請求返還之標的物" fieldKey="stolenItems" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('stolenItems', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">請求返還之標的物</label><AiSuggestButton fieldLabel="請求返還之標的物" fieldKey="stolenItems" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('stolenItems', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.stolenItems || ''}
@@ -1179,7 +1083,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                     />
                   </div>
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">請求損害賠償金額（元）</label><AiSuggestButton fieldLabel="請求損害賠償金額（元）" fieldKey="claimTotalAmount" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('claimTotalAmount', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">請求損害賠償金額（元）</label><AiSuggestButton fieldLabel="請求損害賠償金額（元）" fieldKey="claimTotalAmount" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('claimTotalAmount', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.claimTotalAmount || '100,000'}
@@ -1205,7 +1109,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">具狀人（我方姓名）</label><AiSuggestButton fieldLabel="具狀人（我方姓名）" fieldKey="complainantName" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('complainantName', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">具狀人（我方姓名）</label><AiSuggestButton fieldLabel="具狀人（我方姓名）" fieldKey="complainantName" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('complainantName', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.complainantName}
@@ -1214,7 +1118,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                     />
                   </div>
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">相對人（對方/被告姓名）</label><AiSuggestButton fieldLabel="相對人（對方/被告姓名）" fieldKey="accusedName" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('accusedName', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">相對人（對方/被告姓名）</label><AiSuggestButton fieldLabel="相對人（對方/被告姓名）" fieldKey="accusedName" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('accusedName', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.accusedName}
@@ -1224,7 +1128,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                   </div>
                 </div>
                 <div>
-                  <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">爭議具體經過與事實細節</label><AiSuggestButton fieldLabel="爭議具體經過與事實細節" fieldKey="incidentDetails" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('incidentDetails', val)} /></div>
+                  <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">爭議具體經過與事實細節</label><AiSuggestButton fieldLabel="爭議具體經過與事實細節" fieldKey="incidentDetails" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('incidentDetails', val)} /></div>
                   <textarea
                     rows={6}
                     value={formInputs.incidentDetails}
@@ -1241,7 +1145,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
               <div className="space-y-3 text-xs">
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">刑事案號與股別</label><AiSuggestButton fieldLabel="刑事案號與股別" fieldKey="caseNo" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('caseNo', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">刑事案號與股別</label><AiSuggestButton fieldLabel="刑事案號與股別" fieldKey="caseNo" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('caseNo', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.caseNo}
@@ -1250,7 +1154,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                     />
                   </div>
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">請求總金額（元）</label><AiSuggestButton fieldLabel="請求總金額（元）" fieldKey="claimTotalAmount" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('claimTotalAmount', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">請求總金額（元）</label><AiSuggestButton fieldLabel="請求總金額（元）" fieldKey="claimTotalAmount" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('claimTotalAmount', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.claimTotalAmount}
@@ -1261,7 +1165,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">醫療費</label><AiSuggestButton fieldLabel="醫療費" fieldKey="medicalExpense" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('medicalExpense', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">醫療費</label><AiSuggestButton fieldLabel="醫療費" fieldKey="medicalExpense" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('medicalExpense', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.medicalExpense}
@@ -1270,7 +1174,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                     />
                   </div>
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">工作損失</label><AiSuggestButton fieldLabel="工作損失" fieldKey="workLoss" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('workLoss', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">工作損失</label><AiSuggestButton fieldLabel="工作損失" fieldKey="workLoss" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('workLoss', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.workLoss}
@@ -1279,7 +1183,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                     />
                   </div>
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">精神慰撫金</label><AiSuggestButton fieldLabel="精神慰撫金" fieldKey="solatium" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('solatium', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">精神慰撫金</label><AiSuggestButton fieldLabel="精神慰撫金" fieldKey="solatium" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('solatium', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.solatium}
@@ -1296,7 +1200,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
               <div className="space-y-3 text-xs">
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">被繼承人姓名</label><AiSuggestButton fieldLabel="被繼承人姓名" fieldKey="deceasedName" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('deceasedName', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">被繼承人姓名</label><AiSuggestButton fieldLabel="被繼承人姓名" fieldKey="deceasedName" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('deceasedName', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.deceasedName}
@@ -1305,7 +1209,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                     />
                   </div>
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">遺產總預估額（元）</label><AiSuggestButton fieldLabel="遺產總預估額（元）" fieldKey="totalEstate" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('totalEstate', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">遺產總預估額（元）</label><AiSuggestButton fieldLabel="遺產總預估額（元）" fieldKey="totalEstate" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('totalEstate', val)} /></div>
                     <input
                       type="number"
                       value={formInputs.totalEstate}
@@ -1328,7 +1232,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                     </label>
                   </div>
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">第一順位直系卑親屬（子女）人數</label><AiSuggestButton fieldLabel="第一順位直系卑親屬（子女）人數" fieldKey="childrenCount" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('childrenCount', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">第一順位直系卑親屬（子女）人數</label><AiSuggestButton fieldLabel="第一順位直系卑親屬（子女）人數" fieldKey="childrenCount" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('childrenCount', val)} /></div>
                     <input
                       type="number"
                       min={0}
@@ -1347,7 +1251,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
               <div className="space-y-3 text-xs">
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">立遺囑人姓名</label><AiSuggestButton fieldLabel="立遺囑人姓名" fieldKey="testatorName" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('testatorName', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">立遺囑人姓名</label><AiSuggestButton fieldLabel="立遺囑人姓名" fieldKey="testatorName" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('testatorName', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.testatorName}
@@ -1356,7 +1260,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                     />
                   </div>
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">身分證字號</label><AiSuggestButton fieldLabel="身分證字號" fieldKey="idNo" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('idNo', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">身分證字號</label><AiSuggestButton fieldLabel="身分證字號" fieldKey="idNo" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('idNo', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.idNo}
@@ -1366,7 +1270,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                   </div>
                 </div>
                 <div>
-                  <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">指定分配不動產門牌/坐落地號</label><AiSuggestButton fieldLabel="指定分配不動產門牌/坐落地號" fieldKey="realEstateAddress" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('realEstateAddress', val)} /></div>
+                  <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">指定分配不動產門牌/坐落地號</label><AiSuggestButton fieldLabel="指定分配不動產門牌/坐落地號" fieldKey="realEstateAddress" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('realEstateAddress', val)} /></div>
                   <input
                     type="text"
                     value={formInputs.realEstateAddress}
@@ -1376,7 +1280,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">指定繼承人</label><AiSuggestButton fieldLabel="指定繼承人" fieldKey="realEstateBeneficiary" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('realEstateBeneficiary', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">指定繼承人</label><AiSuggestButton fieldLabel="指定繼承人" fieldKey="realEstateBeneficiary" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('realEstateBeneficiary', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.realEstateBeneficiary}
@@ -1385,7 +1289,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                     />
                   </div>
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">指定遺囑執行人</label><AiSuggestButton fieldLabel="指定遺囑執行人" fieldKey="executorName" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('executorName', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">指定遺囑執行人</label><AiSuggestButton fieldLabel="指定遺囑執行人" fieldKey="executorName" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('executorName', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.executorName}
@@ -1402,7 +1306,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
               <div className="space-y-3 text-xs">
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">聲請人（拋棄人）</label><AiSuggestButton fieldLabel="聲請人（拋棄人）" fieldKey="petitionerName" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('petitionerName', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">聲請人（拋棄人）</label><AiSuggestButton fieldLabel="聲請人（拋棄人）" fieldKey="petitionerName" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('petitionerName', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.petitionerName}
@@ -1411,7 +1315,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                     />
                   </div>
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">被繼承人姓名</label><AiSuggestButton fieldLabel="被繼承人姓名" fieldKey="deceasedName" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('deceasedName', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">被繼承人姓名</label><AiSuggestButton fieldLabel="被繼承人姓名" fieldKey="deceasedName" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('deceasedName', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.deceasedName}
@@ -1422,7 +1326,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">被繼承人死亡日期</label><AiSuggestButton fieldLabel="被繼承人死亡日期" fieldKey="deathDate" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('deathDate', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">被繼承人死亡日期</label><AiSuggestButton fieldLabel="被繼承人死亡日期" fieldKey="deathDate" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('deathDate', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.deathDate}
@@ -1431,7 +1335,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                     />
                   </div>
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">知悉得繼承日期（起算3月）</label><AiSuggestButton fieldLabel="知悉得繼承日期（起算3月）" fieldKey="knowDate" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('knowDate', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">知悉得繼承日期（起算3月）</label><AiSuggestButton fieldLabel="知悉得繼承日期（起算3月）" fieldKey="knowDate" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('knowDate', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.knowDate}
@@ -1448,7 +1352,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
               <div className="space-y-3 text-xs">
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">夫方姓名</label><AiSuggestButton fieldLabel="夫方姓名" fieldKey="husbandName" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('husbandName', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">夫方姓名</label><AiSuggestButton fieldLabel="夫方姓名" fieldKey="husbandName" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('husbandName', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.husbandName}
@@ -1457,7 +1361,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                     />
                   </div>
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">妻方姓名</label><AiSuggestButton fieldLabel="妻方姓名" fieldKey="wifeName" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('wifeName', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">妻方姓名</label><AiSuggestButton fieldLabel="妻方姓名" fieldKey="wifeName" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('wifeName', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.wifeName}
@@ -1468,7 +1372,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">監護權歸屬（單獨/共同）</label><AiSuggestButton fieldLabel="監護權歸屬（單獨/共同）" fieldKey="custodyParent" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('custodyParent', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">監護權歸屬（單獨/共同）</label><AiSuggestButton fieldLabel="監護權歸屬（單獨/共同）" fieldKey="custodyParent" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('custodyParent', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.custodyParent}
@@ -1477,7 +1381,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                     />
                   </div>
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">每月扶養費（元）</label><AiSuggestButton fieldLabel="每月扶養費（元）" fieldKey="childSupport" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('childSupport', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">每月扶養費（元）</label><AiSuggestButton fieldLabel="每月扶養費（元）" fieldKey="childSupport" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('childSupport', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.childSupport}
@@ -1494,7 +1398,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
               <div className="space-y-3 text-xs">
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">受宣告長輩 / 委任人姓名</label><AiSuggestButton fieldLabel="受宣告長輩 / 委任人姓名" fieldKey="wardName" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('wardName', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">受宣告長輩 / 委任人姓名</label><AiSuggestButton fieldLabel="受宣告長輩 / 委任人姓名" fieldKey="wardName" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('wardName', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.wardName}
@@ -1503,7 +1407,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                     />
                   </div>
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">聲請人/受任人姓名及關係</label><AiSuggestButton fieldLabel="聲請人/受任人姓名及關係" fieldKey="petitionerName" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('petitionerName', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">聲請人/受任人姓名及關係</label><AiSuggestButton fieldLabel="聲請人/受任人姓名及關係" fieldKey="petitionerName" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('petitionerName', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.petitionerName}
@@ -1514,7 +1418,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">失智醫療評估（CDR 分數）</label><AiSuggestButton fieldLabel="失智醫療評估（CDR 分數）" fieldKey="cdrScore" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('cdrScore', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">失智醫療評估（CDR 分數）</label><AiSuggestButton fieldLabel="失智醫療評估（CDR 分數）" fieldKey="cdrScore" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('cdrScore', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.cdrScore}
@@ -1523,7 +1427,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                     />
                   </div>
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">會同開具財產清冊人</label><AiSuggestButton fieldLabel="會同開具財產清冊人" fieldKey="supervisorName" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('supervisorName', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">會同開具財產清冊人</label><AiSuggestButton fieldLabel="會同開具財產清冊人" fieldKey="supervisorName" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('supervisorName', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.supervisorName}
@@ -1540,7 +1444,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
               <div className="space-y-3 text-xs">
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">債權人 / 執票人 / 貸與人</label><AiSuggestButton fieldLabel="債權人 / 執票人 / 貸與人" fieldKey="creditorName" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('creditorName', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">債權人 / 執票人 / 貸與人</label><AiSuggestButton fieldLabel="債權人 / 執票人 / 貸與人" fieldKey="creditorName" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('creditorName', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.creditorName}
@@ -1549,7 +1453,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                     />
                   </div>
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">債務人 / 發票人 / 借用人</label><AiSuggestButton fieldLabel="債務人 / 發票人 / 借用人" fieldKey="debtorName" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('debtorName', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">債務人 / 發票人 / 借用人</label><AiSuggestButton fieldLabel="債務人 / 發票人 / 借用人" fieldKey="debtorName" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('debtorName', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.debtorName}
@@ -1560,7 +1464,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">金額（新臺幣元）</label><AiSuggestButton fieldLabel="金額（新臺幣元）" fieldKey="debtAmount" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('debtAmount', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">金額（新臺幣元）</label><AiSuggestButton fieldLabel="金額（新臺幣元）" fieldKey="debtAmount" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('debtAmount', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.debtAmount}
@@ -1569,7 +1473,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                     />
                   </div>
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">約定週年利率 %（上限16%）</label><AiSuggestButton fieldLabel="約定週年利率 %（上限16%）" fieldKey="interestRate" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('interestRate', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">約定週年利率 %（上限16%）</label><AiSuggestButton fieldLabel="約定週年利率 %（上限16%）" fieldKey="interestRate" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('interestRate', val)} /></div>
                     <input
                       type="number"
                       max={16}
@@ -1588,7 +1492,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
               <div className="space-y-3 text-xs">
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">寄件人姓名/公司</label><AiSuggestButton fieldLabel="寄件人姓名/公司" fieldKey="senderName" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('senderName', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">寄件人姓名/公司</label><AiSuggestButton fieldLabel="寄件人姓名/公司" fieldKey="senderName" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('senderName', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.senderName}
@@ -1597,7 +1501,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                     />
                   </div>
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">收件人姓名/公司</label><AiSuggestButton fieldLabel="收件人姓名/公司" fieldKey="recipientName" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('recipientName', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">收件人姓名/公司</label><AiSuggestButton fieldLabel="收件人姓名/公司" fieldKey="recipientName" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('recipientName', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.recipientName}
@@ -1607,7 +1511,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                   </div>
                 </div>
                 <div>
-                  <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">寄件人通訊地址（供回執送達）</label><AiSuggestButton fieldLabel="寄件人通訊地址（供回執送達）" fieldKey="senderAddress" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('senderAddress', val)} /></div>
+                  <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">寄件人通訊地址（供回執送達）</label><AiSuggestButton fieldLabel="寄件人通訊地址（供回執送達）" fieldKey="senderAddress" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('senderAddress', val)} /></div>
                   <input
                     type="text"
                     value={formInputs.senderAddress}
@@ -1616,7 +1520,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                   />
                 </div>
                 <div>
-                  <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">收件人地址</label><AiSuggestButton fieldLabel="收件人地址" fieldKey="recipientAddress" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('recipientAddress', val)} /></div>
+                  <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">收件人地址</label><AiSuggestButton fieldLabel="收件人地址" fieldKey="recipientAddress" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('recipientAddress', val)} /></div>
                   <input
                     type="text"
                     value={formInputs.recipientAddress}
@@ -1632,7 +1536,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
               <div className="space-y-3 text-xs">
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">債權人姓名</label><AiSuggestButton fieldLabel="債權人姓名" fieldKey="creditorName" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('creditorName', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">債權人姓名</label><AiSuggestButton fieldLabel="債權人姓名" fieldKey="creditorName" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('creditorName', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.creditorName}
@@ -1641,7 +1545,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                     />
                   </div>
                   <div>
-                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">債務人姓名</label><AiSuggestButton fieldLabel="債務人姓名" fieldKey="debtorName" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('debtorName', val)} /></div>
+                    <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">債務人姓名</label><AiSuggestButton fieldLabel="債務人姓名" fieldKey="debtorName" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('debtorName', val)} /></div>
                     <input
                       type="text"
                       value={formInputs.debtorName}
@@ -1655,7 +1559,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                     {activeToolId === 'EXECUTION_SALARY_ATTACHMENT' ? '任職公司全名（第三人扣繳義務人）' : '執行名義案號 / 保全金額'}
                   </label><AiSuggestButton fieldLabel="
                     {activeToolId === 'EXECUTION_SALARY_ATTACHMENT' ? '任職公司全名（第三人扣繳義務人）' : '執行名義案號 / 保全金額'}
-                  " fieldKey="landlordName" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('landlordName', val)} /></div>
+                  " fieldKey="landlordName" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('landlordName', val)} /></div>
                   <input
                     type="text"
                     value={activeToolId === 'EXECUTION_SALARY_ATTACHMENT' ? formInputs.employerName : formInputs.titleCaseNo}
@@ -1682,7 +1586,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                         />
                       </div>
                       <div>
-                        <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">房客（承租人）</label><AiSuggestButton fieldLabel="房客（承租人）" fieldKey="tenantName" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('tenantName', val)} /></div>
+                        <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">房客（承租人）</label><AiSuggestButton fieldLabel="房客（承租人）" fieldKey="tenantName" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('tenantName', val)} /></div>
                         <input
                           type="text"
                           value={formInputs.tenantName}
@@ -1692,7 +1596,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                       </div>
                     </div>
                     <div>
-                      <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">租賃房屋門牌地址</label><AiSuggestButton fieldLabel="租賃房屋門牌地址" fieldKey="rentalAddress" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('rentalAddress', val)} /></div>
+                      <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">租賃房屋門牌地址</label><AiSuggestButton fieldLabel="租賃房屋門牌地址" fieldKey="rentalAddress" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('rentalAddress', val)} /></div>
                       <input
                         type="text"
                         value={formInputs.rentalAddress}
@@ -1705,7 +1609,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                   <>
                     <div className="grid grid-cols-3 gap-2">
                       <div>
-                        <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">原告（配偶）</label><AiSuggestButton fieldLabel="原告（配偶）" fieldKey="plaintiffName" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('plaintiffName', val)} /></div>
+                        <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">原告（配偶）</label><AiSuggestButton fieldLabel="原告（配偶）" fieldKey="plaintiffName" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('plaintiffName', val)} /></div>
                         <input
                           type="text"
                           value={formInputs.plaintiffName}
@@ -1714,7 +1618,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                         />
                       </div>
                       <div>
-                        <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">被告一（配偶）</label><AiSuggestButton fieldLabel="被告一（配偶）" fieldKey="defendant1Name" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('defendant1Name', val)} /></div>
+                        <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">被告一（配偶）</label><AiSuggestButton fieldLabel="被告一（配偶）" fieldKey="defendant1Name" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('defendant1Name', val)} /></div>
                         <input
                           type="text"
                           value={formInputs.defendant1Name}
@@ -1723,7 +1627,7 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                         />
                       </div>
                       <div>
-                        <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">被告二（第三者）</label><AiSuggestButton fieldLabel="被告二（第三者）" fieldKey="defendant2Name" toolName={currentTool?.name || ''} incidentDetails={JSON.stringify(formInputs)} onSelect={(val) => handleInputChange('defendant2Name', val)} /></div>
+                        <div className="flex justify-between items-end mb-1"><label className="block font-medium text-slate-300">被告二（第三者）</label><AiSuggestButton fieldLabel="被告二（第三者）" fieldKey="defendant2Name" toolName={currentTool?.name || ''} incidentDetails={formInputs.incidentDetails || ''} onSelect={(val) => handleInputChange('defendant2Name', val)} /></div>
                         <input
                           type="text"
                           value={formInputs.defendant2Name}
@@ -1887,41 +1791,8 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
                 </div>
               )}
 
-              {/* Document Text Area / Loading Stage Preview */}
-              {isLoading ? (
-                <div className="h-80 flex flex-col items-center justify-center text-center p-8 bg-slate-950/90 border border-indigo-500/40 rounded-xl space-y-4 animate-pulse">
-                  <div className="relative">
-                    <div className="w-14 h-14 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Sparkles className="w-5 h-5 text-indigo-400" />
-                    </div>
-                  </div>
-                  <div className="space-y-1.5 max-w-sm">
-                    <h4 className="text-sm font-bold text-white flex items-center justify-center gap-2">
-                      {generationStage === 'formatting' ? (
-                        <>
-                          <LayoutTemplate className="w-4 h-4 text-sky-400" />
-                          <span>正在進行書狀格式排版...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Cpu className="w-4 h-4 text-indigo-400" />
-                          <span>AI 分析案件事實與檢索法規中...</span>
-                        </>
-                      )}
-                    </h4>
-                    <p className="text-xs text-slate-400 leading-relaxed">
-                      {generationStage === 'formatting' 
-                        ? '套用司法院規範書狀格局、編排當事人年籍與主旨事實、嵌入證物清單。' 
-                        : '依據司法院法規與最高法院見解進行構成要件涵攝與三段論法檢核。'}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 text-[11px] text-indigo-300 bg-indigo-950/60 px-3.5 py-1.5 rounded-full border border-indigo-800/60">
-                    <span className="w-2 h-2 rounded-full bg-indigo-400 animate-ping" />
-                    <span>目前進行：{generationStage === 'formatting' ? '階段 3 / 4（格式排版）' : '階段 2 / 4（AI 分析）'}</span>
-                  </div>
-                </div>
-              ) : result ? (
+              {/* Document Text Area */}
+              {result ? (
                 <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 max-h-[460px] overflow-y-auto font-mono text-xs text-slate-200 whitespace-pre-wrap leading-relaxed shadow-inner">
                   {result.documentText}
                 </div>

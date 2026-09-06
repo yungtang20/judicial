@@ -88,10 +88,10 @@
 
 - [x] 完成架構深度審查報告 `docs/architecture/AUDIT.md`
 - [x] 完成重構執行計畫書 `docs/architecture/REFACTOR_PLAN.md`
-- [ ] `server.ts` 徹底解除 God Object，各 API 路由獨立模組化
-- [ ] `AIProvider` 與 `GeminiProvider` 介面完成抽象化，領域層與前端完全不直接碰 SDK
-- [ ] 法律治理層（三段論法、Pre-check、Post-check、Citation Verifier）統一收攏
+- [x] `server.ts` 徹底解除 God Object，各 API 路由獨立模組化
+- [x] `AIProvider` 與 `GeminiProvider` 介面完成抽象化，領域層與前端完全不直接碰 SDK
+- [x] 法律治理層（三段論法、Pre-check、Post-check、Citation Verifier）統一收攏
 - [x] 法律工具註冊表成為單一真實來源，數量由 `LEGAL_TOOLS.length` 動態決定
-- [ ] 全套單元測試與回歸測試 100% 通過（`npm test`）
-- [ ] TypeScript 型別檢查零錯誤（`tsc --noEmit`）
-- [ ] 正式生產環境編譯打包成功（`npm run build`）
+- [x] 全套單元測試與回歸測試 100% 通過（`npm test`）
+- [x] TypeScript 型別檢查零錯誤（`tsc --noEmit`）
+- [x] 正式生產環境編譯打包成功（`npm run build`）

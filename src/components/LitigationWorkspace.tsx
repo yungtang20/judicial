@@ -216,3 +216,5 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initia
   );
 };
 
+export default LitigationWorkspace;
+

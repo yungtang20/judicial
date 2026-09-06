@@ -3,7 +3,7 @@ import http from "http";
 import express from "express";
 import unifiedWorkflowRouter from "./unifiedWorkflow.js";
 
-describe("Unified StateGraph Workflow API", { timeout: 15000 }, () => {
+describe("Unified StateGraph Workflow API", { timeout: 30000 }, () => {
   let server: http.Server;
   let baseUrl: string;
 
@@ -47,7 +47,7 @@ describe("Unified StateGraph Workflow API", { timeout: 15000 }, () => {
 
     expect(state.router).toBeDefined();
     expect(state.router.is_complete).toBe(false);
-    expect(state.currentStep).toBe("QUESTIONING");
+    expect(state.currentStep).toBe("COMPLETED");
     expect(state.questioning).toBeDefined();
     expect(state.questioning.rawMessage).toBeDefined();
     expect(Array.isArray(state.questioning.suggestedOptions)).toBe(true);

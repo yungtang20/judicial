@@ -594,3 +594,5 @@ export const LegalSdlcWorkbench: React.FC = () => {
     </div>
   );
 };
+
+export default LegalSdlcWorkbench;

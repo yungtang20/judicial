@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { LegalSourcesDisplay } from './LegalSourcesDisplay';
 import { LEGAL_TOOLS } from './LegalToolbox';
-import { QuickExamplesSection } from './QuickExampleCard';
 import { useCaseStore } from '../store/useCaseStore';
 import { 
   Compass, 
@@ -28,14 +27,11 @@ import {
   Zap,
   BookOpen,
   PhoneCall,
-  ShieldCheck,
-  ChevronDown,
-  GripVertical
+  ShieldCheck
 } from 'lucide-react';
 
 interface LegalGuideHomeProps {
   onSelectTool: (toolId: string, subTab?: string, initialData?: any) => void;
-  onNavigate?: (toolId: string) => void;
 }
 
 interface ScenarioItem {
@@ -56,16 +52,9 @@ interface ScenarioItem {
   tags: string[];
 }
 
-export const LegalGuideHome: React.FC<LegalGuideHomeProps> = ({ onSelectTool, onNavigate }) => {
+export const LegalGuideHome: React.FC<LegalGuideHomeProps> = ({ onSelectTool }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
-    const loadTagClicks = (): Record<string, number> => {
-    try { return JSON.parse(localStorage.getItem(QUICK_TAG_CLICK_KEY) || "{}"); } catch { return {}; }
-  };
-const [tagClicks, setTagClicks] = useState<Record<string, number>>(loadTagClicks);
-  const [showExtendedTags, setShowExtendedTags] = useState<boolean>(false);
-  const [draggedTag, setDraggedTag] = useState<string | null>(null);
-  const [tagOrderVersion, setTagOrderVersion] = useState(0);
   const [selectedScenario, setSelectedScenario] = useState<ScenarioItem | null>(null);
 
   // Dynamic AI Universal Triage state
@@ -336,56 +325,17 @@ const [tagClicks, setTagClicks] = useState<Record<string, number>>(loadTagClicks
     }
   };
 
-  // --- 快捷標籤 localStorage helpers ---
-  const QUICK_TAG_STORAGE_KEY = "legal_guide_tag_order";
-  const QUICK_TAG_CLICK_KEY = "legal_guide_tag_clicks";
-
-  type QuickTagItem = { label: string; tool: "litigation" | "legalToolbox"; tag: string };
-
-  const ALL_CORE_TAGS: QuickTagItem[] = [
-    { label: "車禍求償", tool: "litigation", tag: "traffic_accident" },
-    { label: "家事糾紛", tool: "litigation", tag: "family_dispute" },
-    { label: "欠款追討", tool: "legalToolbox", tag: "debt_collection" },
-    { label: "詐騙受害", tool: "litigation", tag: "fraud_victim" },
-    { label: "租屋爭議", tool: "litigation", tag: "rental_dispute" },
-    { label: "勞動爭議", tool: "legalToolbox", tag: "labor_dispute" },
+  // 熱門關鍵字快捷搜尋
+  const QUICK_TAGS = [
+    { label: "車禍", tool: "litigation" as const, tag: "traffic" },
+    { label: "離婚", tool: "litigation" as const, tag: "divorce" },
+    { label: "欠錢", tool: "legalToolbox" as const, tag: "debt" },
+    { label: "租屋糾紛", tool: "litigation" as const, tag: "rent" },
+    { label: "職場霸凌", tool: "legalToolbox" as const, tag: "labor" },
+    { label: "詐騙", tool: "litigation" as const, tag: "fraud" },
+    { label: "遺產繼承", tool: "litigation" as const, tag: "inheritance" },
+    { label: "過失傷害", tool: "litigation" as const, tag: "negligence" },
   ];
-
-  const EXTENDED_TAGS: QuickTagItem[] = [
-    { label: "離婚", tool: "litigation", tag: "divorce" },
-    { label: "遺產繼承", tool: "litigation", tag: "inheritance" },
-    { label: "過失傷害", tool: "litigation", tag: "negligence" },
-    { label: "職場霸凌", tool: "legalToolbox", tag: "workplace_bullying" },
-    { label: "家暴保護令", tool: "legalToolbox", tag: "domestic_violence" },
-    { label: "人頭帳戶", tool: "litigation", tag: "money_mule" },
-    { label: "卡債", tool: "legalToolbox", tag: "credit_card_debt" },
-    { label: "遷讓房屋", tool: "litigation", tag: "eviction" },
-  ];
-
-
-  const saveTagClicks = (clicks: Record<string, number>) => {
-    try { localStorage.setItem(QUICK_TAG_CLICK_KEY, JSON.stringify(clicks)); } catch {}
-  };
-
-  const loadTagOrder = (): string[] | null => {
-    try { return JSON.parse(localStorage.getItem(QUICK_TAG_STORAGE_KEY) || "null"); } catch { return null; }
-  };
-
-  const saveTagOrder = (order: string[]) => {
-    try { localStorage.setItem(QUICK_TAG_STORAGE_KEY, JSON.stringify(order)); } catch {}
-  };
-
-  const getSortedCoreTags = (clicks: Record<string, number>): QuickTagItem[] => {
-    const saved = loadTagOrder();
-    const tagMap = new Map(ALL_CORE_TAGS.map(t => [t.tag, t]));
-    if (saved && saved.length === ALL_CORE_TAGS.length) {
-      return saved.filter(t => tagMap.has(t)).map(t => tagMap.get(t)!);
-    }
-    return [...ALL_CORE_TAGS].sort((a, b) => (clicks[b.tag] || 0) - (clicks[a.tag] || 0));
-  };
-
-  // 熱門關鍵字快捷搜尋（核心6標籤，按使用頻率排序）
-  const CORE_TAGS: QuickTagItem[] = getSortedCoreTags(loadTagClicks());
 
   const scenarios: ScenarioItem[] = [
     // 0. 性侵害 / 妨害性自主 / 伴侶非自願性行為
@@ -795,9 +745,9 @@ const [tagClicks, setTagClicks] = useState<Record<string, number>>(loadTagClicks
                     }
                   }}
                   placeholder="輸入任何法律問題或狀況，例如：被女友竊盜了、車禍受傷、房客欠租、朋友借錢、收到判決..."
-                  className="w-full pl-12 pr-44 py-3.5 min-h-[120px] resize-y rounded-2xl bg-slate-950/80 border border-indigo-500/30 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all shadow-inner"
+                  className="w-full pl-12 pr-4 md:pr-44 pb-14 md:pb-3.5 py-3.5 min-h-[120px] resize-y rounded-2xl bg-slate-950/80 border border-indigo-500/30 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all shadow-inner"
                 />
-                <div className="absolute right-2.5 flex items-center gap-1.5">
+                <div className="absolute right-2.5 bottom-2.5 md:bottom-auto md:top-1/2 md:-translate-y-1/2 flex items-center gap-1.5">
                   {searchQuery && (
                     <button
                       onClick={() => setSearchQuery('')}
@@ -1022,79 +972,28 @@ const [tagClicks, setTagClicks] = useState<Record<string, number>>(loadTagClicks
           ))}
         </div>
 
-          {/* 常見法律情境快速入口卡片（4 大生活情境） */}
-          <QuickExamplesSection onSelectTool={onSelectTool} />
-
-          {/* 熱門關鍵字快捷搜尋（核心標籤 + 可展開更多標籤） */}
-          <div className="pb-4 border-b border-slate-800/50 space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1.5 mr-1">
-                <Zap className="w-3.5 h-3.5 text-amber-400" />
-                快捷搜尋
-              </span>
-              {CORE_TAGS.map((qt) => (
-                <button
-                  key={qt.tag}
-                  draggable
-                  onDragStart={(e) => { setDraggedTag(qt.tag); e.dataTransfer.effectAllowed = "move"; }}
-                  onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    if (!draggedTag || draggedTag === qt.tag) return;
-                    const saved = loadTagOrder() || ALL_CORE_TAGS.map(t => t.tag);
-                    const fromIdx = saved.indexOf(draggedTag);
-                    const toIdx = saved.indexOf(qt.tag);
-                    if (fromIdx === -1 || toIdx === -1) return;
-                    const newOrder = [...saved];
-                    newOrder.splice(fromIdx, 1);
-                    newOrder.splice(toIdx, 0, draggedTag);
-                    saveTagOrder(newOrder);
-                    setDraggedTag(null);
-                    setTagOrderVersion(v => v + 1);
-                  }}
-                  onDragEnd={() => setDraggedTag(null)}
-                  onClick={() => {
-                    const newClicks = { ...tagClicks, [qt.tag]: (tagClicks[qt.tag] || 0) + 1 };
-                    setTagClicks(newClicks);
-                    saveTagClicks(newClicks);
-                    setSearchQuery(qt.label);
-                    setSelectedCategory(qt.tag);
-                  }}
-                  className={`px-3 py-1.5 rounded-full text-[11px] font-semibold border transition-all cursor-grab active:cursor-grabbing
-                    selectedCategory === qt.tag
-                      ? "bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/30"
-                      : "bg-slate-900/80 text-slate-300 border-slate-700/50 hover:border-indigo-600/50 hover:text-indigo-300"
-                  }`}
-                >
-                  <span className="flex items-center gap-1"><GripVertical className="w-3 h-3 opacity-40" />#{qt.label}</span>
-                </button>
-              ))}
-              {/* 更多標籤折疊按鈕 */}
+          {/* 熱門關鍵字快捷搜尋 */}
+          <div className="flex flex-wrap items-center gap-2 pb-4 border-b border-slate-800/50">
+            <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1.5 mr-1">
+              <Zap className="w-3.5 h-3.5 text-amber-400" />
+              快捷搜尋
+            </span>
+            {QUICK_TAGS.map((qt) => (
               <button
-                onClick={() => setShowExtendedTags(!showExtendedTags)}
-                className="px-2.5 py-1.5 rounded-full text-[11px] font-semibold border border-dashed border-slate-600 text-slate-400 hover:text-slate-200 hover:border-slate-500 transition-all flex items-center gap-1"
+                key={qt.tag}
+                onClick={() => {
+                  setSearchQuery(qt.label);
+                  setSelectedCategory(qt.tag);
+                }}
+                className={`px-3 py-1.5 rounded-full text-[11px] font-semibold border transition-all ${
+                  selectedCategory === qt.tag
+                    ? "bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/30"
+                    : "bg-slate-900/80 text-slate-300 border-slate-700/50 hover:border-indigo-600/50 hover:text-indigo-300"
+                }`}
               >
-                <ChevronDown className={`w-3 h-3 transition-transform ${showExtendedTags ? "rotate-180" : ""}`} />
-                更多標籤
+                #{qt.label}
               </button>
-            </div>
-            {/* 展開的更多標籤區域 */}
-            {showExtendedTags && (
-              <div className="flex flex-wrap items-center gap-2 pl-6 animate-in slide-in-from-top-1 duration-200">
-                {EXTENDED_TAGS.map((qt) => (
-                  <button
-                    key={qt.tag}
-                    onClick={() => {
-                      setSearchQuery(qt.label);
-                      setSelectedCategory(qt.tag);
-                    }}
-                    className="px-2.5 py-1 rounded-full text-[11px] font-medium border border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-600 transition-all"
-                  >
-                    {qt.label}
-                  </button>
-                ))}
-              </div>
-            )}
+            ))}
           </div>
 
         {/* 生活情境清單 */}
@@ -1492,95 +1391,95 @@ const [tagClicks, setTagClicks] = useState<Record<string, number>>(loadTagClicks
                 </div>
 
                 {/* 白話診斷分析 */}
-                <div className="bg-slate-950/70 p-4 rounded-2xl border border-slate-800 space-y-2">
+                <div className="bg-slate-950/70 p-4 rounded-2xl border border-slate-800 space-y-3">
                   <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
                     <CheckCircle2 className="w-3.5 h-3.5" /> 白話案情與法律要件剖析
                   </span>
-                  <p className="text-slate-300 leading-relaxed text-xs">
-                    {aiTriageResult.isSyllogismComplete === false && aiTriageResult.missingQuestions?.length > 0 && (
-                      <div className="mb-4 p-4 bg-rose-950/40 border border-rose-500/50 rounded-xl space-y-3">
-                        <div className="flex items-center gap-2 text-rose-400 font-bold text-sm">
-                          <ShieldAlert className="w-5 h-5" />
-                          <span>⚠️ 關鍵事實補正提醒 (三段論法檢核未通過)</span>
-                        </div>
-                        <p className="text-slate-300 text-xs">
-                          您的案情描述過於簡略，為了確保書狀具備法律效力並符合構成要件，AI 發現以下關鍵事實尚未釐清：
-                        </p>
-                        <ul className="space-y-3 mt-2">
-                          {aiTriageResult.missingQuestions.map((q: any, i: number) => {
-                            const currentAnswer = syllogismAnswers[i] || { option: '', text: '' };
-                            return (
-                            <li key={i} className="text-xs bg-slate-900/80 p-3 rounded-lg border border-slate-700/50">
-                              <div className="font-bold text-amber-300 mb-1">Q: {q.question}</div>
-                              <div className="text-slate-400 mb-2">📝 {q.reason}</div>
-                              
-                              {q.options && q.options.length > 0 && (
-                                <div className="space-y-2 mb-3">
-                                  {q.options.map((opt: string, optIdx: number) => (
-                                    <label key={optIdx} className="flex items-start gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-800 transition-colors">
-                                      <input 
-                                        type="radio" 
-                                        name={`q-${i}`} 
-                                        value={opt}
-                                        checked={currentAnswer.option === opt}
-                                        onChange={(e) => setSyllogismAnswers({ ...syllogismAnswers, [i]: { ...currentAnswer, option: e.target.value } })}
-                                        className="mt-0.5 accent-indigo-500"
-                                      />
-                                      <span className="text-slate-300">{opt}</span>
-                                    </label>
-                                  ))}
-                                  <label className="flex items-start gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-800 transition-colors">
+                  {aiTriageResult.isSyllogismComplete === false && aiTriageResult.missingQuestions?.length > 0 && (
+                    <div className="mb-4 p-4 bg-rose-950/40 border border-rose-500/50 rounded-xl space-y-3">
+                      <div className="flex items-center gap-2 text-rose-400 font-bold text-sm">
+                        <ShieldAlert className="w-5 h-5" />
+                        <span>⚠️ 關鍵事實補正提醒 (三段論法檢核未通過)</span>
+                      </div>
+                      <p className="text-slate-300 text-xs">
+                        您的案情描述過於簡略，為了確保書狀具備法律效力並符合構成要件，AI 發現以下關鍵事實尚未釐清：
+                      </p>
+                      <ul className="space-y-3 mt-2">
+                        {aiTriageResult.missingQuestions.map((q: any, i: number) => {
+                          const currentAnswer = syllogismAnswers[i] || { option: '', text: '' };
+                          return (
+                          <li key={i} className="text-xs bg-slate-900/80 p-3 rounded-lg border border-slate-700/50">
+                            <div className="font-bold text-amber-300 mb-1">Q: {q.question}</div>
+                            <div className="text-slate-400 mb-2">📝 {q.reason}</div>
+                            
+                            {q.options && q.options.length > 0 && (
+                              <div className="space-y-2 mb-3">
+                                {q.options.map((opt: string, optIdx: number) => (
+                                  <label key={optIdx} className="flex items-start gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-800 transition-colors">
                                     <input 
                                       type="radio" 
                                       name={`q-${i}`} 
-                                      value="自行輸入"
-                                      checked={currentAnswer.option === '自行輸入'}
+                                      value={opt}
+                                      checked={currentAnswer.option === opt}
                                       onChange={(e) => setSyllogismAnswers({ ...syllogismAnswers, [i]: { ...currentAnswer, option: e.target.value } })}
                                       className="mt-0.5 accent-indigo-500"
                                     />
-                                    <span className="text-slate-300">其他 (自行輸入)</span>
+                                    <span className="text-slate-300">{opt}</span>
                                   </label>
-                                </div>
-                              )}
+                                ))}
+                                <label className="flex items-start gap-2 cursor-pointer p-2 rounded-lg hover:bg-slate-800 transition-colors">
+                                  <input 
+                                    type="radio" 
+                                    name={`q-${i}`} 
+                                    value="自行輸入"
+                                    checked={currentAnswer.option === '自行輸入'}
+                                    onChange={(e) => setSyllogismAnswers({ ...syllogismAnswers, [i]: { ...currentAnswer, option: e.target.value } })}
+                                    className="mt-0.5 accent-indigo-500"
+                                  />
+                                  <span className="text-slate-300">其他 (自行輸入)</span>
+                                </label>
+                              </div>
+                            )}
 
-                              {(!q.options || q.options.length === 0 || currentAnswer.option === '自行輸入') && (
-                                <textarea
-                                  placeholder="請在此回答補齊關鍵事實..."
-                                  value={currentAnswer.text}
-                                  onChange={(e) => setSyllogismAnswers({ ...syllogismAnswers, [i]: { ...currentAnswer, text: e.target.value } })}
-                                  className="w-full bg-slate-950 border border-slate-700 rounded-md p-2 text-white focus:border-indigo-500 outline-none resize-y min-h-[60px]"
-                                />
-                              )}
-                            </li>
-                          )})}
-                        </ul>
-                        <div className="flex justify-end mt-3">
-                          <button
-                            onClick={() => {
-                              const appended = Object.values(syllogismAnswers)
-                                .map((ans: any) => {
-                                  if (ans.option === '自行輸入' || !ans.option) return ans.text;
-                                  return ans.option + (ans.text ? ` (${ans.text})` : '');
-                                })
-                                .filter(Boolean)
-                                .join("\n");
+                            {(!q.options || q.options.length === 0 || currentAnswer.option === '自行輸入') && (
+                              <textarea
+                                placeholder="請在此回答補齊關鍵事實..."
+                                value={currentAnswer.text}
+                                onChange={(e) => setSyllogismAnswers({ ...syllogismAnswers, [i]: { ...currentAnswer, text: e.target.value } })}
+                                className="w-full bg-slate-950 border border-slate-700 rounded-md p-2 text-white focus:border-indigo-500 outline-none resize-y min-h-[60px]"
+                              />
+                            )}
+                          </li>
+                        )})}
+                      </ul>
+                      <div className="flex justify-end mt-3">
+                        <button
+                          onClick={() => {
+                            const appended = Object.values(syllogismAnswers)
+                              .map((ans: any) => {
+                                if (ans.option === '自行輸入' || !ans.option) return ans.text;
+                                return ans.option + (ans.text ? ` (${ans.text})` : '');
+                              })
+                              .filter(Boolean)
+                              .join("\n");
 
-                              if (appended) {
-                                setSearchQuery(searchQuery + "\n補充說明：\n" + appended);
-                                setShowAiTriageModal(false);
-                                setTimeout(() => handleRunAiTriage(searchQuery + "\n補充說明：\n" + appended), 300);
-                              }
-                            }}
-                            className="bg-rose-500 hover:bg-rose-400 text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors shadow-md"
-                          >
-                            送出補充事實並重新分析
-                          </button>
-                        </div>
-                        <div className="text-xs text-rose-300 mt-2 font-medium">
-                          * 建議：請關閉此視窗，在上方輸入框補充上述資訊後再次診斷，或點擊下方直接產生「待補正」之書狀。
-                        </div>
+                            if (appended) {
+                              setSearchQuery(searchQuery + "\n補充說明：\n" + appended);
+                              setShowAiTriageModal(false);
+                              setTimeout(() => handleRunAiTriage(searchQuery + "\n補充說明：\n" + appended), 300);
+                            }
+                          }}
+                          className="bg-rose-500 hover:bg-rose-400 text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors shadow-md"
+                        >
+                          送出補充事實並重新分析
+                        </button>
                       </div>
-                    )}
+                      <div className="text-xs text-rose-300 mt-2 font-medium">
+                        * 建議：請關閉此視窗，在上方輸入框補充上述資訊後再次診斷，或點擊下方直接產生「待補正」之書狀。
+                      </div>
+                    </div>
+                  )}
+                  <p className="text-slate-300 leading-relaxed text-xs">
                     {aiTriageResult.plainExplanation}
                   </p>
                 </div>
@@ -1782,34 +1681,11 @@ const [tagClicks, setTagClicks] = useState<Record<string, number>>(loadTagClicks
                 </div>
               </div>
             ) : null}
-
-          {/* 跨功能快捷導航列 */}
-          <div className="mt-4 p-4 rounded-2xl bg-gradient-to-r from-slate-800/50 to-indigo-900/30 border border-slate-600/30">
-            <div className="flex items-center gap-2 mb-3">
-              <Zap className="w-4 h-4 text-yellow-400" />
-              <span className="text-xs font-bold text-slate-300">快速導航</span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => onNavigate?.('unified')}
-                className="px-3 py-1.5 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 text-xs font-medium transition-all border border-indigo-500/30"
-              >
-                <Scale className="w-3 h-3 inline mr-1" />
-                判決分析
-              </button>
-              <button
-                onClick={() => onNavigate?.('legalToolbox')}
-                className="px-3 py-1.5 rounded-lg bg-purple-600/30 hover:bg-purple-600/50 text-purple-300 text-xs font-medium transition-all border border-purple-500/30"
-              >
-                <FileText className="w-3 h-3 inline mr-1" />
-                法律工具箱
-              </button>
-            </div>
-          </div>
-
           </div>
         </div>
       )}
     </div>
   );
 };
+
+export default LegalGuideHome;

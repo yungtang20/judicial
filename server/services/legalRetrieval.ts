@@ -3,10 +3,12 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import fs from "node:fs";
 
-const nodeRequire = createRequire(import.meta.url);
 let DatabaseSync: any;
 try {
-  DatabaseSync = nodeRequire("node:sqlite")?.DatabaseSync;
+  const req = typeof require !== 'undefined' ? require : (typeof import.meta !== 'undefined' && import.meta.url ? createRequire(import.meta.url) : null);
+  if (req) {
+    DatabaseSync = req("node:sqlite")?.DatabaseSync;
+  }
 } catch {
   DatabaseSync = undefined;
 }

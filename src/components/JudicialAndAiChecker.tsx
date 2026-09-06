@@ -96,3 +96,5 @@ export const JudicialAndAiChecker: React.FC<JudicialAndAiCheckerProps> = ({ init
     </div>
   );
 };
+
+export default JudicialAndAiChecker;

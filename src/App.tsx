@@ -3,19 +3,13 @@ import Sidebar from './components/Sidebar';
 import { RecentUsage, trackToolUsage } from './components/RecentUsage';
 import { Scale } from 'lucide-react';
 
-const UnifiedEntry = React.lazy(() => import('./components/UnifiedEntry'));
-const LegalGuideHome = React.lazy(() => import('./components/LegalGuideHome'));
-const LegalSdlcWorkbench = React.lazy(() => import('./components/LegalSdlcWorkbench'));
-const LitigationWorkspace = React.lazy(() => import('./components/LitigationWorkspace'));
-const AgentChat = React.lazy(() => import('./components/AgentChat'));
-const JudicialAndAiChecker = React.lazy(() => import('./components/JudicialAndAiChecker'));
-const LegalToolbox = React.lazy(() => import('./components/LegalToolbox'));
-
-// Routes under 案件分析 core entry (show hero header + RecentUsage)
-const ANALYSIS_ROUTES = ['unified', 'guide', 'processGuide'];
-
-// Routes under 文書生成 core entry
-const DOCGEN_ROUTES = ['litigation', 'sdlc', 'agent-chat', 'checker', 'docAiChecker', 'judgmentSearch'];
+const UnifiedEntry = React.lazy(() => import('./components/UnifiedEntry').then(m => ({ default: m.default || m.UnifiedEntry })));
+const LegalGuideHome = React.lazy(() => import('./components/LegalGuideHome').then(m => ({ default: m.default || m.LegalGuideHome })));
+const LegalSdlcWorkbench = React.lazy(() => import('./components/LegalSdlcWorkbench').then(m => ({ default: m.default || m.LegalSdlcWorkbench })));
+const LitigationWorkspace = React.lazy(() => import('./components/LitigationWorkspace').then(m => ({ default: m.default || m.LitigationWorkspace })));
+const AgentChat = React.lazy(() => import('./components/AgentChat').then(m => ({ default: m.default || m.AgentChat })));
+const JudicialAndAiChecker = React.lazy(() => import('./components/JudicialAndAiChecker').then(m => ({ default: m.default || m.JudicialAndAiChecker })));
+const LegalToolbox = React.lazy(() => import('./components/LegalToolbox').then(m => ({ default: m.default || m.LegalToolbox })));
 
 function LoadingFallback() {
   return (
@@ -37,6 +31,7 @@ export default function App() {
   }, [activeTool]);
 
   const handleSelectTool = (toolId: string, _subTab?: string, initialData?: any) => {
+    if (typeof toolId !== 'string') return;
     setInitialData(initialData);
     setActiveTool(toolId);
   };
@@ -46,7 +41,7 @@ export default function App() {
       case 'unified':
         return <UnifiedEntry onSelectSubTool={handleSelectTool} />;
       case 'guide':
-        return <LegalGuideHome onSelectTool={handleSelectTool} onNavigate={(toolId) => handleSelectTool(toolId)} />;
+        return <LegalGuideHome onSelectTool={handleSelectTool} />;
       case 'sdlc':
         return <LegalSdlcWorkbench />;
       case 'litigation':
@@ -66,18 +61,16 @@ export default function App() {
     }
   };
 
-  const isAnalysisRoute = ANALYSIS_ROUTES.includes(activeTool);
-
   return (
-    <div className="flex h-screen bg-[#0a0e1a] text-white overflow-hidden font-sans">
+    <div className="flex flex-col md:flex-row h-screen bg-[#0a0e1a] text-white overflow-hidden font-sans">
       <Sidebar activeTool={activeTool} setActiveTool={setActiveTool} />
       <main className="flex-1 overflow-y-auto">
         <Suspense fallback={<LoadingFallback />}>
-          {/* 案件分析 routes: show hero header + RecentUsage */}
-          {isAnalysisRoute && (
-            <div className="max-w-4xl mx-auto px-6 pt-6 space-y-6">
+          {/* Show RecentUsage at top when on unified entry */}
+          {activeTool === 'unified' && (
+            <div className="max-w-4xl mx-auto px-4 md:px-6 pt-4 md:pt-6 space-y-6">
               {/* Hero header */}
-              <div className="text-center space-y-2 pt-8">
+              <div className="text-center space-y-2 pt-2 md:pt-8">
                 <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-indigo-500 to-sky-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
                   <Scale className="w-8 h-8 text-white" />
                 </div>
@@ -90,15 +83,15 @@ export default function App() {
               {/* Recent Usage */}
               <RecentUsage onSelectTool={handleSelectTool} />
 
-              {/* Main content */}
+              {/* Main content (UnifiedEntry will render below) */}
               <div className="pb-12">
                 {renderContent()}
               </div>
             </div>
           )}
 
-          {/* 文書生成 & 法律工具箱 routes: full height, no extra chrome */}
-          {!isAnalysisRoute && renderContent()}
+          {/* All other tools: full height, no extra chrome */}
+          {activeTool !== 'unified' && renderContent()}
         </Suspense>
       </main>
     </div>

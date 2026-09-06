@@ -529,10 +529,22 @@ export const UnifiedEntry: React.FC<UnifiedEntryProps> = ({ onSelectSubTool }) =
               <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-gradient-to-r from-indigo-500 to-emerald-500 rounded-full transition-all"
-                  style={{ width: `${(workflowState.router.completeness || 0) * 100}%` }}
+                  style={{
+                    width: `${Math.round(
+                      (typeof workflowState.router.completeness === 'number'
+                        ? workflowState.router.completeness
+                        : workflowState.router.is_complete ? 1 : 0.6) * 100
+                    )}%`,
+                  }}
                 />
               </div>
-              <span className="text-xs text-slate-400 mt-1 block">{Math.round((workflowState.router.completeness || 0) * 100)}%</span>
+              <span className="text-xs text-slate-400 mt-1 block">
+                {Math.round(
+                  (typeof workflowState.router.completeness === 'number'
+                    ? workflowState.router.completeness
+                    : workflowState.router.is_complete ? 1 : 0.6) * 100
+                )}%
+              </span>
             </div>
           </div>
         )}
@@ -566,20 +578,22 @@ export const UnifiedEntry: React.FC<UnifiedEntryProps> = ({ onSelectSubTool }) =
         )}
 
         {/* Questioning Node */}
-        {workflowState?.currentStep === 'QUESTIONING' && workflowState.questioning && (
+        {workflowState?.questioning && !workflowState?.router?.is_complete && (
           <div className="p-6 rounded-3xl bg-amber-500/10 border border-amber-500/30 shadow-xl space-y-4">
             <div className="flex items-center gap-3">
               <HelpCircle className="w-6 h-6 text-amber-400" />
               <h2 className="text-lg font-bold text-amber-200">動態追問節點</h2>
             </div>
-            <p className="text-sm text-amber-200/80">{workflowState.questioning.question}</p>
+            <p className="text-sm text-amber-200/80">{workflowState.questioning.rawMessage}</p>
 
             <div className="flex flex-wrap gap-2">
-              {workflowState.questioning.options?.map((opt, i) => (
+              {workflowState.questioning.suggestedOptions?.map((opt, i) => (
                 <button
                   key={i}
+                  type="button"
                   onClick={() => handleSelectSuggestedOption(opt)}
-                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 hover:border-amber-500/40 transition-all"
+                  disabled={isSubmitting}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 hover:border-amber-500/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {opt}
                 </button>
