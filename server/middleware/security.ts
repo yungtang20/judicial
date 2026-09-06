@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+import { scrubPersonalInfo } from "../../src/lib/deidentifier.js";
 
 const isProduction = process.env.NODE_ENV === "production";
 // 建議策略：生產環境先使用 Report-Only 模式，待完整確認各來源後，可透過 CSP_ENFORCE=true 切換為強制阻擋模式
@@ -133,13 +134,56 @@ export function sanitizeRequest(req: Request, res: Response, next: NextFunction)
 }
 
 /**
+ * 安全錯誤日誌記錄器：
+ * 徹底過濾 Token、API Key、Cookie 與當事人個資，防止敏感資訊外洩至系統日誌
+ */
+export function safeLogError(context: string, err: any, req?: Request): void {
+  const isProd = process.env.NODE_ENV === "production";
+
+  // 1. 萃取基本安全請求識別
+  const reqInfo = req
+    ? {
+        method: req.method,
+        url: req.url,
+        id: req.id || "unknown",
+        tenant: req.tenantContext?.tenantId || req.user?.tenantId || "unknown",
+        ip: req.ip || "unknown"
+      }
+    : null;
+
+  // 2. 清理錯誤訊息與字串內容，嚴格遮蔽金鑰、Token 與個資
+  const scrubSecrets = (raw: string) => {
+    return scrubPersonalInfo(raw)
+      .replace(/Bearer\s+[a-zA-Z0-9_\-\.]+/gi, "Bearer [REDACTED]")
+      .replace(/(key|secret|token|password|auth|apiKey)=([^\s&，,]+)/gi, "$1=[REDACTED]")
+      .replace(/AIza[0-9A-Za-z-_]{10,}/gi, "[GOOGLE_API_KEY_REDACTED]");
+  };
+
+  const rawMessage = typeof err?.message === "string" ? err.message : String(err || "未知錯誤");
+  const sanitizedMessage = scrubSecrets(rawMessage);
+  const sanitizedStack = typeof err?.stack === "string" ? scrubSecrets(err.stack) : "";
+
+  if (isProd) {
+    // 生產環境：僅輸出脫敏訊息與結構代碼，不列印包含環境變數或檔案路徑的未清洗堆疊
+    console.error(
+      `[Server Error] [${reqInfo?.method || "INTERNAL"} ${reqInfo?.url || ""}] [req:${reqInfo?.id || "N/A"}] code: ${
+        err?.code || "ERROR"
+      }, message: ${sanitizedMessage}`
+    );
+  } else {
+    // 開發環境：包含錯誤類型與脫敏堆疊供除錯
+    console.error(`[Server Error] [${context}] [req:${reqInfo?.id || "dev"}]:`, sanitizedMessage, sanitizedStack);
+  }
+}
+
+/**
  * 全域錯誤處理器 (統一結構，生產環境脫敏防禦)
  */
 export function globalErrorHandler(err: any, req: Request, res: Response, _next: NextFunction) {
-  console.error(`[Server Error] [${req.method} ${req.url}]:`, err);
+  safeLogError("GlobalErrorHandler", err, req);
   const isProd = process.env.NODE_ENV === "production";
   const statusCode = err.status || 500;
-  
+
   res.status(statusCode).json({
     code: err.code || "INTERNAL_SERVER_ERROR",
     message: isProd ? "伺服器處理異常，請稍後重試" : (err.message || "伺服器內部錯誤"),

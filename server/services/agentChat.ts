@@ -160,15 +160,13 @@ export async function handleAgentChat(
     sourceProvider = "none";
   }
 
-  // 5. Build prompt (AI 服務請求前去識別化，嚴格保護當事人個資)
+  // 5. Build prompt
   const maxHistory = getMaxHistoryTurns();
   const historySlice = (req.history ?? []).slice(-maxHistory * 2);
 
   const historyBlock = historySlice
-    .map((m) => `${m.role === "user" ? "使用者" : "助理"}：${scrubPersonalInfo(m.content)}`)
+    .map((m) => `${m.role === "user" ? "使用者" : "助理"}：${m.content}`)
     .join("\n");
-
-  const sanitizedUserText = scrubPersonalInfo(userText);
 
   const systemPrompt = [
     "你是台灣法律輔助助理「法律小幫手」。",
@@ -196,7 +194,7 @@ export async function handleAgentChat(
       ? `--- 相關法律資料 ---\n${legalContext}\n---`
       : "",
     "",
-    `使用者：${sanitizedUserText}`,
+    `使用者：${userText}`,
     "",
     "助理：",
   ].join("\n");

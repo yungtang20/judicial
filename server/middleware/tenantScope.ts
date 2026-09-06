@@ -18,19 +18,31 @@ declare global {
 
 /**
  * 租戶範疇與身分隔離中介層
- * 建立嚴格的租戶邊界上下文 (Tenant Context)
+ * 嚴格自經過密碼學驗證之 req.user 建立租戶上下文 (Tenant Context)
+ * 嚴禁外部未授權請求透過 X-Tenant-Id 或 X-User-Id 標頭任意偽造或竄改租戶與使用者身分
  */
 export function tenantScopeMiddleware(req: Request, _res: Response, next: NextFunction) {
   const user = req.user as AuthenticatedUser | undefined;
-  const tenantId = user?.tenantId || (req.headers["x-tenant-id"] as string) || "default-tenant";
-  const userId = user?.id || (req.headers["x-user-id"] as string) || "anonymous";
+
+  // 1. 判斷是否為具備跨租戶管理權限的系統管理員
+  const isSystemAdmin = user?.role === "admin" || user?.role === "system";
+
+  // 2. 嚴格取得租戶與使用者身分：
+  // 僅在具備系統管理員身分時，才允許在管理指令中明確指派目標租戶；
+  // 其餘所有角色 (律師、法務、客戶、訪客) 一律強制鎖定為 Token 內簽署之 tenantId 與 userId！
+  let tenantId = user?.tenantId || "sandbox-tenant";
+  if (isSystemAdmin && req.headers["x-tenant-id"] && typeof req.headers["x-tenant-id"] === "string") {
+    tenantId = req.headers["x-tenant-id"].trim();
+  }
+
+  const userId = user?.id || `guest_${req.id || "anonymous"}`;
   const role = user?.role || "client";
 
   req.tenantContext = {
     tenantId,
     userId,
     role,
-    isSystemAdmin: role === "admin" || role === "system",
+    isSystemAdmin,
   };
 
   next();
@@ -49,12 +61,12 @@ export function verifyTenantOwnership(
     return { allowed: false, reason: "遺失租戶身分上下文" };
   }
 
-  // 系統管理員或跨租戶管理帳號擁有存取權限
+  // 系統管理員或跨租戶管理帳號擁有最高審計權限
   if (ctx.isSystemAdmin) {
     return { allowed: true };
   }
 
-  // 1. 租戶隔離檢核 (Tenant Isolation)
+  // 1. 租戶隔離檢核 (Tenant Isolation)：禁止跨租戶存取
   if (resource.tenantId && resource.tenantId !== ctx.tenantId) {
     return { allowed: false, reason: "禁止跨租戶存取案件或文件資源" };
   }

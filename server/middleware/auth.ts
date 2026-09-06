@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { AuditLogService } from "../services/auditLog.js";
+import crypto from "node:crypto";
 
 export interface AuthenticatedUser {
   id: string;
@@ -8,7 +9,15 @@ export interface AuthenticatedUser {
   name?: string;
 }
 
-// 擴充 Express Request 介面以包含認證資訊與 requestId
+export interface JwtPayload {
+  sub: string;
+  tenantId: string;
+  role: "admin" | "lawyer" | "paralegal" | "client" | "system";
+  name?: string;
+  exp?: number;
+  iat?: number;
+}
+
 declare global {
   namespace Express {
     interface Request {
@@ -19,29 +28,176 @@ declare global {
   }
 }
 
+const DEFAULT_JWT_SECRET = "smart-legal-assistant-secure-jwt-hmac-secret-key-at-least-32-chars";
+
+function getJwtSecret(): string {
+  return process.env.JWT_SECRET || process.env.AUTH_SECRET || DEFAULT_JWT_SECRET;
+}
+
+function base64UrlEncode(str: string): string {
+  return Buffer.from(str)
+    .toString("base64")
+    .replace(/=/g, "")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_");
+}
+
+function base64UrlDecode(str: string): string {
+  let base64 = str.replace(/-/g, "+").replace(/_/g, "/");
+  while (base64.length % 4) {
+    base64 += "=";
+  }
+  return Buffer.from(base64, "base64").toString("utf-8");
+}
+
 /**
- * Request ID 與計時中介層
+ * 簽署合規之 HS256 JWT Token
+ */
+export function createSignedToken(
+  payload: Omit<JwtPayload, "iat">,
+  secret?: string,
+  expiresInSeconds: number = 86400 * 7
+): string {
+  const effectiveSecret = secret || getJwtSecret();
+  const header = { alg: "HS256", typ: "JWT" };
+  const now = Math.floor(Date.now() / 1000);
+  const fullPayload: JwtPayload = {
+    ...payload,
+    iat: now,
+    exp: payload.exp || now + expiresInSeconds,
+  };
+
+  const encodedHeader = base64UrlEncode(JSON.stringify(header));
+  const encodedPayload = base64UrlEncode(JSON.stringify(fullPayload));
+  const signature = crypto
+    .createHmac("sha256", effectiveSecret)
+    .update(`${encodedHeader}.${encodedPayload}`)
+    .digest("base64")
+    .replace(/=/g, "")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_");
+
+  return `${encodedHeader}.${encodedPayload}.${signature}`;
+}
+
+/**
+ * 嚴格密碼學驗證 JWT Token (防止偽造與過期)
+ */
+export function verifySignedToken(token: string, secret?: string): JwtPayload | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+
+    const [encodedHeader, encodedPayload, receivedSignature] = parts;
+    const effectiveSecret = secret || getJwtSecret();
+
+    // 1. 重新計算 HMAC 簽名並使用常數時間比對 (防止 Timing Attack)
+    const expectedSignature = crypto
+      .createHmac("sha256", effectiveSecret)
+      .update(`${encodedHeader}.${encodedPayload}`)
+      .digest("base64")
+      .replace(/=/g, "")
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_");
+
+    const receivedBuf = Buffer.from(receivedSignature);
+    const expectedBuf = Buffer.from(expectedSignature);
+
+    if (receivedBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(receivedBuf, expectedBuf)) {
+      return null;
+    }
+
+    // 2. 解析 Header 與 Payload
+    const header = JSON.parse(base64UrlDecode(encodedHeader));
+    if (header.alg !== "HS256") return null;
+
+    const payload: JwtPayload = JSON.parse(base64UrlDecode(encodedPayload));
+
+    // 3. 檢查過期時間 (exp)
+    if (payload.exp && typeof payload.exp === "number") {
+      const now = Math.floor(Date.now() / 1000);
+      if (now > payload.exp) {
+        return null;
+      }
+    }
+
+    // 4. 驗證必要欄位與角色
+    const validRoles = ["admin", "lawyer", "paralegal", "client", "system"];
+    if (!payload.sub || !payload.tenantId || !validRoles.includes(payload.role)) {
+      return null;
+    }
+
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 驗證 API Key 是否為伺服器允許的有效金鑰 (使用常數時間比對)
+ */
+function verifyApiKey(receivedKey: string): { valid: boolean; role?: "system" | "admin"; tenantId?: string } {
+  if (!receivedKey || typeof receivedKey !== "string") return { valid: false };
+
+  const validKeys: Array<{ key: string; role: "system" | "admin"; tenantId: string }> = [];
+
+  if (process.env.ADMIN_API_KEY) {
+    validKeys.push({ key: process.env.ADMIN_API_KEY.trim(), role: "admin", tenantId: "system-admin-tenant" });
+  }
+  if (process.env.SYSTEM_API_KEY) {
+    validKeys.push({ key: process.env.SYSTEM_API_KEY.trim(), role: "system", tenantId: "system-service-tenant" });
+  }
+  if (process.env.API_KEYS) {
+    const keys = process.env.API_KEYS.split(",").map((k) => k.trim()).filter(Boolean);
+    keys.forEach((k) => validKeys.push({ key: k, role: "system", tenantId: "default-tenant" }));
+  }
+
+  // 避免在開發環境且無任何設定時誤放行
+  if (validKeys.length === 0) {
+    return { valid: false };
+  }
+
+  const recBuf = Buffer.from(receivedKey);
+  for (const item of validKeys) {
+    const itemBuf = Buffer.from(item.key);
+    if (recBuf.length === itemBuf.length && crypto.timingSafeEqual(recBuf, itemBuf)) {
+      return { valid: true, role: item.role, tenantId: item.tenantId };
+    }
+  }
+
+  return { valid: false };
+}
+
+/**
+ * Request ID 嚴格校驗與伺服器端 UUID 產生中介層
  */
 export function requestIdMiddleware(req: Request, res: Response, next: NextFunction) {
-  const reqId = (req.headers["x-request-id"] as string) || `req_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-  req.id = reqId;
-  req.startTime = Date.now();
-  res.setHeader("X-Request-Id", reqId);
+  const incomingReqId = req.headers["x-request-id"];
 
-  // 請求完成時自動觸發審計紀錄
+  // 嚴格檢驗客戶端帶入的 Request ID 格式（僅接受 8~64 字元英數破折號），防止注入或過長標頭
+  const safeReqId =
+    typeof incomingReqId === "string" && /^[a-zA-Z0-9_-]{8,64}$/.test(incomingReqId.trim())
+      ? incomingReqId.trim()
+      : `req_${crypto.randomUUID()}`;
+
+  req.id = safeReqId;
+  req.startTime = Date.now();
+  res.setHeader("X-Request-Id", safeReqId);
+
+  // 請求完成時自動寫入審計紀錄
   res.on("finish", () => {
     const durationMs = req.startTime ? Date.now() - req.startTime : 0;
     const isSuccess = res.statusCode < 400;
-    
+
     // 不記錄靜態資源與健康檢查以節省開銷
     if (!req.path.startsWith("/api/health") && !req.path.startsWith("/assets")) {
       AuditLogService.log({
-        requestId: req.id || reqId,
-        tenantId: req.user?.tenantId || (req.headers["x-tenant-id"] as string) || "default-tenant",
-        userId: req.user?.id || (req.headers["x-user-id"] as string) || "anonymous",
+        requestId: req.id || safeReqId,
+        tenantId: req.tenantContext?.tenantId || req.user?.tenantId || "sandbox-tenant",
+        userId: req.tenantContext?.userId || req.user?.id || "anonymous",
         action: `${req.method} ${req.baseUrl || ""}${req.path}`,
         resource: req.baseUrl || req.path,
-        status: isSuccess ? "SUCCESS" : (res.statusCode === 401 || res.statusCode === 403 ? "DENIED" : "FAILURE"),
+        status: isSuccess ? "SUCCESS" : res.statusCode === 401 || res.statusCode === 403 ? "DENIED" : "FAILURE",
         statusCode: res.statusCode,
         durationMs,
         ip: req.ip || req.socket.remoteAddress || "unknown",
@@ -54,56 +210,90 @@ export function requestIdMiddleware(req: Request, res: Response, next: NextFunct
 }
 
 /**
- * 彈性認證中介層 (支援 Bearer Token / API Key / Header Session，在預設或預覽環境容許合法匿名訪問)
+ * 嚴格身分認證中介層
+ * - Bearer Token: 必須具備有效密碼學簽名與合規 Payload，偽造立即回傳 401
+ * - X-API-Key: 必須匹配伺服器配置金鑰，無效立即回傳 401
+ * - 未提供憑證：若 options.required = true (或 REQUIRE_AUTH=true) 則拒絕；否則給予隔離之 sandbox-tenant 訪客身分
  */
-export function authenticate(options: { required?: boolean } = { required: false }) {
+export function authenticate(options: { required?: boolean } = {}) {
+  const mustRequire = options.required ?? (process.env.REQUIRE_AUTH === "true");
+
   return (req: Request, res: Response, next: NextFunction) => {
     const authHeader = req.headers.authorization;
-    const apiKeyHeader = req.headers["x-api-key"] as string;
-    const tenantHeader = (req.headers["x-tenant-id"] as string) || "default-tenant";
+    const apiKeyHeader = req.headers["x-api-key"] as string | undefined;
 
-    // 1. Bearer Token 解析
+    // 1. 若客戶端提供了 Bearer Token，強制進行密碼學簽名驗證
     if (authHeader && authHeader.startsWith("Bearer ")) {
       const token = authHeader.substring(7).trim();
-      if (token) {
-        req.user = {
-          id: `usr_${token.substring(0, 8)}`,
-          role: "lawyer",
-          tenantId: tenantHeader,
-          name: "Authenticated Lawyer"
-        };
-        return next();
-      }
-    }
+      const verified = verifySignedToken(token);
 
-    // 2. API Key 解析
-    if (apiKeyHeader) {
+      if (!verified) {
+        return res.status(401).json({
+          code: "INVALID_CREDENTIALS",
+          message: "Bearer Token 驗證失敗或已過期，拒絕存取",
+          requestId: req.id
+        });
+      }
+
       req.user = {
-        id: `svc_${apiKeyHeader.substring(0, 6)}`,
-        role: "system",
-        tenantId: tenantHeader,
-        name: "Service Account"
+        id: verified.sub,
+        role: verified.role,
+        tenantId: verified.tenantId,
+        name: verified.name || `User ${verified.sub}`
       };
       return next();
     }
 
-    // 3. 未提供認證標頭
-    if (options.required) {
+    // 2. 若客戶端提供了 API Key，強制驗證金鑰
+    if (apiKeyHeader) {
+      const check = verifyApiKey(apiKeyHeader.trim());
+      if (!check.valid) {
+        return res.status(401).json({
+          code: "INVALID_API_KEY",
+          message: "API Key 無效或未經授權",
+          requestId: req.id
+        });
+      }
+
+      req.user = {
+        id: `svc_${crypto.createHash("sha256").update(apiKeyHeader).digest("hex").slice(0, 10)}`,
+        role: check.role || "system",
+        tenantId: check.tenantId || "system-service-tenant",
+        name: "Verified Service Account"
+      };
+      return next();
+    }
+
+    // 3. 未提供任何憑證時，檢查是否為強制認證模式
+    if (mustRequire) {
       return res.status(401).json({
         code: "UNAUTHORIZED",
-        message: "此 API 需提供有效的身分驗證憑證 (Bearer Token 或 X-API-Key)",
+        message: "此 API 需要提供有效之身分驗證憑證 (Bearer Token 或 X-API-Key)",
         requestId: req.id
       });
     }
 
-    // 4. 預設訪客身分 (符合沙盒預覽與客戶端即時試用架構)
+    // 4. 沙盒預覽環境：分配固定隔離的沙盒訪客身分 (租戶固定為 sandbox-tenant，使用者不可藉由 Header 偽造)
+    const clientIp = req.ip || req.socket.remoteAddress || "127.0.0.1";
+    const userAgent = (req.headers["user-agent"] as string) || "agent";
+    const guestHash = crypto
+      .createHash("sha256")
+      .update(`${clientIp}-${userAgent}-${req.id || ""}`)
+      .digest("hex")
+      .slice(0, 12);
+
     req.user = {
-      id: (req.headers["x-user-id"] as string) || "guest-user",
+      id: `guest_${guestHash}`,
       role: "client",
-      tenantId: tenantHeader,
-      name: "Guest Visitor"
+      tenantId: "sandbox-tenant", // 固定租戶邊界，徹底隔絕跨租戶存取
+      name: "Sandbox Guest"
     };
 
     next();
   };
 }
+
+/**
+ * 強制認證中介層守衛
+ */
+export const requireAuth = () => authenticate({ required: true });
