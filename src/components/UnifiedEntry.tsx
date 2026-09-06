@@ -716,11 +716,11 @@ export const UnifiedEntry: React.FC<UnifiedEntryProps> = ({ onSelectSubTool }) =
               生活情境導診
             </button>
             <button
-              onClick={() => onSelectSubTool('legalToolbox')}
+              onClick={() => onSelectSubTool('litigation')}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition-colors"
             >
               <ArrowRight className="w-3.5 h-3.5" />
-              法律工具箱
+              訴訟與書狀工作台
             </button>
           </div>
         )}
@@ -771,7 +771,7 @@ export const UnifiedEntry: React.FC<UnifiedEntryProps> = ({ onSelectSubTool }) =
                       cause: workflowState?.router?.cause,
                       sourceTool: 'unified'
                     });
-                    onSelectSubTool?.('legalToolbox');
+                    onSelectSubTool?.('litigation', undefined, { initialTab: 'appeal' });
                   }}
                   className="w-full text-left p-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors"
                 >
@@ -789,7 +789,7 @@ export const UnifiedEntry: React.FC<UnifiedEntryProps> = ({ onSelectSubTool }) =
                       cause: workflowState?.router?.cause,
                       sourceTool: 'unified'
                     });
-                    onSelectSubTool?.('legalToolbox');
+                    onSelectSubTool?.('litigation', undefined, { initialTab: 'toolbox', preselectedToolId: 'CIVIL_DEMAND_LETTER_GENERAL' });
                   }}
                   className="w-full text-left p-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors"
                 >

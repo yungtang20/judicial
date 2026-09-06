@@ -18,9 +18,10 @@ import { LegalToolbox } from './LegalToolbox';
 interface LitigationWorkspaceProps {
   initialTab?: 'toolbox' | 'defense' | 'issues' | 'evidence' | 'appeal' | 'deadline';
   initialToolId?: string;
+  onNavigate?: (toolId: string) => void;
 }
 
-export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initialTab = 'toolbox', initialToolId }) => {
+export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initialTab = 'toolbox', initialToolId, onNavigate }) => {
   // Determine main tab from initial tab
   const getInitialMainTab = () => {
     if (initialTab === 'toolbox') return 'toolbox';
@@ -180,7 +181,7 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initia
       <div className="flex-1 overflow-y-auto">
         {activeMainTab === 'toolbox' && (
           <div className="p-4 md:p-8 max-w-[90rem] mx-auto h-full">
-            <LegalToolbox initialToolId={initialToolId} />
+            <LegalToolbox initialToolId={initialToolId} onNavigate={onNavigate} />
           </div>
         )}
         

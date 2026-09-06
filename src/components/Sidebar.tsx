@@ -26,7 +26,7 @@ interface NavItem {
   icon: any;
 }
 
-// 三大核心入口
+// 核心入口
 const coreEntries: NavItem[] = [
   {
     id: 'unified',
@@ -36,21 +36,15 @@ const coreEntries: NavItem[] = [
   },
   {
     id: 'litigation',
-    label: '文書生成',
-    sublabel: '訴訟工作台 · SDLC · 上訴 · 爭點',
-    icon: FileText,
-  },
-  {
-    id: 'legalToolbox',
-    label: '法律工具箱',
-    sublabel: '20+ 法律實務工具',
-    icon: Briefcase,
+    label: '訴訟工作台',
+    sublabel: '全生命週期法務 · 20+ 書狀工具 · 攻防爭點',
+    icon: Gavel,
   },
 ];
 
-// 文書生成子項目
+// 訴訟工作台子項目
 const litigationSubItems: NavItem[] = [
-  { id: 'litigation', label: '訴訟工作台', sublabel: '全生命週期法務', icon: Gavel },
+  { id: 'litigation', label: '訴訟工作台主頁', sublabel: '實用法務 · 攻防 · 爭點 · 上訴', icon: Gavel },
   { id: 'sdlc', label: 'SDLC 工作台', sublabel: 'Plan → Design → Build → Test', icon: Sparkles },
   { id: 'agent-chat', label: '智慧助理', sublabel: '對話式法律談詢', icon: FileText },
   { id: 'checker', label: '判決檢索', sublabel: '司法院 API / 防假法條', icon: FileCheck2 },
@@ -70,7 +64,7 @@ export default function Sidebar({ activeTool, setActiveTool }: SidebarProps) {
   const isActive = (id: string) =>
     activeTool === id ||
     (id === 'litigation' &&
-      ['sdlc', 'agent-chat', 'checker', 'docAiChecker', 'judgmentSearch', 'smartAppeal', 'defenseWorkflow', 'appealDeadline', 'issueTableGenerator', 'evidenceListGenerator'].includes(activeTool)) ||
+      ['legalToolbox', 'sdlc', 'agent-chat', 'checker', 'docAiChecker', 'judgmentSearch', 'smartAppeal', 'defenseWorkflow', 'appealDeadline', 'issueTableGenerator', 'evidenceListGenerator'].includes(activeTool)) ||
     (id === 'unified' && ['guide', 'processGuide'].includes(activeTool)) ||
     (id === 'checker' && ['docAiChecker', 'judicialOpenData', 'judgmentSearch'].includes(activeTool));
 
@@ -85,8 +79,8 @@ export default function Sidebar({ activeTool, setActiveTool }: SidebarProps) {
   const toggleGroup = (id: string) => {
     setExpandedGroup(expandedGroup === id ? null : id);
     // If clicking the main item, also navigate to it
-    if (id === 'unified' || id === 'litigation' || id === 'legalToolbox') {
-      setActiveTool(id === 'legalToolbox' ? 'legalToolbox' : id);
+    if (id === 'unified' || id === 'litigation') {
+      setActiveTool(id);
     }
   };
 
