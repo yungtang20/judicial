@@ -46,6 +46,16 @@ export default function App() {
       case 'litigation':
       case 'legalToolbox':
         return <LitigationWorkspace initialTab={initialData?.initialTab || 'toolbox'} initialToolId={initialData?.preselectedToolId} onNavigate={handleSelectTool} />;
+      case 'appeal':
+      case 'smartAppeal':
+      case 'appealDeadline':
+        return (
+          <LitigationWorkspace
+            initialTab={activeTool === 'appealDeadline' ? 'deadline' : 'appeal'}
+            initialToolId={initialData?.preselectedToolId}
+            onNavigate={handleSelectTool}
+          />
+        );
       case 'agent-chat':
         return <AgentChat />;
       case 'checker':

@@ -1,5 +1,6 @@
 import express, { Express } from "express";
 import { securityHeaders, apiLimiter, sanitizeRequest, globalErrorHandler } from "./middleware/security.js";
+import { requestIdMiddleware, authenticate } from "./middleware/auth.js";
 import analyzeJudgmentRouter from "./routes/analyzeJudgment.js";
 import appealRouter from "./routes/appeal.js";
 import defenseRouter from "./routes/defense.js";
@@ -18,14 +19,20 @@ import fetchUrlRouter from "./routes/fetchUrl.js";
 export function createExpressApp(): Express {
   const app = express();
 
-  // 僅信任前方一層反向代理，避免用戶端偽造 X-Forwarded-For 繞過限流
-  app.set("trust proxy", 1);
+  // 反向代理信任設定：預設信任 1 層，亦可透過環境變數 TRUST_PROXY 設定
+  const rawTrustProxy = process.env.TRUST_PROXY;
+  const trustProxySetting = rawTrustProxy
+    ? (!isNaN(Number(rawTrustProxy)) ? Number(rawTrustProxy) : rawTrustProxy)
+    : 1;
+  app.set("trust proxy", trustProxySetting);
 
   // 1. 中介軟體
+  app.use(requestIdMiddleware);
   app.use(securityHeaders);
-  app.use(express.json({ limit: "10mb" }));
-  app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+  app.use(express.json({ limit: "1mb" }));
+  app.use(express.urlencoded({ extended: true, limit: "1mb" }));
   app.use(sanitizeRequest);
+  app.use(authenticate());
   app.use("/api", apiLimiter);
 
   // 2. 路由註冊

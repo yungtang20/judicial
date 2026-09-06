@@ -12,18 +12,24 @@ interface RecentUsageProps {
 }
 
 const toolIcons: Record<string, any> = {
-  unified: Scale,
+  unified: Compass,
   guide: Compass,
   litigation: FileText,
+  appeal: Scale,
+  smartAppeal: Scale,
+  appealDeadline: Clock,
   'agent-chat': FileText,
   checker: FileText,
   sdlc: FileText,
 };
 
 const toolLabels: Record<string, string> = {
-  unified: '判決分析',
+  unified: '案件分析',
   guide: '生活情境導診',
   litigation: '訴訟工作台',
+  appeal: '判決分析與上訴',
+  smartAppeal: '判決分析與上訴',
+  appealDeadline: '上訴法定期間試算',
   'agent-chat': '智慧助理對話',
   checker: '判決檢索與防假檢核',
   sdlc: 'SDLC 交付工作台',

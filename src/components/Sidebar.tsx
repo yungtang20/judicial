@@ -12,6 +12,7 @@ import {
   X,
   Briefcase,
   Gavel,
+  Clock,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -32,7 +33,7 @@ const coreEntries: NavItem[] = [
     id: 'unified',
     label: '案件分析',
     sublabel: '判決分析 · 情境導診 · 案件分類',
-    icon: Scale,
+    icon: Compass,
   },
   {
     id: 'litigation',
@@ -40,6 +41,18 @@ const coreEntries: NavItem[] = [
     sublabel: '全生命週期法務 · 20+ 書狀工具 · 攻防爭點',
     icon: Gavel,
   },
+  {
+    id: 'appeal',
+    label: '判決分析與上訴',
+    sublabel: '原審判決剖析 · 上訴理由書 · 期間試算',
+    icon: Scale,
+  },
+];
+
+// 判決分析與上訴子項目
+const appealSubItems: NavItem[] = [
+  { id: 'appeal', label: '判決剖析與上訴理由', sublabel: '原審違誤論理與撤銷改判主張', icon: Scale },
+  { id: 'appealDeadline', label: '上訴法定期間試算', sublabel: '20 天在途期間與末日扣除計算', icon: Clock },
 ];
 
 // 訴訟工作台子項目
@@ -63,8 +76,9 @@ export default function Sidebar({ activeTool, setActiveTool }: SidebarProps) {
 
   const isActive = (id: string) =>
     activeTool === id ||
+    (id === 'appeal' && ['appeal', 'smartAppeal', 'appealDeadline'].includes(activeTool)) ||
     (id === 'litigation' &&
-      ['legalToolbox', 'sdlc', 'agent-chat', 'checker', 'docAiChecker', 'judgmentSearch', 'smartAppeal', 'defenseWorkflow', 'appealDeadline', 'issueTableGenerator', 'evidenceListGenerator'].includes(activeTool)) ||
+      ['legalToolbox', 'sdlc', 'agent-chat', 'checker', 'docAiChecker', 'judgmentSearch', 'defenseWorkflow', 'issueTableGenerator', 'evidenceListGenerator'].includes(activeTool)) ||
     (id === 'unified' && ['guide', 'processGuide'].includes(activeTool)) ||
     (id === 'checker' && ['docAiChecker', 'judicialOpenData', 'judgmentSearch'].includes(activeTool));
 
@@ -79,9 +93,16 @@ export default function Sidebar({ activeTool, setActiveTool }: SidebarProps) {
   const toggleGroup = (id: string) => {
     setExpandedGroup(expandedGroup === id ? null : id);
     // If clicking the main item, also navigate to it
-    if (id === 'unified' || id === 'litigation') {
+    if (id === 'unified' || id === 'litigation' || id === 'appeal') {
       setActiveTool(id);
     }
+  };
+
+  const getSubItems = (id: string) => {
+    if (id === 'unified') return analysisSubItems;
+    if (id === 'litigation') return litigationSubItems;
+    if (id === 'appeal') return appealSubItems;
+    return [];
   };
 
   return (
@@ -146,7 +167,7 @@ export default function Sidebar({ activeTool, setActiveTool }: SidebarProps) {
             const Icon = entry.icon;
             const active = isActive(entry.id);
             const expanded = expandedGroup === entry.id;
-            const hasSubItems = entry.id === 'unified' || entry.id === 'litigation';
+            const hasSubItems = entry.id === 'unified' || entry.id === 'litigation' || entry.id === 'appeal';
 
             return (
               <li key={entry.id}>
@@ -181,7 +202,7 @@ export default function Sidebar({ activeTool, setActiveTool }: SidebarProps) {
                 {/* Sub-items */}
                 {hasSubItems && expanded && (
                   <ul className="list-none pl-3 mt-1 space-y-1">
-                    {(entry.id === 'unified' ? analysisSubItems : litigationSubItems).map((item) => {
+                    {getSubItems(entry.id).map((item) => {
                       const ItemIcon = item.icon;
                       const subActive = isSubActive(item.id);
                       return (

@@ -16,7 +16,7 @@ if (rawBaseUrl && !rawBaseUrl.startsWith("http://") && !rawBaseUrl.startsWith("h
 
 async function startServer() {
   const app = createExpressApp();
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT || 3000);
 
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
