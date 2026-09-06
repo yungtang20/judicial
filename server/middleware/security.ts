@@ -3,15 +3,18 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 
 const isProduction = process.env.NODE_ENV === "production";
+// 建議策略：生產環境先使用 Report-Only 模式，待完整確認各來源後，可透過 CSP_ENFORCE=true 切換為強制阻擋模式
+const isCspReportOnly = process.env.CSP_ENFORCE !== "true";
 
 /**
  * CSP 與安全標頭配置：
- * - Production: 啟用嚴謹的 Content-Security-Policy，白名單開放司法院 OpenData、Gemini API 與必要腳本/樣式來源。
- * - Development / Preview: 放寬或關閉 CSP 以支援 Vite HMR 與 iframe 沙盒預覽。
+ * - Production: 預設啟用 Content-Security-Policy (預設為 Report-Only 模式，防止破壞現有外部資源載入)
+ * - 開發環境: 放寬或關閉 CSP 以支援 Vite HMR 與 iframe 沙盒預覽
  */
 export const securityHeaders = helmet({
   contentSecurityPolicy: isProduction
     ? {
+        reportOnly: isCspReportOnly,
         directives: {
           defaultSrc: ["'self'"],
           scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
@@ -23,9 +26,14 @@ export const securityHeaders = helmet({
             "https://generativelanguage.googleapis.com",
             "https://data.judicial.gov.tw",
             "https://*.run.app",
+            "https://tlr.dr-legal.com.tw",
+            "https://*.dr-legal.com.tw",
+            process.env.APP_URL || "",
             "ws:",
             "wss:"
-          ],
+          ].filter(Boolean),
+          workerSrc: ["'self'", "blob:"],
+          frameSrc: ["'self'", "blob:", "https://ai.studio", "https://*.google.com"],
           objectSrc: ["'none'"],
           frameAncestors: ["'self'", "https://ai.studio", "https://*.google.com"],
           upgradeInsecureRequests: []
@@ -52,18 +60,17 @@ export const apiLimiter = rateLimit({
 
 /**
  * 遞迴字串清洗器：
- * 1. 移除無效控制字元 (ASCII 0-8, 11-12, 14-31, 127)
- * 2. 保留繁中全形/半形自然語言、標點、空白及法律書狀排版
- * 3. 移除危險的 <script> 標籤與 javascript: 偽協議，避免 XSS
+ * 1. 僅移除無效控制字元 (ASCII 0-8, 11-12, 14-31, 127)
+ * 2. 徹底保留繁中全形/半形自然語言、標點、空白及法律書狀排版
+ * 3. 移除危險的 <script> 標籤；不誤殺包含空白或文字提及 'javascript:' 的正常法律內容
+ * 4. 對巢狀 object、array 遞迴處理
  */
 export function sanitizeValue(value: unknown): unknown {
   if (typeof value === 'string') {
     // 移除 ASCII 控制字元 (保留換行 \n、Tab \t、Carriage Return \r)
     let cleaned = value.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
-    // 移除危險的 script 標籤與 javascript: 協議，但保留正常字串與空白
-    cleaned = cleaned
-      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-      .replace(/javascript\s*:/gi, '');
+    // 移除危險的 script 標籤，不使用粗暴字串比對誤殺正常法律文本
+    cleaned = cleaned.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
     return cleaned;
   }
 
@@ -126,14 +133,17 @@ export function sanitizeRequest(req: Request, res: Response, next: NextFunction)
 }
 
 /**
- * 全域錯誤處理器 (統一結構)
+ * 全域錯誤處理器 (統一結構，生產環境脫敏防禦)
  */
 export function globalErrorHandler(err: any, req: Request, res: Response, _next: NextFunction) {
   console.error(`[Server Error] [${req.method} ${req.url}]:`, err);
-  res.status(err.status || 500).json({
+  const isProd = process.env.NODE_ENV === "production";
+  const statusCode = err.status || 500;
+  
+  res.status(statusCode).json({
     code: err.code || "INTERNAL_SERVER_ERROR",
-    message: err.message || "伺服器內部錯誤",
-    requestId: (req.headers["x-request-id"] as string) || `req_${Date.now()}`,
-    details: process.env.NODE_ENV === "production" ? undefined : err.stack
+    message: isProd ? "伺服器處理異常，請稍後重試" : (err.message || "伺服器內部錯誤"),
+    requestId: req.id || (req.headers["x-request-id"] as string) || `req_${Date.now()}`,
+    details: isProd ? undefined : err.stack
   });
 }

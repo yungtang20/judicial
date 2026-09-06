@@ -14,9 +14,24 @@ if (rawBaseUrl && !rawBaseUrl.startsWith("http://") && !rawBaseUrl.startsWith("h
   delete process.env.GEMINI_BASE_URL;
 }
 
+// 驗證與解析 APP_URL
+export function getAppUrl(port: number): string {
+  const envUrl = process.env.APP_URL;
+  if (envUrl && envUrl.trim() && envUrl !== "MY_APP_URL") {
+    try {
+      const parsed = new URL(envUrl.trim());
+      return parsed.origin;
+    } catch {
+      console.warn(`[Config Warning] APP_URL "${envUrl}" 格式不合規，自動降級使用本機連線位址`);
+    }
+  }
+  return `http://localhost:${port}`;
+}
+
 async function startServer() {
   const app = createExpressApp();
   const PORT = Number(process.env.PORT || 3000);
+  const appUrl = getAppUrl(PORT);
 
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
@@ -33,7 +48,7 @@ async function startServer() {
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`[Judicial Modular Server] Running on http://localhost:${PORT}`);
+    console.log(`[Judicial Modular Server] Running on ${appUrl} (Listening on port ${PORT})`);
   });
 }
 

@@ -11,6 +11,7 @@ import {
 } from "../../src/lib/generatedDocumentPipeline.js";
 import { defaultAIProvider } from "../../src/ai/providers/providerRegistry.js";
 import { UNIVERSAL_SYLLOGISM_RULES } from "../../src/prompts/universal-syllogism.js";
+import { scrubPersonalInfo } from "../../src/lib/deidentifier.js";
 import { LocalLegalKnowledgeBase, defaultLocalKnowledgeBase } from "../knowledge-base/localKnowledgeBase.js";
 import { JudgmentKnowledgeBase, defaultJudgmentKnowledgeBase } from "../knowledge-base/judgmentKnowledgeBase.js";
 
@@ -207,9 +208,10 @@ export class LegalGenerationPipeline {
     let rawGeneratedText = '';
     let extracted: { documentText: string; payload?: T };
 
-    // 步驟 3: 呼叫 AI 生成 (Generate)
+    // 步驟 3: 呼叫 AI 生成 (Generate，生成前進行個資去識別化防護)
     try {
-      const aiRes = await provider.generate(fullPrompt);
+      const sanitizedPrompt = scrubPersonalInfo(fullPrompt);
+      const aiRes = await provider.generate(sanitizedPrompt);
       rawGeneratedText = aiRes.text || '';
       if (options.parseResponse) {
         extracted = options.parseResponse(rawGeneratedText);

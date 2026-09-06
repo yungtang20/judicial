@@ -139,7 +139,8 @@ router.post("/api/process/router", async (req: Request, res: Response) => {
     console.error("[LegalProcess] Router 節點失敗:", error);
     return res.status(500).json({
       error: "智能路由評估失敗",
-      details: error.message
+      message: "智能路由評估失敗，請稍後再試",
+      details: process.env.NODE_ENV === "production" ? undefined : error?.message
     });
   }
 });
@@ -196,7 +197,8 @@ router.post("/api/process/question", async (req: Request, res: Response) => {
     console.error("[LegalProcess] Question 節點失敗:", error);
     return res.status(500).json({
       error: "動態追問生成失敗",
-      details: error.message
+      message: "動態追問生成失敗，請稍後再試",
+      details: process.env.NODE_ENV === "production" ? undefined : error?.message
     });
   }
 });
@@ -250,7 +252,8 @@ router.post("/api/process/syllogism", async (req: Request, res: Response) => {
     console.error("[LegalProcess] Syllogism 節點失敗:", error);
     return res.status(500).json({
       error: "三段論涵攝分析失敗",
-      details: error.message
+      message: "三段論涵攝分析失敗，請稍後再試",
+      details: process.env.NODE_ENV === "production" ? undefined : error?.message
     });
   }
 });

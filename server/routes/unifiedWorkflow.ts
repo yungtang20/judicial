@@ -458,7 +458,8 @@ router.post("/api/workflow/execute", async (req: Request, res: Response) => {
     console.error("[UnifiedWorkflow] 執行工作流失敗:", error);
     return res.status(500).json({
       error: "統一工作流執行失敗",
-      details: error.message
+      message: "統一工作流執行失敗，請稍後再試",
+      details: process.env.NODE_ENV === "production" ? undefined : error?.message
     });
   }
 });
@@ -560,7 +561,11 @@ router.post("/api/workflow/supplement", async (req: Request, res: Response) => {
     return res.json({ success: true, data: state });
   } catch (error: any) {
     console.error("[UnifiedWorkflow] 補充事實重評失敗:", error);
-    return res.status(500).json({ error: error.message || "處理補充事實失敗" });
+    return res.status(500).json({
+      error: "處理補充事實失敗",
+      message: "處理補充事實失敗，請稍後再試",
+      details: process.env.NODE_ENV === "production" ? undefined : error?.message
+    });
   }
 });
 
@@ -590,7 +595,11 @@ router.post("/api/workflow/suggest-field", async (req: Request, res: Response) =
     return res.json({ success: true, options });
   } catch (error: any) {
     console.error('[SuggestField] 取得建議失敗:', error);
-    return res.status(500).json({ error: error.message || "取得建議失敗" });
+    return res.status(500).json({
+      error: "取得建議失敗",
+      message: "取得建議失敗，請稍後再試",
+      details: process.env.NODE_ENV === "production" ? undefined : error?.message
+    });
   }
 });
 

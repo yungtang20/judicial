@@ -34,7 +34,11 @@ router.post("/api/judicial/fetch-judgment", async (req: Request, res: Response) 
     res.json(result);
   } catch (err: any) {
     console.error("[JudicialFetchError]:", err.message);
-    res.status(500).json({ error: err.message || "無法讀取裁判書頁面" });
+    res.status(500).json({
+      error: "無法讀取裁判書頁面",
+      message: "無法讀取裁判書頁面，請確認連結有效性",
+      details: process.env.NODE_ENV === "production" ? undefined : err.message
+    });
   }
 });
 
