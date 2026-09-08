@@ -1,0 +1,7 @@
+#!/bin/sh
+bad_files=$(ls fix_*.cjs patch_*.cjs test_*.cjs 2>/dev/null | grep -v "^test-ssrf.cjs$")
+if [ -n "$bad_files" ]; then
+  echo "Error: Found temporary scripts. Please delete them before committing:"
+  echo "$bad_files"
+  exit 1
+fi

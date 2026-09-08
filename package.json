@@ -14,7 +14,8 @@
     "test:e2e": "vitest run src/domain/case/caseLifecycle.e2e.test.ts",
     "test:coverage": "vitest run --coverage",
     "test:eval": "vitest run src/lib/legalGovernance.test.ts",
-    "test:ssrf": "node test-ssrf.cjs"
+    "test:ssrf": "node test-ssrf.cjs",
+    "prepare": "husky"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
@@ -41,6 +42,7 @@
     "@vitest/coverage-v8": "^4.1.11",
     "@vitest/ui": "^4.1.11",
     "esbuild": "^0.25.0",
+    "husky": "^9.1.7",
     "jsdom": "^30.0.1",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
