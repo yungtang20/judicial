@@ -628,12 +628,24 @@ export const UnifiedEntry: React.FC = () => {
               <h2 className="text-base font-bold text-white">節點 4：RAG 要件庫檢索結果</h2>
             </div>
             <div className="space-y-3">
-              {workflowState.rag.statutes?.map((statute, i) => (
-                <div key={i} className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
-                  <p className="text-sm font-bold text-indigo-300">{statute.title}</p>
-                  <p className="text-xs text-slate-300 leading-relaxed">{statute.content}</p>
+              <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">{workflowState.rag.legalElements}</p>
+              {workflowState.rag.statuteCitations?.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {workflowState.rag.statuteCitations.map((citation, i) => (
+                    <span key={i} className="px-2.5 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/30 text-xs text-indigo-200">{citation}</span>
+                  ))}
                 </div>
-              ))}
+              )}
+              {workflowState.rag.precedents?.length > 0 && (
+                <div className="space-y-2">
+                  {workflowState.rag.precedents.map((precedent, i) => (
+                    <div key={i} className="p-3 rounded-xl bg-slate-950 border border-slate-800">
+                      <p className="text-xs font-bold text-sky-300">{precedent.caseNumber} · {precedent.courtName}</p>
+                      <p className="text-xs text-slate-300 leading-relaxed">{precedent.summary}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -691,20 +703,21 @@ export const UnifiedEntry: React.FC = () => {
 
         {/* Verification Gate */}
         {workflowState?.verification && (
-          <div className={`p-6 rounded-3xl border shadow-xl space-y-3 ${workflowState.verification.gate_passed ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-rose-500/10 border-rose-500/30'}`}>
+          <div className={`p-6 rounded-3xl border shadow-xl space-y-3 ${workflowState.verification.passGate ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-rose-500/10 border-rose-500/30'}`}>
             <div className="flex items-center gap-3">
-              {workflowState.verification.gate_passed ? (
+              {workflowState.verification.passGate ? (
                 <ShieldCheck className="w-6 h-6 text-emerald-400" />
               ) : (
                 <AlertTriangle className="w-6 h-6 text-rose-400" />
               )}
               <h2 className="text-lg font-bold text-white">節點 6：真確性檢核閘門</h2>
             </div>
-            <p className="text-sm text-slate-300">{workflowState.verification.notes}</p>
+            <p className="text-sm text-slate-300">{workflowState.verification.warningNotice || `檢核狀態：${workflowState.verification.verificationStatus}`}</p>
+            <p className="text-xs text-slate-400">狀態：{workflowState.verification.verificationStatus} · 查核 {workflowState.verification.totalChecked} 處 · 幽靈法條 {workflowState.verification.ghostCount} 處</p>
           </div>
         )}
         {/* Cross-feature navigation bar */}
-        {workflowState?.verification?.gate_passed && (
+        {workflowState?.verification?.passGate && (
           <div className="flex flex-wrap items-center gap-2 mt-4">
             <span className="text-xs text-slate-400 font-semibold">還需要：</span>
             <button
@@ -725,7 +738,7 @@ export const UnifiedEntry: React.FC = () => {
         )}
 
         {/* Quick action buttons — jump to document generation or guide */}
-        {workflowState?.verification?.gate_passed && (
+        {workflowState?.verification?.passGate && (
           <div className="flex flex-wrap items-center gap-3 mt-4">
             <button
               onClick={() => setShowDocTypeModal(true)}
