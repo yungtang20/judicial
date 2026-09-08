@@ -17,12 +17,10 @@ import {
   exportAsHtml, exportAsText, printReport
 } from '../lib/exportReport';
 import { saveCrossFeatureContext } from '../lib/crossFeatureContext';
+import { useToolContext } from '../contexts/ToolContext';
 
-interface UnifiedEntryProps {
-  onSelectSubTool?: (toolId: string) => void;
-}
-
-export const UnifiedEntry: React.FC<UnifiedEntryProps> = ({ onSelectSubTool }) => {
+export const UnifiedEntry: React.FC = () => {
+  const { handleSelectTool } = useToolContext();
   const defaultSample = `事發於民國112年11月15日晚上約11點，在台北市信義區租屋處。我與房東因退租押金發生爭執，房東以無合理依據之清潔費為由拒絕退還新台幣5萬元押金，並威脅若再爭執將把我的私人物品丟到走廊。我有雙方簽署之房屋租賃契約書、歷次匯款房租水電之銀行明細，以及當日 LINE 對話紀錄截圖。請問我的法律權利為何？`;
 
   const [inputNarrative, setInputNarrative] = useState<string>(defaultSample);
@@ -705,18 +703,18 @@ export const UnifiedEntry: React.FC<UnifiedEntryProps> = ({ onSelectSubTool }) =
           </div>
         )}
         {/* Cross-feature navigation bar */}
-        {onSelectSubTool && workflowState?.verification?.gate_passed && (
+        {workflowState?.verification?.gate_passed && (
           <div className="flex flex-wrap items-center gap-2 mt-4">
             <span className="text-xs text-slate-400 font-semibold">還需要：</span>
             <button
-              onClick={() => onSelectSubTool('guide')}
+              onClick={() => handleSelectTool('guide')}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-colors"
             >
               <ArrowRight className="w-3.5 h-3.5" />
               生活情境導診
             </button>
             <button
-              onClick={() => onSelectSubTool('litigation')}
+              onClick={() => handleSelectTool('litigation')}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition-colors"
             >
               <ArrowRight className="w-3.5 h-3.5" />
@@ -726,7 +724,7 @@ export const UnifiedEntry: React.FC<UnifiedEntryProps> = ({ onSelectSubTool }) =
         )}
 
         {/* Quick action buttons — jump to document generation or guide */}
-        {onSelectSubTool && workflowState?.verification?.gate_passed && (
+        {workflowState?.verification?.gate_passed && (
           <div className="flex flex-wrap items-center gap-3 mt-4">
             <button
               onClick={() => setShowDocTypeModal(true)}
@@ -743,7 +741,7 @@ export const UnifiedEntry: React.FC<UnifiedEntryProps> = ({ onSelectSubTool }) =
                   cause: workflowState?.router?.cause,
                   sourceTool: 'unified'
                 });
-                onSelectSubTool('guide');
+                handleSelectTool('guide');
               }}
               className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-lg transition-colors"
             >
@@ -771,7 +769,7 @@ export const UnifiedEntry: React.FC<UnifiedEntryProps> = ({ onSelectSubTool }) =
                       cause: workflowState?.router?.cause,
                       sourceTool: 'unified'
                     });
-                    onSelectSubTool?.('litigation', undefined, { initialTab: 'appeal' });
+                    handleSelectTool('litigation', undefined, { initialTab: 'appeal' });
                   }}
                   className="w-full text-left p-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors"
                 >
@@ -789,7 +787,7 @@ export const UnifiedEntry: React.FC<UnifiedEntryProps> = ({ onSelectSubTool }) =
                       cause: workflowState?.router?.cause,
                       sourceTool: 'unified'
                     });
-                    onSelectSubTool?.('litigation', undefined, { initialTab: 'toolbox', preselectedToolId: 'CIVIL_DEMAND_LETTER_GENERAL' });
+                    handleSelectTool('litigation', undefined, { initialTab: 'toolbox', preselectedToolId: 'CIVIL_DEMAND_LETTER_GENERAL' });
                   }}
                   className="w-full text-left p-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors"
                 >

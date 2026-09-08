@@ -1,3 +1,4 @@
+import { useToolContext } from "../contexts/ToolContext";
 import React, { useState, useMemo } from 'react';
 import { 
   FolderLock, 
@@ -118,10 +119,10 @@ const AiSuggestButton: React.FC<{ fieldLabel: string; fieldKey: string; toolName
 
 export interface LegalToolboxProps {
   initialToolId?: string;
-  onNavigate?: (toolId: string) => void;
 }
 
-export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNavigate }) => {
+export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId }) => {
+  const { handleSelectTool } = useToolContext();
   const activeCase = useCaseStore(getActiveCase);
   const addDocument = useCaseStore(s => s.addDocument);
   // Active tool ID (default to traffic accident complaint or passed prop)
@@ -430,24 +431,22 @@ export const LegalToolbox: React.FC<LegalToolboxProps> = ({ initialToolId, onNav
           <FolderLock className="w-80 h-80 text-blue-400" />
         </div>
         <div className="relative z-10 space-y-3">
-          {onNavigate && (
-            <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-2">
               <button
-                onClick={() => onNavigate('guide')}
+                onClick={() => handleSelectTool('guide')}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition-colors"
               >
                 <ArrowRight className="w-3.5 h-3.5 rotate-180" />
                 返回生活情境導診
               </button>
               <button
-                onClick={() => onNavigate('unified')}
+                onClick={() => handleSelectTool('unified')}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition-colors"
               >
                 <ArrowRight className="w-3.5 h-3.5 rotate-180" />
                 返回判決分析
               </button>
             </div>
-          )}
           <div className="flex flex-wrap items-center gap-2">
             <span className="px-2.5 py-1 rounded-md text-xs font-semibold bg-blue-500/20 text-blue-300 border border-blue-500/30 flex items-center gap-1.5">
               <FolderLock className="w-3.5 h-3.5" /> {LEGAL_TOOLS.length} 合 1 全方位實用法務工具總匯

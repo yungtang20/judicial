@@ -3,22 +3,16 @@ import {
   Scale,
   Compass,
   ChevronDown,
-  ChevronRight,
   FileText,
   FileCheck2,
   ShieldAlert,
   Sparkles,
   Menu,
   X,
-  Briefcase,
   Gavel,
   Clock,
 } from 'lucide-react';
-
-interface SidebarProps {
-  activeTool: string;
-  setActiveTool: (tool: string) => void;
-}
+import { useToolContext } from '../contexts/ToolContext';
 
 interface NavItem {
   id: string;
@@ -70,7 +64,8 @@ const analysisSubItems: NavItem[] = [
   { id: 'guide', label: '情境導診', sublabel: '生活問答 → 自動推薦', icon: Compass },
 ];
 
-export default function Sidebar({ activeTool, setActiveTool }: SidebarProps) {
+export default function Sidebar() {
+  const { activeTool, setActiveTool } = useToolContext();
   const [isOpen, setIsOpen] = useState(false);
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
 

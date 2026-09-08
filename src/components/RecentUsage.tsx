@@ -1,14 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, Scale, Compass, FileText, ChevronRight } from 'lucide-react';
+import { useToolContext } from '../contexts/ToolContext';
 
 interface UsageRecord {
   toolId: string;
   label: string;
   timestamp: number;
-}
-
-interface RecentUsageProps {
-  onSelectTool: (toolId: string) => void;
 }
 
 const toolIcons: Record<string, any> = {
@@ -79,8 +76,9 @@ export function trackToolUsage(toolId: string) {
   recordUsage(toolId, label);
 }
 
-export const RecentUsage: React.FC<RecentUsageProps> = ({ onSelectTool }) => {
+export const RecentUsage: React.FC = () => {
   const [recent, setRecent] = useState<UsageRecord[]>([]);
+  const { handleSelectTool } = useToolContext();
 
   useEffect(() => {
     setRecent(loadRecent());
@@ -101,7 +99,7 @@ export const RecentUsage: React.FC<RecentUsageProps> = ({ onSelectTool }) => {
           return (
             <button
               key={keyStr}
-              onClick={() => onSelectTool(String(item.toolId))}
+              onClick={() => handleSelectTool(String(item.toolId))}
               className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 hover:border-slate-600 text-slate-200 text-xs font-medium transition-all group"
             >
               <Icon className="w-3.5 h-3.5 text-slate-400 group-hover:text-indigo-400" />

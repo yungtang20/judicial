@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { LegalSourcesDisplay } from './LegalSourcesDisplay';
 import { LEGAL_TOOLS } from './LegalToolbox';
 import { useCaseStore } from '../store/useCaseStore';
+import { useToolContext } from '../contexts/ToolContext';
 import { 
   Compass, 
   Search, 
@@ -52,7 +53,8 @@ interface ScenarioItem {
   tags: string[];
 }
 
-export const LegalGuideHome: React.FC<LegalGuideHomeProps> = ({ onSelectTool }) => {
+export const LegalGuideHome: React.FC = () => {
+  const { handleSelectTool } = useToolContext();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [selectedScenario, setSelectedScenario] = useState<ScenarioItem | null>(null);
@@ -702,9 +704,9 @@ export const LegalGuideHome: React.FC<LegalGuideHomeProps> = ({ onSelectTool }) 
 
   const handleLaunchScenario = (scenario: ScenarioItem) => {
     if (scenario.targetToolId === 'legalToolbox' && scenario.targetSubTool) {
-      onSelectTool('legalToolbox', undefined, { preselectedToolId: scenario.targetSubTool });
+      handleSelectTool('legalToolbox', undefined, { preselectedToolId: scenario.targetSubTool });
     } else {
-      onSelectTool(scenario.targetToolId, scenario.targetSubTab);
+      handleSelectTool(scenario.targetToolId, scenario.targetSubTab);
     }
   };
 
@@ -853,7 +855,7 @@ export const LegalGuideHome: React.FC<LegalGuideHomeProps> = ({ onSelectTool }) 
 
         {/* 法律流程引導（互動式表單）橫幅推薦 */}
         <div 
-          onClick={() => onSelectTool('processGuide')}
+          onClick={() => handleSelectTool('processGuide')}
           className="cursor-pointer rounded-2xl p-5 bg-gradient-to-r from-indigo-950/80 via-slate-900 to-rose-950/60 border border-indigo-500/40 hover:border-indigo-400 hover:shadow-indigo-950/50 hover:shadow-xl transition-all flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
         >
           <div className="flex items-center gap-3.5">
@@ -886,7 +888,7 @@ export const LegalGuideHome: React.FC<LegalGuideHomeProps> = ({ onSelectTool }) 
         {/* 3大核心捷徑入口 */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div 
-            onClick={() => onSelectTool('legalToolbox')}
+            onClick={() => handleSelectTool('legalToolbox')}
             className="group cursor-pointer rounded-2xl p-5 bg-slate-900/80 border border-slate-800 hover:border-indigo-500/50 hover:bg-slate-900 transition-all shadow-lg relative overflow-hidden"
           >
             <div className="flex items-start justify-between">
@@ -909,7 +911,7 @@ export const LegalGuideHome: React.FC<LegalGuideHomeProps> = ({ onSelectTool }) 
           </div>
 
           <div 
-            onClick={() => onSelectTool('litigation')}
+            onClick={() => handleSelectTool('litigation')}
             className="group cursor-pointer rounded-2xl p-5 bg-slate-900/80 border border-slate-800 hover:border-amber-500/50 hover:bg-slate-900 transition-all shadow-lg relative overflow-hidden"
           >
             <div className="flex items-start justify-between">
@@ -932,7 +934,7 @@ export const LegalGuideHome: React.FC<LegalGuideHomeProps> = ({ onSelectTool }) 
           </div>
 
           <div 
-            onClick={() => onSelectTool('checker')}
+            onClick={() => handleSelectTool('checker')}
             className="group cursor-pointer rounded-2xl p-5 bg-slate-900/80 border border-slate-800 hover:border-emerald-500/50 hover:bg-slate-900 transition-all shadow-lg relative overflow-hidden"
           >
             <div className="flex items-start justify-between">
@@ -1217,7 +1219,7 @@ export const LegalGuideHome: React.FC<LegalGuideHomeProps> = ({ onSelectTool }) 
                   onClick={() => {
                     const target = selectedScenario;
                     setSelectedScenario(null);
-                    onSelectTool('unified');
+                    handleSelectTool('unified');
                   }}
                   className="px-3 py-2 rounded-xl bg-sky-950/60 text-sky-300 border border-sky-800/50 text-[11px] font-semibold hover:bg-sky-900/60 transition-all flex items-center gap-1.5"
                 >
@@ -1228,7 +1230,7 @@ export const LegalGuideHome: React.FC<LegalGuideHomeProps> = ({ onSelectTool }) 
                   onClick={() => {
                     const target = selectedScenario;
                     setSelectedScenario(null);
-                    onSelectTool('legalToolbox', undefined, {
+                    handleSelectTool('legalToolbox', undefined, {
                       preselectedToolId: 'UNIVERSAL_AI_PLEADING',
                       prefilledData: {
                         incidentDetails: target.situation
@@ -1578,7 +1580,7 @@ export const LegalGuideHome: React.FC<LegalGuideHomeProps> = ({ onSelectTool }) 
               <button
                 onClick={() => {
                   setSelectedCategory(null);
-                  onSelectTool('unified');
+                  handleSelectTool('unified');
                 }}
                 className="px-3 py-2 rounded-xl bg-sky-950/60 text-sky-300 border border-sky-800/50 text-[11px] font-semibold hover:bg-sky-900/60 transition-all flex items-center gap-1.5"
               >
@@ -1588,7 +1590,7 @@ export const LegalGuideHome: React.FC<LegalGuideHomeProps> = ({ onSelectTool }) 
               <button
                 onClick={() => {
                   setSelectedCategory(null);
-                  onSelectTool('legalToolbox', undefined, {
+                  handleSelectTool('legalToolbox', undefined, {
                     preselectedToolId: 'UNIVERSAL_AI_PLEADING',
                     prefilledData: { incidentDetails: '' }
                   });
@@ -1614,7 +1616,7 @@ export const LegalGuideHome: React.FC<LegalGuideHomeProps> = ({ onSelectTool }) 
                 onClick={() => {
                   setSelectedCategory(null);
                   setSelectedCategory('ALL');
-                  onSelectTool('litigation');
+                  handleSelectTool('litigation');
                 }}
                 className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-bold transition-all shadow-lg shadow-indigo-600/30 flex items-center gap-2"
               >
@@ -1629,7 +1631,7 @@ export const LegalGuideHome: React.FC<LegalGuideHomeProps> = ({ onSelectTool }) 
                     <button
                       onClick={() => {
                         setShowAiTriageModal(false);
-                        onSelectTool("unified");
+                        handleSelectTool("unified");
                       }}
                       className="px-3 py-2 rounded-xl bg-sky-950/60 text-sky-300 border border-sky-800/50 text-[11px] font-semibold hover:bg-sky-900/60 transition-all flex items-center gap-1.5"
                     >
@@ -1639,7 +1641,7 @@ export const LegalGuideHome: React.FC<LegalGuideHomeProps> = ({ onSelectTool }) 
                     <button
                       onClick={() => {
                         setShowAiTriageModal(false);
-                        onSelectTool("legalToolbox", undefined, {
+                        handleSelectTool("legalToolbox", undefined, {
                           preselectedToolId: "UNIVERSAL_AI_PLEADING",
                           prefilledData: {
                             incidentDetails: searchQuery
@@ -1664,7 +1666,7 @@ export const LegalGuideHome: React.FC<LegalGuideHomeProps> = ({ onSelectTool }) 
                       onClick={() => {
                         const recTool = aiTriageResult.recommendedToolId || "UNIVERSAL_AI_PLEADING";
                         setShowAiTriageModal(false);
-                        onSelectTool("legalToolbox", undefined, { 
+                        handleSelectTool("legalToolbox", undefined, { 
                           preselectedToolId: recTool,
                           prefilledData: {
                             incidentDetails: searchQuery,

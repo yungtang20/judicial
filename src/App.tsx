@@ -1,7 +1,8 @@
-import React, { useState, Suspense, useEffect } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import { RecentUsage, trackToolUsage } from './components/RecentUsage';
 import { Scale } from 'lucide-react';
+import { ToolProvider, useToolContext } from './contexts/ToolContext';
 
 const UnifiedEntry = React.lazy(() => import('./components/UnifiedEntry').then(m => ({ default: m.default || m.UnifiedEntry })));
 const LegalGuideHome = React.lazy(() => import('./components/LegalGuideHome').then(m => ({ default: m.default || m.LegalGuideHome })));
@@ -21,31 +22,24 @@ function LoadingFallback() {
   );
 }
 
-export default function App() {
-  const [activeTool, setActiveTool] = useState('unified');
-  const [initialData, setInitialData] = useState<any>(undefined);
+function AppContent() {
+  const { activeTool, setActiveTool, initialData, handleSelectTool } = useToolContext();
 
   useEffect(() => {
     trackToolUsage(activeTool);
   }, [activeTool]);
 
-  const handleSelectTool = (toolId: string, _subTab?: string, initialData?: any) => {
-    if (typeof toolId !== 'string') return;
-    setInitialData(initialData);
-    setActiveTool(toolId);
-  };
-
   const renderContent = () => {
     switch (activeTool) {
       case 'unified':
-        return <UnifiedEntry onSelectSubTool={handleSelectTool} />;
+        return <UnifiedEntry />;
       case 'guide':
-        return <LegalGuideHome onSelectTool={handleSelectTool} />;
+        return <LegalGuideHome />;
       case 'sdlc':
         return <LegalSdlcWorkbench />;
       case 'litigation':
       case 'legalToolbox':
-        return <LitigationWorkspace initialTab={initialData?.initialTab || 'toolbox'} initialToolId={initialData?.preselectedToolId} onNavigate={handleSelectTool} />;
+        return <LitigationWorkspace initialTab={initialData?.initialTab || 'toolbox'} initialToolId={initialData?.preselectedToolId} />;
       case 'appeal':
       case 'smartAppeal':
       case 'appealDeadline':
@@ -53,7 +47,7 @@ export default function App() {
           <LitigationWorkspace
             initialTab={activeTool === 'appealDeadline' ? 'deadline' : 'appeal'}
             initialToolId={initialData?.preselectedToolId}
-            onNavigate={handleSelectTool}
+           
           />
         );
       case 'agent-chat':
@@ -65,13 +59,13 @@ export default function App() {
       case 'judgmentSearch':
         return <JudicialAndAiChecker />;
       default:
-        return <UnifiedEntry onSelectSubTool={handleSelectTool} />;
+        return <UnifiedEntry />;
     }
   };
 
   return (
     <div className="flex flex-col md:flex-row h-screen bg-[#0a0e1a] text-white overflow-hidden font-sans">
-      <Sidebar activeTool={activeTool} setActiveTool={setActiveTool} />
+      <Sidebar />
       <main className="flex-1 overflow-y-auto">
         <Suspense fallback={<LoadingFallback />}>
           {/* Show RecentUsage at top when on unified entry */}
@@ -89,7 +83,7 @@ export default function App() {
               </div>
 
               {/* Recent Usage */}
-              <RecentUsage onSelectTool={handleSelectTool} />
+              <RecentUsage />
 
               {/* Main content (UnifiedEntry will render below) */}
               <div className="pb-12">
@@ -103,5 +97,13 @@ export default function App() {
         </Suspense>
       </main>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <ToolProvider>
+      <AppContent />
+    </ToolProvider>
   );
 }
