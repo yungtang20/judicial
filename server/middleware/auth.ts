@@ -291,6 +291,13 @@ export function authenticate(options: { required?: boolean } = {}) {
   const mustRequire = options.required ?? (isProd ? true : requireAuthEnv);
 
   return (req: Request, res: Response, next: NextFunction) => {
+    // Production UI bootstrap/static assets and health checks must be reachable
+    // before API authentication; all API and non-GET requests remain protected.
+    const acceptsHtml = String(req.headers.accept || "").includes("text/html");
+    const isPublicFrontendRequest = req.method === "GET" &&
+      (req.path === "/" || req.path.startsWith("/assets/") || req.path === "/api/health" || acceptsHtml);
+    if (isPublicFrontendRequest) return next();
+
     const authHeader = req.headers.authorization;
     const apiKeyHeader = req.headers["x-api-key"] as string | undefined;
 
