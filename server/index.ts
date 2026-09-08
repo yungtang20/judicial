@@ -17,6 +17,7 @@ import unifiedWorkflowRouter from "./routes/unifiedWorkflow.js";
 import agentChatRouter from "./routes/agentChat.js";
 import fetchUrlRouter from "./routes/fetchUrl.js";
 import { auditRouter } from "./routes/audit.js";
+import guestAuthRouter from "./routes/guestAuth.js";
 
 export function createExpressApp(): Express {
   // 啟動期環境安全性檢核：在 production 環境下未設置或不符合強度之 JWT_SECRET 立即中斷
@@ -49,6 +50,8 @@ export function createExpressApp(): Express {
   app.use(express.json({ limit: "1mb" }));
   app.use(express.urlencoded({ extended: true, limit: "1mb" }));
   app.use(sanitizeRequest);
+  // Guest token issuance is public; all subsequent API calls remain authenticated.
+  app.use(guestAuthRouter);
   app.use(authenticate());
   app.use(tenantScopeMiddleware);
   app.use("/api", apiLimiter);

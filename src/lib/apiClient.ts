@@ -42,7 +42,21 @@ class ApiError extends Error {
 }
 
 async function fetchWithHandler(url: string, options: RequestInit) {
-  const res = await fetch(url, options);
+  const headers = new Headers(options.headers);
+  const guestToken = sessionStorage.getItem('judicial_guest_token');
+  if (guestToken) headers.set('Authorization', `Bearer ${guestToken}`);
+  let res = await fetch(url, { ...options, headers });
+  if (res.status === 401 && !url.startsWith('/api/auth/guest')) {
+    const guestRes = await fetch('/api/auth/guest', { method: 'POST' });
+    if (guestRes.ok) {
+      const guestData = await guestRes.json() as { token?: string };
+      if (guestData.token) {
+        sessionStorage.setItem('judicial_guest_token', guestData.token);
+        headers.set('Authorization', `Bearer ${guestData.token}`);
+        res = await fetch(url, { ...options, headers });
+      }
+    }
+  }
   if (!res.ok) {
     let errData: any = {};
     try {
@@ -260,4 +274,3 @@ export const apiClient = {
     });
   },
 };
-
