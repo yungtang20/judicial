@@ -63,7 +63,7 @@ Render 部署設定位於根目錄的 `render.yaml`。部署時必須在 Render 
 
 ```text
 JWT_SECRET       # 至少 32 字元且具足夠熵值
-GEMINI_API_KEY   # 使用 Gemini provider 時必要
+HCNSEC_API_KEY   # 使用 HCNSEC provider 時必要
 APP_URL          # Production 公開網址
 ```
 
