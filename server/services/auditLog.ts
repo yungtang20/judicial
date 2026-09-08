@@ -218,6 +218,42 @@ export class AuditLogService {
   }
 
   /**
+   * 查詢單筆稽核紀錄 (依 ID 檢索)
+   */
+  public static getLogById(id: string): AuditLogEntry | null {
+    this.initDb();
+
+    if (this.db) {
+      try {
+        const queryStmt = this.db.prepare(`SELECT * FROM audit_logs WHERE id = ?`);
+        const r = queryStmt.get(id) as any;
+        if (r) {
+          return {
+            id: r.id,
+            requestId: r.requestId,
+            timestamp: r.timestamp,
+            tenantId: r.tenantId,
+            userId: r.userId,
+            action: r.action,
+            resource: r.resource,
+            status: r.status,
+            statusCode: Number(r.statusCode),
+            durationMs: Number(r.durationMs),
+            ip: r.ip,
+            userAgent: r.userAgent || undefined,
+            metadata: r.metadata ? JSON.parse(r.metadata) : undefined
+          };
+        }
+      } catch (err) {
+        console.warn("[AuditLogService] 查詢單筆 SQLite 稽核紀錄失敗:", err);
+      }
+    }
+
+    const found = this.logs.find((l) => l.id === id);
+    return found || null;
+  }
+
+  /**
    * 遞迴清洗任意型別中的敏感個資 (包含陣列與深層物件)
    */
   private static sanitizeValue(value: unknown): unknown {

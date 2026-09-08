@@ -3,6 +3,7 @@ import express from "express";
 import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
 import { createExpressApp } from "./server/index.js";
+import { validateSecurityConfiguration } from "./server/middleware/auth.js";
 
 dotenv.config();
 
@@ -29,6 +30,12 @@ export function getAppUrl(port: number): string {
 }
 
 async function startServer() {
+  const configCheck = validateSecurityConfiguration();
+  if (process.env.NODE_ENV === "production" && !configCheck.valid) {
+    console.error(`[Startup Security Failure] ${configCheck.error}`);
+    process.exit(1);
+  }
+
   const app = createExpressApp();
   const PORT = Number(process.env.PORT || 3000);
   const appUrl = getAppUrl(PORT);

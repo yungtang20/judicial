@@ -84,6 +84,143 @@ sdlcRouter.get('/project/:id', async (req: Request, res: Response) => {
   }
 });
 
+// 修改專案屬性 (PATCH /project/:id)
+sdlcRouter.patch('/project/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const project = await defaultSdlcOrchestrator.getProject(id);
+    if (!project) {
+      return res.status(404).json({
+        error: `找不到 ID 為 [${id}] 之 SDLC 專案`,
+        code: 'NOT_FOUND',
+        status: 404
+      });
+    }
+
+    assertProjectTenantOwnership(req, project);
+
+    // Mass Assignment 防禦：僅允許更新合法業務欄位，嚴禁竄改 tenantId, ownerId, projectId
+    const { title, legalDomain } = req.body;
+    const updated = await defaultSdlcOrchestrator.updateProject(id, { title, legalDomain });
+    res.json({ success: true, project: updated });
+  } catch (err) {
+    handleRouteError(err, res);
+  }
+});
+
+// 刪除專案 (DELETE /project/:id)
+sdlcRouter.delete('/project/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const project = await defaultSdlcOrchestrator.getProject(id);
+    if (!project) {
+      return res.status(404).json({
+        error: `找不到 ID 為 [${id}] 之 SDLC 專案`,
+        code: 'NOT_FOUND',
+        status: 404
+      });
+    }
+
+    assertProjectTenantOwnership(req, project);
+
+    await defaultSdlcOrchestrator.deleteProject(id);
+    res.json({ success: true, message: `專案 [${id}] 已成功刪除` });
+  } catch (err) {
+    handleRouteError(err, res);
+  }
+});
+
+// 查詢專案內特定書狀/工件 (GET /project/:projectId/artifact/:artifactId)
+sdlcRouter.get('/project/:projectId/artifact/:artifactId', async (req: Request, res: Response) => {
+  try {
+    const { projectId, artifactId } = req.params;
+    const project = await defaultSdlcOrchestrator.getProject(projectId);
+    if (!project) {
+      return res.status(404).json({
+        error: `找不到 ID 為 [${projectId}] 之專案`,
+        code: 'NOT_FOUND',
+        status: 404
+      });
+    }
+
+    assertProjectTenantOwnership(req, project);
+
+    const artifact = await defaultSdlcOrchestrator.getArtifact(projectId, artifactId);
+    if (!artifact) {
+      return res.status(404).json({
+        error: `找不到 ID 為 [${artifactId}] 之書狀或工件`,
+        code: 'NOT_FOUND',
+        status: 404
+      });
+    }
+
+    res.json({ success: true, artifact });
+  } catch (err) {
+    handleRouteError(err, res);
+  }
+});
+
+// 修改專案內特定書狀/工件 (PATCH /project/:projectId/artifact/:artifactId)
+sdlcRouter.patch('/project/:projectId/artifact/:artifactId', async (req: Request, res: Response) => {
+  try {
+    const { projectId, artifactId } = req.params;
+    const project = await defaultSdlcOrchestrator.getProject(projectId);
+    if (!project) {
+      return res.status(404).json({
+        error: `找不到 ID 為 [${projectId}] 之專案`,
+        code: 'NOT_FOUND',
+        status: 404
+      });
+    }
+
+    assertProjectTenantOwnership(req, project);
+
+    const { content, summary } = req.body;
+    const updatedArtifact = await defaultSdlcOrchestrator.updateArtifact(projectId, artifactId, { content, summary });
+    if (!updatedArtifact) {
+      return res.status(404).json({
+        error: `找不到 ID 為 [${artifactId}] 之書狀或工件`,
+        code: 'NOT_FOUND',
+        status: 404
+      });
+    }
+
+    res.json({ success: true, artifact: updatedArtifact });
+  } catch (err) {
+    handleRouteError(err, res);
+  }
+});
+
+// 刪除專案內特定書狀/工件 (DELETE /project/:projectId/artifact/:artifactId)
+sdlcRouter.delete('/project/:projectId/artifact/:artifactId', async (req: Request, res: Response) => {
+  try {
+    const { projectId, artifactId } = req.params;
+    const project = await defaultSdlcOrchestrator.getProject(projectId);
+    if (!project) {
+      return res.status(404).json({
+        error: `找不到 ID 為 [${projectId}] 之專案`,
+        code: 'NOT_FOUND',
+        status: 404
+      });
+    }
+
+    assertProjectTenantOwnership(req, project);
+
+    const deleted = await defaultSdlcOrchestrator.deleteArtifact(projectId, artifactId);
+    if (!deleted) {
+      return res.status(404).json({
+        error: `找不到 ID 為 [${artifactId}] 之書狀或工件`,
+        code: 'NOT_FOUND',
+        status: 404
+      });
+    }
+
+    res.json({ success: true, message: `書狀/工件 [${artifactId}] 已成功刪除` });
+  } catch (err) {
+    handleRouteError(err, res);
+  }
+});
+
 // 2. 委派 Orchestrator 執行特定階段 (POST /execute-stage)
 sdlcRouter.post('/execute-stage', async (req: Request, res: Response) => {
   try {
@@ -97,9 +234,14 @@ sdlcRouter.post('/execute-stage', async (req: Request, res: Response) => {
     }
 
     const project = await defaultSdlcOrchestrator.getProject(projectId);
-    if (project) {
-      assertProjectTenantOwnership(req, project);
+    if (!project) {
+      return res.status(404).json({
+        error: `找不到 ID 為 [${projectId}] 之 SDLC 專案`,
+        code: 'NOT_FOUND',
+        status: 404
+      });
     }
+    assertProjectTenantOwnership(req, project);
 
     const context = getApprovalContext(req);
     const result = await defaultSdlcOrchestrator.executeStage(
@@ -133,9 +275,14 @@ sdlcRouter.post('/advance-gate', async (req: Request, res: Response) => {
     }
 
     const project = await defaultSdlcOrchestrator.getProject(projectId);
-    if (project) {
-      assertProjectTenantOwnership(req, project);
+    if (!project) {
+      return res.status(404).json({
+        error: `找不到 ID 為 [${projectId}] 之 SDLC 專案`,
+        code: 'NOT_FOUND',
+        status: 404
+      });
     }
+    assertProjectTenantOwnership(req, project);
 
     const context = getApprovalContext(req);
     const updatedProject = await defaultSdlcOrchestrator.advanceGate(
@@ -164,9 +311,14 @@ sdlcRouter.post('/feedback-loop', async (req: Request, res: Response) => {
     }
 
     const project = await defaultSdlcOrchestrator.getProject(projectId);
-    if (project) {
-      assertProjectTenantOwnership(req, project);
+    if (!project) {
+      return res.status(404).json({
+        error: `找不到 ID 為 [${projectId}] 之 SDLC 專案`,
+        code: 'NOT_FOUND',
+        status: 404
+      });
     }
+    assertProjectTenantOwnership(req, project);
 
     const context = getApprovalContext(req);
     const result = await defaultSdlcOrchestrator.triggerFeedbackLoop(

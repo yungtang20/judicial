@@ -378,6 +378,90 @@ export class SdlcOrchestrator {
 
     return { project, feedbackArtifact };
   }
+
+  /**
+   * 刪除特定 SDLC 專案
+   */
+  public async deleteProject(projectId: string): Promise<boolean> {
+    return this.repository.delete(projectId);
+  }
+
+  /**
+   * 安全更新專案資訊（保護 tenantId 與 ownerId 不被覆寫）
+   */
+  public async updateProject(
+    projectId: string,
+    updates: Partial<Pick<SdlcProjectState, 'title' | 'legalDomain'>>
+  ): Promise<SdlcProjectState | null> {
+    const project = await this.repository.get(projectId);
+    if (!project) return null;
+
+    if (updates.title) project.title = updates.title;
+    if (updates.legalDomain) project.legalDomain = updates.legalDomain;
+    project.updatedAt = new Date().toISOString();
+
+    await this.repository.save(project);
+    return project;
+  }
+
+  /**
+   * 取得特定工件/書狀
+   */
+  public async getArtifact(projectId: string, artifactId: string): Promise<SdlcArtifact | null> {
+    const project = await this.repository.get(projectId);
+    if (!project || !project.artifacts) return null;
+
+    for (const artifacts of Object.values(project.artifacts)) {
+      const found = artifacts.find(a => a.id === artifactId);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  /**
+   * 修改特定工件/書狀內容
+   */
+  public async updateArtifact(
+    projectId: string,
+    artifactId: string,
+    updates: { content?: string; summary?: string }
+  ): Promise<SdlcArtifact | null> {
+    const project = await this.repository.get(projectId);
+    if (!project || !project.artifacts) return null;
+
+    for (const artifacts of Object.values(project.artifacts)) {
+      const found = artifacts.find(a => a.id === artifactId);
+      if (found) {
+        if (updates.content !== undefined) found.content = updates.content;
+        if (updates.summary !== undefined) found.summary = updates.summary;
+        project.updatedAt = new Date().toISOString();
+        await this.repository.save(project);
+        return found;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * 刪除特定工件/書狀
+   */
+  public async deleteArtifact(projectId: string, artifactId: string): Promise<boolean> {
+    const project = await this.repository.get(projectId);
+    if (!project || !project.artifacts) return false;
+
+    let deleted = false;
+    for (const [stageKey, artifacts] of Object.entries(project.artifacts)) {
+      const idx = artifacts.findIndex(a => a.id === artifactId);
+      if (idx !== -1) {
+        artifacts.splice(idx, 1);
+        deleted = true;
+        project.updatedAt = new Date().toISOString();
+        await this.repository.save(project);
+        break;
+      }
+    }
+    return deleted;
+  }
 }
 
 export const defaultSdlcOrchestrator = new SdlcOrchestrator();

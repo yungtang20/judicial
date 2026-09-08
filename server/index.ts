@@ -1,6 +1,6 @@
 import express, { Express } from "express";
 import { securityHeaders, apiLimiter, sanitizeRequest, globalErrorHandler } from "./middleware/security.js";
-import { requestIdMiddleware, authenticate } from "./middleware/auth.js";
+import { requestIdMiddleware, authenticate, validateSecurityConfiguration } from "./middleware/auth.js";
 import { tenantScopeMiddleware } from "./middleware/tenantScope.js";
 import analyzeJudgmentRouter from "./routes/analyzeJudgment.js";
 import appealRouter from "./routes/appeal.js";
@@ -16,8 +16,15 @@ import legalProcessRouter from "./routes/legalProcess.js";
 import unifiedWorkflowRouter from "./routes/unifiedWorkflow.js";
 import agentChatRouter from "./routes/agentChat.js";
 import fetchUrlRouter from "./routes/fetchUrl.js";
+import { auditRouter } from "./routes/audit.js";
 
 export function createExpressApp(): Express {
+  // 啟動期環境安全性檢核：在 production 環境下未設置或不符合強度之 JWT_SECRET 立即中斷
+  const configCheck = validateSecurityConfiguration();
+  if (process.env.NODE_ENV === "production" && !configCheck.valid) {
+    throw new Error(`[Startup Security Failure] ${configCheck.error}`);
+  }
+
   const app = express();
 
   // 反向代理信任設定：支援布林值 ("true"/"false")、數字 (例如 1, 2) 或指定 IP/網段
@@ -62,6 +69,7 @@ export function createExpressApp(): Express {
   app.use(agentChatRouter);
   app.use(fetchUrlRouter);
   app.use(healthRouter);
+  app.use(auditRouter);
   app.use("/api/sdlc", sdlcRouter);
 
   // 3. 全域錯誤處理器

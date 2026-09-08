@@ -28,16 +28,69 @@ declare global {
   }
 }
 
-function getJwtSecret(): string {
-  const secret = process.env.JWT_SECRET || process.env.AUTH_SECRET;
-  if (!secret || secret.trim() === '') {
-    if (process.env.NODE_ENV === 'production') {
-      console.error("CRITICAL FATAL: Missing JWT_SECRET in production. Exiting...");
-      process.exit(1);
+export interface SecurityConfigResult {
+  valid: boolean;
+  error?: string;
+}
+
+const INSECURE_FALLBACK_SECRETS = new Set([
+  "development-only-fallback-secret-key-at-least-32-chars",
+  "your-secret-key-must-be-at-least-32-chars",
+  "default-insecure-secret-key-change-me",
+  "01234567890123456789012345678901",
+  "changeme",
+  "secret",
+  "password"
+]);
+
+/**
+ * 伺服器啟動期安全環境設定校驗 (Startup Fail-Closed Validation)
+ * 確保在 production 環境下具備足夠長度與強度之 JWT 密鑰，絕不使用固定 fallback
+ */
+export function validateSecurityConfiguration(env: NodeJS.ProcessEnv = process.env): SecurityConfigResult {
+  const isProd = env.NODE_ENV === "production";
+  const secret = (env.JWT_SECRET || env.AUTH_SECRET || "").trim();
+
+  if (isProd) {
+    if (!secret) {
+      return {
+        valid: false,
+        error: "FATAL_CONFIG: JWT_SECRET or AUTH_SECRET is required in production environment."
+      };
     }
-    return "development-only-fallback-secret-key-at-least-32-chars";
+    if (secret.length < 32) {
+      return {
+        valid: false,
+        error: "FATAL_CONFIG: Production JWT_SECRET must be at least 32 characters long."
+      };
+    }
+    if (INSECURE_FALLBACK_SECRETS.has(secret)) {
+      return {
+        valid: false,
+        error: "FATAL_CONFIG: Insecure default or fallback secret is strictly forbidden in production."
+      };
+    }
   }
-  return secret;
+
+  return { valid: true };
+}
+
+/**
+ * 取得當前有效的 JWT 簽署密鑰
+ * 拒絕在 HTTP request 執行期使用 process.exit(1)，若 production 未配置則拋出例外 fail-closed
+ */
+export function getJwtSecret(env: NodeJS.ProcessEnv = process.env): string {
+  const secret = (env.JWT_SECRET || env.AUTH_SECRET || "").trim();
+  const isProd = env.NODE_ENV === "production";
+
+  if (isProd) {
+    if (!secret || secret.length < 32 || INSECURE_FALLBACK_SECRETS.has(secret)) {
+      throw new Error("PRODUCTION_AUTH_CONFIG_ERROR: Missing or insecure JWT_SECRET in production environment");
+    }
+    return secret;
+  }
+
+  return secret || "development-only-fallback-secret-key-at-least-32-chars";
 }
 
 function base64UrlEncode(str: string): string {
@@ -70,7 +123,7 @@ export function createSignedToken(
   const fullPayload: JwtPayload = {
     ...payload,
     iat: now,
-    exp: payload.exp || now + expiresInSeconds,
+    exp: payload.exp !== undefined ? payload.exp : now + expiresInSeconds,
   };
 
   const encodedHeader = base64UrlEncode(JSON.stringify(header));
@@ -119,17 +172,22 @@ export function verifySignedToken(token: string, secret?: string): JwtPayload | 
 
     const payload: JwtPayload = JSON.parse(base64UrlDecode(encodedPayload));
 
-    // 3. 檢查過期時間 (exp)
-    if (payload.exp && typeof payload.exp === "number") {
-      const now = Math.floor(Date.now() / 1000);
-      if (now > payload.exp) {
-        return null;
-      }
+    // 3. 檢查過期時間 (exp) - 嚴格 Fail-Closed (缺少 exp 或非正數一律拒絕)
+    if (typeof payload.exp !== "number" || isNaN(payload.exp) || payload.exp <= 0) {
+      return null;
+    }
+    const now = Math.floor(Date.now() / 1000);
+    if (now > payload.exp) {
+      return null;
     }
 
-    // 4. 驗證必要欄位與角色
+    // 4. 驗證必要欄位與合法角色
     const validRoles = ["admin", "lawyer", "paralegal", "client", "system"];
-    if (!payload.sub || !payload.tenantId || !validRoles.includes(payload.role)) {
+    if (
+      !payload.sub || typeof payload.sub !== "string" || payload.sub.trim() === "" ||
+      !payload.tenantId || typeof payload.tenantId !== "string" || payload.tenantId.trim() === "" ||
+      !validRoles.includes(payload.role)
+    ) {
       return null;
     }
 
