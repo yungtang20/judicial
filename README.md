@@ -50,6 +50,25 @@ npm install
 npm run dev
 ```
 
+## Render 部署
+
+Production 服務目前部署於 Render：
+
+- 網址：[https://judicial-prod.onrender.com](https://judicial-prod.onrender.com)
+- Runtime：Node.js
+- Build command：`npm install --include=dev && npm run build`
+- Start command：`npm start`
+
+Render 部署設定位於根目錄的 `render.yaml`。部署時必須在 Render Environment Variables 設定：
+
+```text
+JWT_SECRET       # 至少 32 字元且具足夠熵值
+GEMINI_API_KEY   # 使用 Gemini provider 時必要
+APP_URL          # Production 公開網址
+```
+
+Production 的首頁、前端 assets 與 `/api/health` 可公開存取；所有 `/api` 請求及非 GET 請求仍須提供有效的 Bearer Token 或 `X-API-Key`。
+
 ## 驗證指令
 
 ```bash
