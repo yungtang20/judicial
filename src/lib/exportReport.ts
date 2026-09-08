@@ -1,4 +1,5 @@
 import { LegalWorkflowState } from './workflow/unifiedStateGraph';
+import { formatLegalChapter } from './legalChapterLabels';
 
 function escapeHtml(text: string): string {
   return text
@@ -44,7 +45,7 @@ function buildHtmlReport(state: LegalWorkflowState): string {
 <h2>二、分流結果</h2>
 <div class="section">
   <span class="badge badge-blue">${escapeHtml(router?.domain || '—')}</span>
-  <span class="badge badge-blue">${escapeHtml(router?.chapter || '—')}</span>
+  <span class="badge badge-blue">${escapeHtml(formatLegalChapter(router?.chapter) || '—')}</span>
   <span class="badge badge-amber">${escapeHtml(router?.cause || '—')}</span>
   ${router?.is_sensitive ? '<span class="badge badge-amber">⚠ 敏感案件</span>' : '<span class="badge badge-green">一般案件</span>'}
 </div>
@@ -102,7 +103,7 @@ export function exportAsText(state: LegalWorkflowState) {
     '',
     '【分流結果】',
     `法律領域：${router?.domain || '—'}`,
-    `罪章：${router?.chapter || '—'}`,
+    `罪章：${formatLegalChapter(router?.chapter) || '—'}`,
     `案由：${router?.cause || '—'}`,
     `敏感案件：${router?.is_sensitive ? '是' : '否'}`,
     '',

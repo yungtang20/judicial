@@ -1,24 +1,55 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   Send, Sparkles, ShieldAlert, ShieldCheck, AlertTriangle, CheckCircle2,
   Cpu, Layers, FileCheck2, FileText, RotateCcw, Copy, Check, Loader2,
   ChevronRight, ArrowRight, HelpCircle, Clock, BookOpen, Scale,
   Upload, History, Download, Printer, Trash2, X, FilePlus, ChevronDown,
-  ChevronUp
+  ChevronUp, Star, Edit3, Plus, Bookmark
 } from 'lucide-react';
 import {
   LegalWorkflowState,
   createInitialWorkflowState
 } from '../lib/workflow/unifiedStateGraph';
 import {
-  loadHistory, saveToHistory, deleteFromHistory, AnalysisRecord
+  loadHistory, saveToHistory, deleteFromHistory, clearHistory, AnalysisRecord
 } from '../lib/analysisHistory';
 import {
   exportAsHtml, exportAsText, printReport
 } from '../lib/exportReport';
+import {
+  formatLegalChapter,
+  formatVerificationStatus
+} from '../lib/legalChapterLabels';
 import { saveCrossFeatureContext } from '../lib/crossFeatureContext';
 import { useToolContext } from '../contexts/ToolContext';
 import { fetchWithAuth } from '../lib/apiClient';
+import { extractPdfText } from '../lib/pdfUtils';
+
+interface CustomPresetCase {
+  title: string;
+  narrative: string;
+}
+
+const CUSTOM_PRESET_STORAGE_KEY = 'smart_legal_user_custom_preset';
+
+const DEFAULT_CUSTOM_PRESET: CustomPresetCase = {
+  title: '自訂案例：裝潢工程瑕疵扣款與給付尾款爭議',
+  narrative: `我去年委託室內裝潢公司裝修住宅，總工程款新台幣120萬元，約定分四期付款，我已如期給付前三期款項共90萬元。完工驗收時我發現客廳天花板嚴重龜裂、木地板受潮突起，且浴室防水層施作瑕疵致使樓下天花板滲水。建築師公會鑑定修復費用需35萬元。我以存證信函催告對方修補，對方置之不理，反而向法院聲請發支付命令向我索討第四期尾款30萬元。請問我能否依法主張瑕疵擔保修補費用抵銷尾款，並請求賠償樓下住戶之損失？`
+};
+
+function loadCustomPreset(): CustomPresetCase {
+  try {
+    const raw = localStorage.getItem(CUSTOM_PRESET_STORAGE_KEY);
+    if (!raw) return DEFAULT_CUSTOM_PRESET;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed.title === 'string' && typeof parsed.narrative === 'string') {
+      return parsed;
+    }
+    return DEFAULT_CUSTOM_PRESET;
+  } catch {
+    return DEFAULT_CUSTOM_PRESET;
+  }
+}
 
 export const UnifiedEntry: React.FC = () => {
   const { handleSelectTool } = useToolContext();
@@ -32,9 +63,58 @@ export const UnifiedEntry: React.FC = () => {
   const [isCopied, setIsCopied] = useState<boolean>(false);
   const [acknowledgeSafetyInSession, setAcknowledgeSafetyInSession] = useState<boolean>(false);
 
-  // Batch upload
+  // 折疊手風琴卡片狀態（依用戶要求：預設全部收起資料，避免版面雜亂）
+  const [isNode2Open, setIsNode2Open] = useState<boolean>(false);
+  const [isNode4Open, setIsNode4Open] = useState<boolean>(false);
+  const [isNode5Open, setIsNode5Open] = useState<boolean>(false);
+  const [isNode6Open, setIsNode6Open] = useState<boolean>(false);
+
+  // 使用者自訂預設案例（非系統預置）
+  const [customPreset, setCustomPreset] = useState<CustomPresetCase>(loadCustomPreset);
+  const [showCustomPresetModal, setShowCustomPresetModal] = useState<boolean>(false);
+  const [editPresetTitle, setEditPresetTitle] = useState<string>('');
+  const [editPresetNarrative, setEditPresetNarrative] = useState<string>('');
+
+  // 一鍵展開/收起所有節點
+  const handleToggleAllNodes = (open: boolean) => {
+    setIsNode2Open(open);
+    setIsNode4Open(open);
+    setIsNode5Open(open);
+    setIsNode6Open(open);
+  };
+
+  // 儲存自訂預設案例
+  const handleSaveCustomPreset = (title: string, narrative: string) => {
+    const updated: CustomPresetCase = {
+      title: title.trim() || '我的自訂案例',
+      narrative: narrative.trim()
+    };
+    setCustomPreset(updated);
+    try {
+      localStorage.setItem(CUSTOM_PRESET_STORAGE_KEY, JSON.stringify(updated));
+    } catch (e) {
+      console.warn('無法儲存自訂預設案例至 localStorage:', e);
+    }
+    setShowCustomPresetModal(false);
+  };
+
+  // 將當前文字框內容設為自訂案例
+  const handleSaveCurrentAsCustomPreset = () => {
+    if (!inputNarrative.trim()) {
+      alert('請先在輸入框內輸入案件事實內容');
+      return;
+    }
+    const title = prompt('請輸入自訂預設案例名稱：', customPreset.title || '我的自訂案例');
+    if (title !== null) {
+      handleSaveCustomPreset(title || '我的自訂案例', inputNarrative);
+    }
+  };
+
+  // Batch & file upload
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState<boolean>(false);
+  const [isParsingFiles, setIsParsingFiles] = useState<boolean>(false);
+  const [parsingStatus, setParsingStatus] = useState<string | null>(null);
   const [batchQueue, setBatchQueue] = useState<string[]>([]);
   const [batchIndex, setBatchIndex] = useState<number>(0);
   const [isBatchRunning, setIsBatchRunning] = useState<boolean>(false);
@@ -43,36 +123,61 @@ export const UnifiedEntry: React.FC = () => {
   const [showHistory, setShowHistory] = useState<boolean>(false);
   const [historyList, setHistoryList] = useState<AnalysisRecord[]>(loadHistory());
 
-  // Handle file upload (single or batch)
-  const handleFiles = useCallback((files: FileList | File[]) => {
-    const textFiles = Array.from(files).filter(f => f.type === 'text/plain' || f.name.endsWith('.txt'));
-    if (textFiles.length === 0) {
-      alert('請上傳 .txt 格式的判決書文本');
+  // Handle file upload (single or batch, supporting Judicial Yuan .pdf and .txt)
+  const handleFiles = useCallback(async (files: FileList | File[]) => {
+    const fileArray = Array.from(files);
+    const validFiles = fileArray.filter(f => {
+      const name = f.name.toLowerCase();
+      return name.endsWith('.pdf') || name.endsWith('.txt') || f.type === 'application/pdf' || f.type === 'text/plain';
+    });
+
+    if (validFiles.length === 0) {
+      alert('請上傳司法院裁判書 PDF 檔案（.pdf）或文字檔案（.txt）');
       return;
     }
 
-    const readers = textFiles.map(file => {
-      return new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onload = (e) => resolve(e.target?.result as string || '');
-        reader.readAsText(file, 'utf-8');
-      });
-    });
+    setIsParsingFiles(true);
+    setParsingStatus(`正在讀取與解析 ${validFiles.length} 份裁判書...`);
 
-    Promise.all(readers).then(texts => {
-      const validTexts = texts.filter(t => t.trim().length > 10);
-      if (validTexts.length === 0) {
-        alert('上傳的檔案內容過短或為空');
+    try {
+      const parsedTexts: string[] = [];
+      for (let i = 0; i < validFiles.length; i++) {
+        const file = validFiles[i];
+        const isPdf = file.name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf';
+        setParsingStatus(`正在解析裁判書 (${i + 1}/${validFiles.length})：${file.name}`);
+
+        let content = '';
+        if (isPdf) {
+          content = await extractPdfText(file);
+        } else {
+          content = await file.text();
+        }
+
+        const trimmed = content.trim();
+        if (trimmed.length > 10) {
+          parsedTexts.push(trimmed);
+        }
+      }
+
+      if (parsedTexts.length === 0) {
+        alert('上傳的裁判書檔案內容為空或無法提取文字（若為掃描式 PDF 請確認文字圖層）');
         return;
       }
-      if (validTexts.length === 1) {
-        setInputNarrative(validTexts[0]);
+
+      if (parsedTexts.length === 1) {
+        setInputNarrative(parsedTexts[0]);
       } else {
-        setBatchQueue(validTexts);
+        setBatchQueue(parsedTexts);
         setBatchIndex(0);
-        setInputNarrative(validTexts[0]);
+        setInputNarrative(parsedTexts[0]);
       }
-    });
+    } catch (err) {
+      console.error('[UnifiedEntry] 裁判書解析異常:', err);
+      alert('解析裁判書檔案時發生錯誤，請確認檔案未損毀或受密碼保護');
+    } finally {
+      setIsParsingFiles(false);
+      setParsingStatus(null);
+    }
   }, []);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -230,14 +335,14 @@ export const UnifiedEntry: React.FC = () => {
             <div className="space-y-2">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 text-xs font-bold tracking-wide">
                 <Cpu className="w-3.5 h-3.5" />
-                <span>統一入口自動化工作流 · Unified StateGraph</span>
+                <span>統一入口自動化工作流 · 全流程狀態圖導航</span>
               </div>
               <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">
                 智慧法律統一分析工作台
               </h1>
               <p className="text-sm text-slate-300 max-w-2xl leading-relaxed">
-                廢除分散工具跳轉，以單一入口接收文本。由 StateGraph 自動導航執行：
-                <span className="text-indigo-300 font-semibold"> Router 分流 ➔ 缺件追問 / 安全保護 ➔ RAG 要件檢索 ➔ 三段論涵攝 ➔ 防偽真確性閘門</span>。
+                廢除分散工具跳轉，以單一入口接收文本。由狀態機自動導航執行：
+                <span className="text-indigo-300 font-semibold"> 智慧分流 ➔ 缺件追問 / 安全保護 ➔ 法規要件檢索 ➔ 三段論涵攝 ➔ 防偽真確性閘門</span>。
               </p>
             </div>
 
@@ -268,18 +373,35 @@ export const UnifiedEntry: React.FC = () => {
 
         {/* History Panel (collapsible) */}
         {showHistory && (
-          <div className="p-4 rounded-2xl bg-slate-900/95 border border-slate-800 shadow-xl max-h-64 overflow-y-auto space-y-2">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <History className="w-4 h-4 text-indigo-400" />
-                分析歷史記錄
-              </h3>
-              <button onClick={() => setShowHistory(false)} className="text-slate-400 hover:text-white">
+          <div className="p-4 rounded-2xl bg-slate-900/95 border border-slate-800 shadow-xl max-h-72 overflow-y-auto space-y-2">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+              <div className="flex items-center gap-3">
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <History className="w-4 h-4 text-indigo-400" />
+                  <span>分析歷史記錄 ({historyList.length})</span>
+                </h3>
+                {historyList.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm('確定要清空所有歷史記錄嗎？')) {
+                        clearHistory();
+                        setHistoryList([]);
+                      }
+                    }}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-semibold border border-rose-500/30 transition-colors cursor-pointer"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    <span>清空全部</span>
+                  </button>
+                )}
+              </div>
+              <button onClick={() => setShowHistory(false)} className="text-slate-400 hover:text-white p-1">
                 <X className="w-4 h-4" />
               </button>
             </div>
             {historyList.length === 0 ? (
-              <p className="text-xs text-slate-500">尚無歷史記錄</p>
+              <p className="text-xs text-slate-500 py-4 text-center">尚無歷史記錄</p>
             ) : (
               historyList.map((record) => (
                 <div
@@ -287,20 +409,30 @@ export const UnifiedEntry: React.FC = () => {
                   className="flex items-center justify-between p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/50 cursor-pointer transition-colors group"
                   onClick={() => loadFromHistory(record)}
                 >
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 pr-3">
                     <p className="text-sm font-semibold text-slate-200 truncate">{record.title}</p>
                     <p className="text-[11px] text-slate-400 mt-0.5">
                       {new Date(record.timestamp).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })}
                       {' · '}
                       <span className="text-indigo-400">{record.workflowState?.router?.domain || '—'}</span>
+                      {record.workflowState?.router?.chapter && (
+                        <span className="text-slate-500"> · {formatLegalChapter(record.workflowState.router.chapter)}</span>
+                      )}
                     </p>
                   </div>
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center gap-2 shrink-0">
                     <button
-                      onClick={(e) => { e.stopPropagation(); deleteFromHistory(record.id); setHistoryList(loadHistory()); }}
-                      className="p-1 rounded hover:bg-slate-700 text-slate-400 hover:text-rose-400"
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteFromHistory(record.id);
+                        setHistoryList(loadHistory());
+                      }}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/25 text-rose-400 hover:text-rose-300 text-xs font-semibold border border-rose-500/30 transition-colors cursor-pointer"
+                      title="刪除此筆記錄"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
+                      <span>刪除</span>
                     </button>
                     <ChevronRight className="w-4 h-4 text-slate-500" />
                   </div>
@@ -314,13 +446,13 @@ export const UnifiedEntry: React.FC = () => {
         <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs">
           <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl font-bold ${workflowState ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' : 'bg-slate-800 text-slate-400'}`}>
             <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[10px]">1</span>
-            <span>文本輸入 (Entry)</span>
+            <span>文本輸入</span>
           </div>
           <ChevronRight className="w-4 h-4 text-slate-600 hidden sm:block" />
 
           <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl font-bold ${workflowState?.router ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' : 'bg-slate-800 text-slate-500'}`}>
             <span className="w-5 h-5 rounded-full bg-slate-700 text-white flex items-center justify-center text-[10px]">2</span>
-            <span>Router 路由 (JSON)</span>
+            <span>智慧分流</span>
           </div>
           <ChevronRight className="w-4 h-4 text-slate-600 hidden sm:block" />
 
@@ -332,7 +464,7 @@ export const UnifiedEntry: React.FC = () => {
 
           <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl font-bold ${workflowState?.rag ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' : 'bg-slate-800 text-slate-500'}`}>
             <span className="w-5 h-5 rounded-full bg-slate-700 text-white flex items-center justify-center text-[10px]">4</span>
-            <span>RAG 要件庫</span>
+            <span>法規裁判要件庫</span>
           </div>
           <ChevronRight className="w-4 h-4 text-slate-600 hidden sm:block" />
 
@@ -396,7 +528,7 @@ export const UnifiedEntry: React.FC = () => {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".txt"
+                accept=".pdf,.txt,application/pdf,text/plain"
                 multiple
                 className="hidden"
                 onChange={(e) => { if (e.target.files) handleFiles(e.target.files); e.target.value = ''; }}
@@ -404,16 +536,34 @@ export const UnifiedEntry: React.FC = () => {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold border border-slate-700 transition-colors"
+                disabled={isParsingFiles || isSubmitting}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-300 text-xs font-bold border border-slate-700 transition-colors cursor-pointer"
               >
-                <Upload className="w-3.5 h-3.5" />
-                <span>上傳判決書</span>
+                {isParsingFiles ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-400" />
+                    <span>解析 PDF 中...</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>上傳裁判書 (PDF/TXT)</span>
+                  </>
+                )}
               </button>
               <span className="text-xs text-slate-400">
                 字數：{inputNarrative.length} 字
               </span>
             </div>
           </div>
+
+          {/* PDF / File Parsing Indicator */}
+          {isParsingFiles && (
+            <div className="p-3.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center gap-3 text-xs text-indigo-300 animate-pulse">
+              <Loader2 className="w-4 h-4 animate-spin text-indigo-400 shrink-0" />
+              <span>{parsingStatus || '正在解析司法院裁判書 PDF 內容，請稍候...'}</span>
+            </div>
+          )}
 
           {/* Quick sample buttons */}
           <div className="flex flex-wrap items-center gap-2 pt-1">
@@ -446,13 +596,53 @@ export const UnifiedEntry: React.FC = () => {
             >
               範例 4：交通罰單異議（行政爭訟）
             </button>
+            <button
+              type="button"
+              onClick={() => setInputNarrative("我上個月在蝦皮買了一台二手筆電，賣家在私訊裡保證全機功能正常、電池健康度90%，結果收到當天開機不到十分鐘就自動斷電，螢幕還有一條明顯綠線。我傳LINE要求退貨退款，他直接封鎖我，去賣場檢舉也沒用，我轉帳了兩萬八千元，有銀行交易截圖跟聊天對話截圖，我現在該怎麼告他詐欺或要回錢？")}
+              className="px-2.5 py-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 text-xs transition-colors border border-indigo-500/30"
+            >
+              範例 5：網購交易糾紛（口語事實直接輸入）
+            </button>
+
+            {/* 使用者自訂預設案例（非系統預置，點擊即可載入） */}
+            <div className="inline-flex items-center gap-1 pl-1 border-l border-slate-700/60 my-0.5">
+              <button
+                type="button"
+                onClick={() => setInputNarrative(customPreset.narrative)}
+                className="px-3 py-1 rounded-lg bg-gradient-to-r from-amber-500/25 via-orange-500/25 to-amber-500/25 hover:from-amber-500/35 hover:to-orange-500/35 text-amber-200 text-xs font-bold transition-all border border-amber-500/40 shadow-sm flex items-center gap-1.5 cursor-pointer"
+                title="點擊載入此預設案例（非系統預置）"
+              >
+                <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400/40 shrink-0" />
+                <span className="truncate max-w-[200px]">{customPreset.title}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditPresetTitle(customPreset.title);
+                  setEditPresetNarrative(customPreset.narrative);
+                  setShowCustomPresetModal(true);
+                }}
+                className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs border border-slate-700 transition-colors"
+                title="編輯自訂預設案例"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveCurrentAsCustomPreset}
+                className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 text-[11px] border border-slate-700 transition-colors"
+                title="將目前輸入框內容存為自訂預設案例"
+              >
+                設為自訂
+              </button>
+            </div>
           </div>
 
           <textarea
             value={inputNarrative}
             onChange={(e) => setInputNarrative(e.target.value)}
-            disabled={isSubmitting}
-            placeholder="請以平鋪直敘方式輸入案發經過（人、事、時、地、已持有或未持有的客觀佐證資料）...&#10;&#10;或拖曳 .txt 判決書檔案到此區域上傳"
+            disabled={isSubmitting || isParsingFiles}
+            placeholder="請以平鋪直敘方式直接輸入口語事實或案發經過（例如：我上個月在租屋處退租時房東扣住五萬元押金不還，說要收清潔費但沒收據...）&#10;&#10;亦可點選右上角按鈕或直接拖曳上傳司法院裁判書 PDF 檔（.pdf）或文字檔（.txt），支援多份判決書批次載入分析。"
             rows={5}
             className="w-full p-4 rounded-2xl bg-slate-950 border border-slate-700 text-slate-100 text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all leading-relaxed placeholder:text-slate-600 disabled:opacity-50"
           />
@@ -460,7 +650,7 @@ export const UnifiedEntry: React.FC = () => {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
             <div className="text-xs text-slate-400 flex items-center gap-1.5">
               <Sparkles className="w-4 h-4 text-indigo-400 shrink-0" />
-              <span>支援直接輸入口語事實，或拖曳上傳多份 .txt 判決書</span>
+              <span>支援直接輸入口語事實（AI 自動提煉法律爭點），或拖曳上傳多份司法院裁判書（.pdf 與 .txt 格式）</span>
             </div>
 
             <button
@@ -484,67 +674,127 @@ export const UnifiedEntry: React.FC = () => {
           </div>
         </div>
 
-        {/* 節點 2：RouterNode 輸出卡片 */}
+        {/* 案件分析概要與收合控制列（依用戶指示：預設收起各節點詳細內容，避免雜亂） */}
         {workflowState?.router && (
-          <div className="p-6 rounded-3xl bg-slate-900/90 border border-indigo-500/30 shadow-xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+          <div className="p-4 rounded-2xl bg-slate-900/90 border border-indigo-500/30 shadow-lg flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <span className="text-slate-400 font-bold">分析簡報：</span>
+              <span className="px-2.5 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 font-bold">
+                領域：{workflowState.router.domain}
+              </span>
+              <span className="px-2.5 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 font-bold max-w-xs truncate">
+                罪章：{formatLegalChapter(workflowState.router.chapter)}
+              </span>
+              <span className="px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 font-bold max-w-xs truncate">
+                案由：{workflowState.router.cause}
+              </span>
+              {workflowState.verification && (
+                <span className={`px-2.5 py-1 rounded-lg border font-bold ${workflowState.verification.passGate ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-rose-500/10 border-rose-500/30 text-rose-300'}`}>
+                  {workflowState.verification.passGate ? '✓ 真確性檢核通過' : '⚠ 待人工法學審核'}
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 ml-auto">
+              <span className="text-xs text-slate-500 hidden md:inline">預設已收起詳細資料</span>
+              <button
+                type="button"
+                onClick={() => handleToggleAllNodes(true)}
+                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition-colors cursor-pointer"
+              >
+                全部展開
+              </button>
+              <button
+                type="button"
+                onClick={() => handleToggleAllNodes(false)}
+                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition-colors cursor-pointer"
+              >
+                全部收起
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* 節點 2：智慧分流結構化結果 (預設收起，可點擊展開) */}
+        {workflowState?.router && (
+          <div className="p-5 rounded-3xl bg-slate-900/90 border border-indigo-500/30 shadow-xl space-y-4 transition-all">
+            <div
+              className="flex items-center justify-between cursor-pointer select-none"
+              onClick={() => setIsNode2Open(prev => !prev)}
+            >
               <div className="flex items-center gap-2.5">
                 <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400">
                   <Cpu className="w-4 h-4" />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-white">節點 2：RouterNode 結構化分流結果</h2>
-                  <p className="text-xs text-slate-400">強制產出標準化分流標籤與事實完整度旗標</p>
+                  <h2 className="text-base font-bold text-white flex items-center gap-2">
+                    <span>節點 2：智慧分流結構化結果</span>
+                    {!isNode2Open && (
+                      <span className="text-xs font-normal text-indigo-300 bg-indigo-500/10 px-2 py-0.5 rounded-md border border-indigo-500/20 hidden sm:inline">
+                        {workflowState.router.domain} · {formatLegalChapter(workflowState.router.chapter)}
+                      </span>
+                    )}
+                  </h2>
+                  <p className="text-xs text-slate-400">標準化法律分流標籤與事實完整度評估</p>
                 </div>
               </div>
-              <span className="text-xs font-mono px-2.5 py-1 rounded-lg bg-slate-950 text-indigo-300 border border-slate-800">
-                JSON Standard
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
-                <span className="text-[11px] text-slate-400 block">法律領域 (domain)</span>
-                <span className="text-sm font-bold text-indigo-300">{workflowState.router.domain}</span>
-              </div>
-              <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
-                <span className="text-[11px] text-slate-400 block">罪章/專節 (chapter)</span>
-                <span className="text-sm font-bold text-white truncate block">{workflowState.router.chapter}</span>
-              </div>
-              <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
-                <span className="text-[11px] text-slate-400 block">案由罪名 (cause)</span>
-                <span className="text-sm font-bold text-amber-300 truncate block">{workflowState.router.cause}</span>
-              </div>
-              <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
-                <span className="text-[11px] text-slate-400 block">敏感保護 (is_sensitive)</span>
-                <span className={`text-sm font-bold ${workflowState.router.is_sensitive ? 'text-rose-400' : 'text-emerald-400'}`}>
-                  {workflowState.router.is_sensitive ? '⚠ 敏感' : '✓ 一般'}
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-slate-400">
+                  {isNode2Open ? '收起資料' : '展開檢視'}
                 </span>
+                {isNode2Open ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
               </div>
             </div>
 
-            <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
-              <span className="text-[11px] text-slate-400 block mb-1">事實完整度評估 (completeness)</span>
-              <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-indigo-500 to-emerald-500 rounded-full transition-all"
-                  style={{
-                    width: `${Math.round(
+            {isNode2Open && (
+              <div className="pt-3 border-t border-slate-800 space-y-3">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
+                    <span className="text-[11px] text-slate-400 block">法律領域</span>
+                    <span className="text-sm font-bold text-indigo-300">{workflowState.router.domain}</span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
+                    <span className="text-[11px] text-slate-400 block">罪章/實體法專節</span>
+                    <span className="text-sm font-bold text-white truncate block" title={formatLegalChapter(workflowState.router.chapter)}>
+                      {formatLegalChapter(workflowState.router.chapter)}
+                    </span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
+                    <span className="text-[11px] text-slate-400 block">案由爭點</span>
+                    <span className="text-sm font-bold text-amber-300 truncate block">{workflowState.router.cause}</span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
+                    <span className="text-[11px] text-slate-400 block">敏感案件保護</span>
+                    <span className={`text-sm font-bold ${workflowState.router.is_sensitive ? 'text-rose-400' : 'text-emerald-400'}`}>
+                      {workflowState.router.is_sensitive ? '⚠ 敏感' : '✓ 一般'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
+                  <span className="text-[11px] text-slate-400 block mb-1">事實完整度評估</span>
+                  <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-indigo-500 to-emerald-500 rounded-full transition-all"
+                      style={{
+                        width: `${Math.round(
+                          (typeof workflowState.router.completeness === 'number'
+                            ? workflowState.router.completeness
+                            : workflowState.router.is_complete ? 1 : 0.6) * 100
+                        )}%`,
+                      }}
+                    />
+                  </div>
+                  <span className="text-xs text-slate-400 mt-1 block">
+                    {Math.round(
                       (typeof workflowState.router.completeness === 'number'
                         ? workflowState.router.completeness
                         : workflowState.router.is_complete ? 1 : 0.6) * 100
-                    )}%`,
-                  }}
-                />
+                    )}%
+                  </span>
+                </div>
               </div>
-              <span className="text-xs text-slate-400 mt-1 block">
-                {Math.round(
-                  (typeof workflowState.router.completeness === 'number'
-                    ? workflowState.router.completeness
-                    : workflowState.router.is_complete ? 1 : 0.6) * 100
-                )}%
-              </span>
-            </div>
+            )}
           </div>
         )}
 
@@ -618,128 +868,196 @@ export const UnifiedEntry: React.FC = () => {
           </div>
         )}
 
-        {/* RAG Results */}
+        {/* 節點 4：法規與裁判要件檢索庫 (預設收起，可點擊展開) */}
         {workflowState?.rag && (
-          <div className="p-6 rounded-3xl bg-slate-900/90 border border-slate-800 shadow-xl space-y-4">
-            <div className="flex items-center gap-2.5 pb-3 border-b border-slate-800">
-              <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400">
-                <BookOpen className="w-4 h-4" />
+          <div className="p-5 rounded-3xl bg-slate-900/90 border border-slate-800 shadow-xl space-y-4 transition-all">
+            <div
+              className="flex items-center justify-between cursor-pointer select-none"
+              onClick={() => setIsNode4Open(prev => !prev)}
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400">
+                  <BookOpen className="w-4 h-4" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-white flex items-center gap-2">
+                    <span>節點 4：法規與裁判要件庫檢索</span>
+                    {!isNode4Open && (
+                      <span className="text-xs font-normal text-slate-400 bg-slate-800 px-2 py-0.5 rounded-md hidden sm:inline">
+                        法規 {workflowState.rag.statuteCitations?.length || 0} 筆 · 判例 {workflowState.rag.precedents?.length || 0} 筆
+                      </span>
+                    )}
+                  </h2>
+                  <p className="text-xs text-slate-400">智慧法條要件對照與實務裁判先例</p>
+                </div>
               </div>
-              <h2 className="text-base font-bold text-white">節點 4：RAG 要件庫檢索結果</h2>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-slate-400">
+                  {isNode4Open ? '收起資料' : '展開檢視'}
+                </span>
+                {isNode4Open ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+              </div>
             </div>
-            <div className="space-y-3">
-              <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">{workflowState.rag.legalElements}</p>
-              {workflowState.rag.statuteCitations?.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {workflowState.rag.statuteCitations.map((citation, i) => (
-                    <span key={i} className="px-2.5 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/30 text-xs text-indigo-200">{citation}</span>
-                  ))}
-                </div>
-              )}
-              {workflowState.rag.precedents?.length > 0 && (
-                <div className="space-y-2">
-                  {workflowState.rag.precedents.map((precedent, i) => (
-                    <div key={i} className="p-3 rounded-xl bg-slate-950 border border-slate-800">
-                      <p className="text-xs font-bold text-sky-300">{precedent.caseNumber} · {precedent.courtName}</p>
-                      <p className="text-xs text-slate-300 leading-relaxed">{precedent.summary}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {workflowState.rag.officialEvidence?.length > 0 && (
-                <div className="space-y-1 border-t border-slate-800 pt-3">
-                  <p className="text-xs font-bold text-indigo-300">官方查證紀錄</p>
-                  {workflowState.rag.officialEvidence.map((item, i) => (
-                    <p key={i} className="text-xs text-slate-400">
-                      {item.citation} · {item.status} · {item.source} · {new Date(item.checkedAt).toLocaleString()}
-                      {item.sourceUrl && <> · <a className="text-sky-400 underline" href={item.sourceUrl} target="_blank" rel="noreferrer">來源</a></>}
-                    </p>
-                  ))}
-                </div>
-              )}
-              {(!workflowState.rag.officialEvidence || workflowState.rag.officialEvidence.length === 0) && (
-                <p className="text-xs text-amber-300 border-t border-slate-800 pt-3">官方查證：無可查證引用或尚未取得官方結果（NEEDS_REVIEW）</p>
-              )}
-            </div>
+
+            {isNode4Open && (
+              <div className="pt-3 border-t border-slate-800 space-y-3">
+                <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">{workflowState.rag.legalElements}</p>
+                {workflowState.rag.statuteCitations?.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {workflowState.rag.statuteCitations.map((citation, i) => (
+                      <span key={i} className="px-2.5 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/30 text-xs text-indigo-200">{citation}</span>
+                    ))}
+                  </div>
+                )}
+                {workflowState.rag.precedents?.length > 0 && (
+                  <div className="space-y-2">
+                    {workflowState.rag.precedents.map((precedent, i) => (
+                      <div key={i} className="p-3 rounded-xl bg-slate-950 border border-slate-800">
+                        <p className="text-xs font-bold text-sky-300">{precedent.caseNumber} · {precedent.courtName}</p>
+                        <p className="text-xs text-slate-300 leading-relaxed">{precedent.summary}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {workflowState.rag.officialEvidence?.length > 0 && (
+                  <div className="space-y-1 border-t border-slate-800 pt-3">
+                    <p className="text-xs font-bold text-indigo-300">官方查證紀錄</p>
+                    {workflowState.rag.officialEvidence.map((item, i) => (
+                      <p key={i} className="text-xs text-slate-400">
+                        {item.citation} · {item.status} · {item.source} · {new Date(item.checkedAt).toLocaleString()}
+                        {item.sourceUrl && <> · <a className="text-sky-400 underline" href={item.sourceUrl} target="_blank" rel="noreferrer">來源</a></>}
+                      </p>
+                    ))}
+                  </div>
+                )}
+                {(!workflowState.rag.officialEvidence || workflowState.rag.officialEvidence.length === 0) && (
+                  <p className="text-xs text-amber-300 border-t border-slate-800 pt-3">官方查證：無可查證引用或尚未取得官方結果（待法學審核）</p>
+                )}
+              </div>
+            )}
           </div>
         )}
 
-        {/* Syllogism Analysis + Export buttons */}
+        {/* 節點 5：三段論涵攝法學分析 (預設收起，可點擊展開) */}
         {workflowState?.syllogism && (
-          <div className="p-6 rounded-3xl bg-slate-900/90 border border-emerald-500/30 shadow-xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+          <div className="p-5 rounded-3xl bg-slate-900/90 border border-emerald-500/30 shadow-xl space-y-4 transition-all">
+            <div
+              className="flex items-center justify-between cursor-pointer select-none"
+              onClick={() => setIsNode5Open(prev => !prev)}
+            >
               <div className="flex items-center gap-2.5">
                 <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400">
                   <Scale className="w-4 h-4" />
                 </div>
-                <h2 className="text-base font-bold text-white">節點 5：三段論涵攝分析</h2>
+                <div>
+                  <h2 className="text-base font-bold text-white flex items-center gap-2">
+                    <span>節點 5：三段論涵攝法學分析</span>
+                  </h2>
+                  <p className="text-xs text-slate-400">大前提法規要件 ➔ 小前提事實涵攝 ➔ 結論請求權主張</p>
+                </div>
               </div>
 
               <div className="flex items-center gap-2">
-                <button
-                  onClick={handleCopyAnalysis}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold border border-slate-700 transition-colors"
-                >
-                  {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{isCopied ? '已複製' : '複製分析'}</span>
-                </button>
-                <button
-                  onClick={() => exportAsHtml(workflowState)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold border border-slate-700 transition-colors"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>匯出 HTML</span>
-                </button>
-                <button
-                  onClick={() => exportAsText(workflowState)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold border border-slate-700 transition-colors"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>匯出 TXT</span>
-                </button>
-                <button
-                  onClick={() => printReport(workflowState)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold border border-slate-700 transition-colors"
-                >
-                  <Printer className="w-3.5 h-3.5" />
-                  <span>列印</span>
-                </button>
+                <div className="flex items-center gap-1.5 mr-2" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    onClick={handleCopyAnalysis}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold border border-slate-700 transition-colors"
+                  >
+                    {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{isCopied ? '已複製' : '複製'}</span>
+                  </button>
+                  <button
+                    onClick={() => exportAsHtml(workflowState)}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold border border-slate-700 transition-colors"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>HTML</span>
+                  </button>
+                  <button
+                    onClick={() => exportAsText(workflowState)}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold border border-slate-700 transition-colors"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>TXT</span>
+                  </button>
+                  <button
+                    onClick={() => printReport(workflowState)}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold border border-slate-700 transition-colors"
+                  >
+                    <Printer className="w-3.5 h-3.5" />
+                    <span>列印</span>
+                  </button>
+                </div>
+                <span className="text-xs font-medium text-slate-400">
+                  {isNode5Open ? '收起資料' : '展開檢視'}
+                </span>
+                {isNode5Open ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
               </div>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800">
-              <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">
-                {workflowState.syllogism.fullAnalysis}
-              </p>
-            </div>
+            {isNode5Open && (
+              <div className="pt-3 border-t border-slate-800">
+                <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800">
+                  <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap font-sans">
+                    {workflowState.syllogism.fullAnalysis}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Verification Gate */}
+        {/* 節點 6：真確性檢核閘門 (預設收起，可點擊展開) */}
         {workflowState?.verification && (
-          <div className={`p-6 rounded-3xl border shadow-xl space-y-3 ${workflowState.verification.passGate ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-rose-500/10 border-rose-500/30'}`}>
-            <div className="flex items-center gap-3">
-              {workflowState.verification.passGate ? (
-                <ShieldCheck className="w-6 h-6 text-emerald-400" />
-              ) : (
-                <AlertTriangle className="w-6 h-6 text-rose-400" />
-              )}
-              <h2 className="text-lg font-bold text-white">節點 6：真確性檢核閘門</h2>
-            </div>
-            <p className="text-sm text-slate-300">{workflowState.verification.warningNotice || `檢核狀態：${workflowState.verification.verificationStatus}`}</p>
-            <p className="text-xs text-slate-400">狀態：{workflowState.verification.verificationStatus} · 查核 {workflowState.verification.totalChecked} 處 · 幽靈法條 {workflowState.verification.ghostCount} 處</p>
-            {workflowState.verification.officialEvidence?.length > 0 && (
-              <div className="space-y-1 border-t border-slate-800 pt-3">
-                <p className="text-xs font-bold text-slate-200">逐筆官方證據</p>
-                {workflowState.verification.officialEvidence.map((item, i) => (
-                  <p key={i} className="text-xs text-slate-400">
-                    {item.citation} · {item.status} · {new Date(item.checkedAt).toLocaleString()} · <a className="text-sky-400 underline" href={item.sourceUrl} target="_blank" rel="noreferrer">{item.source}</a>
+          <div className={`p-5 rounded-3xl border shadow-xl space-y-3 transition-all ${workflowState.verification.passGate ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-rose-500/10 border-rose-500/30'}`}>
+            <div
+              className="flex items-center justify-between cursor-pointer select-none"
+              onClick={() => setIsNode6Open(prev => !prev)}
+            >
+              <div className="flex items-center gap-3">
+                {workflowState.verification.passGate ? (
+                  <ShieldCheck className="w-6 h-6 text-emerald-400" />
+                ) : (
+                  <AlertTriangle className="w-6 h-6 text-rose-400" />
+                )}
+                <div>
+                  <h2 className="text-base font-bold text-white flex items-center gap-2">
+                    <span>節點 6：真確性檢核閘門</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-md font-bold ${workflowState.verification.passGate ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'}`}>
+                      {workflowState.verification.passGate ? '✓ 檢核通過' : '⚠ 待人工法學審核'}
+                    </span>
+                  </h2>
+                  <p className="text-xs text-slate-400">
+                    查核 {workflowState.verification.totalChecked} 處 · 幽靈法條 {workflowState.verification.ghostCount} 處
                   </p>
-                ))}
+                </div>
               </div>
-            )}
-            {(!workflowState.verification.officialEvidence || workflowState.verification.officialEvidence.length === 0) && (
-              <p className="text-xs text-amber-300">逐筆官方證據：無可查證引用（NEEDS_REVIEW）</p>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-slate-400">
+                  {isNode6Open ? '收起資料' : '展開檢視'}
+                </span>
+                {isNode6Open ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+              </div>
+            </div>
+
+            {isNode6Open && (
+              <div className="pt-3 border-t border-slate-800 space-y-3">
+                <p className="text-sm text-slate-300">{workflowState.verification.warningNotice || `檢核狀態：${formatVerificationStatus(workflowState.verification.verificationStatus)}`}</p>
+                <p className="text-xs text-slate-400">狀態：{formatVerificationStatus(workflowState.verification.verificationStatus)} · 查核 {workflowState.verification.totalChecked} 處 · 幽靈法條 {workflowState.verification.ghostCount} 處</p>
+                {workflowState.verification.officialEvidence?.length > 0 && (
+                  <div className="space-y-1 border-t border-slate-800 pt-3">
+                    <p className="text-xs font-bold text-slate-200">逐筆官方證據</p>
+                    {workflowState.verification.officialEvidence.map((item, i) => (
+                      <p key={i} className="text-xs text-slate-400">
+                        {item.citation} · {item.status} · {new Date(item.checkedAt).toLocaleString()} · <a className="text-sky-400 underline" href={item.sourceUrl} target="_blank" rel="noreferrer">{item.source}</a>
+                      </p>
+                    ))}
+                  </div>
+                )}
+                {(!workflowState.verification.officialEvidence || workflowState.verification.officialEvidence.length === 0) && (
+                  <p className="text-xs text-amber-300">逐筆官方證據：無可查證引用（待法學審核）</p>
+                )}
+              </div>
             )}
           </div>
         )}
@@ -842,6 +1160,83 @@ export const UnifiedEntry: React.FC = () => {
               >
                 取消
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Custom Preset Case Modal */}
+        {showCustomPresetModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+            <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 w-full max-w-xl shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400">
+                    <Star className="w-5 h-5 fill-amber-400/40" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white">自訂預設案例設定</h3>
+                    <p className="text-xs text-slate-400">設定您的專屬自訂案例，點擊按鈕即可一鍵填入（非系統預置）</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowCustomPresetModal(false)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    案例名稱 / 按鈕標籤
+                  </label>
+                  <input
+                    type="text"
+                    value={editPresetTitle}
+                    onChange={(e) => setEditPresetTitle(e.target.value)}
+                    placeholder="例如：自訂案例：車禍損害賠償"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-slate-100 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    口語事實與案情內容
+                  </label>
+                  <textarea
+                    rows={7}
+                    value={editPresetNarrative}
+                    onChange={(e) => setEditPresetNarrative(e.target.value)}
+                    placeholder="請輸入欲測試的具體口語事實或案情敘述..."
+                    className="w-full p-3.5 rounded-xl bg-slate-950 border border-slate-700 text-slate-100 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 leading-relaxed placeholder:text-slate-600"
+                  />
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    字數：{editPresetNarrative.length} 字 · 資料保存在您的本機瀏覽器，重新整理頁面依然保留。
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setShowCustomPresetModal(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleSaveCustomPreset(editPresetTitle, editPresetNarrative);
+                    setShowCustomPresetModal(false);
+                  }}
+                  disabled={!editPresetTitle.trim() || !editPresetNarrative.trim()}
+                  className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 disabled:opacity-40 text-white text-xs font-bold transition-colors shadow-lg shadow-amber-950/50"
+                >
+                  儲存並套用為預設案例
+                </button>
+              </div>
             </div>
           </div>
         )}

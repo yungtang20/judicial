@@ -18,6 +18,7 @@ import {
   enforceTriageConsistency,
   detectTemporalConflict 
 } from "../../src/lib/universalTriage.js";
+import { formatLegalChapter } from "../../src/lib/legalChapterLabels.js";
 import { fetchFromOpenData } from "../services/judicialDataFetcher.js";
 import { isWithinServiceHours } from "../services/judicialServiceHours.js";
 import { verifyOfficialCitations } from "../services/officialCitationVerification.js";
@@ -67,7 +68,7 @@ async function runRouterNode(userInput: string): Promise<RouterEvaluationResult 
 
   return {
     domain,
-    chapter: triage.category || "法律爭議實體法章",
+    chapter: formatLegalChapter(triage.category),
     cause: triage.identifiedIssue || "法律爭議請求權與程序分析",
     category: triage.category,
     caseType: triage.caseType,

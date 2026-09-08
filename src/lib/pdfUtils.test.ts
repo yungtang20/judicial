@@ -1,12 +1,39 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getDocument } from 'pdfjs-dist';
-import { parsePdfFile } from './pdfUtils';
+import { extractPdfText, parsePdfFile } from './pdfUtils';
 
 vi.mock('pdfjs-dist', () => ({
-  getDocument: vi.fn()
+  getDocument: vi.fn(),
+  GlobalWorkerOptions: { workerSrc: '' }
 }));
 
-describe('parsePdfFile', () => {
+describe('pdfUtils', () => {
+  beforeEach(() => {
+    vi.mocked(getDocument).mockReset();
+  });
+
+  describe('extractPdfText', () => {
+    it('extracts pure text from all pages', async () => {
+      const page1 = {
+        getTextContent: vi.fn().mockResolvedValue({ items: [{ str: '臺灣臺北地方法院' }, { str: '113年度訴字第1號民事判決' }] })
+      };
+      const page2 = {
+        getTextContent: vi.fn().mockResolvedValue({ items: [{ str: '主文：原告之訴駁回。' }] })
+      };
+      vi.mocked(getDocument).mockReturnValue({
+        promise: Promise.resolve({
+          numPages: 2,
+          getPage: vi.fn().mockImplementation((num: number) => Promise.resolve(num === 1 ? page1 : page2))
+        })
+      } as any);
+
+      const text = await extractPdfText(new File(['dummy'], 'judgment.pdf', { type: 'application/pdf' }));
+      expect(text).toContain('臺灣臺北地方法院 113年度訴字第1號民事判決');
+      expect(text).toContain('主文：原告之訴駁回。');
+    });
+  });
+
+  describe('parsePdfFile', () => {
   beforeEach(() => {
     vi.mocked(getDocument).mockReset();
   });
@@ -50,4 +77,5 @@ describe('parsePdfFile', () => {
       images: []
     });
   });
+});
 });
