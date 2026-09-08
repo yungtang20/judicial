@@ -646,6 +646,20 @@ export const UnifiedEntry: React.FC = () => {
                   ))}
                 </div>
               )}
+              {workflowState.rag.officialEvidence?.length > 0 && (
+                <div className="space-y-1 border-t border-slate-800 pt-3">
+                  <p className="text-xs font-bold text-indigo-300">官方查證紀錄</p>
+                  {workflowState.rag.officialEvidence.map((item, i) => (
+                    <p key={i} className="text-xs text-slate-400">
+                      {item.citation} · {item.status} · {item.source} · {new Date(item.checkedAt).toLocaleString()}
+                      {item.sourceUrl && <> · <a className="text-sky-400 underline" href={item.sourceUrl} target="_blank" rel="noreferrer">來源</a></>}
+                    </p>
+                  ))}
+                </div>
+              )}
+              {(!workflowState.rag.officialEvidence || workflowState.rag.officialEvidence.length === 0) && (
+                <p className="text-xs text-amber-300 border-t border-slate-800 pt-3">官方查證：無可查證引用或尚未取得官方結果（NEEDS_REVIEW）</p>
+              )}
             </div>
           </div>
         )}
@@ -714,6 +728,19 @@ export const UnifiedEntry: React.FC = () => {
             </div>
             <p className="text-sm text-slate-300">{workflowState.verification.warningNotice || `檢核狀態：${workflowState.verification.verificationStatus}`}</p>
             <p className="text-xs text-slate-400">狀態：{workflowState.verification.verificationStatus} · 查核 {workflowState.verification.totalChecked} 處 · 幽靈法條 {workflowState.verification.ghostCount} 處</p>
+            {workflowState.verification.officialEvidence?.length > 0 && (
+              <div className="space-y-1 border-t border-slate-800 pt-3">
+                <p className="text-xs font-bold text-slate-200">逐筆官方證據</p>
+                {workflowState.verification.officialEvidence.map((item, i) => (
+                  <p key={i} className="text-xs text-slate-400">
+                    {item.citation} · {item.status} · {new Date(item.checkedAt).toLocaleString()} · <a className="text-sky-400 underline" href={item.sourceUrl} target="_blank" rel="noreferrer">{item.source}</a>
+                  </p>
+                ))}
+              </div>
+            )}
+            {(!workflowState.verification.officialEvidence || workflowState.verification.officialEvidence.length === 0) && (
+              <p className="text-xs text-amber-300">逐筆官方證據：無可查證引用（NEEDS_REVIEW）</p>
+            )}
           </div>
         )}
         {/* Cross-feature navigation bar */}

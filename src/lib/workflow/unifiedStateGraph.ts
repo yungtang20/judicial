@@ -72,6 +72,7 @@ export interface WorkflowRagData {
     summary: string;
     sourceUrl?: string;
   }>;
+  officialEvidence?: Array<{ citation: string; type: string; status: string; source: string; sourceUrl: string; checkedAt: string; snippet?: string; error?: string }>;
 }
 
 export interface WorkflowSyllogismData {
@@ -90,6 +91,7 @@ export interface WorkflowVerificationData {
   externalCitations?: ExternalCitationResult[];
   passGate: boolean;
   warningNotice?: string;
+  officialEvidence?: Array<{ citation: string; type: string; status: string; source: string; sourceUrl: string; checkedAt: string; snippet?: string; error?: string }>;
 }
 
 export interface LegalWorkflowState {

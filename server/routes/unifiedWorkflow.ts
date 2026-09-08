@@ -20,6 +20,7 @@ import {
 } from "../../src/lib/universalTriage.js";
 import { fetchFromOpenData } from "../services/judicialDataFetcher.js";
 import { isWithinServiceHours } from "../services/judicialServiceHours.js";
+import { verifyOfficialCitations } from "../services/officialCitationVerification.js";
 
 const router = Router();
 
@@ -138,6 +139,7 @@ async function runRagNode(
   legalElements: string;
   statuteCitations: string[];
   precedents: Array<{ caseNumber: string; courtName: string; summary: string; sourceUrl?: string }>;
+  officialEvidence: Array<{ citation: string; type: string; status: string; source: string; sourceUrl: string; checkedAt: string; snippet?: string; error?: string }>;
 }> {
   const searchQuery = `${queryTopic} ${userFacts.slice(0, 80)}`.trim();
   let legalElements = "【法定構成要件】相關法律條文之客觀構成要件（行為主體、客體、侵害行為與因果關係）及主觀構成要件（故意或過失）。";
@@ -219,12 +221,17 @@ async function runRagNode(
   }
 
   const statuteCitations = Array.from(dynamicStatuteSet).filter(Boolean);
+  const official = await verifyOfficialCitations([
+    ...statuteCitations.map(c => ({ citation: c, type: "STATUTE" as const })),
+    ...precedents.map(p => ({ citation: p.caseNumber, type: "PRECEDENT" as const }))
+  ]);
 
   return {
     searchQuery,
     legalElements,
     statuteCitations: statuteCitations.length > 0 ? statuteCitations : (triageMeta.legalBasis || ["現行相關實體法規"]),
-    precedents
+    precedents,
+    officialEvidence: official.evidence
   };
 }
 
@@ -301,9 +308,14 @@ async function runVerificationGateNode(
   passGate: boolean;
   verificationStatus: "PASS" | "NEEDS_REVIEW" | "FAIL";
   warningNotice?: string;
+  officialEvidence?: Array<{ citation: string; type: string; status: string; source: string; sourceUrl: string; checkedAt: string; snippet?: string; error?: string }>;
 }> {
   const combinedText = `${analysisText}\n\n${userFacts}\n\n${legalBasis.join(" ")}`;
   const verification = verifyLegalCitations(combinedText);
+  const official = await verifyOfficialCitations(verification.results.map(r => ({
+    citation: r.citationText,
+    type: r.type === "PRECEDENT" ? "PRECEDENT" as const : "STATUTE" as const
+  })));
 
   // 萃取裁判字號進行外部查驗（若有）
   let externalCitations: any[] = [];
@@ -331,10 +343,14 @@ async function runVerificationGateNode(
     passGate = false;
     verificationStatus = "FAIL";
     warningNotice = `檢核發現 ${verification.ghostCount} 處不存在或疑義之幽靈法條，必須修正。`;
-  } else if (verification.totalChecked === 0 || !hasLegalBasis) {
+  } else if (verification.totalChecked === 0 || !hasLegalBasis || !official.allVerified) {
     passGate = false;
     verificationStatus = "NEEDS_REVIEW";
-    warningNotice = "注意：分析中缺乏具體有效之實體法條引用（未執行有效條文檢核），已標註為待人工審查（NEEDS_REVIEW）。";
+    warningNotice = !official.attempted && official.reason === "NO_CITATIONS"
+      ? "沒有可查證引用，已 fail-closed 並標註待人工審查。"
+      : official.evidence.some(e => e.status === "UNAVAILABLE")
+      ? "官方查證服務無法取得，已 fail-closed 並標註待人工審查。"
+      : "官方資料庫未能逐筆確認所有引用，已 fail-closed 並標註待人工審查。";
   } else {
     passGate = true;
     verificationStatus = "PASS";
@@ -349,7 +365,8 @@ async function runVerificationGateNode(
     externalCitations,
     passGate,
     verificationStatus,
-    warningNotice
+    warningNotice,
+    officialEvidence: official.evidence
   };
 }
 
@@ -604,4 +621,3 @@ router.post("/api/workflow/suggest-field", async (req: Request, res: Response) =
 });
 
 export default router;
-
