@@ -42,7 +42,11 @@ export class LegalWorkflowEngine {
   }
 
   public getContext(): WorkflowContext {
-    return { ...this.context };
+    return {
+      ...this.context,
+      metadata: this.context.metadata ? structuredClone(this.context.metadata) : undefined,
+      retrievalResults: this.context.retrievalResults ? structuredClone(this.context.retrievalResults) : undefined
+    };
   }
 
   public getState(): LegalWorkflowState {
