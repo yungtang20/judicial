@@ -1,14 +1,18 @@
 // @vitest-environment node
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import http from "node:http";
 import express from "express";
 import judicialRouter from "./judicial.js";
+import { defaultAIProvider } from "../../src/ai/providers/providerRegistry.js";
 
 describe("Judicial Precedent Search RAG API (/api/judicial/search-precedents)", { timeout: 30000 }, () => {
   let server: http.Server;
   let baseUrl: string;
 
   beforeAll(async () => {
+    vi.mocked(defaultAIProvider.generate).mockResolvedValue({
+      text: JSON.stringify({ precedents: [], searchKeywords: [], provider: "local-index" })
+    } as any);
     const app = express();
     app.use(express.json());
     app.use(judicialRouter);

@@ -5,6 +5,7 @@ import { fetchJudicialHtml, parseJudicialJudgment, normalizeTaiwanCaseQuery } fr
 import { retrieve, defaultVectorStore } from "../services/legalRetrieval.js";
 import { ingestSeedCorpus } from "../services/corpusIngest.js";
 import { fetchFromOpenData } from "../services/judicialDataFetcher.js";
+import { RuntimeSchemaValidator } from "../../src/domain/workflow/runtimeSchemaValidator.js";
 
 const router = Router();
 
@@ -141,28 +142,32 @@ ${precedentContext}
 
     try {
       const aiRes = await defaultGeminiProvider.generate(fullPrompt);
-      let parsed: any;
-      const cleaned = aiRes.text.replace(/```json/gi, "").replace(/```/g, "").trim();
-      parsed = JSON.parse(cleaned);
+      const parsed = RuntimeSchemaValidator.parseAndValidate<any>(aiRes.text, {
+        type: "object", required: ["precedents"], properties: {
+          precedents: { type: "array", items: { type: "object", required: ["caseNumber"], properties: { caseNumber: { type: "string", minLength: 1 }, courtName: { type: "string" }, summary: { type: "string" }, relevance: { type: "string" }, keyTakeaway: { type: "string" }, sourceUrl: { type: "string" } } } },
+          searchKeywords: { type: "array", items: { type: "string" } }, provider: { type: "string" }
+        }
+      });
 
       if (Array.isArray(parsed.precedents) && parsed.precedents.length > 0) {
         // 確保每筆判決皆帶有對應的真實 sourceUrl
         parsed.precedents = parsed.precedents.map((p: any, idx: number) => {
-          const matchedRetrieved = retrieved.find(r => r.citation === p.caseNumber) || retrieved[idx] || retrieved[0];
+          const matchedRetrieved = retrieved.find(r => r.citation === p.caseNumber);
+          if (!matchedRetrieved) throw new Error("AI_CITATION_NOT_IN_RETRIEVED_ALLOWLIST");
           return {
-            caseNumber: p.caseNumber || matchedRetrieved.citation,
+            caseNumber: matchedRetrieved.citation,
             courtName: p.courtName || (matchedRetrieved.citation.includes("最高法院") ? "最高法院" : "高等法院"),
             summary: p.summary || matchedRetrieved.excerpt,
             relevance: p.relevance || "符合本案關鍵事實爭點",
             keyTakeaway: p.keyTakeaway || "可作為上訴或攻擊防禦方法參考",
-            sourceUrl: p.sourceUrl || matchedRetrieved.sourceUrl
+            sourceUrl: matchedRetrieved.sourceUrl
           };
         });
         parsed.provider = "local-index";
         return res.json(parsed);
       }
     } catch (aiErr: any) {
-      console.warn("[JudicialSearchPrecedents] AI 生成摘要失敗，直接使用真實檢索片段:", aiErr.message);
+      console.info("[JudicialSearchPrecedents] AI 摘要未符合 JSON 契約，改用真實檢索片段:", aiErr.message);
     }
 
     // 4. 若 AI 生成失敗或未產出，直接使用檢索到的真實資料組合回傳，絕不捏造

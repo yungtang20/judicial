@@ -16,6 +16,9 @@ export interface JwtPayload {
   name?: string;
   exp?: number;
   iat?: number;
+  nbf?: number;
+  iss?: string;
+  aud?: string;
 }
 
 declare global {
@@ -174,7 +177,7 @@ export function verifySignedToken(token: string, secret?: string): JwtPayload | 
 
     // 2. 解析 Header 與 Payload
     const header = JSON.parse(base64UrlDecode(encodedHeader));
-    if (header.alg !== "HS256") return null;
+    if (header.alg !== "HS256" || header.typ !== "JWT") return null;
 
     const payload: JwtPayload = JSON.parse(base64UrlDecode(encodedPayload));
 
@@ -186,6 +189,10 @@ export function verifySignedToken(token: string, secret?: string): JwtPayload | 
     if (now >= payload.exp) {
       return null;
     }
+    if (payload.iat !== undefined && (typeof payload.iat !== "number" || payload.iat > now + 60 || payload.iat > payload.exp)) return null;
+    if (payload.nbf !== undefined && (typeof payload.nbf !== "number" || now + 60 < payload.nbf)) return null;
+    if (process.env.JWT_ISSUER && payload.iss !== process.env.JWT_ISSUER) return null;
+    if (process.env.JWT_AUDIENCE && payload.aud !== process.env.JWT_AUDIENCE) return null;
 
     // 4. 驗證必要欄位與合法角色
     const validRoles = ["admin", "lawyer", "paralegal", "client", "system"];
@@ -293,9 +300,8 @@ export function authenticate(options: { required?: boolean } = {}) {
   return (req: Request, res: Response, next: NextFunction) => {
     // Production UI bootstrap/static assets and health checks must be reachable
     // before API authentication; all API and non-GET requests remain protected.
-    const acceptsHtml = String(req.headers.accept || "").includes("text/html");
     const isPublicFrontendRequest = req.method === "GET" &&
-      (req.path === "/" || req.path.startsWith("/assets/") || req.path === "/api/health" || acceptsHtml);
+      (req.path === "/" || req.path.startsWith("/assets/") || req.path === "/api/health");
     if (isPublicFrontendRequest) return next();
 
     const authHeader = req.headers.authorization;

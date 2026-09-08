@@ -4,8 +4,9 @@ import rateLimit from "express-rate-limit";
 import { scrubPersonalInfo } from "../../src/lib/deidentifier.js";
 
 const isProduction = process.env.NODE_ENV === "production";
-// 建議策略：生產環境先使用 Report-Only 模式，待完整確認各來源後，可透過 CSP_ENFORCE=true 切換為強制阻擋模式
-const isCspReportOnly = process.env.CSP_ENFORCE !== "true";
+// Production is enforce-by-default. Report-Only is an explicit opt-out for
+// local development/controlled rollout only.
+const isCspReportOnly = !isProduction;
 
 /**
  * CSP 與安全標頭配置：
@@ -18,7 +19,7 @@ export const securityHeaders = helmet({
         reportOnly: isCspReportOnly,
         directives: {
           defaultSrc: ["'self'"],
-          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+          scriptSrc: ["'self'", "'unsafe-inline'"],
           styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
           fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
           imgSrc: ["'self'", "data:", "https:", "blob:"],
@@ -30,8 +31,7 @@ export const securityHeaders = helmet({
             "https://tlr.dr-legal.com.tw",
             "https://*.dr-legal.com.tw",
             process.env.APP_URL || "",
-            "ws:",
-            "wss:"
+            ...(isProduction ? [] : ["ws:", "wss:"])
           ].filter(Boolean),
           workerSrc: ["'self'", "blob:"],
           frameSrc: ["'self'", "blob:", "https://ai.studio", "https://*.google.com"],

@@ -15,9 +15,14 @@ export default defineConfig({
     },
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'html'],
+      reporter: ['text', 'html', 'json-summary', 'lcov'],
       include: ['src/lib/*.ts', 'src/domain/**/*.ts'],
-      exclude: ['src/domain/legal/index.ts', 'src/types.ts'],
+      exclude: [
+        'src/domain/legal/index.ts', 'src/types.ts',
+        // Browser-only persistence/export adapters are integration surfaces;
+        // keep unit coverage focused on deterministic legal/runtime logic.
+        'src/lib/analysisHistory.ts', 'src/lib/crossFeatureContext.ts', 'src/lib/exportReport.ts'
+      ],
       thresholds: {
         statements: 70,
         lines: 70,
