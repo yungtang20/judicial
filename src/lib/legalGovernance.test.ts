@@ -4,7 +4,7 @@ import path from 'node:path';
 import { UNIVERSAL_SYLLOGISM_RULES } from '../prompts/universal-syllogism';
 import { generateVerifiedDocument } from './generatedDocumentPipeline';
 import { verifyLegalCitations } from './citationVerifier';
-import { LEGAL_TOOLS } from '../components/LegalToolbox';
+import { LEGAL_TOOLS } from './legalToolRegistry';
 import { LEGAL_TOOL_TITLES } from './legalToolTitles';
 import { buildIntelligentRuleBasedTriage } from './universalTriage';
 import { precheckLegalInput } from './legalInputPrecheck';
