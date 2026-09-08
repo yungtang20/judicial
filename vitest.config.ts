@@ -5,6 +5,8 @@ import path from 'path';
 export default defineConfig({
   plugins: [react()],
   test: { testTimeout: 30000,
+    include: ['src/**/*.test.{ts,tsx}', 'server/**/*.test.ts'],
+    exclude: ['node_modules', 'dist', 'coverage', 'caveman/**'],
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/test/setup.ts'],

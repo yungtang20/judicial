@@ -40,8 +40,6 @@ export function createExpressApp(): Express {
     } else {
       trustProxySetting = rawTrustProxy;
     }
-  } else if (process.env.NODE_ENV !== "production") {
-    trustProxySetting = false;
   }
   app.set("trust proxy", trustProxySetting);
 
