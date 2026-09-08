@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
+import crypto from "node:crypto";
 import {
   authenticate,
   createSignedToken,
@@ -39,6 +40,16 @@ describe("JWT & Auth Adversarial Tests", () => {
       const res = validateSecurityConfiguration(env as any);
       expect(res.valid).toBe(false);
       expect(res.error).toContain("forbidden in production");
+    });
+
+    it("should reject startup in production if secret has low entropy", () => {
+      const env = {
+        NODE_ENV: "production",
+        JWT_SECRET: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      };
+      const res = validateSecurityConfiguration(env as any);
+      expect(res.valid).toBe(false);
+      expect(res.error).toContain("dangerously low entropy");
     });
 
     it("should accept startup in production with valid >= 32 chars custom secret", () => {
@@ -147,6 +158,66 @@ describe("JWT & Auth Adversarial Tests", () => {
         
       expect(res.status).toHaveBeenCalledWith(401);
       expect(next).not.toHaveBeenCalled();
+    });
+
+    it("should block unsupported or substitute algorithms (RS256, HS384, HS512)", () => {
+      const payload = Buffer.from(JSON.stringify({ sub: "test1", tenantId: "tenant1", role: "client", exp: Math.floor(Date.now()/1000) + 3600 })).toString("base64url");
+      for (const alg of ["RS256", "HS384", "HS512", "none"]) {
+        const header = Buffer.from(JSON.stringify({ alg, typ: "JWT" })).toString("base64url");
+        const token = `${header}.${payload}.somesignature`;
+        expect(verifySignedToken(token, testSecret)).toBeNull();
+      }
+    });
+
+    it("should block payload tampering with original signature", () => {
+      const validToken = createSignedToken({ sub: "user1", tenantId: "tenant1", role: "client" }, testSecret);
+      const [header, , sig] = validToken.split(".");
+      const tamperedPayload = Buffer.from(JSON.stringify({ sub: "user1", tenantId: "tenant1", role: "admin", exp: Math.floor(Date.now()/1000) + 3600 })).toString("base64url");
+      const tamperedToken = `${header}.${tamperedPayload}.${sig}`;
+      expect(verifySignedToken(tamperedToken, testSecret)).toBeNull();
+    });
+
+    it("should block header tampering with original signature", () => {
+      const validToken = createSignedToken({ sub: "user1", tenantId: "tenant1", role: "client" }, testSecret);
+      const [, payload, sig] = validToken.split(".");
+      const tamperedHeader = Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT", kid: "injected" })).toString("base64url");
+      const tamperedToken = `${tamperedHeader}.${payload}.${sig}`;
+      expect(verifySignedToken(tamperedToken, testSecret)).toBeNull();
+    });
+
+    it("should block token at the exact expiration second boundary (now >= exp)", () => {
+      const now = Math.floor(Date.now() / 1000);
+      const exactBoundaryToken = createSignedToken({ sub: "user1", tenantId: "tenant1", role: "client", exp: now }, testSecret);
+      expect(verifySignedToken(exactBoundaryToken, testSecret)).toBeNull();
+    });
+
+    it("should block token with malformed or non-numeric exp", () => {
+      const header = Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString("base64url");
+      const invalidExps = [NaN, null, "2026-12-31", -5, 0];
+      for (const invalidExp of invalidExps) {
+        const payload = Buffer.from(JSON.stringify({ sub: "user1", tenantId: "tenant1", role: "client", exp: invalidExp })).toString("base64url");
+        const sig = crypto.createHmac("sha256", testSecret).update(`${header}.${payload}`).digest("base64url");
+        expect(verifySignedToken(`${header}.${payload}.${sig}`, testSecret)).toBeNull();
+      }
+
+      // Missing exp completely
+      const noExpPayload = Buffer.from(JSON.stringify({ sub: "user1", tenantId: "tenant1", role: "client" })).toString("base64url");
+      const noExpSig = crypto.createHmac("sha256", testSecret).update(`${header}.${noExpPayload}`).digest("base64url");
+      expect(verifySignedToken(`${header}.${noExpPayload}.${noExpSig}`, testSecret)).toBeNull();
+    });
+
+    it("should block token with empty or whitespace sub", () => {
+      for (const sub of ["", "   "]) {
+        const token = createSignedToken({ sub, tenantId: "tenant1", role: "client" }, testSecret);
+        expect(verifySignedToken(token, testSecret)).toBeNull();
+      }
+    });
+
+    it("should block token with empty or whitespace tenantId", () => {
+      for (const tenantId of ["", "   "]) {
+        const token = createSignedToken({ sub: "user1", tenantId, role: "client" }, testSecret);
+        expect(verifySignedToken(token, testSecret)).toBeNull();
+      }
     });
     
     it("should block missing tenantId in payload", async () => {

@@ -260,13 +260,24 @@ export class AuditLogService {
     if (typeof value === "string") {
       return DeidentifierService.anonymizeForLogs(value);
     }
+    if (value instanceof Error) {
+      return {
+        name: value.name,
+        message: this.sanitizeValue(value.message),
+        stack: typeof value.stack === "string" ? this.sanitizeValue(value.stack) : undefined
+      };
+    }
     if (Array.isArray(value)) {
       return value.map((item) => this.sanitizeValue(item));
     }
     if (value !== null && typeof value === "object") {
       const res: Record<string, unknown> = {};
       for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-        res[k] = this.sanitizeValue(v);
+        if (/^(authorization|token|jwt|secret|apiKey|password|api_key|access_token|refresh_token|private_key)$/i.test(k)) {
+          res[k] = "[REDACTED_SECRET]";
+        } else {
+          res[k] = this.sanitizeValue(v);
+        }
       }
       return res;
     }

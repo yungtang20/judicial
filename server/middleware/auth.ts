@@ -70,6 +70,12 @@ export function validateSecurityConfiguration(env: NodeJS.ProcessEnv = process.e
         error: "FATAL_CONFIG: Insecure default or fallback secret is strictly forbidden in production."
       };
     }
+    if (new Set(secret).size < 8) {
+      return {
+        valid: false,
+        error: "FATAL_CONFIG: Production JWT_SECRET has dangerously low entropy (fewer than 8 unique characters)."
+      };
+    }
   }
 
   return { valid: true };
@@ -177,7 +183,7 @@ export function verifySignedToken(token: string, secret?: string): JwtPayload | 
       return null;
     }
     const now = Math.floor(Date.now() / 1000);
-    if (now > payload.exp) {
+    if (now >= payload.exp) {
       return null;
     }
 
