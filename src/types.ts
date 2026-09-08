@@ -153,6 +153,9 @@ export interface CitationVerificationResult {
   officialSourceUrl: string;
   isGhostOrFake: boolean;
   hallucinationRisk: 'SAFE_VERIFIED' | 'UNVERIFIED' | 'SUSPICIOUS_NUMBERING' | 'FAKE_GHOST_CITATION';
+  verificationStatus?: 'AUTHORITATIVE' | 'VERIFIED' | 'CANDIDATE' | 'UNVERIFIED' | 'NEEDS_REVIEW' | 'REJECTED';
+  legalClaim?: string;
+  claimSupportStatus?: 'SUPPORTED' | 'CONTRADICTED' | 'NEEDS_REVIEW' | 'UNVERIFIABLE';
   correctionSuggestion?: string;
   officialSnippet?: string;
 }

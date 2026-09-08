@@ -35,11 +35,13 @@ export class SdlcOrchestrator {
     projectId: string,
     title: string = '民商事爭議訴訟 AI 原生交付流程',
     legalDomain: string = 'CIVIL',
-    executionMode: ExecutionMode = 'REAL'
+    executionMode: ExecutionMode = 'REAL',
+    tenantId?: string,
+    ownerId?: string
   ): Promise<SdlcProjectState> {
     let project = await this.repository.get(projectId);
     if (!project) {
-      project = createInitialSdlcProject(projectId, title, legalDomain);
+      project = createInitialSdlcProject(projectId, title, legalDomain, tenantId, ownerId);
       project.executionMode = executionMode;
       await this.repository.create(project);
 
@@ -54,6 +56,13 @@ export class SdlcOrchestrator {
       });
     }
     return project;
+  }
+
+  /**
+   * 取得專案狀態 (若不存在則回傳 null)
+   */
+  public async getProject(projectId: string): Promise<SdlcProjectState | null> {
+    return this.repository.get(projectId);
   }
 
   /**

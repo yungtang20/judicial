@@ -31,9 +31,21 @@ function isPrivateIPv4(ip) {
 function isPrivateIPv6(ip) {
   const normalized = ip.toLowerCase();
   if (normalized.startsWith('::ffff:')) {
-    const ipv4Part = normalized.substring(7);
-    if (net.isIPv4(ipv4Part)) {
-      return isPrivateIPv4(ipv4Part);
+    const remainder = normalized.substring(7);
+    if (net.isIPv4(remainder)) {
+      return isPrivateIPv4(remainder);
+    }
+    const hexParts = remainder.split(':');
+    if (hexParts.length === 2) {
+      const hi = parseInt(hexParts[0], 16);
+      const lo = parseInt(hexParts[1], 16);
+      if (!isNaN(hi) && !isNaN(lo)) {
+        const b0 = (hi >> 8) & 0xff;
+        const b1 = hi & 0xff;
+        const b2 = (lo >> 8) & 0xff;
+        const b3 = lo & 0xff;
+        return isPrivateIPv4(`${b0}.${b1}.${b2}.${b3}`);
+      }
     }
   }
   if (
@@ -65,7 +77,7 @@ function isSafeUrl(targetUrl) {
       return false;
     }
     const hostname = parsed.hostname.toLowerCase();
-    const cleanHost = hostname.replace(/^\[|\]$/g, '');
+    const cleanHost = hostname.replace(/^\[|\]$/g, '').replace(/\.+$/, '');
 
     if (
       cleanHost === 'localhost' ||

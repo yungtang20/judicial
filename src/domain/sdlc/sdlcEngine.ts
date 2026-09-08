@@ -14,7 +14,9 @@ import {
 export function createInitialSdlcProject(
   projectId: string,
   title: string,
-  legalDomain: string = 'CIVIL'
+  legalDomain: string = 'CIVIL',
+  tenantId?: string,
+  ownerId?: string
 ): SdlcProjectState {
   const stageStatuses: Record<SdlcStageId, StageStatus> = {
     '01_plan': 'in_progress',
@@ -81,6 +83,8 @@ export function createInitialSdlcProject(
 
   return {
     projectId,
+    tenantId,
+    ownerId,
     title,
     legalDomain,
     currentStageId: '01_plan',

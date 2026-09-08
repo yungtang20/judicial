@@ -28,10 +28,16 @@ declare global {
   }
 }
 
-const DEFAULT_JWT_SECRET = "smart-legal-assistant-secure-jwt-hmac-secret-key-at-least-32-chars";
-
 function getJwtSecret(): string {
-  return process.env.JWT_SECRET || process.env.AUTH_SECRET || DEFAULT_JWT_SECRET;
+  const secret = process.env.JWT_SECRET || process.env.AUTH_SECRET;
+  if (!secret || secret.trim() === '') {
+    if (process.env.NODE_ENV === 'production') {
+      console.error("CRITICAL FATAL: Missing JWT_SECRET in production. Exiting...");
+      process.exit(1);
+    }
+    return "development-only-fallback-secret-key-at-least-32-chars";
+  }
+  return secret;
 }
 
 function base64UrlEncode(str: string): string {
@@ -216,7 +222,9 @@ export function requestIdMiddleware(req: Request, res: Response, next: NextFunct
  * - 未提供憑證：若 options.required = true (或 REQUIRE_AUTH=true) 則拒絕；否則給予隔離之 sandbox-tenant 訪客身分
  */
 export function authenticate(options: { required?: boolean } = {}) {
-  const mustRequire = options.required ?? (process.env.REQUIRE_AUTH === "true");
+  const isProd = process.env.NODE_ENV === 'production';
+  const requireAuthEnv = process.env.REQUIRE_AUTH === 'true';
+  const mustRequire = options.required ?? (isProd ? true : requireAuthEnv);
 
   return (req: Request, res: Response, next: NextFunction) => {
     const authHeader = req.headers.authorization;

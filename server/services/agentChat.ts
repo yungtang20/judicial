@@ -241,6 +241,12 @@ export async function handleAgentChat(
 
   // 8. PII redaction
   const sanitizedReply = scrubPersonalInfo(verification.sanitizedText);
+  const containsRedactedPii = sanitizedReply !== verification.sanitizedText;
+
+  // 若回覆包含敏感個資且當前狀態為 PASS，依法強制標記為待人工審查 (NEEDS_REVIEW)
+  if (containsRedactedPii && gateStatus === "PASS") {
+    gateStatus = "NEEDS_REVIEW";
+  }
 
   // 9. Append disclaimer
   const reply = `${sanitizedReply}\n\n---\n${getDisclaimer(sourceProvider)}`;

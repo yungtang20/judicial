@@ -51,11 +51,23 @@ function isPrivateIPv4(ip: string): boolean {
 function isPrivateIPv6(ip: string): boolean {
   const normalized = ip.toLowerCase();
 
-  // IPv4-mapped IPv6 (e.g., ::ffff:127.0.0.1)
+  // IPv4-mapped IPv6 (e.g., ::ffff:127.0.0.1 或 WHATWG URL 標準化之 ::ffff:7f00:1)
   if (normalized.startsWith("::ffff:")) {
-    const ipv4Part = normalized.substring(7);
-    if (net.isIPv4(ipv4Part)) {
-      return isPrivateIPv4(ipv4Part);
+    const remainder = normalized.substring(7);
+    if (net.isIPv4(remainder)) {
+      return isPrivateIPv4(remainder);
+    }
+    const hexParts = remainder.split(":");
+    if (hexParts.length === 2) {
+      const hi = parseInt(hexParts[0], 16);
+      const lo = parseInt(hexParts[1], 16);
+      if (!isNaN(hi) && !isNaN(lo)) {
+        const b0 = (hi >> 8) & 0xff;
+        const b1 = hi & 0xff;
+        const b2 = (lo >> 8) & 0xff;
+        const b3 = lo & 0xff;
+        return isPrivateIPv4(`${b0}.${b1}.${b2}.${b3}`);
+      }
     }
   }
 
@@ -112,7 +124,7 @@ export function isBasicSafeUrl(targetUrl: string): { safe: boolean; parsed?: URL
     }
 
     const hostname = parsed.hostname.toLowerCase();
-    const cleanHost = hostname.replace(/^\[|\]$/g, ""); // 移除 IPv6 括號
+    const cleanHost = hostname.replace(/^\[|\]$/g, "").replace(/\.+$/, ""); // 移除 IPv6 括號與 FQDN 尾隨點號
 
     // 檢查常見內網主機名稱
     if (

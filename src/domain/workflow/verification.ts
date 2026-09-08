@@ -34,13 +34,29 @@ export interface IValidator<T = any> {
 // 1. 隱私與去識別化驗證器 (Privacy Validator)
 export class PrivacyValidator implements IValidator<string> {
   public name = 'PrivacyValidator';
-  public async validate(text: string): Promise<VerificationCheckItem> {
-    // 檢查有無明文身分證字號、電話或未脫敏敏感資訊
-    const taiwanIdRegex = /[A-Z][12]\d{8}/g;
-    const phoneRegex = /09\d{2}-?\d{3}-?\d{3}/g;
 
-    const hasRawId = taiwanIdRegex.test(text);
-    const hasRawPhone = phoneRegex.test(text);
+  // 高風險個資 (身分證字號/居留證號、手機號碼) -> 直接判定 FAIL
+  private static readonly HIGH_RISK_ID_REGEX = /[A-Z][1289ABCD]\d{8}/i;
+  private static readonly HIGH_RISK_PHONE_REGEX = /(?:09\d{2}[-\s]?\d{3}[-\s]?\d{3}|09\d{8})/;
+
+  // 中度敏感內容 (電子信箱、詳細地址、市內電話) -> 觸發 NEEDS_REVIEW
+  private static readonly EMAIL_REGEX = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/;
+  private static readonly ADDRESS_REGEX = /(?:[台臺][北市中南]|新北市|桃園市|新竹[縣市]|苗栗縣|彰化縣|南投縣|雲林縣|嘉義[縣市]|屏東縣|宜蘭縣|花蓮縣|臺東縣|台東縣|澎湖縣|金門縣|連江縣)(?:[^\s,，。\n]{2,8}[區鄉鎮市])(?:[^\s,，。\n]{2,10}[路街道大道])(?:[一二三四五六七八九十\d]+段)?(?:[^\s,，。\n]{1,6}[巷弄])?(?:\d{1,5}號)/;
+  private static readonly LANDLINE_REGEX = /0[2-8][-\s]?\d{3,4}[-\s]?\d{4}/;
+
+  public async validate(text: string): Promise<VerificationCheckItem> {
+    if (!text || typeof text !== 'string') {
+      return {
+        name: this.name,
+        category: 'PRIVACY',
+        status: 'PASS',
+        message: '文本為空，無隱私洩漏風險。'
+      };
+    }
+
+    // 1. 檢驗高風險個資 (Fail-Closed)
+    const hasRawId = PrivacyValidator.HIGH_RISK_ID_REGEX.test(text);
+    const hasRawPhone = PrivacyValidator.HIGH_RISK_PHONE_REGEX.test(text);
 
     if (hasRawId || hasRawPhone) {
       return {
@@ -49,6 +65,21 @@ export class PrivacyValidator implements IValidator<string> {
         status: 'FAIL',
         message: `偵測到未脫敏之敏感個資 (包含身分證字號或手機號碼)，違反法律隱私去識別化保護規範。`,
         details: { hasRawId, hasRawPhone }
+      };
+    }
+
+    // 2. 檢驗中度敏感資訊 (觸發 NEEDS_REVIEW)
+    const hasEmail = PrivacyValidator.EMAIL_REGEX.test(text);
+    const hasAddress = PrivacyValidator.ADDRESS_REGEX.test(text);
+    const hasLandline = PrivacyValidator.LANDLINE_REGEX.test(text);
+
+    if (hasEmail || hasAddress || hasLandline) {
+      return {
+        name: this.name,
+        category: 'PRIVACY',
+        status: 'NEEDS_REVIEW',
+        message: '偵測到潛在敏感通訊資訊 (包含電子信箱、詳細地址或市話)，標記為待審查 (NEEDS_REVIEW)，需經人工確認是否已完全去識別化。',
+        details: { hasEmail, hasAddress, hasLandline }
       };
     }
 

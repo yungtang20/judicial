@@ -218,19 +218,29 @@ export class AuditLogService {
   }
 
   /**
+   * 遞迴清洗任意型別中的敏感個資 (包含陣列與深層物件)
+   */
+  private static sanitizeValue(value: unknown): unknown {
+    if (typeof value === "string") {
+      return DeidentifierService.anonymizeForLogs(value);
+    }
+    if (Array.isArray(value)) {
+      return value.map((item) => this.sanitizeValue(item));
+    }
+    if (value !== null && typeof value === "object") {
+      const res: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+        res[k] = this.sanitizeValue(v);
+      }
+      return res;
+    }
+    return value;
+  }
+
+  /**
    * 遞迴遮蔽 metadata 中的個資
    */
   private static sanitizeMetadata(data: Record<string, unknown>): Record<string, unknown> {
-    const result: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(data)) {
-      if (typeof value === "string") {
-        result[key] = DeidentifierService.anonymizeForLogs(value);
-      } else if (value !== null && typeof value === "object" && !Array.isArray(value)) {
-        result[key] = this.sanitizeMetadata(value as Record<string, unknown>);
-      } else {
-        result[key] = value;
-      }
-    }
-    return result;
+    return (this.sanitizeValue(data) as Record<string, unknown>) || {};
   }
 }

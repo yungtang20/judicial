@@ -54,6 +54,8 @@ export interface SdlcStageDefinition {
 
 export interface SdlcProjectState {
   projectId: string;
+  tenantId?: string;
+  ownerId?: string;
   title: string;
   legalDomain: string;
   currentStageId: SdlcStageId;

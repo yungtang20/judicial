@@ -710,6 +710,7 @@ export function verifyLegalCitations(
   while ((match = statuteRegex.exec(text)) !== null) {
     const fullMatch = match[0];
     const lawName = match[1];
+    const legalClaim = text.substring(Math.max(0, match.index - 30), match.index).trim();
     const mainArt = match[2];
     const subArt = match[3] || match[4];
     const paraNum = match[5] ? parseInt(match[5], 10) : null;
@@ -726,10 +727,13 @@ export function verifyLegalCitations(
         verified: false,
         citationText: fullMatch,
         type: 'STATUTE',
+        legalClaim,
+        claimSupportStatus: 'NEEDS_REVIEW',
         officialTitle: `${fullMatch}（${lawName}現行法最高僅至第${maxArticleForLaw}條）`,
         officialSourceUrl: 'https://law.moj.gov.tw/',
         isGhostOrFake: true,
         hallucinationRisk: 'SUSPICIOUS_NUMBERING',
+          verificationStatus: 'REJECTED',
         correctionSuggestion: `請核對正確條號，我國${lawName}目前最高僅有${maxArticleForLaw}條。`
       });
     } else if (knownStatute) {
@@ -739,10 +743,13 @@ export function verifyLegalCitations(
           verified: false,
           citationText: fullMatch,
           type: 'STATUTE',
+        legalClaim,
+        claimSupportStatus: 'NEEDS_REVIEW',
           officialTitle: `${baseKey}（真實條文僅有 ${knownStatute.maxParagraphs} 項）`,
           officialSourceUrl: 'https://law.moj.gov.tw/',
           isGhostOrFake: true,
           hallucinationRisk: 'SUSPICIOUS_NUMBERING',
+          verificationStatus: 'REJECTED',
           correctionSuggestion: `修正為：${baseKey}第${Math.min(paraNum, knownStatute.maxParagraphs)}項 或 直接引用 ${baseKey}`,
           officialSnippet: knownStatute.officialSummary
         });
@@ -752,10 +759,13 @@ export function verifyLegalCitations(
           verified: true,
           citationText: fullMatch,
           type: 'STATUTE',
+        legalClaim,
+        claimSupportStatus: 'NEEDS_REVIEW',
           officialTitle: baseKey,
           officialSourceUrl: 'https://law.moj.gov.tw/',
           isGhostOrFake: false,
           hallucinationRisk: 'SAFE_VERIFIED',
+          verificationStatus: 'VERIFIED',
           officialSnippet: knownStatute.officialSummary
         });
       }
@@ -765,10 +775,13 @@ export function verifyLegalCitations(
         verified: false,
         citationText: fullMatch,
         type: 'STATUTE',
+        legalClaim,
+        claimSupportStatus: 'NEEDS_REVIEW',
         officialTitle: fullMatch,
         officialSourceUrl: 'https://law.moj.gov.tw/',
         isGhostOrFake: false,
-        hallucinationRisk: 'UNVERIFIED'
+        hallucinationRisk: 'UNVERIFIED',
+        verificationStatus: 'NEEDS_REVIEW'
       });
     }
   }
@@ -778,6 +791,7 @@ export function verifyLegalCitations(
   while ((match = precedentRegex.exec(text)) !== null) {
     const fullMatch = match[0];
     const court = match[1];
+    const legalClaim = text.substring(Math.max(0, match.index - 30), match.index).trim();
     const year = match[2];
     const caseWord = match[3];
     const caseNum = match[4];
@@ -795,10 +809,13 @@ export function verifyLegalCitations(
         verified: true,
         citationText: fullMatch,
         type: 'PRECEDENT',
+        legalClaim,
+        claimSupportStatus: 'NEEDS_REVIEW',
         officialTitle: fullMatch,
         officialSourceUrl: 'https://judgment.judicial.gov.tw/',
         isGhostOrFake: false,
         hallucinationRisk: 'SAFE_VERIFIED',
+          verificationStatus: 'VERIFIED',
         officialSnippet: '檢索庫 RAG 檢索核可之實務裁判見解（allowed_citations）。'
       });
     } else if (foundPrecedent) {
@@ -806,10 +823,13 @@ export function verifyLegalCitations(
         verified: true,
         citationText: fullMatch,
         type: 'PRECEDENT',
+        legalClaim,
+        claimSupportStatus: 'NEEDS_REVIEW',
         officialTitle: foundPrecedent.fullCitation,
         officialSourceUrl: foundPrecedent.officialJudicialUrl,
         isGhostOrFake: false,
         hallucinationRisk: 'SAFE_VERIFIED',
+          verificationStatus: 'VERIFIED',
         officialSnippet: foundPrecedent.holdingSummary
       });
     } else {
@@ -822,10 +842,13 @@ export function verifyLegalCitations(
         verified: false,
         citationText: fullMatch,
         type: 'PRECEDENT',
+        legalClaim,
+        claimSupportStatus: 'NEEDS_REVIEW',
         officialTitle: fullMatch,
         officialSourceUrl: 'https://judgment.judicial.gov.tw/',
         isGhostOrFake: isSuspicious,
         hallucinationRisk: isSuspicious ? 'FAKE_GHOST_CITATION' : 'UNVERIFIED',
+        verificationStatus: isSuspicious ? 'REJECTED' : 'NEEDS_REVIEW',
         correctionSuggestion: isSuspicious ? '建議改用最高法院權威穩定見解（如最高法院98年度台上字第1045號判決），或改為實務通說表述。' : undefined,
         officialSnippet: hasAllowedConstraint
           ? '⚠️ 該裁判未在本次檢索之 allowed_citations 列表中，已被安全機制判定為未授權引用。'
