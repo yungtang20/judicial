@@ -41,9 +41,9 @@ class ApiError extends Error {
   }
 }
 
-async function fetchWithHandler(url: string, options: RequestInit) {
+export async function fetchWithAuth(url: string, options: RequestInit = {}) {
   const headers = new Headers(options.headers);
-  const guestToken = sessionStorage.getItem('judicial_guest_token');
+  const guestToken = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('judicial_guest_token') : null;
   if (guestToken) headers.set('Authorization', `Bearer ${guestToken}`);
   let res = await fetch(url, { ...options, headers });
   if (res.status === 401 && !url.startsWith('/api/auth/guest')) {
@@ -57,6 +57,11 @@ async function fetchWithHandler(url: string, options: RequestInit) {
       }
     }
   }
+  return res;
+}
+
+async function fetchWithHandler(url: string, options: RequestInit) {
+  const res = await fetchWithAuth(url, options);
   if (!res.ok) {
     let errData: any = {};
     try {

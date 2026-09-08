@@ -18,6 +18,7 @@ import {
 } from '../lib/exportReport';
 import { saveCrossFeatureContext } from '../lib/crossFeatureContext';
 import { useToolContext } from '../contexts/ToolContext';
+import { fetchWithAuth } from '../lib/apiClient';
 
 export const UnifiedEntry: React.FC = () => {
   const { handleSelectTool } = useToolContext();
@@ -118,7 +119,7 @@ export const UnifiedEntry: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      const res = await fetch('/api/workflow/execute', {
+      const res = await fetchWithAuth('/api/workflow/execute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -157,7 +158,7 @@ export const UnifiedEntry: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      const res = await fetch('/api/workflow/supplement', {
+      const res = await fetchWithAuth('/api/workflow/supplement', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
