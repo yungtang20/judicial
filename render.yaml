@@ -21,5 +21,7 @@ services:
         sync: false
       - key: HCNSEC_BASE_URL
         value: https://api.hcnsec.cn/v1
+      - key: HCNSEC_MODEL
+        value: DeepSeek-V4-Pro
       - key: APP_URL
         sync: false

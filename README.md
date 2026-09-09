@@ -70,6 +70,7 @@ Render 部署設定位於根目錄的 `render.yaml`。部署時必須在 Render 
 ```text
 JWT_SECRET       # 至少 32 字元且具足夠熵值
 HCNSEC_API_KEY   # 使用 HCNSEC provider 時必要
+HCNSEC_MODEL     # HCNSEC 官方模型 ID；目前預設 DeepSeek-V4-Pro
 APP_URL          # Production 公開網址
 ```
 

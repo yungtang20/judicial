@@ -21,7 +21,7 @@
 | 5. 安全性 | 8 | 9 | production moderate-or-higher audit PASS；auth/tenant/PII/SSRF/citation fail-closed tests PASS | 對抗與治理測試通過；production HTTP 測試確認 CSP enforce、Guest 預設關閉、明確啟用時簽發短效且獨立 tenant token，以及 `REQUIRE_AUTH=false` 仍拒絕裸請求；simple parser 關閉 `qs` nested expansion，clean audit 為 0 vulnerabilities。 |
 | 6. 可維護性 | 6 | 9 | 高風險執行路徑已拆 coherent boundaries；資料型大檔有完整性測試；剩餘 hotspot 有明確 owner/gate | 四個主要 UI 已拆分；`LegalGuideHome` 情境資料、詳情 Modal 與搜尋／安全判斷已有獨立邊界。`useSmartAppealAssistant` 的 URL 匯入、檔案解析、去識別化及期限計算已抽成具型別、可直接測試的 `appealDocumentActions`（主 hook 1091→969 行）；`toolboxFallbacks` 經盤點為範本文字 registry，新增全工具非空、分類、特定模板與 checklist 完整性 Gate。 |
 | 7. 整合度 | 7 | 9 | CI/Render/README clean-install 與 Node 契約一致，且目標 runtime 驗證通過 | Node 22.23.2 Windows clean `npm ci --include=dev --ignore-scripts` 安裝 340 packages 成功；GitHub CI 全步驟通過，Render auto-deploy 對應 `origin/main` 且正式 health/UI 驗證通過。 |
-| 8. 覆蓋率 | 8 | 9 | 全域 statements/lines ≥85、branches ≥75、functions ≥90；SDLC orchestrator 與 external verifier 有專屬風險門檻 | 57 files／347 tests；88.79% statements、78.08% branches、94.21% functions、89.60% lines；orchestrator 98.57/81.63、external verifier 97.05/94.73。 |
+| 8. 覆蓋率 | 8 | 9 | 全域 statements/lines ≥85、branches ≥75、functions ≥90；SDLC orchestrator 與 external verifier 有專屬風險門檻 | 57 files／348 tests；88.79% statements、78.08% branches、94.21% functions、89.60% lines；orchestrator 98.57/81.63、external verifier 97.05/94.73。 |
 | 9. 技術債（越高越嚴重） | 4 | 2 | ≤2：沒有可立即修補 advisory；跨平台 lock/runtime 契約有結論；最高風險 hotspot 已降低或被直接 gate | dependency advisory 已清除、Windows clean-install 已驗證、文件與 coverage debt 已下降；邏輯型 hook 已抽出可測試 action boundary，資料型 fallback registry 已由全工具契約測試直接 gate。 |
 
 ## 第一輪變更

@@ -4,7 +4,7 @@ import { AIProvider, AIProviderGenerateOptions, AIProviderResponse } from './AIP
 export class OpenAICompatibleProvider implements AIProvider {
   public readonly name = 'OpenAICompatibleProvider';
   private readonly defaultBaseUrl = 'https://api.hcnsec.cn/v1';
-  private readonly defaultModel = 'gpt-4o-mini';
+  private readonly defaultModel = 'DeepSeek-V4-Pro';
 
   private get key() { return process.env.HCNSEC_API_KEY?.trim(); }
   private get baseUrl() { return (process.env.HCNSEC_BASE_URL || this.defaultBaseUrl).replace(/\/$/, ''); }
@@ -49,4 +49,3 @@ export class OpenAICompatibleProvider implements AIProvider {
       : { ok: false, message: 'No HCNSEC API key provided (provider disabled)', model: this.model };
   }
 }
-

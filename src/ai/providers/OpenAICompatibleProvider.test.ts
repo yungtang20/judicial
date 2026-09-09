@@ -29,6 +29,17 @@ describe('OpenAI-compatible provider', () => {
     expect(result.text).toBe('分析結果');
     expect(result.usage?.totalTokens).toBe(5);
     expect(fetchMock.mock.calls[0]?.[0]).toBe('https://example.test/v1/chat/completions');
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)).model).toBe('DeepSeek-V4-Pro');
     expect((fetchMock.mock.calls[0]?.[1] as RequestInit).body).not.toContain('test-only-key');
+  });
+
+  it('prefers an explicitly configured HCNSEC model', async () => {
+    process.env.HCNSEC_API_KEY = 'test-only-key';
+    process.env.HCNSEC_MODEL = 'kimi-k3';
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ choices: [{ message: { content: 'ok' } }] }), { status: 200 }));
+
+    await new OpenAICompatibleProvider().generate('test');
+
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)).model).toBe('kimi-k3');
   });
 });
