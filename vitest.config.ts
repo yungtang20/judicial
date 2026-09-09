@@ -24,10 +24,22 @@ export default defineConfig({
         'src/lib/analysisHistory.ts', 'src/lib/crossFeatureContext.ts', 'src/lib/exportReport.ts'
       ],
       thresholds: {
-        statements: 70,
-        lines: 70,
-        branches: 72,
-        functions: 45
+        statements: 85,
+        lines: 85,
+        branches: 75,
+        functions: 90,
+        'src/domain/workflow/sdlcOrchestrator.ts': {
+          statements: 90,
+          lines: 90,
+          branches: 75,
+          functions: 95
+        },
+        'src/lib/externalCitationVerifier.ts': {
+          statements: 95,
+          lines: 95,
+          branches: 90,
+          functions: 85
+        }
       }
     }
   }

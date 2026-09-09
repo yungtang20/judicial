@@ -130,6 +130,59 @@ describe('SdlcOrchestrator Lifecycle & Governance Integration', () => {
     ).rejects.toThrowError(/契約要求之驗證器未全數通過/);
   });
 
+  it('blocks a gate that is not the current or in-progress stage', async () => {
+    const projectId = 'proj_gate_not_ready_test';
+    await orchestrator.getOrCreateProject(projectId);
+
+    await expect(
+      orchestrator.advanceGate(projectId, '02_design', lawyerContext)
+    ).rejects.toThrowError(/階段門閥未就緒/);
+  });
+
+  it('blocks a gate when the required artifact category is missing', async () => {
+    const projectId = 'proj_missing_category_test';
+    const project = await orchestrator.getOrCreateProject(projectId);
+    project.artifacts['01_plan'] = [{
+      id: 'art-wrong-category',
+      stageId: '01_plan',
+      version: 1,
+      name: 'wrong category',
+      category: 'spec',
+      content: 'test',
+      executionMode: 'REAL',
+      summary: 'test',
+      metadata: {},
+      createdAt: new Date().toISOString()
+    }];
+    await repo.save(project);
+
+    await expect(
+      orchestrator.advanceGate(projectId, '01_plan', lawyerContext)
+    ).rejects.toThrowError(/缺少必要工件類別/);
+  });
+
+  it('blocks a gate when an artifact has no verification report', async () => {
+    const projectId = 'proj_missing_verification_test';
+    const project = await orchestrator.getOrCreateProject(projectId);
+    project.artifacts['01_plan'] = [{
+      id: 'art-no-verification',
+      stageId: '01_plan',
+      version: 1,
+      name: 'intent artifact',
+      category: 'intent',
+      content: 'test',
+      executionMode: 'REAL',
+      summary: 'test',
+      metadata: {},
+      createdAt: new Date().toISOString()
+    }];
+    await repo.save(project);
+
+    await expect(
+      orchestrator.advanceGate(projectId, '01_plan', lawyerContext)
+    ).rejects.toThrowError(/工件缺少驗證報告/);
+  });
+
   it('blocks Production Deploy Gate if execution mode is FALLBACK', async () => {
     const projectId = 'proj_fallback_deploy_test';
     const proj = await orchestrator.getOrCreateProject(projectId);
@@ -211,5 +264,101 @@ describe('SdlcOrchestrator Lifecycle & Governance Integration', () => {
     await expect(
       failOrchestrator.advanceGate(projectId, '01_plan', lawyerContext)
     ).rejects.toThrowError(/最新工件未通過驗證檢核/);
+  });
+
+  it('persists a governed feedback loop and records its audit evidence', async () => {
+    const projectId = 'proj_feedback_loop_test';
+    const project = await orchestrator.getOrCreateProject(
+      projectId,
+      '回流測試專案',
+      'CIVIL',
+      'REAL',
+      'tenant-feedback',
+      'owner-feedback'
+    );
+    project.currentStageId = '04_test';
+    project.stageStatuses['04_test'] = 'in_progress';
+    await repo.save(project);
+
+    const result = await orchestrator.triggerFeedbackLoop(
+      projectId,
+      '04_test',
+      '03_build',
+      '測試結果需要重新修正文稿',
+      '補強證據與引用後重新產製',
+      lawyerContext
+    );
+
+    expect(result.feedbackArtifact).toMatchObject({
+      projectId,
+      fromStage: '04_test',
+      targetStage: '03_build',
+      status: 'APPLIED'
+    });
+    expect(result.project.currentStageId).toBe('03_build');
+    expect(result.project.stageStatuses['04_test']).toBe('iterating');
+    expect(result.project.stageStatuses['03_build']).toBe('in_progress');
+    expect(result.project.iterationsCount).toBe(1);
+    expect(result.project.feedbackHistory[0]).toMatchObject({
+      fromStage: '04_test',
+      targetStage: '03_build',
+      reason: '測試結果需要重新修正文稿'
+    });
+    expect(auditLogger.getByWorkflow(projectId).some(event => event.eventType === 'FEEDBACK_CREATED')).toBe(true);
+  });
+
+  it('fails closed when feedback references an unknown project', async () => {
+    await expect(
+      orchestrator.triggerFeedbackLoop(
+        'proj_feedback_missing',
+        '04_test',
+        '03_build',
+        '測試結果需要重新修正文稿',
+        '補強證據與引用後重新產製',
+        lawyerContext
+      )
+    ).rejects.toThrowError(/找不到 SDLC 專案/);
+  });
+
+  it('supports project and artifact lifecycle operations without mutating identity fields', async () => {
+    const projectId = 'proj_crud_test';
+    const created = await orchestrator.getOrCreateProject(
+      projectId,
+      '原始標題',
+      'CIVIL',
+      'REAL',
+      'tenant-crud',
+      'owner-crud'
+    );
+    const sameProject = await orchestrator.getOrCreateProject(projectId, '不應覆蓋的標題');
+    expect(sameProject.title).toBe('原始標題');
+    expect(await orchestrator.getProject(projectId)).toMatchObject({ tenantId: 'tenant-crud', ownerId: 'owner-crud' });
+    expect(await orchestrator.getProject('proj_unknown')).toBeNull();
+
+    const updated = await orchestrator.updateProject(projectId, { title: '更新標題', legalDomain: 'LABOR' });
+    expect(updated).toMatchObject({
+      title: '更新標題',
+      legalDomain: 'LABOR',
+      tenantId: created.tenantId,
+      ownerId: created.ownerId
+    });
+    expect(await orchestrator.updateProject('proj_unknown', { title: '不存在' })).toBeNull();
+
+    const execution = await orchestrator.executeStage(projectId, '01_plan', '確認勞資爭議請求', lawyerContext);
+    const artifactId = execution.artifact.id;
+    expect(await orchestrator.getArtifact(projectId, artifactId)).toMatchObject({ id: artifactId });
+    expect(await orchestrator.getArtifact('proj_unknown', artifactId)).toBeNull();
+    expect(await orchestrator.getArtifact(projectId, 'artifact_unknown')).toBeNull();
+
+    expect(await orchestrator.updateArtifact(projectId, artifactId, { content: '修正內容', summary: '修正摘要' }))
+      .toMatchObject({ id: artifactId, content: '修正內容', summary: '修正摘要' });
+    expect(await orchestrator.updateArtifact('proj_unknown', artifactId, { content: '不應寫入' })).toBeNull();
+    expect(await orchestrator.updateArtifact(projectId, 'artifact_unknown', { content: '不應寫入' })).toBeNull();
+
+    expect(await orchestrator.deleteArtifact(projectId, artifactId)).toBe(true);
+    expect(await orchestrator.deleteArtifact(projectId, artifactId)).toBe(false);
+    expect(await orchestrator.deleteArtifact('proj_unknown', artifactId)).toBe(false);
+    expect(await orchestrator.deleteProject(projectId)).toBe(true);
+    expect(await orchestrator.deleteProject(projectId)).toBe(false);
   });
 });

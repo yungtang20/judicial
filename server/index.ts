@@ -27,6 +27,9 @@ export function createExpressApp(): Express {
   }
 
   const app = express();
+  // All application query parameters are scalar values; avoid qs expansion
+  // for URL query strings as well as URL-encoded request bodies.
+  app.set("query parser", "simple");
 
   // 反向代理信任設定：支援布林值 ("true"/"false")、數字 (例如 1, 2) 或指定 IP/網段
   const rawTrustProxy = process.env.TRUST_PROXY;
@@ -48,7 +51,9 @@ export function createExpressApp(): Express {
   app.use(requestIdMiddleware);
   app.use(securityHeaders);
   app.use(express.json({ limit: "1mb" }));
-  app.use(express.urlencoded({ extended: true, limit: "1mb" }));
+  // No route consumes nested URL-encoded objects; use Node's simple parser to
+  // avoid enabling the qs extended-parser attack surface.
+  app.use(express.urlencoded({ extended: false, limit: "1mb" }));
   app.use(sanitizeRequest);
   // Guest token issuance is public; all subsequent API calls remain authenticated.
   app.use(guestAuthRouter);

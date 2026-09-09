@@ -1,12 +1,16 @@
 import React from "react";
 import { useAutoSave } from '../hooks/useAutoSave';
-import { parsePdfFile } from '../lib/pdfUtils';
-import { scrubPersonalInfo } from '../lib/deidentifier';
 import { useState, useRef, useMemo } from "react";
 import { IssueRow, EvidenceRow, PrecedentItem } from "../types";
 import { useAppealStore } from "../store/useAppealStore";
 import { useCaseStore } from "../store/useCaseStore";
 import { verifyLegalCitations } from "../lib/services/citationCheck";
+import {
+  calculateAppealDeadline,
+  deidentifyJudgments,
+  fetchJudicialUrl,
+  importJudgmentFile
+} from './appealDocumentActions';
 
 export function useSmartAppealAssistant() {
   const saveAnalysis = useCaseStore(s => s.saveAnalysis);
@@ -170,48 +174,16 @@ export function useSmartAppealAssistant() {
   const isFetchingUrl = useAppealStore(s => s.isFetchingUrl);
       const setIsFetchingUrl = useAppealStore(s => s.setIsFetchingUrl);
 
-    const fetchFromUrl = async (targetField: 'first' | 'second') => {
-    setTargetJudicialField(targetField);
-    const targetUrl = targetField === 'first' ? firstUrl : secondUrl;
-    if (!targetUrl) return;
-
-    setIsFetchingUrl(true);
-    setUrlFetchSuccessMsg('');
-    try {
-      const response = await fetch('/api/fetch-url', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: targetUrl })
-      });
-      
-      if (!response.ok) {
-        let errStr = '無法讀取網址內容';
-        try {
-          const errData = await response.json();
-          if (errData.error) errStr = errData.error;
-        } catch (e) {}
-        throw new Error(errStr);
-      }
-      const data = await response.json();
-      if (data.text) {
-        if (targetField === 'first') {
-          setRawText(data.text);
-        } else {
-          setSecondText(data.text);
-        }
-        if (data.title) {
-          setUrlFetchSuccessMsg(`✅ 已自動透過判決書資料庫帶入【${data.title}】！`);
-        }
-      } else {
-        throw new Error('未讀取到文字內容');
-      }
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : '未知錯誤';
-      alert(`網址讀取失敗：\n\n${errorMsg}\n\n您亦可使用上方【⚖️ 判決全文庫檢索】按鈕直接輸入案號調閱，或手動複製貼上裁判內文。`);
-    } finally {
-      setIsFetchingUrl(false);
-    }
-  };
+  const fetchFromUrl = (targetField: 'first' | 'second') => fetchJudicialUrl({
+    targetField,
+    firstUrl,
+    secondUrl,
+    setTargetJudicialField,
+    setIsFetchingUrl,
+    setUrlFetchSuccessMsg,
+    setRawText,
+    setSecondText
+  });
 
   const isGeneratingPetition = useAppealStore(s => s.isGeneratingPetition);
       const setIsGeneratingPetition = useAppealStore(s => s.setIsGeneratingPetition);
@@ -266,58 +238,8 @@ export function useSmartAppealAssistant() {
 
 
   // 1. PDF File Import Handler
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, targetField: 'first' | 'second' = 'first') => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.type === 'application/pdf') {
-      setIsParsingPdf(true);
-      try {
-        const { text, images } = await parsePdfFile(file);
-        let fullText = text;
-
-        // 偵測到無內建文字或文字極少（即掃描版 PDF），自動呼叫後端多模態 OCR 服務
-        if (fullText.trim().length < 100 && images.length > 0) {
-          try {
-            const ocrRes = await fetch('/api/ocr', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ images })
-            });
-            if (ocrRes.ok) {
-              const ocrData = await ocrRes.json();
-              if (ocrData.text) {
-                fullText = ocrData.text;
-              }
-            } else {
-              const errData = await ocrRes.json().catch(() => ({}));
-              alert(errData.error || 'OCR 辨識失敗，請檢查 API Key 設定。');
-            }
-          } catch (ocrErr) {
-            console.warn('OCR fetch failed:', ocrErr instanceof Error ? ocrErr.message : ocrErr);
-          }
-        }
-        
-        if (targetField === 'second') {
-          setSecondText(fullText);
-        } else {
-          setRawText(fullText);
-        }
-      } catch (err) {
-        console.warn('PDF Parse Error:', err instanceof Error ? err.message : err);
-        alert('PDF 解析失敗，請直接複製貼上判決內文。');
-      } finally {
-        setIsParsingPdf(false);
-      }
-    } else {
-      const text = await file.text();
-      if (targetField === 'second') {
-        setSecondText(text);
-      } else {
-        setRawText(text);
-      }
-    }
-  };
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>, targetField: 'first' | 'second' = 'first') =>
+    importJudgmentFile({ event, targetField, setIsParsingPdf, setRawText, setSecondText });
 
     // 1-1. Taiwan Legal RAG (TLR: 2,250萬筆判決 24H 免帳密) 處理函式
   const handleTlrSearch = async (queryOverride?: string) => {
@@ -542,21 +464,7 @@ export function useSmartAppealAssistant() {
   };
 
   // 2. AI Judgment Analysis (可選全盤分析跳轉至第二步，或僅生成摘要留在第一步)
-  const handleDeidentify = () => {
-    let modified = false;
-    if (rawText) {
-      setRawText(scrubPersonalInfo(rawText));
-      modified = true;
-    }
-    if (secondText) {
-      setSecondText(scrubPersonalInfo(secondText));
-      modified = true;
-    }
-    
-    if (modified) {
-      alert('✅ 已執行基本去識別化（身分證字號、電話、部分地址與當事人稱謂前方）。\n⚠️ 注意：人工閱讀時請再次確認是否還有遺漏個資。');
-    }
-  };
+  const handleDeidentify = () => deidentifyJudgments({ rawText, secondText, setRawText, setSecondText });
 
   const handleAnalyzeJudgment = async (jumpToStepTwo: boolean = true) => {
     if (!rawText.trim()) {
@@ -850,36 +758,7 @@ export function useSmartAppealAssistant() {
   };
 
   // Calculate Appeal Deadline
-  const calculateDeadline = () => {
-    if (!deliveryDate) return { declarationDeadline: '未知', reasoningDeadline: '未知', daysLeft: 0 };
-    const date = new Date(deliveryDate);
-    if (isNaN(date.getTime())) return { declarationDeadline: '無效日期', reasoningDeadline: '無效日期', daysLeft: 0 };
-
-    // 20天上訴期間 + 在途期間
-    const declDate = new Date(date);
-    declDate.setDate(declDate.getDate() + 20 + Number(travelDays));
-
-    // 如果遇到週末 (6: Saturday, 0: Sunday) 順延至週一
-    if (declDate.getDay() === 6) declDate.setDate(declDate.getDate() + 2);
-    if (declDate.getDay() === 0) declDate.setDate(declDate.getDate() + 1);
-
-    // 補提上訴理由期間 (刑事40日或20日/民事20日)
-    const reasonDate = new Date(date);
-    reasonDate.setDate(reasonDate.getDate() + (caseType === 'criminal' ? 40 : 20) + Number(travelDays));
-    if (reasonDate.getDay() === 6) reasonDate.setDate(reasonDate.getDate() + 2);
-    if (reasonDate.getDay() === 0) reasonDate.setDate(reasonDate.getDate() + 1);
-
-    const today = new Date();
-    const diffTime = declDate.getTime() - today.getTime();
-    const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    return {
-      declarationDeadline: declDate.toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric' }),
-      reasoningDeadline: reasonDate.toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric' }),
-      daysLeft
-    };
-  };
-
+  const calculateDeadline = () => calculateAppealDeadline({ deliveryDate, travelDays, caseType });
   const deadlineInfo = calculateDeadline();
 
   // Print function

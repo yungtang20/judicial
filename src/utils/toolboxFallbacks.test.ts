@@ -4,6 +4,27 @@ import { verifyGeneratedDocument } from '../lib/generatedDocumentPipeline';
 import { LEGAL_TOOLS } from '../lib/legalToolRegistry';
 
 describe('Toolbox Fallbacks Verification', () => {
+  it('provides a specific, non-empty fallback contract for every registered tool', () => {
+    const genericFallbacks: string[] = [];
+    const invalidContracts: string[] = [];
+
+    for (const tool of LEGAL_TOOLS) {
+      const fallback = buildFallbackToolboxResult(tool.id, {});
+      if (fallback.title === '標準法律文書') genericFallbacks.push(tool.id);
+      if (
+        fallback.toolCategory !== tool.id ||
+        !fallback.title.trim() ||
+        !fallback.documentText.trim() ||
+        fallback.complianceChecklist.length === 0
+      ) {
+        invalidContracts.push(tool.id);
+      }
+    }
+
+    expect(genericFallbacks).toEqual([]);
+    expect(invalidContracts).toEqual([]);
+  });
+
   it('checks which fallback tools pass or fail verification', () => {
     const failedTools: Array<{ id: string; unverified: string[]; ghosts: string[] }> = [];
 

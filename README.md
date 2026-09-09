@@ -61,8 +61,8 @@ npm run dev
 Production 服務目前部署於 Render：
 
 - 網址：[https://judicial-prod.onrender.com](https://judicial-prod.onrender.com)
-- Runtime：Node.js
-- Build command：`npm install --include=dev && npm run build`
+- Runtime：Node.js 22.23.2（由 `.node-version` 與 Blueprint 固定）
+- Build command：`npm ci --include=dev && npm run build`
 - Start command：`npm start`
 
 Render 部署設定位於根目錄的 `render.yaml`。部署時必須在 Render Environment Variables 設定：

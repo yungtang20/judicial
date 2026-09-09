@@ -10,8 +10,8 @@ const isCspReportOnly = !isProduction;
 
 /**
  * CSP 與安全標頭配置：
- * - Production: 預設啟用 Content-Security-Policy (預設為 Report-Only 模式，防止破壞現有外部資源載入)
- * - 開發環境: 放寬或關閉 CSP 以支援 Vite HMR 與 iframe 沙盒預覽
+ * - Production: 強制啟用 Content-Security-Policy，不允許 Report-Only 降級
+ * - 開發環境: 關閉 CSP 以支援 Vite HMR 與 iframe 沙盒預覽
  */
 export const securityHeaders = helmet({
   contentSecurityPolicy: isProduction

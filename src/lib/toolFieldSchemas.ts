@@ -865,7 +865,88 @@ export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
       "showAiSuggest": true
     }
   ],
-  "DEMAND_LETTER": [
+  "DEMAND_LETTER_DEBT": [
+    {
+      "key": "senderName",
+      "label": "寄件人",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "recipientName",
+      "label": "收件人",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "amount",
+      "label": "催告金額",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "incidentDetails",
+      "label": "催告事由經過",
+      "type": "textarea",
+      "rows": 5,
+      "showAiSuggest": true
+    }
+  ],
+  "DEMAND_LETTER_DEFECT": [
+    {
+      "key": "senderName",
+      "label": "寄件人",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "recipientName",
+      "label": "收件人",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "amount",
+      "label": "催告金額",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "incidentDetails",
+      "label": "催告事由經過",
+      "type": "textarea",
+      "rows": 5,
+      "showAiSuggest": true
+    }
+  ],
+  "DEMAND_LETTER_LABOR": [
+    {
+      "key": "senderName",
+      "label": "寄件人",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "recipientName",
+      "label": "收件人",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "amount",
+      "label": "催告金額",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "incidentDetails",
+      "label": "催告事由經過",
+      "type": "textarea",
+      "rows": 5,
+      "showAiSuggest": true
+    }
+  ],
+  "DEMAND_LETTER_RENT_DEFAULT": [
     {
       "key": "senderName",
       "label": "寄件人",
