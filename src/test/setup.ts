@@ -2,6 +2,9 @@ import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 import { defaultAIProvider } from '../ai/providers/providerRegistry.js';
 
+// Keep test audit writes isolated from the repository/runtime database.
+process.env.AUDIT_DB_PATH = ':memory:';
+
 vi.mock('../ai/providers/providerRegistry.js', async (importOriginal) => {
   const actual = await importOriginal<Record<string, any>>();
   return {

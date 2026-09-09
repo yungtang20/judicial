@@ -45,6 +45,8 @@ export class AuditLogService {
   private static readonly MAX_MEMORY_LOGS = 1000;
   private static readonly RETENTION_DAYS = 90;
   private static initialized = false;
+  private static persistenceMode: "sqlite" | "memory" = "memory";
+  private static persistenceError: string | undefined;
 
   private static initDb(): void {
     if (this.initialized) return;
@@ -76,10 +78,24 @@ export class AuditLogService {
           );
           CREATE INDEX IF NOT EXISTS idx_audit_tenant_time ON audit_logs (tenantId, timestamp);
         `);
+        this.persistenceMode = "sqlite";
+        this.persistenceError = undefined;
       }
     } catch (e) {
+      this.persistenceMode = "memory";
+      this.persistenceError = e instanceof Error ? e.message : "SQLITE_INIT_FAILED";
+      if (process.env.NODE_ENV === "production" && process.env.AUDIT_PERSISTENCE_REQUIRED === "true") {
+        throw new Error(`AUDIT_PERSISTENCE_REQUIRED: ${this.persistenceError}`);
+      }
       console.warn("[AuditLogService] SQLite 初始化警示，採用記憶體模式紀錄:", e);
     }
+  }
+
+  public static getPersistenceStatus(): { mode: "sqlite" | "memory"; durable: boolean; error?: string } {
+    this.initDb();
+    const configuredPath = process.env.AUDIT_DB_PATH || "";
+    const durable = this.persistenceMode === "sqlite" && configuredPath !== ":memory:" && Boolean(configuredPath);
+    return { mode: this.persistenceMode, durable, error: this.persistenceError };
   }
 
   /**

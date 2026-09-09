@@ -179,6 +179,10 @@ describe("Request ID & Error Logging Sanitization", () => {
 });
 
 describe("AuditLogService Persistence", () => {
+  it("reports isolated non-durable persistence in the test environment", () => {
+    expect(AuditLogService.getPersistenceStatus()).toMatchObject({ mode: "sqlite", durable: false });
+  });
+
   it("records audit events with sanitized tenant and retrieves them", () => {
     const testTenant = `tenant_${Date.now()}`;
     AuditLogService.log({

@@ -9,3 +9,5 @@ coverage/
 
 # Local Database Caches
 .cache/
+data/*.sqlite-wal
+data/*.sqlite-shm

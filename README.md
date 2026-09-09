@@ -41,6 +41,8 @@
 
 Production 固定強制 CSP 與 authentication；CSP 不接受 production report-only 降級。Production Guest token 預設停用，只有明確設定 `ALLOW_GUEST_MODE=true` 才會啟用。可設定 `JWT_ISSUER`／`JWT_AUDIENCE` 強制驗證 token claims。審計 SQLite 為單機短期診斷儲存，Render 無 persistent disk 時不視為永久合規備份。
 
+`/api/health` 會回報 `auditPersistence.mode` 與 `durable`。若正式環境要求審計持久化，請設定 persistent `AUDIT_DB_PATH` 並啟用 `AUDIT_PERSISTENCE_REQUIRED=true`；初始化失敗時服務會 fail-closed。
+
 External Legal Document Checker 僅供獨立檢查對造書狀、外部律師文件、ChatGPT／Claude 等 AI 文件、網路法律文章及使用者自行匯入文件。系統自行生成的文件不需要使用者再次手動貼入檢核器。
 
 外部文件檢核器另提供可選的裁判字號存在性交叉檢查：使用者明確同意後，僅將擷取出的裁判字號送至第三方 `dr-lawbot` 查詢，不會傳送完整文件。結果僅表示該資料源是否回傳完全吻合字號，並非官方核實，也不判斷裁判內容是否支持引用主張；查無結果、涵蓋範圍不足或服務失敗都必須人工至權威來源確認。
