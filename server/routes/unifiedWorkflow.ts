@@ -224,7 +224,7 @@ async function runRagNode(
   const statuteCitations = Array.from(dynamicStatuteSet).filter(Boolean);
   const official = await verifyOfficialCitations([
     ...statuteCitations.map(c => ({ citation: c, type: "STATUTE" as const })),
-    ...precedents.map(p => ({ citation: p.caseNumber, type: "PRECEDENT" as const }))
+    ...precedents.map(p => ({ citation: p.caseNumber, type: "PRECEDENT" as const, claim: p.summary }))
   ]);
 
   return {
@@ -315,7 +315,8 @@ async function runVerificationGateNode(
   const verification = verifyLegalCitations(combinedText);
   const official = await verifyOfficialCitations(verification.results.map(r => ({
     citation: r.citationText,
-    type: r.type === "PRECEDENT" ? "PRECEDENT" as const : "STATUTE" as const
+    type: r.type === "PRECEDENT" ? "PRECEDENT" as const : "STATUTE" as const,
+    claim: r.legalClaim
   })));
 
   // 萃取裁判字號進行外部查驗（若有）

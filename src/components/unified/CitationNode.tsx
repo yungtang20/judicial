@@ -74,7 +74,7 @@ export const CitationNode: React.FC<CitationNodeProps> = (props) => {
                     <p className="text-xs font-bold text-indigo-300">官方查證紀錄</p>
                     {workflowState.rag.officialEvidence.map((item, i) => (
                       <p key={i} className="text-xs text-slate-400">
-                        {item.citation} · {item.status} · {item.source} · {new Date(item.checkedAt).toLocaleString()}
+                        {item.citation} · 存在性 {item.status}{item.claimSupportStatus ? ` · 主張綁定 ${item.claimSupportStatus}` : ''} · {item.source} · {new Date(item.checkedAt).toLocaleString()}
                         {item.sourceUrl && <> · <a className="text-sky-400 underline" href={item.sourceUrl} target="_blank" rel="noreferrer">來源</a></>}
                       </p>
                     ))}

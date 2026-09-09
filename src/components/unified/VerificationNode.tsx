@@ -60,7 +60,7 @@ export const VerificationNode: React.FC<VerificationNodeProps> = (props) => {
                     <p className="text-xs font-bold text-slate-200">逐筆官方證據</p>
                     {workflowState.verification.officialEvidence.map((item, i) => (
                       <p key={i} className="text-xs text-slate-400">
-                        {item.citation} · {item.status} · {new Date(item.checkedAt).toLocaleString()} · <a className="text-sky-400 underline" href={item.sourceUrl} target="_blank" rel="noreferrer">{item.source}</a>
+                        {item.citation} · 存在性 {item.status}{item.claimSupportStatus ? ` · 主張綁定 ${item.claimSupportStatus}` : ''} · {new Date(item.checkedAt).toLocaleString()} · <a className="text-sky-400 underline" href={item.sourceUrl} target="_blank" rel="noreferrer">{item.source}</a>
                       </p>
                     ))}
                   </div>
