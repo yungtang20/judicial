@@ -13,6 +13,8 @@ services:
         value: 22.23.2
       - key: AI_PROVIDER
         value: hcnsec
+      - key: ALLOW_GUEST_MODE
+        value: "true"
       - key: JWT_SECRET
         sync: false
       - key: HCNSEC_API_KEY

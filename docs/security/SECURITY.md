@@ -17,7 +17,7 @@
 
 - Production CSP 固定 enforce，不接受 Report-Only 降級。
 - Production API 固定要求有效 Bearer Token 或 API key；`REQUIRE_AUTH=false` 只影響 development sandbox。
-- Production Guest token 預設停用，只有明確設定 `ALLOW_GUEST_MODE=true` 的 demo 環境才開放。
+- Production Guest token 預設停用，只有明確設定 `ALLOW_GUEST_MODE=true` 的 demo 環境才開放；公開 Render demo 會簽發 4 小時短效 token，並以每次 Guest session 的獨立 `tenantId` 隔離資料。
 - Production 缺少安全 JWT secret 時拒絕啟動。
 - Express query strings 與 URL-encoded bodies 使用 simple scalar parser，停用不必要的 `qs` nested expansion。
 

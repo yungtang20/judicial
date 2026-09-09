@@ -51,6 +51,42 @@ describe('production security defaults', () => {
     await expect(response.json()).resolves.toEqual({ error: 'GUEST_MODE_DISABLED_IN_PRODUCTION' });
   });
 
+  it('issues an isolated signed guest token when production guest mode is explicitly enabled', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('ALLOW_GUEST_MODE', 'true');
+    vi.stubEnv('JWT_SECRET', 'test-only-guest-token-secret-with-sufficient-entropy-2026');
+    vi.resetModules();
+    const { default: guestAuthRouter } = await import('../routes/guestAuth.js');
+    const { authenticate } = await import('./auth.js');
+    const app = express();
+    app.use(guestAuthRouter);
+    app.use(authenticate());
+    app.get('/protected', (req, res) => res.json({
+      id: req.user?.id,
+      tenantId: req.user?.tenantId,
+      role: req.user?.role
+    }));
+
+    const guestResponse = await request(app, '/api/auth/guest', { method: 'POST' });
+    expect(guestResponse.status).toBe(200);
+    const guestBody = await guestResponse.json() as { token: string; expiresIn: number };
+    expect(guestBody.token).toBeTruthy();
+    expect(guestBody.expiresIn).toBe(60 * 60 * 4);
+
+    const protectedResponse = await request(app, '/protected', {
+      headers: { Authorization: `Bearer ${guestBody.token}` }
+    });
+    expect(protectedResponse.status).toBe(200);
+    const protectedBody = await protectedResponse.json() as {
+      id: string;
+      tenantId: string;
+      role: string;
+    };
+    expect(protectedBody.role).toBe('client');
+    expect(protectedBody.id).toMatch(/^guest_/);
+    expect(protectedBody.tenantId).toBe(protectedBody.id);
+  });
+
   it('requires credentials in production even when REQUIRE_AUTH is false', async () => {
     vi.stubEnv('NODE_ENV', 'production');
     vi.stubEnv('REQUIRE_AUTH', 'false');

@@ -39,7 +39,7 @@
 
 統一工作流節點 4/6 會依 typed citation 分流逐筆查詢全國法規資料庫（法規）或司法院裁判書系統（裁判），保存 `status`、來源網址、查詢字串、比對策略、內容雜湊與查證時間。官方回傳查無資料或服務不可用時，節點 6 會 `fail-closed`（`NEEDS_REVIEW`），前端會顯示每筆官方證據；本機索引結果不會冒充官方查證。
 
-Production 固定強制 CSP 與 authentication；CSP 不接受 production report-only 降級。Production Guest token 預設停用，只有明確設定 `ALLOW_GUEST_MODE=true` 才會啟用。可設定 `JWT_ISSUER`／`JWT_AUDIENCE` 強制驗證 token claims。審計 SQLite 為單機短期診斷儲存，Render 無 persistent disk 時不視為永久合規備份。
+Production 固定強制 CSP 與 authentication；CSP 不接受 production report-only 降級。Production Guest token 預設停用，只有明確設定 `ALLOW_GUEST_MODE=true` 才會啟用；目前公開 Render demo 已明確啟用，瀏覽器會取得短效簽章 token，且每個 Guest 使用獨立 tenant。可設定 `JWT_ISSUER`／`JWT_AUDIENCE` 強制驗證 token claims。審計 SQLite 為單機短期診斷儲存，Render 無 persistent disk 時不視為永久合規備份。
 
 `/api/health` 會回報 `auditPersistence.mode` 與 `durable`。若正式環境要求審計持久化，請設定 persistent `AUDIT_DB_PATH` 並啟用 `AUDIT_PERSISTENCE_REQUIRED=true`；初始化失敗時服務會 fail-closed。
 
