@@ -5,6 +5,7 @@
   --font-sans: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
   
+  /* Karoshi Legacy Variables (to be removed in Prompt 3) */
   --color-karoshi-bg: #090d16;
   --color-karoshi-sidebar: #0f172a;
   --color-karoshi-content: #090d16;
@@ -14,6 +15,50 @@
   --color-karoshi-border: #1e293b;
   --color-karoshi-hover: #1e293b;
   --color-karoshi-civil: #334155;
+  
+  /* ============================================================
+     DESIGN TOKEN SYSTEM (New)
+     ============================================================ */
+  
+  /* Neutral Color Scale - Surface (backgrounds) */
+  --color-surface-base: #090d16;           /* Deepest background */
+  --color-surface-raised: #0f172a;         /* Card/panel background */
+  --color-surface-overlay: #111827;        /* Modal/popover background */
+  
+  /* Neutral Color Scale - Border */
+  --color-border-subtle: #1e293b;          /* Subtle dividers */
+  --color-border-strong: #334155;          /* Prominent dividers */
+  
+  /* Neutral Color Scale - Text */
+  --color-text-primary: #f8fafc;           /* Primary text */
+  --color-text-secondary: #e2e8f0;         /* Secondary text */
+  --color-text-muted: #94a3b8;             /* Muted/tertiary text */
+  
+  /* Semantic Status Colors */
+  --color-status-success: #6ee7b7;         /* Success foreground */
+  --color-status-success-bg: rgba(6, 78, 59, 0.28);    /* Success background */
+  --color-status-warning: #fde047;         /* Warning foreground */
+  --color-status-warning-bg: rgba(120, 53, 15, 0.28);  /* Warning background */
+  --color-status-danger: #fca5a5;          /* Danger foreground */
+  --color-status-danger-bg: rgba(136, 19, 55, 0.28);   /* Danger background */
+  --color-status-info: #93c5fd;            /* Info foreground */
+  --color-status-info-bg: rgba(30, 58, 138, 0.28);     /* Info background */
+  
+  /* Typography Scale (7-step) */
+  --text-xs: 0.75rem;      /* 12px */
+  --text-sm: 0.875rem;     /* 14px */
+  --text-base: 1rem;       /* 16px */
+  --text-lg: 1.25rem;      /* 20px */
+  --text-xl: 1.5rem;       /* 24px */
+  --text-2xl: 2rem;        /* 32px */
+  
+  /* Spacing Scale (6-step, multiples of 4px) */
+  --space-1: 0.25rem;      /* 4px */
+  --space-2: 0.5rem;       /* 8px */
+  --space-3: 0.75rem;      /* 12px */
+  --space-4: 1rem;         /* 16px */
+  --space-6: 1.5rem;       /* 24px */
+  --space-8: 2rem;         /* 32px */
 }
 
 /* Global Dark Theme (黑底 UI) Settings */
