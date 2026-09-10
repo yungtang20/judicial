@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import http from "http";
 import express from "express";
-import unifiedWorkflowRouter from "./unifiedWorkflow.js";
+import unifiedWorkflowRouter, { buildRuleBasedQuestioning } from "./unifiedWorkflow.js";
 
 describe("Unified StateGraph Workflow API", { timeout: 30000 }, () => {
   let server: http.Server;
@@ -31,6 +31,16 @@ describe("Unified StateGraph Workflow API", { timeout: 30000 }, () => {
     });
   });
 
+  it("規則備援依實際缺件生成追問，不套用家暴固定模板", () => {
+    const result = buildRuleBasedQuestioning(["借款金額與付款方式", "有無借據或匯款紀錄"]);
+
+    expect(result.rawMessage).toContain("借款金額與付款方式");
+    expect(result.rawMessage).toContain("有無借據或匯款紀錄");
+    expect(result.suggestedOptions).toContain("我可以補充確切金額與計算方式");
+    expect(result.rawMessage).not.toContain("家暴");
+    expect(result.suggestedOptions.join(" ")).not.toContain("配偶");
+  });
+
   it("1. 邊界條件：資訊不完整時 (is_complete == false) 應導向 QuestioningNode 生成動態追問與快捷選項", async () => {
     const res = await fetch(`${baseUrl}/api/workflow/execute`, {
       method: "POST",
@@ -51,6 +61,7 @@ describe("Unified StateGraph Workflow API", { timeout: 30000 }, () => {
     expect(state.questioning).toBeDefined();
     expect(state.questioning.rawMessage).toBeDefined();
     expect(Array.isArray(state.questioning.suggestedOptions)).toBe(true);
+    expect(["AI", "RULE_FALLBACK"]).toContain(state.questioning.generationMode);
   });
 
   it("2. 邊界條件：涉敏感案件時 (is_sensitive == true) 應導向保護路徑 (SAFETY_PROTECTION)", async () => {

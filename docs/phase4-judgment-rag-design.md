@@ -87,7 +87,7 @@ export interface IJudgmentRetriever {
   // 合併 sources 並統一回傳
   ```
 - **串接 `citationVerifier` (防幽靈引用)**：
-  Phase 4 檢索到的 `caseNo` (裁判字號) 必須被加入 `allowedCitations` 陣列中。這樣 Pipeline 步驟 4 的 `verifyGeneratedDocument` 就能無縫攔截 AI 偽造的判決字號。
+  Phase 4 裁判只有在逐筆取得司法院 `FJUD/data.aspx` 明細頁，並保存 `sourceUrl`、`checkedAt` 與 SHA-256 `contentHash` 後，才能將 `caseNo` 加入 `allowedCitations`。單純命中本機 seed、外部 RAG allowlist 或首頁網址不得標記為已驗證。
 
 ## 5. 分階段實作路線圖 (Roadmap)
 
@@ -97,7 +97,7 @@ export interface IJudgmentRetriever {
   - 實作 RRF (BM25 + Vector) 混合檢索。
 - **Step 2: 系統整合與防護機制**
   - 將 `JudgmentKnowledgeBase` 接入 `LegalRetrievalService`。
-  - 確認檢索到的裁判字號正確注入 `allowedCitations`，且 Pipeline 正常運作。
+  - 確認具完整官方證據的裁判字號才會注入 `allowedCitations`，缺件時必須 fail-closed。
   - 更新 Prompt 範本，區分「法規/函釋」與「實務判決段落」。
 - **Step 3: 資料管線自動化 (Data Pipeline)**
   - 實作司法院 Open Data 解析腳本。

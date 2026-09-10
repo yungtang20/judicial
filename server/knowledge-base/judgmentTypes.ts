@@ -5,6 +5,12 @@ export interface JudgmentMetadata {
   reason: string;
   date: string;
   relatedStatutes?: string[];
+  officialVerification?: {
+    status: "VERIFIED";
+    sourceUrl: string;
+    checkedAt: string;
+    contentHash: string;
+  };
 }
 
 export interface JudgmentChunk {

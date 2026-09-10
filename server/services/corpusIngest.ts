@@ -1,4 +1,4 @@
-import { VERIFIED_REAL_STATUTES, VERIFIED_REAL_PRECEDENTS } from "../../src/lib/citationVerifier.js";
+import { VERIFIED_REAL_STATUTES } from "../../src/lib/citationVerifier.js";
 import { indexDocument, VectorStore, defaultVectorStore, defaultEmbedder, LegalEmbedder } from "./legalRetrieval.js";
 
 export interface IngestStats {
@@ -57,43 +57,8 @@ export async function ingestSeedCorpus(
     }
   }
 
-  // 2. Ingest Verified Real Precedents
-  for (const item of VERIFIED_REAL_PRECEDENTS) {
-    if (!item.fullCitation || !item.holdingSummary) {
-      console.warn(`[CorpusIngest] 跳過無效判決項目: ${item.fullCitation || "未知"}`);
-      stats.skippedCount++;
-      continue;
-    }
-
-    const id = `judgment_${item.caseYear}_${item.caseWord}_${item.caseNum}`.replace(/[\s\/]+/g, "_");
-    const fullText = `${item.holdingSummary} 裁判關鍵字：${item.legalKeywords ? item.legalKeywords.join("、") : ""}`;
-    const url = item.officialJudicialUrl || "https://judgment.judicial.gov.tw/";
-
-    try {
-      await indexDocument(
-        {
-          id,
-          source: "judgment",
-          citation: item.fullCitation,
-          fullText,
-          url,
-          metadata: {
-            court: item.court,
-            caseYear: item.caseYear,
-            caseWord: item.caseWord,
-            caseNum: item.caseNum,
-            keywords: item.legalKeywords,
-          }
-        },
-        vectorStore,
-        embedder
-      );
-      stats.judgmentsCount++;
-    } catch (err: any) {
-      console.warn(`[CorpusIngest] 匯入判決失敗 [${item.fullCitation}]:`, err.message);
-      stats.skippedCount++;
-    }
-  }
+  // 裁判不得只因存在於靜態常數就視為已查證。裁判改由官方查詢流程逐筆取得，
+  // 並在保存 sourceUrl、checkedAt 與 contentHash 後才可進入可信索引。
 
   return stats;
 }

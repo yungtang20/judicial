@@ -41,6 +41,25 @@ export interface StoredDocument {
   metadata?: Record<string, any>;
 }
 
+function hasTrustedJudgmentEvidence(doc: StoredDocument): boolean {
+  if (doc.source !== "judgment") return true;
+  const verification = doc.metadata?.officialVerification;
+  if (!verification || verification.status !== "VERIFIED") return false;
+  if (!/^\d{4}-\d{2}-\d{2}T/.test(verification.checkedAt || "")) return false;
+  if (!/^[a-f0-9]{64}$/i.test(verification.contentHash || "")) return false;
+
+  try {
+    const source = new URL(verification.sourceUrl || doc.url);
+    const documentUrl = new URL(doc.url);
+    return source.toString() === documentUrl.toString()
+      && source.protocol === "https:"
+      && source.hostname === "judgment.judicial.gov.tw"
+      && source.pathname === "/FJUD/data.aspx";
+  } catch {
+    return false;
+  }
+}
+
 export interface VectorStore {
   insert(doc: StoredDocument): Promise<void>;
   getAll(sourceFilter?: 'statute' | 'judgment'): Promise<StoredDocument[]>;
@@ -374,6 +393,9 @@ export async function retrieve(
   const searchTokens = extractSearchTokens(trimmed);
 
   for (const doc of docs) {
+    // 裁判必須具備逐筆官方明細頁、查證時間與內容雜湊，否則不得進入生成上下文。
+    if (!hasTrustedJudgmentEvidence(doc)) continue;
+
     // 領域過濾機制：阻擋 cross-domain 污染
     if (isContaminatedCitation(doc.citation, doc.fullText, opts)) {
       continue;

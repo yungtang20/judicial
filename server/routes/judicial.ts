@@ -6,6 +6,8 @@ import { retrieve, defaultVectorStore } from "../services/legalRetrieval.js";
 import { ingestSeedCorpus } from "../services/corpusIngest.js";
 import { fetchFromOpenData } from "../services/judicialDataFetcher.js";
 import { RuntimeSchemaValidator } from "../../src/domain/workflow/runtimeSchemaValidator.js";
+import { scrubPersonalInfo } from "../../src/lib/deidentifier.js";
+import { searchOfficialJudgments } from "../services/officialCitationVerification.js";
 
 const router = Router();
 
@@ -90,13 +92,37 @@ async function handleSearchPrecedents(req: Request, res: Response) {
       topK: 3
     });
 
-    // 2. 若查無結果：明確告知查無結果，嚴禁呼叫 LLM 捏造資料
+    // 2. 本機無具逐筆官方證據的裁判時，改查司法院公開裁判書系統。
     if (retrieved.length === 0) {
+      const officialQuery = scrubPersonalInfo(normalized || rawQuery).slice(0, 120);
+      const official = await searchOfficialJudgments(officialQuery, { timeoutMs: 8000, maxResults: 3 });
+      if (official.results.length > 0) {
+        return res.json({
+          precedents: official.results.map(item => ({
+            caseNumber: item.caseNumber,
+            courtName: item.courtName,
+            summary: item.summary,
+            relevance: "司法院關鍵字檢索結果；是否適用本案仍須逐案比對事實與爭點",
+            keyTakeaway: "請開啟官方裁判全文，確認理由段與本案事實是否相符",
+            sourceUrl: item.sourceUrl,
+            checkedAt: item.checkedAt,
+            contentHash: item.contentHash,
+            verificationStatus: "VERIFIED"
+          })),
+          searchKeywords: [officialQuery].filter(Boolean),
+          notice: "結果直接取自司法院裁判書系統；存在性已查證，法律關聯性仍須人工審閱",
+          provider: "judicial-official",
+          officialSearch: official
+        });
+      }
       return res.json({
         precedents: [],
         searchKeywords: [normalized].filter(Boolean),
-        notice: "查無相關實務見解，請人工至司法院法學資料檢索系統確認",
-        provider: "local-index"
+        notice: official.status === "UNAVAILABLE"
+          ? "司法院裁判查詢服務目前無法取得，已安全停止並標註待人工查證"
+          : "查無相關實務見解，請人工至司法院法學資料檢索系統確認",
+        provider: "judicial-official",
+        officialSearch: official
       });
     }
 

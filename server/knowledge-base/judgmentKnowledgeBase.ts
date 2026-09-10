@@ -39,6 +39,22 @@ function tokenize(text: string): string[] {
   return Array.from(tokenSet);
 }
 
+function hasTrustedOfficialVerification(chunk: JudgmentChunk): boolean {
+  const verification = chunk.metadata.officialVerification;
+  if (!verification || verification.status !== "VERIFIED") return false;
+  if (!/^\d{4}-\d{2}-\d{2}T/.test(verification.checkedAt)) return false;
+  if (!/^[a-f0-9]{64}$/i.test(verification.contentHash)) return false;
+
+  try {
+    const source = new URL(verification.sourceUrl);
+    return source.protocol === "https:"
+      && source.hostname === "judgment.judicial.gov.tw"
+      && source.pathname === "/FJUD/data.aspx";
+  } catch {
+    return false;
+  }
+}
+
 export interface HybridJudgmentResult {
   chunk: JudgmentChunk;
   score: number;
@@ -73,14 +89,20 @@ export class JudgmentKnowledgeBase {
         console.warn("[JudgmentKnowledgeBase] 讀取 judgments.json 失敗:", err.message);
       }
 
-      for (const chunk of rawData) {
+      const trustedData = rawData.filter(hasTrustedOfficialVerification);
+      const rejectedCount = rawData.length - trustedData.length;
+      if (rejectedCount > 0) {
+        console.warn(`[JudgmentKnowledgeBase] 已排除 ${rejectedCount} 筆缺少官方逐筆證據的裁判種子`);
+      }
+
+      for (const chunk of trustedData) {
         if (!chunk.embedding || chunk.embedding.length === 0) {
           const textToEmbed = `${chunk.metadata.caseNo} ${chunk.metadata.reason} ${chunk.content} ${(chunk.metadata.relatedStatutes || []).join(" ")}`;
           chunk.embedding = await this.embedder.embed(textToEmbed);
         }
       }
 
-      this.chunks = rawData;
+      this.chunks = trustedData;
       this.initialized = true;
     })();
 
@@ -170,7 +192,7 @@ export class JudgmentKnowledgeBase {
       citation: r.chunk.metadata.caseNo,
       title: `${r.chunk.metadata.caseNo} ${r.chunk.metadata.reason} (${r.chunk.section})`,
       excerpt: r.chunk.content,
-      sourceUrl: "https://judgment.judicial.gov.tw/",
+      sourceUrl: r.chunk.metadata.officialVerification!.sourceUrl,
       allowedCitation: true
     }));
 

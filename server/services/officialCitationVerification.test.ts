@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { verifyOfficialCitations } from "./officialCitationVerification.js";
+import { searchOfficialJudgments, verifyOfficialCitations } from "./officialCitationVerification.js";
 
 const html = (body: string, init?: ResponseInit) => new Response(body, {
   status: 200,
@@ -98,5 +98,42 @@ describe("official citation verification", () => {
     expect(result.allVerified).toBe(false);
     expect(result.evidence[0].status).toBe("UNAVAILABLE");
     expect(result.evidence[0].error).toBe("FETCH_FAILED");
+  });
+
+  it("官方裁判關鍵字查詢成功時逐筆回傳明細網址、時間與雜湊", async () => {
+    const fetchImpl = vi.fn()
+      .mockResolvedValueOnce(html('<input type="hidden" name="__VIEWSTATE" value="state" />'))
+      .mockResolvedValueOnce(html('<a href="qryresultlst.aspx?ty=JUDBOOK&q=query-id">查詢結果</a>'))
+      .mockResolvedValueOnce(html('<a href="data.aspx?ty=JD&id=case-id">最高法院 112 年度台上字第 9 號民事判決</a>'))
+      .mockResolvedValueOnce(html('<main id="jud">最高法院 112 年度台上字第 9 號民事判決 主文 上訴駁回。理由 本件爭點為設計專利權。</main>'));
+
+    const result = await searchOfficialJudgments("設計專利權", { fetchImpl: fetchImpl as typeof fetch });
+
+    expect(result).toMatchObject({ status: "VERIFIED", attempted: true, source: "司法院裁判書系統" });
+    expect(result.results).toHaveLength(1);
+    expect(result.results[0]).toMatchObject({
+      caseNumber: "最高法院 112 年度台上字第 9 號民事判決",
+      sourceUrl: "https://judgment.judicial.gov.tw/FJUD/data.aspx?ty=JD&id=case-id"
+    });
+    expect(result.results[0].checkedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(result.results[0].contentHash).toMatch(/^[a-f0-9]{64}$/);
+  });
+
+  it("官方裁判關鍵字查無資料時明確回傳 NOT_FOUND", async () => {
+    const fetchImpl = vi.fn()
+      .mockResolvedValueOnce(html('<input type="hidden" name="__VIEWSTATE" value="state" />'))
+      .mockResolvedValueOnce(html('<p>查無資料</p>'));
+
+    const result = await searchOfficialJudgments("不存在的裁判爭點", { fetchImpl: fetchImpl as typeof fetch });
+
+    expect(result).toMatchObject({ status: "NOT_FOUND", attempted: true, results: [] });
+  });
+
+  it("官方裁判關鍵字查詢服務失敗時 fail-closed", async () => {
+    const result = await searchOfficialJudgments("租賃押金", {
+      fetchImpl: vi.fn().mockRejectedValue(new Error("offline")) as typeof fetch
+    });
+
+    expect(result).toMatchObject({ status: "UNAVAILABLE", attempted: true, error: "FETCH_FAILED", results: [] });
   });
 });

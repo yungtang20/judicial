@@ -53,6 +53,8 @@ export interface WorkflowRouterData {
 export interface WorkflowQuestioningData {
   rawMessage: string;
   suggestedOptions: string[];
+  generationMode: 'AI' | 'RULE_FALLBACK';
+  generationReason: string;
 }
 
 export interface WorkflowSafetyData {
@@ -72,7 +74,8 @@ export interface WorkflowRagData {
     summary: string;
     sourceUrl?: string;
   }>;
-  officialEvidence?: Array<{ citation: string; type: string; status: string; source: string; sourceUrl: string; checkedAt: string; snippet?: string; claimSupportStatus?: 'SUPPORTED' | 'NEEDS_REVIEW' | 'UNVERIFIABLE'; error?: string }>;
+  officialEvidence?: Array<{ citation: string; type: string; status: string; source: string; sourceUrl: string; checkedAt: string; snippet?: string; contentHash?: string; claimSupportStatus?: 'SUPPORTED' | 'NEEDS_REVIEW' | 'UNVERIFIABLE'; error?: string }>;
+  officialSearch?: { query: string; status: string; attempted: boolean; source: string; sourceUrl: string; checkedAt: string; error?: string };
 }
 
 export interface WorkflowSyllogismData {

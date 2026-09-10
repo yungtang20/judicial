@@ -52,6 +52,9 @@ export const SafetyNode: React.FC<SafetyNodeProps> = (props) => {
             <div className="flex items-center gap-3">
               <HelpCircle className="w-6 h-6 text-amber-400" />
               <h2 className="text-lg font-bold text-amber-200">動態追問節點</h2>
+              <span className={`text-[11px] px-2 py-0.5 rounded-md font-bold ${workflowState.questioning.generationMode === 'AI' ? 'bg-violet-500/20 text-violet-300' : 'bg-amber-500/20 text-amber-300'}`}>
+                {workflowState.questioning.generationMode === 'AI' ? 'AI 動態生成' : '規則式安全備援'}
+              </span>
             </div>
             <p className="text-sm text-amber-200/80">{workflowState.questioning.rawMessage}</p>
 

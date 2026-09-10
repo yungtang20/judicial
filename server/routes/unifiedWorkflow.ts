@@ -19,9 +19,7 @@ import {
   detectTemporalConflict 
 } from "../../src/lib/universalTriage.js";
 import { formatLegalChapter } from "../../src/lib/legalChapterLabels.js";
-import { fetchFromOpenData } from "../services/judicialDataFetcher.js";
-import { isWithinServiceHours } from "../services/judicialServiceHours.js";
-import { verifyOfficialCitations } from "../services/officialCitationVerification.js";
+import { searchOfficialJudgments, verifyOfficialCitations } from "../services/officialCitationVerification.js";
 
 const router = Router();
 
@@ -84,11 +82,40 @@ async function runRouterNode(userInput: string): Promise<RouterEvaluationResult 
 /**
  * 節點 2：QuestioningNode 執行器
  */
+export function buildRuleBasedQuestioning(missingElements: string[]): { rawMessage: string; suggestedOptions: string[] } {
+  const missing = (missingElements.length > 0 ? missingElements : ["案發時間與關係人身分"])
+    .map(item => item.replace(/^【[^】]+】/, "").trim())
+    .filter(Boolean)
+    .slice(0, 2);
+  const questions = missing.map((item, index) => `${index + 1}. 請補充「${item}」的具體事實；若不確定，也請說明目前可確認的範圍。`);
+  const focus = missing[0] || "關鍵事實";
+  let suggestedOptions: string[];
+
+  if (/時間|日期|何時|期間/.test(focus)) {
+    suggestedOptions = ["我可以補充確切日期與時間", "只能確認大約的時間範圍", "目前無法確認發生時間"];
+  } else if (/身分|關係|對方|當事人/.test(focus)) {
+    suggestedOptions = ["我可以補充雙方身分與關係", "只知道對方部分身分資料", "目前無法確認對方真實身分"];
+  } else if (/證據|紀錄|文件|契約|截圖|錄音|驗傷/.test(focus)) {
+    suggestedOptions = ["已有原始文件或電子紀錄", "只有部分紀錄，仍可補充", "目前沒有可提供的客觀證據"];
+  } else if (/金額|價額|損失|費用/.test(focus)) {
+    suggestedOptions = ["我可以補充確切金額與計算方式", "只能提供估算金額", "目前無法確認損失金額"];
+  } else if (/地點|地址|處所/.test(focus)) {
+    suggestedOptions = ["我可以補充確切地點", "只能確認縣市或大概區域", "目前無法確認發生地點"];
+  } else {
+    suggestedOptions = [`我可以補充「${focus.slice(0, 28)}」`, "目前只能提供部分資訊", "目前無法確認這項事實"];
+  }
+
+  return {
+    rawMessage: `目前資料不足以安全完成法律判斷，請依序補充：\n${questions.join("\n")}\n\n這些資訊會影響法條適用、舉證責任或程序期限；無法確認時，系統會維持待人工審查。`,
+    suggestedOptions
+  };
+}
+
 async function runQuestioningNode(
   missingElements: string[], 
   userInput: string,
   temporalConflict?: ReturnType<typeof detectTemporalConflict>
-): Promise<{ rawMessage: string; suggestedOptions: string[] }> {
+): Promise<{ rawMessage: string; suggestedOptions: string[]; generationMode: "AI" | "RULE_FALLBACK"; generationReason: string }> {
   // 若有時間矛盾，優先生成具體矛盾澄清追問
   if (temporalConflict?.hasConflict && temporalConflict.questionPrompt) {
     const rawMessage = `【案件事實矛盾澄清】系統在比對您的案情時發現時間陳述有邏輯矛盾：\n${temporalConflict.conflictDetail}\n\n👉 ${temporalConflict.questionPrompt}\n\n請協助確認正確的發生時間，避免因時間錯誤導致告訴期間或民事時效起算產生重大誤差。`;
@@ -97,12 +124,14 @@ async function runQuestioningNode(
       `確認為：${temporalConflict.relativeDate}`,
       "兩者皆為誤記，我重新輸入具體日期"
     ];
-    return { rawMessage, suggestedOptions };
+    return { rawMessage, suggestedOptions, generationMode: "RULE_FALLBACK", generationReason: "TEMPORAL_CONFLICT_RULE" };
   }
 
   const missing = missingElements.length > 0 ? missingElements : ["案發時間與關係人身分"];
   let rawMessage = "";
   let suggestedOptions: string[] = [];
+  let generationMode: "AI" | "RULE_FALLBACK" = "AI";
+  let generationReason = "AI_PROVIDER";
 
   try {
     const prompt = buildQuestioningPrompt(missing, userInput);
@@ -111,21 +140,20 @@ async function runQuestioningNode(
       setTimeout(() => reject(new Error("AI_QUESTION_TIMEOUT_ERR")), 45000)
     );
     const response = await Promise.race([aiPromise, timeoutPromise]);
-    rawMessage = response.text;
+    rawMessage = response.text?.trim() || "";
     const optionMatches = rawMessage.match(/\[(.*?)\]/g) || [];
     suggestedOptions = optionMatches.map(m => m.replace(/^\[|\]$/g, "").trim()).filter(Boolean);
+    if (!rawMessage || suggestedOptions.length === 0) throw new Error("AI_QUESTION_FORMAT_INVALID");
   } catch (err) {
-    console.warn("[UnifiedWorkflow] AI QuestioningNode 異常或逾時，採用標準模板:", err);
-    const labels = missing.join("、");
-    rawMessage = `我已理解您目前遇到的狀況。為了確認適用法規（例如是否構成家暴法之保護令要件、或影響告訴期間與成罪門檻），我們需要進一步釐清【${labels}】。請問當時的具體情況為？\n\n[事件發生在最近3天內] [對方是我的配偶或同住家人] [尚未至醫院驗傷，但保留有通訊紀錄]`;
-    suggestedOptions = ["事件發生在最近3天內", "對方是我的配偶或同住家人", "尚未至醫院驗傷，但保留有通訊紀錄"];
+    console.warn("[UnifiedWorkflow] AI QuestioningNode 異常或逾時，採用缺件導向規則備援:", err instanceof Error ? err.message : "UNKNOWN");
+    const fallback = buildRuleBasedQuestioning(missing);
+    rawMessage = fallback.rawMessage;
+    suggestedOptions = fallback.suggestedOptions;
+    generationMode = "RULE_FALLBACK";
+    generationReason = "AI_PROVIDER_UNAVAILABLE_OR_INVALID";
   }
 
-  if (suggestedOptions.length === 0) {
-    suggestedOptions = ["事件發生在最近3天內", "雙方為親屬或伴侶關係", "已有留下對話截圖或通話錄音"];
-  }
-
-  return { rawMessage, suggestedOptions };
+  return { rawMessage, suggestedOptions, generationMode, generationReason };
 }
 
 /**
@@ -140,9 +168,15 @@ async function runRagNode(
   legalElements: string;
   statuteCitations: string[];
   precedents: Array<{ caseNumber: string; courtName: string; summary: string; sourceUrl?: string }>;
-  officialEvidence: Array<{ citation: string; type: string; status: string; source: string; sourceUrl: string; checkedAt: string; snippet?: string; error?: string }>;
+  officialEvidence: Array<{ citation: string; type: string; status: string; source: string; sourceUrl: string; checkedAt: string; snippet?: string; contentHash?: string; claimSupportStatus?: "SUPPORTED" | "NEEDS_REVIEW" | "UNVERIFIABLE"; error?: string }>;
+  officialSearch?: { query: string; status: string; attempted: boolean; source: string; sourceUrl: string; checkedAt: string; error?: string };
 }> {
-  const searchQuery = `${queryTopic} ${userFacts.slice(0, 80)}`.trim();
+  // 對外查詢只使用法律爭點與法源，不傳姓名、地址或完整案件敘述。
+  const searchQuery = [queryTopic, ...(triageMeta.legalBasis || []).slice(0, 3)]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+  const localSearchQuery = `${searchQuery} ${userFacts.slice(0, 80)}`.trim();
   let legalElements = "【法定構成要件】相關法律條文之客觀構成要件（行為主體、客體、侵害行為與因果關係）及主觀構成要件（故意或過失）。";
   const precedents: Array<{ caseNumber: string; courtName: string; summary: string; sourceUrl?: string }> = [];
 
@@ -160,7 +194,7 @@ async function runRagNode(
 
   // 2. 透過領域過濾的向量檢索取得法條與判決
   try {
-    const chunks = await retrieve(searchQuery, {
+    const chunks = await retrieve(localSearchQuery, {
       topK: 5,
       caseType: triageMeta.caseType,
       category: triageMeta.category,
@@ -192,47 +226,48 @@ async function runRagNode(
     console.warn("[UnifiedWorkflow] RAGNode 檢索失敗:", err);
   }
 
-  // Tier 3 fallback: Try Judicial OpenData if no precedents found locally
+  let officialSearch: Awaited<ReturnType<typeof searchOfficialJudgments>> | undefined;
+
+  // 本機沒有具官方證據的裁判時，直接查詢司法院公開裁判書系統。
   if (precedents.length === 0) {
-    try {
-      const hoursCheck = isWithinServiceHours();
-      if (hoursCheck.withinHours) {
-        // Extract case ID from query or use queryTopic as case reference
-        const opendataResult = await fetchFromOpenData(searchQuery, { timeoutMs: 5000 });
-        if (opendataResult.success && opendataResult.html) {
-          // Extract first 500 chars of main legal content as summary
-          const summaryMatch = opendataResult.html.match(/主文[\s\S]{0,50}/) ||
-                               opendataResult.html.match(/理由[\s\S]{0,50}/);
-          if (summaryMatch) {
-            precedents.push({
-              caseNumber: searchQuery.slice(0, 30),
-              courtName: "司法院/地方法院",
-              summary: summaryMatch[0].replace(/<[^>]+>/g, "").slice(0, 200),
-              sourceUrl: undefined
-            });
-            console.log("[UnifiedWorkflow] OpenData fallback succeeded for query:", searchQuery.slice(0, 30));
-          }
-        }
-      } else {
-        console.log("[UnifiedWorkflow] OpenData fallback skipped — outside service hours");
-      }
-    } catch (odErr) {
-      console.warn("[UnifiedWorkflow] OpenData fallback failed:", odErr);
+    officialSearch = await searchOfficialJudgments(searchQuery, { timeoutMs: 8000, maxResults: 3 });
+    for (const result of officialSearch.results) {
+      precedents.push({
+        caseNumber: result.caseNumber,
+        courtName: result.courtName,
+        summary: result.summary,
+        sourceUrl: result.sourceUrl
+      });
     }
   }
 
   const statuteCitations = Array.from(dynamicStatuteSet).filter(Boolean);
+  const discoveredCitations = new Set((officialSearch?.results || []).map(result => result.caseNumber));
   const official = await verifyOfficialCitations([
     ...statuteCitations.map(c => ({ citation: c, type: "STATUTE" as const })),
-    ...precedents.map(p => ({ citation: p.caseNumber, type: "PRECEDENT" as const, claim: p.summary }))
+    ...precedents
+      .filter(precedent => !discoveredCitations.has(precedent.caseNumber))
+      .map(p => ({ citation: p.caseNumber, type: "PRECEDENT" as const, claim: p.summary }))
   ]);
+  const discoveredEvidence = (officialSearch?.results || []).map(result => ({
+    citation: result.caseNumber,
+    type: "PRECEDENT",
+    status: "VERIFIED",
+    source: "司法院裁判書系統",
+    sourceUrl: result.sourceUrl,
+    checkedAt: result.checkedAt,
+    snippet: result.summary.slice(0, 240),
+    contentHash: result.contentHash,
+    claimSupportStatus: "SUPPORTED" as const
+  }));
 
   return {
     searchQuery,
     legalElements,
     statuteCitations: statuteCitations.length > 0 ? statuteCitations : (triageMeta.legalBasis || ["現行相關實體法規"]),
     precedents,
-    officialEvidence: official.evidence
+    officialEvidence: [...official.evidence, ...discoveredEvidence],
+    officialSearch
   };
 }
 

@@ -67,7 +67,15 @@ describe("Legal Retrieval Infrastructure (Stage 1)", () => {
         source: "judgment",
         citation: "最高法院98年度台上字第1045號民事判決",
         fullText: "消費借貸契約之成立，除金錢或其他代替物之交付外，尚須當事人間有借貸之合意。",
-        url: "https://judgment.judicial.gov.tw/98_1045"
+        url: "https://judgment.judicial.gov.tw/FJUD/data.aspx?id=test-98-1045",
+        metadata: {
+          officialVerification: {
+            status: "VERIFIED",
+            sourceUrl: "https://judgment.judicial.gov.tw/FJUD/data.aspx?id=test-98-1045",
+            checkedAt: "2026-09-08T12:00:00.000Z",
+            contentHash: "b".repeat(64)
+          }
+        }
       },
       inMemoryStore,
       embedder
@@ -93,7 +101,7 @@ describe("Legal Retrieval Infrastructure (Stage 1)", () => {
     expect(judgmentResults.length).toBeGreaterThan(0);
     expect(judgmentResults[0].source).toBe("judgment");
     expect(judgmentResults[0].citation).toContain("最高法院98年度台上字第1045號");
-    expect(judgmentResults[0].sourceUrl).toBe("https://judgment.judicial.gov.tw/98_1045");
+    expect(judgmentResults[0].sourceUrl).toBe("https://judgment.judicial.gov.tw/FJUD/data.aspx?id=test-98-1045");
   });
 
   it("returns empty array when query is blank or no matches found", async () => {
@@ -104,24 +112,22 @@ describe("Legal Retrieval Infrastructure (Stage 1)", () => {
     expect(emptyStoreResults).toEqual([]);
   });
 
-  it("ingests verified seed statutes and precedents without hallucination", async () => {
+  it("只匯入法規種子，不把缺乏逐筆官方證據的裁判標成可信", async () => {
     const stats = await ingestSeedCorpus(inMemoryStore, embedder);
     expect(stats.statutesCount).toBeGreaterThan(20);
-    expect(stats.judgmentsCount).toBeGreaterThan(3);
+    expect(stats.judgmentsCount).toBe(0);
     expect(stats.skippedCount).toBe(0);
 
     const count = await inMemoryStore.count();
     expect(count).toBe(stats.statutesCount + stats.judgmentsCount);
 
-    // Test retrieval against the ingested seed corpus
+    // 未具官方明細頁、查證時間與內容雜湊的裁判不得被檢索。
     const results = await retrieve("消費借貸 金錢交付 合意", {
       vectorStore: inMemoryStore,
       embedder,
       source: "judgment"
     });
 
-    expect(results.length).toBeGreaterThan(0);
-    expect(results[0].citation).toContain("98");
-    expect(results[0].sourceUrl).toContain("judgment.judicial.gov.tw");
+    expect(results).toEqual([]);
   });
 });

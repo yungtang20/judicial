@@ -37,7 +37,9 @@
 
 引用檢查屬本機 heuristic 與索引比對，不等同司法院或其他官方機關核實；未索引或重要引用仍應人工查證。
 
-統一工作流節點 4/6 會依 typed citation 分流逐筆查詢全國法規資料庫（法規）或司法院裁判書系統（裁判），保存 `status`、來源網址、查詢字串、比對策略、內容雜湊與查證時間。官方回傳查無資料或服務不可用時，節點 6 會 `fail-closed`（`NEEDS_REVIEW`），前端會顯示每筆官方證據；本機索引結果不會冒充官方查證。
+統一工作流節點 4 會以法律爭點與法條（不含完整案情）查詢全國法規資料庫及司法院裁判書系統，並逐筆讀取官方明細頁；節點 6 再把每一項法律主張綁定至官方內容。系統保存 `status`、來源網址、查詢字串、比對策略、內容雜湊與查證時間。官方回傳查無資料、主張無法由來源支持或服務不可用時，節點 6 會 `fail-closed`（`NEEDS_REVIEW`），前端會顯示每筆官方證據。裁判只有具備司法院 `FJUD/data.aspx` 明細網址、查證時間及 SHA-256 內容雜湊時才能進入可信索引；靜態範例或只有 `allowed_citations` 的結果不會冒充官方查證。
+
+動態追問會標示 `AI 動態生成` 或 `規則式安全備援`。AI provider 失敗、逾時或回應格式不符時，備援問題會依 Router 實際判定的缺失要素產生，不會套用與案件無關的固定家暴模板。
 
 Production 固定強制 CSP 與 authentication；CSP 不接受 production report-only 降級。Production Guest token 預設停用，只有明確設定 `ALLOW_GUEST_MODE=true` 才會啟用；目前公開 Render demo 已明確啟用，瀏覽器會取得短效簽章 token，且每個 Guest 使用獨立 tenant。可設定 `JWT_ISSUER`／`JWT_AUDIENCE` 強制驗證 token claims。審計 SQLite 為單機短期診斷儲存，Render 無 persistent disk 時不視為永久合規備份。
 

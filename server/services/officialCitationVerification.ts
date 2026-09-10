@@ -31,9 +31,30 @@ export interface OfficialVerificationSummary {
   reason?: string;
 }
 
-interface OfficialVerificationOptions {
+export interface OfficialVerificationOptions {
   fetchImpl?: typeof fetch;
   timeoutMs?: number;
+  maxResults?: number;
+}
+
+export interface OfficialJudgmentSearchResult {
+  caseNumber: string;
+  courtName: string;
+  summary: string;
+  sourceUrl: string;
+  checkedAt: string;
+  contentHash: string;
+}
+
+export interface OfficialJudgmentSearchSummary {
+  results: OfficialJudgmentSearchResult[];
+  status: OfficialEvidenceStatus;
+  attempted: boolean;
+  query: string;
+  source: "司法院裁判書系統";
+  sourceUrl: string;
+  checkedAt: string;
+  error?: string;
 }
 
 const LAW_ORIGIN = "https://law.moj.gov.tw";
@@ -278,6 +299,134 @@ async function verifyPrecedent(
     snippet: exact ? body.slice(0, 240) : undefined,
     claimSupportStatus: claim ? (exact ? assessClaimSupport(claim, body) : "UNVERIFIABLE") : undefined
   };
+}
+
+/**
+ * 以去識別化法律爭點查詢司法院公開裁判書系統，並逐筆讀取官方明細頁。
+ * 搜尋結果只有在取得 /FJUD/data.aspx 內容與 SHA-256 後才會回傳。
+ */
+export async function searchOfficialJudgments(
+  query: string,
+  options: OfficialVerificationOptions = {}
+): Promise<OfficialJudgmentSearchSummary> {
+  const normalizedQuery = query.replace(/\s+/g, " ").trim().slice(0, 120);
+  const checkedAt = new Date().toISOString();
+  const base = {
+    query: normalizedQuery,
+    source: "司法院裁判書系統" as const,
+    sourceUrl: JUDGMENT_SEARCH,
+    checkedAt
+  };
+  if (!normalizedQuery) {
+    return { ...base, results: [], status: "NOT_FOUND", attempted: false, error: "EMPTY_QUERY" };
+  }
+  if (process.env.NODE_ENV === "test" && !options.fetchImpl) {
+    return { ...base, results: [], status: "UNAVAILABLE", attempted: false, error: "TEST_NETWORK_DISABLED" };
+  }
+
+  const fetchImpl = options.fetchImpl || fetch;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), options.timeoutMs ?? 8000);
+  const jar = new CookieJar();
+  const request = async (url: string | URL, init: RequestInit = {}) => {
+    const headers = new Headers(init.headers);
+    headers.set("Accept", "text/html");
+    headers.set("User-Agent", USER_AGENT);
+    if (jar.toHeader()) headers.set("Cookie", jar.toHeader());
+    const response = await fetchImpl(url, { ...init, signal: controller.signal, headers });
+    jar.capture(response.headers);
+    return response;
+  };
+
+  try {
+    const searchPage = await request(JUDGMENT_SEARCH);
+    if (!searchPage.ok) return { ...base, results: [], status: "UNAVAILABLE", attempted: true, error: `HTTP_${searchPage.status}` };
+    const $search = cheerio.load(await searchPage.text());
+    const params = new URLSearchParams();
+    $search("input[type=hidden]").each((_, element) => {
+      const name = $search(element).attr("name");
+      if (name) params.set(name, $search(element).attr("value") || "");
+    });
+    if (!params.has("__VIEWSTATE")) {
+      return { ...base, results: [], status: "UNAVAILABLE", attempted: true, error: "OFFICIAL_SEARCH_FORM_CHANGED" };
+    }
+    params.set("txtKW", normalizedQuery);
+    params.set("judtype", "JUDBOOK");
+    params.set("whosub", "0");
+    params.set("ctl00$cp_content$btnSimpleQry", "送出查詢");
+
+    const searchResult = await request(JUDGMENT_SEARCH, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        Origin: JUDGMENT_ORIGIN,
+        Referer: JUDGMENT_SEARCH
+      },
+      body: params
+    });
+    if (!searchResult.ok) return { ...base, results: [], status: "UNAVAILABLE", attempted: true, error: `HTTP_${searchResult.status}` };
+    const $searchResult = cheerio.load(await searchResult.text());
+    const listHref = $searchResult('a[href*="qryresultlst.aspx"]').first().attr("href");
+    const listUrl = listHref ? safeJudgmentUrl(listHref) : null;
+    if (!listUrl) return { ...base, results: [], status: "NOT_FOUND", attempted: true };
+
+    const listResponse = await request(listUrl, { headers: { Referer: JUDGMENT_SEARCH } });
+    if (!listResponse.ok) return { ...base, sourceUrl: listUrl.toString(), results: [], status: "UNAVAILABLE", attempted: true, error: `HTTP_${listResponse.status}` };
+    const $list = cheerio.load(await listResponse.text());
+    const candidates: Array<{ label: string; url: URL }> = [];
+    const seen = new Set<string>();
+    const maxResults = Math.max(1, Math.min(options.maxResults ?? 3, 5));
+    $list('a[href*="data.aspx"]').each((_, element) => {
+      if (candidates.length >= maxResults) return;
+      const url = safeJudgmentUrl($list(element).attr("href") || "", listUrl.toString());
+      const label = $list(element).text().replace(/\s+/g, " ").trim();
+      if (!url || !label || !/\d+.*號/.test(label) || seen.has(url.toString())) return;
+      seen.add(url.toString());
+      candidates.push({ label, url });
+    });
+
+    const results: OfficialJudgmentSearchResult[] = [];
+    for (const candidate of candidates) {
+      const detailResponse = await request(candidate.url, { headers: { Referer: listUrl.toString() } });
+      if (!detailResponse.ok) continue;
+      const detailHtml = await detailResponse.text();
+      const $detail = cheerio.load(detailHtml);
+      const officialText = ($detail("#jud").text() || $detail(".jud_content").text() || $detail(".htmlcontent").text() || $detail("body").text())
+        .replace(/\s+/g, " ")
+        .trim();
+      const normalizedLabel = normalize(candidate.label).replace(/判決|裁定/g, "");
+      if (!officialText || !normalize(officialText).includes(normalizedLabel)) continue;
+      const contentHash = await hash(officialText);
+      if (!contentHash) continue;
+      const courtName = candidate.label.match(/^(最高法院|最高行政法院|臺灣高等法院(?:\s+\S+分院)?|[^\d]{2,20}法院)/)?.[1]?.trim() || "司法院所屬法院";
+      results.push({
+        caseNumber: candidate.label,
+        courtName,
+        summary: officialText.slice(0, 500),
+        sourceUrl: candidate.url.toString(),
+        checkedAt,
+        contentHash
+      });
+    }
+
+    return {
+      ...base,
+      sourceUrl: listUrl.toString(),
+      results,
+      status: results.length > 0 ? "VERIFIED" : "NOT_FOUND",
+      attempted: true
+    };
+  } catch (error: any) {
+    return {
+      ...base,
+      results: [],
+      status: "UNAVAILABLE",
+      attempted: true,
+      error: error?.name === "AbortError" ? "TIMEOUT" : "FETCH_FAILED"
+    };
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 export async function verifyOfficialCitations(

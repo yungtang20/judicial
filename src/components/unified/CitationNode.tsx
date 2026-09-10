@@ -65,8 +65,18 @@ export const CitationNode: React.FC<CitationNodeProps> = (props) => {
                       <div key={i} className="p-3 rounded-xl bg-slate-950 border border-slate-800">
                         <p className="text-xs font-bold text-sky-300">{precedent.caseNumber} · {precedent.courtName}</p>
                         <p className="text-xs text-slate-300 leading-relaxed">{precedent.summary}</p>
+                        {precedent.sourceUrl && (
+                          <a className="text-xs text-sky-400 underline" href={precedent.sourceUrl} target="_blank" rel="noreferrer">開啟司法院裁判全文</a>
+                        )}
                       </div>
                     ))}
+                  </div>
+                )}
+                {workflowState.rag.officialSearch && (
+                  <div className="text-xs text-slate-400 border-t border-slate-800 pt-3">
+                    司法院裁判查詢：{workflowState.rag.officialSearch.status} · {workflowState.rag.officialSearch.source} · {new Date(workflowState.rag.officialSearch.checkedAt).toLocaleString()}
+                    {workflowState.rag.officialSearch.sourceUrl && <> · <a className="text-sky-400 underline" href={workflowState.rag.officialSearch.sourceUrl} target="_blank" rel="noreferrer">查詢來源</a></>}
+                    {workflowState.rag.officialSearch.error ? ` · ${workflowState.rag.officialSearch.error}` : ''}
                   </div>
                 )}
                 {workflowState.rag.officialEvidence?.length > 0 && (
