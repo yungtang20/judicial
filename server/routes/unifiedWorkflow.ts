@@ -111,6 +111,14 @@ export function buildRuleBasedQuestioning(missingElements: string[]): { rawMessa
   };
 }
 
+export function buildOfficialJudgmentQueries(queryTopic: string, statuteCitations: string[]): string[] {
+  const candidates = [
+    queryTopic.replace(/法律爭議|請求權|程序分析|相關/g, " ").replace(/\s+與\s+/g, " ").replace(/\s+/g, " ").trim().slice(0, 60),
+    statuteCitations[0]?.trim()
+  ].filter((value): value is string => Boolean(value));
+  return Array.from(new Set(candidates));
+}
+
 async function runQuestioningNode(
   missingElements: string[], 
   userInput: string,
@@ -226,12 +234,16 @@ async function runRagNode(
     console.warn("[UnifiedWorkflow] RAGNode 檢索失敗:", err);
   }
 
+  const statuteCitations = Array.from(dynamicStatuteSet).filter(Boolean);
   let officialSearch: Awaited<ReturnType<typeof searchOfficialJudgments>> | undefined;
 
   // 本機沒有具官方證據的裁判時，直接查詢司法院公開裁判書系統。
   if (precedents.length === 0) {
-    officialSearch = await searchOfficialJudgments(searchQuery, { timeoutMs: 8000, maxResults: 3 });
-    for (const result of officialSearch.results) {
+    for (const officialQuery of buildOfficialJudgmentQueries(queryTopic, statuteCitations)) {
+      officialSearch = await searchOfficialJudgments(officialQuery, { timeoutMs: 8000, maxResults: 3 });
+      if (officialSearch.status !== "NOT_FOUND") break;
+    }
+    for (const result of officialSearch?.results || []) {
       precedents.push({
         caseNumber: result.caseNumber,
         courtName: result.courtName,
@@ -241,7 +253,6 @@ async function runRagNode(
     }
   }
 
-  const statuteCitations = Array.from(dynamicStatuteSet).filter(Boolean);
   const discoveredCitations = new Set((officialSearch?.results || []).map(result => result.caseNumber));
   const official = await verifyOfficialCitations([
     ...statuteCitations.map(c => ({ citation: c, type: "STATUTE" as const })),

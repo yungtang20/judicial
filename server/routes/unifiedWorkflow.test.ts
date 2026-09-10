@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import http from "http";
 import express from "express";
-import unifiedWorkflowRouter, { buildRuleBasedQuestioning } from "./unifiedWorkflow.js";
+import unifiedWorkflowRouter, { buildOfficialJudgmentQueries, buildRuleBasedQuestioning } from "./unifiedWorkflow.js";
 
 describe("Unified StateGraph Workflow API", { timeout: 30000 }, () => {
   let server: http.Server;
@@ -39,6 +39,11 @@ describe("Unified StateGraph Workflow API", { timeout: 30000 }, () => {
     expect(result.suggestedOptions).toContain("我可以補充確切金額與計算方式");
     expect(result.rawMessage).not.toContain("家暴");
     expect(result.suggestedOptions.join(" ")).not.toContain("配偶");
+  });
+
+  it("官方裁判查詢先用核心爭點，查無時可退回主要法條", () => {
+    expect(buildOfficialJudgmentQueries("押金返還法律爭議請求權與程序分析", ["民法第179條", "民法第184條"]))
+      .toEqual(["押金返還", "民法第179條"]);
   });
 
   it("1. 邊界條件：資訊不完整時 (is_complete == false) 應導向 QuestioningNode 生成動態追問與快捷選項", async () => {
