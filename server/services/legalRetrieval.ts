@@ -251,8 +251,14 @@ export class SQLiteVectorStore implements VectorStore {
   }
 }
 
-// Default storage instances
-const defaultDbPath = process.env.LEGAL_RAG_DB_PATH || path.resolve(process.cwd(), ".cache", "legal_vectors.db");
+// Default storage instances. Vitest workers must never share a file-backed SQLite DB.
+export function resolveDefaultLegalRagDbPath(env: NodeJS.ProcessEnv = process.env): string {
+  if (env.LEGAL_RAG_DB_PATH?.trim()) return env.LEGAL_RAG_DB_PATH.trim();
+  if (env.NODE_ENV === "test" || env.VITEST === "true") return ":memory:";
+  return path.resolve(process.cwd(), ".cache", "legal_vectors.db");
+}
+
+const defaultDbPath = resolveDefaultLegalRagDbPath();
 export const defaultEmbedder = new LegalEmbedder();
 export const defaultVectorStore: VectorStore = new SQLiteVectorStore(defaultDbPath);
 

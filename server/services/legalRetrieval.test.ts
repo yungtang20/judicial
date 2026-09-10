@@ -6,7 +6,8 @@ import {
   indexDocument,
   retrieve,
   cosineSimilarity,
-  RetrievedChunk
+  RetrievedChunk,
+  resolveDefaultLegalRagDbPath
 } from "./legalRetrieval.js";
 import { ingestSeedCorpus } from "./corpusIngest.js";
 
@@ -17,6 +18,12 @@ describe("Legal Retrieval Infrastructure (Stage 1)", () => {
   beforeEach(() => {
     inMemoryStore = new SQLiteVectorStore(":memory:");
     embedder = new LegalEmbedder();
+  });
+
+  it("isolates the default vector database in test workers", () => {
+    expect(resolveDefaultLegalRagDbPath({ NODE_ENV: "test" })).toBe(":memory:");
+    expect(resolveDefaultLegalRagDbPath({ VITEST: "true" })).toBe(":memory:");
+    expect(resolveDefaultLegalRagDbPath({ NODE_ENV: "production", LEGAL_RAG_DB_PATH: "data/legal.db" })).toBe("data/legal.db");
   });
 
   it("calculates cosine similarity correctly", () => {
