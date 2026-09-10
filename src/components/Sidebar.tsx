@@ -32,13 +32,13 @@ const coreEntries: NavItem[] = [
   {
     id: 'litigation',
     label: '訴訟工作台',
-    sublabel: '全生命週期法務 · 20+ 書狀工具 · 攻防爭點',
+    sublabel: '全生命週期法務 · 書狀攻防 · 救濟期間',
     icon: Gavel,
   },
   {
     id: 'appeal',
     label: '判決分析與上訴',
-    sublabel: '原審判決剖析 · 上訴理由書 · 期間試算',
+    sublabel: '原審判決剖析 · 上訴理由書',
     icon: Scale,
   },
 ];
@@ -52,12 +52,12 @@ const moduleColors: Record<string, string> = {
 // 判決分析與上訴子項目
 const appealSubItems: NavItem[] = [
   { id: 'appeal', label: '判決剖析與上訴理由', sublabel: '原審違誤論理與撤銷改判主張', icon: Scale },
-  { id: 'appealDeadline', label: '上訴法定期間試算', sublabel: '20 天在途期間與末日扣除計算', icon: Clock },
 ];
 
 // 訴訟工作台子項目
 const litigationSubItems: NavItem[] = [
   { id: 'litigation', label: '訴訟工作台主頁', sublabel: '實用法務 · 攻防 · 爭點 · 上訴', icon: Gavel },
+  { id: 'appealDeadline', label: '上訴與救濟法定期間', sublabel: '法定期間對照與智慧計算', icon: Clock },
   { id: 'sdlc', label: 'SDLC 工作台', sublabel: 'Plan → Design → Build → Test', icon: Sparkles },
   { id: 'agent-chat', label: '智慧助理', sublabel: '對話式法律談詢', icon: FileText },
   { id: 'checker', label: '判決檢索', sublabel: '司法院 API / 防假法條', icon: FileCheck2 },
@@ -77,9 +77,9 @@ export default function Sidebar() {
 
   const isActive = (id: string) =>
     activeTool === id ||
-    (id === 'appeal' && ['appeal', 'smartAppeal', 'appealDeadline'].includes(activeTool)) ||
+    (id === 'appeal' && ['appeal', 'smartAppeal'].includes(activeTool)) ||
     (id === 'litigation' &&
-      ['legalToolbox', 'sdlc', 'agent-chat', 'checker', 'docAiChecker', 'judgmentSearch', 'defenseWorkflow', 'issueTableGenerator', 'evidenceListGenerator'].includes(activeTool)) ||
+      ['legalToolbox', 'appealDeadline', 'sdlc', 'agent-chat', 'checker', 'docAiChecker', 'judgmentSearch', 'defenseWorkflow', 'issueTableGenerator', 'evidenceListGenerator'].includes(activeTool)) ||
     (id === 'unified' && ['guide', 'processGuide'].includes(activeTool)) ||
     (id === 'checker' && ['docAiChecker', 'judicialOpenData', 'judgmentSearch'].includes(activeTool));
 
@@ -232,16 +232,7 @@ export default function Sidebar() {
         </ul>
 
         {/* Bottom Status */}
-        <div className="p-4 border-t border-slate-800 bg-[#0c1220] space-y-3 mt-auto">
-          <div className="p-3 rounded-xl bg-[#090d16] border border-slate-800 space-y-1.5 hidden md:block">
-            <div className="flex items-center gap-2 text-xs font-bold text-slate-300">
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              <span>不知道該用哪一個？</span>
-            </div>
-            <p className="text-[11px] text-[var(--color-text-muted)] leading-relaxed">
-              點擊 <strong className="text-sky-400">案件分析 → 情境導診</strong>，輸入遇到的狀況，系統將自動為您推薦最適書狀與步驟。
-            </p>
-          </div>
+        <div className="p-4 border-t border-slate-800 bg-[#0c1220] mt-auto">
           <div className="flex items-center justify-between text-[11px] text-[var(--color-text-muted)] px-1">
             <span className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
