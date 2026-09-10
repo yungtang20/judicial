@@ -14,7 +14,7 @@ React UI
   -> server/index.ts + server/routes/*
   -> server/services/legalGenerationPipeline.ts
   -> src/ai/providers/AIProvider.ts
-  -> GeminiProvider | OpenAICompatibleProvider
+  -> GeminiProvider | AgnesProvider | OpenAICompatibleProvider
 
 Legal generation result
   -> input precheck

@@ -1,24 +1,49 @@
 import { AIProvider, AIProviderGenerateOptions, AIProviderResponse } from './AIProvider.js';
 
+export interface OpenAICompatibleProviderConfig {
+  providerId: string;
+  providerName: string;
+  apiKeyEnv: string;
+  baseUrlEnv: string;
+  modelEnv: string;
+  timeoutEnv: string;
+  defaultBaseUrl: string;
+  defaultModel: string;
+}
+
+const HCNSEC_CONFIG: OpenAICompatibleProviderConfig = {
+  providerId: 'HCNSEC',
+  providerName: 'OpenAICompatibleProvider',
+  apiKeyEnv: 'HCNSEC_API_KEY',
+  baseUrlEnv: 'HCNSEC_BASE_URL',
+  modelEnv: 'HCNSEC_MODEL',
+  timeoutEnv: 'HCNSEC_TIMEOUT_MS',
+  defaultBaseUrl: 'https://api.hcnsec.cn/v1',
+  defaultModel: 'DeepSeek-V4-Pro'
+};
+
 /** Server-side adapter for OpenAI-compatible gateways (disabled unless selected). */
 export class OpenAICompatibleProvider implements AIProvider {
-  public readonly name = 'OpenAICompatibleProvider';
-  private readonly defaultBaseUrl = 'https://api.hcnsec.cn/v1';
-  private readonly defaultModel = 'DeepSeek-V4-Pro';
+  public readonly name: string;
 
-  private get key() { return process.env.HCNSEC_API_KEY?.trim(); }
-  private get baseUrl() { return (process.env.HCNSEC_BASE_URL || this.defaultBaseUrl).replace(/\/$/, ''); }
-  private get model() { return process.env.HCNSEC_MODEL || this.defaultModel; }
+  constructor(private readonly config: OpenAICompatibleProviderConfig = HCNSEC_CONFIG) {
+    this.name = config.providerName;
+  }
+
+  private get key() { return process.env[this.config.apiKeyEnv]?.trim(); }
+  private get baseUrl() { return (process.env[this.config.baseUrlEnv] || this.config.defaultBaseUrl).replace(/\/$/, ''); }
+  private get model() { return process.env[this.config.modelEnv] || this.config.defaultModel; }
+  private errorCode(suffix: string) { return `${this.config.providerId}_${suffix}`; }
 
   private async request(prompt: string, options?: AIProviderGenerateOptions): Promise<AIProviderResponse> {
-    if (!this.key) throw new Error('HCNSEC_API_KEY_UNAVAILABLE');
-    if (options?.inlineData) throw new Error('HCNSEC_INLINE_DATA_UNSUPPORTED');
+    if (!this.key) throw new Error(this.errorCode('API_KEY_UNAVAILABLE'));
+    if (options?.inlineData) throw new Error(this.errorCode('INLINE_DATA_UNSUPPORTED'));
     const messages = [
       ...(options?.systemInstruction ? [{ role: 'system', content: options.systemInstruction }] : []),
       { role: 'user', content: prompt }
     ];
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), Number(process.env.HCNSEC_TIMEOUT_MS || 30_000));
+    const timer = setTimeout(() => controller.abort(), Number(process.env[this.config.timeoutEnv] || 30_000));
     try {
       const response = await fetch(`${this.baseUrl}/chat/completions`, {
         method: 'POST',
@@ -26,10 +51,10 @@ export class OpenAICompatibleProvider implements AIProvider {
         body: JSON.stringify({ model: options?.model || this.model, messages, temperature: options?.temperature, response_format: options?.responseMimeType === 'application/json' ? { type: 'json_object' } : undefined }),
         signal: controller.signal
       });
-      if (!response.ok) throw new Error(`HCNSEC_HTTP_${response.status}`);
+      if (!response.ok) throw new Error(this.errorCode(`HTTP_${response.status}`));
       const payload = await response.json() as any;
       const text = payload?.choices?.[0]?.message?.content;
-      if (typeof text !== 'string' || !text.trim()) throw new Error('HCNSEC_MALFORMED_RESPONSE');
+      if (typeof text !== 'string' || !text.trim()) throw new Error(this.errorCode('MALFORMED_RESPONSE'));
       return { text, usage: payload.usage ? { promptTokens: payload.usage.prompt_tokens, completionTokens: payload.usage.completion_tokens, totalTokens: payload.usage.total_tokens } : undefined };
     } finally {
       clearTimeout(timer);
@@ -45,7 +70,7 @@ export class OpenAICompatibleProvider implements AIProvider {
 
   async healthCheck() {
     return this.key
-      ? { ok: true, message: 'HCNSEC provider configured (OpenAI-compatible contract; live compatibility not verified)', model: this.model }
-      : { ok: false, message: 'No HCNSEC API key provided (provider disabled)', model: this.model };
+      ? { ok: true, message: `${this.config.providerId} provider configured (OpenAI-compatible contract; live compatibility not verified)`, model: this.model }
+      : { ok: false, message: `No ${this.config.providerId} API key provided (provider disabled)`, model: this.model };
   }
 }

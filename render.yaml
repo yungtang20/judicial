@@ -12,7 +12,7 @@ services:
       - key: NODE_VERSION
         value: 22.23.2
       - key: AI_PROVIDER
-        value: hcnsec
+        value: agnes
       - key: ALLOW_GUEST_MODE
         value: "true"
       - key: JWT_SECRET
@@ -23,5 +23,11 @@ services:
         value: https://api.hcnsec.cn/v1
       - key: HCNSEC_MODEL
         value: DeepSeek-V4-Pro
+      - key: AGNES_API_KEY
+        sync: false
+      - key: AGNES_BASE_URL
+        value: https://apihub.agnes-ai.com/v1
+      - key: AGNES_MODEL
+        value: agnes-2.5-flash
       - key: APP_URL
         sync: false
