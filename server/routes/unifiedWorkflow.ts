@@ -119,6 +119,27 @@ export function buildOfficialJudgmentQueries(queryTopic: string, statuteCitation
   return Array.from(new Set(candidates));
 }
 
+export function buildOfficialSearchEvidence(results: Array<{
+  caseNumber: string;
+  sourceUrl: string;
+  checkedAt: string;
+  summary: string;
+  contentHash: string;
+}>) {
+  return results.map(result => ({
+    citation: result.caseNumber,
+    type: "PRECEDENT",
+    status: "VERIFIED",
+    source: "司法院裁判書系統",
+    sourceUrl: result.sourceUrl,
+    checkedAt: result.checkedAt,
+    snippet: result.summary.slice(0, 240),
+    contentHash: result.contentHash,
+    // 搜尋結果可證明裁判與摘錄存在，但不等於該裁判支持使用者的法律主張。
+    claimSupportStatus: "NEEDS_REVIEW" as const
+  }));
+}
+
 async function runQuestioningNode(
   missingElements: string[], 
   userInput: string,
@@ -260,17 +281,7 @@ async function runRagNode(
       .filter(precedent => !discoveredCitations.has(precedent.caseNumber))
       .map(p => ({ citation: p.caseNumber, type: "PRECEDENT" as const, claim: p.summary }))
   ]);
-  const discoveredEvidence = (officialSearch?.results || []).map(result => ({
-    citation: result.caseNumber,
-    type: "PRECEDENT",
-    status: "VERIFIED",
-    source: "司法院裁判書系統",
-    sourceUrl: result.sourceUrl,
-    checkedAt: result.checkedAt,
-    snippet: result.summary.slice(0, 240),
-    contentHash: result.contentHash,
-    claimSupportStatus: "SUPPORTED" as const
-  }));
+  const discoveredEvidence = buildOfficialSearchEvidence(officialSearch?.results || []);
 
   return {
     searchQuery,

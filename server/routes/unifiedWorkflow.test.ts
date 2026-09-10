@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import http from "http";
 import express from "express";
-import unifiedWorkflowRouter, { buildOfficialJudgmentQueries, buildRuleBasedQuestioning } from "./unifiedWorkflow.js";
+import unifiedWorkflowRouter, { buildOfficialJudgmentQueries, buildOfficialSearchEvidence, buildRuleBasedQuestioning } from "./unifiedWorkflow.js";
 
 describe("Unified StateGraph Workflow API", { timeout: 30000 }, () => {
   let server: http.Server;
@@ -44,6 +44,18 @@ describe("Unified StateGraph Workflow API", { timeout: 30000 }, () => {
   it("官方裁判查詢先用核心爭點，查無時可退回主要法條", () => {
     expect(buildOfficialJudgmentQueries("押金返還法律爭議請求權與程序分析", ["民法第179條", "民法第184條"]))
       .toEqual(["押金返還", "民法第179條"]);
+  });
+
+  it("官方搜尋結果只證明裁判存在，不冒充已支持使用者主張", () => {
+    const [evidence] = buildOfficialSearchEvidence([{
+      caseNumber: "最高法院112年度台上字第9號民事判決",
+      sourceUrl: "https://judgment.judicial.gov.tw/FJUD/data.aspx?id=test",
+      checkedAt: "2026-09-10T03:00:00.000Z",
+      summary: "官方裁判摘錄",
+      contentHash: "a".repeat(64)
+    }]);
+
+    expect(evidence).toMatchObject({ status: "VERIFIED", claimSupportStatus: "NEEDS_REVIEW" });
   });
 
   it("1. 邊界條件：資訊不完整時 (is_complete == false) 應導向 QuestioningNode 生成動態追問與快捷選項", async () => {
@@ -115,6 +127,7 @@ describe("Unified StateGraph Workflow API", { timeout: 30000 }, () => {
     // 驗證 RAGNode 要件
     expect(state.rag).toBeDefined();
     expect(state.rag.legalElements).toBeDefined();
+    expect(state.rag.officialEvidence.every((item: any) => item.type !== "PRECEDENT" || item.claimSupportStatus !== "SUPPORTED")).toBe(true);
 
     // 驗證 SyllogismNode 三段論
     expect(state.syllogism).toBeDefined();
