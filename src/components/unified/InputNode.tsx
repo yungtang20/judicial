@@ -1,7 +1,7 @@
 
 import React from 'react';
 import {
-  Send, Sparkles, FileText, Upload, Loader2, Star, Edit3, FilePlus
+  Send, Sparkles, FileText, Upload, Loader2, Edit3, FilePlus
 } from 'lucide-react';
 import { UIConstants } from '../../constants/ui';
 
@@ -11,6 +11,15 @@ export interface InputNodeProps {
 
 export const InputNode: React.FC<InputNodeProps> = (props) => {
   const { inputNarrative, setInputNarrative, isSubmitting, setIsSubmitting, workflowState, setWorkflowState, supplementInput, setSupplementInput, isCopied, setIsCopied, acknowledgeSafetyInSession, setAcknowledgeSafetyInSession, isNode2Open, setIsNode2Open, isNode4Open, setIsNode4Open, isNode5Open, setIsNode5Open, isNode6Open, setIsNode6Open, customPreset, setCustomPreset, showCustomPresetModal, setShowCustomPresetModal, editPresetTitle, setEditPresetTitle, editPresetNarrative, setEditPresetNarrative, fileInputRef, isDragOver, setIsDragOver, isParsingFiles, setIsParsingFiles, parsingStatus, setParsingStatus, batchQueue, setBatchQueue, batchIndex, setBatchIndex, isBatchRunning, setIsBatchRunning, showHistory, setShowHistory, historyList, setHistoryList, handleFiles, handleDrop, handleExecuteWorkflow, handleSupplementFact, handleProceedFromSafety, handleResetWorkflow, handleCopyAnalysis, loadFromHistory, handleBatchNext, handleBatchPrev, handleSaveCurrentAsCustomPreset, handleSelectSuggestedOption, handleSaveCustomPreset, handleToggleAllNodes, defaultSample, handleSelectTool, saveCrossFeatureContext, exportAsHtml, exportAsText, printReport, deleteFromHistory, clearHistory, loadHistory, showDocTypeModal, setShowDocTypeModal } = props;
+
+  const sampleCases = [
+    { label: '租賃押金', narrative: defaultSample },
+    { label: '家暴與人身安全', narrative: '我的同居伴侶長期對我施暴，昨天又動手毆打我致全身多處瘀傷，還在未經我同意下偷拍我的私密影像，威脅若我報警就要將影像散布到網路。我已前往醫院驗傷並取得診斷證明書，現場亦有破碎家具與血跡。' },
+    { label: '欠款追討', narrative: '我三年前借了朋友新台幣十萬元，當時只有口頭約定，沒有簽借條。對方一直拖延說會還，但至今分文未付且已讀不回。我手上只有銀行轉帳記錄可以證明有匯款。' },
+    { label: '交通罰單異議', narrative: '上週騎機車行經台北市忠孝東路與復興南路口時收到一張闖紅燈罰單，但我確定當時是綠燈才通過。我有行車記錄器畫面可以佐證，路口也有監視器。希望針對這張罰單提出異議。' },
+    { label: '消費詐欺糾紛', narrative: '我上個月在蝦皮買了一台二手筆電，賣家在私訊裡保證全機功能正常、電池健康度90%，結果收到當天開機不到十分鐘就自動斷電，螢幕還有一條明顯綠線。我傳LINE要求退貨退款，他直接封鎖我，去賣場檢舉也沒用，我轉帳了兩萬八千元，有銀行交易截圖跟聊天對話截圖，我現在該怎麼告他詐欺或要回錢？' },
+    { label: customPreset.title, narrative: customPreset.narrative },
+  ];
 
   return (
     <>
@@ -99,56 +108,24 @@ export const InputNode: React.FC<InputNodeProps> = (props) => {
             </div>
           )}
 
-          {/* Quick sample buttons */}
           <div className="flex flex-wrap items-center gap-2 pt-1">
-            <span className="text-xs text-[var(--color-text-muted)]">快速載入測試：</span>
-            <button
-              type="button"
-              onClick={() => setInputNarrative(defaultSample)}
-              className="px-2.5 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition-colors border border-slate-700"
+            <select
+              defaultValue=""
+              onChange={(event) => {
+                const sample = sampleCases[Number(event.target.value)];
+                if (sample) setInputNarrative(sample.narrative);
+                event.target.value = '';
+              }}
+              className="rounded-lg bg-slate-900 border border-slate-700 px-3 py-1.5 text-xs text-slate-300"
+              aria-label="載入範例案件"
             >
-              範例 1：租賃押金
-            </button>
-            <button
-              type="button"
-              onClick={() => setInputNarrative("我的同居伴侶長期對我施暴，昨天又動手毆打我致全身多處瘀傷，還在未經我同意下偷拍我的私密影像，威脅若我報警就要將影像散布到網路。我已前往醫院驗傷並取得診斷證明書，現場亦有破碎家具與血跡。")}
-              className="px-2.5 py-1 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 text-xs transition-colors border border-rose-500/30"
-            >
-              範例 2：家暴與人身安全
-            </button>
-            <button
-              type="button"
-              onClick={() => setInputNarrative("我三年前借了朋友新台幣十萬元，當時只有口頭約定，沒有簽借條。對方一直拖延說會還，但至今分文未付且已讀不回。我手上只有銀行轉帳記錄可以證明有匯款。")}
-              className="px-2.5 py-1 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-xs transition-colors border border-amber-500/30"
-            >
-              範例 3：欠款追討
-            </button>
-            <button
-              type="button"
-              onClick={() => setInputNarrative("上週騎機車行經台北市忠孝東路與復興南路口時收到一張闖紅燈罰單，但我確定當時是綠燈才通過。我有行車記錄器畫面可以佐證，路口也有監視器。希望針對這張罰單提出異議。")}
-              className="px-2.5 py-1 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 text-xs transition-colors border border-emerald-500/30"
-            >
-              範例 4：交通罰單異議
-            </button>
-            <button
-              type="button"
-              onClick={() => setInputNarrative("我上個月在蝦皮買了一台二手筆電，賣家在私訊裡保證全機功能正常、電池健康度90%，結果收到當天開機不到十分鐘就自動斷電，螢幕還有一條明顯綠線。我傳LINE要求退貨退款，他直接封鎖我，去賣場檢舉也沒用，我轉帳了兩萬八千元，有銀行交易截圖跟聊天對話截圖，我現在該怎麼告他詐欺或要回錢？")}
-              className="px-2.5 py-1 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 text-xs transition-colors border border-indigo-500/30"
-            >
-              範例 5：消費詐欺糾紛
-            </button>
+              <option value="" disabled>載入範例案件…</option>
+              {sampleCases.map((sample, index) => (
+                <option key={`${sample.label}-${index}`} value={index}>{sample.label}</option>
+              ))}
+            </select>
 
-            {/* 使用者自訂預設案例 */}
-            <div className="inline-flex items-center gap-1 pl-1 border-l border-slate-700/60 my-0.5">
-              <button
-                type="button"
-                onClick={() => setInputNarrative(customPreset.narrative)}
-                className="px-2.5 py-1 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-xs font-semibold transition-colors border border-amber-500/30 flex items-center gap-1.5 cursor-pointer"
-                title="點擊載入此預設案例"
-              >
-                <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400/40 shrink-0" />
-                <span className="truncate max-w-[180px]">{customPreset.title}</span>
-              </button>
+            <div className="inline-flex items-center gap-1">
               <button
                 type="button"
                 onClick={() => {
@@ -156,18 +133,19 @@ export const InputNode: React.FC<InputNodeProps> = (props) => {
                   setEditPresetNarrative(customPreset.narrative);
                   setShowCustomPresetModal(true);
                 }}
-                className="p-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs border border-slate-700 transition-colors"
+                className="p-1.5 rounded-lg text-[var(--color-text-muted)] hover:bg-slate-800 hover:text-white transition-colors"
                 title="編輯自訂預設案例"
+                aria-label="編輯自訂預設案例"
               >
                 <Edit3 className="w-3.5 h-3.5" />
               </button>
               <button
                 type="button"
                 onClick={handleSaveCurrentAsCustomPreset}
-                className="px-2 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-[var(--color-text-muted)] hover:text-slate-200 text-[11px] border border-slate-700 transition-colors"
+                className="px-2 py-1.5 rounded-lg text-[var(--color-text-muted)] hover:bg-slate-800 hover:text-slate-200 text-[11px] transition-colors"
                 title="將目前輸入框內容存為自訂預設案例"
               >
-                設為自訂
+                儲存目前內容
               </button>
             </div>
           </div>

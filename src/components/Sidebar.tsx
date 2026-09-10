@@ -109,7 +109,7 @@ export default function Sidebar() {
   return (
     <>
       {/* Mobile Header */}
-      <div className="md:hidden flex items-center justify-between p-4 bg-slate-900 border-b border-slate-800 shrink-0 sticky top-0 z-40">
+      <div className="lg:hidden flex items-center justify-between p-4 bg-slate-900 border-b border-slate-800 shrink-0 sticky top-0 z-40">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center text-white">
             <Scale className="w-4 h-4" />
@@ -119,6 +119,8 @@ export default function Sidebar() {
         <button
           onClick={() => setIsOpen(!isOpen)}
           className="p-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white transition-colors"
+          aria-label={isOpen ? '關閉功能選單' : '開啟功能選單'}
+          aria-expanded={isOpen}
         >
           {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
@@ -127,19 +129,19 @@ export default function Sidebar() {
       {/* Mobile Overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-slate-950/80 z-40 md:hidden backdrop-blur-sm"
+          className="fixed inset-0 bg-slate-950/80 z-40 lg:hidden backdrop-blur-sm"
           onClick={() => setIsOpen(false)}
         />
       )}
 
       {/* Sidebar */}
       <nav
-        className={`fixed md:relative top-[65px] md:top-0 left-0 w-3/4 max-w-[300px] md:w-[290px] h-[calc(100vh-65px)] md:h-screen bg-[#090d16] flex flex-col border-r border-slate-800/90 select-none transition-transform duration-300 ease-in-out z-50 ${
-          isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+        className={`fixed lg:relative top-[65px] lg:top-0 left-0 w-3/4 max-w-[300px] lg:w-[240px] h-[calc(100vh-65px)] lg:h-screen bg-[#090d16] flex flex-col border-r border-slate-800/90 select-none transition-transform duration-300 ease-in-out z-50 ${
+          isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
         {/* Desktop Header */}
-        <header className="hidden md:block p-5 border-b border-slate-800 bg-[#0c1220]">
+        <header className="hidden lg:block p-4 border-b border-slate-800 bg-[#0c1220]">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-black">
               <Scale className="w-5 h-5" />
@@ -156,14 +158,14 @@ export default function Sidebar() {
         </header>
 
         {/* Section Label */}
-        <div className="p-3">
+        <div className="px-3 pt-3 pb-1">
           <div className="text-[10px] font-bold tracking-wider text-[var(--color-text-muted)] uppercase px-3 py-1.5">
             核心功能
           </div>
         </div>
 
         {/* 3 Core Entry Points */}
-        <ul className="list-none px-3 pb-2 m-0 space-y-2">
+        <ul className="list-none px-3 pb-2 m-0 space-y-1">
           {coreEntries.map((entry) => {
             const Icon = entry.icon;
             const active = isActive(entry.id);
@@ -174,24 +176,21 @@ export default function Sidebar() {
               <li key={entry.id}>
                 <button
                   onClick={() => hasSubItems ? toggleGroup(entry.id) : handleNav(entry.id)}
-                  className={`w-full text-left p-3 rounded-xl transition-colors border ${
+                  className={`w-full text-left p-2.5 rounded-lg transition-colors ${
                     active
-                      ? 'bg-slate-800 text-white border-slate-700'
-                      : 'text-[var(--color-text-muted)] hover:bg-slate-900/60 hover:text-slate-200 border-slate-800/60 hover:border-slate-700'
+                      ? 'bg-slate-800 text-white'
+                      : 'text-[var(--color-text-muted)] hover:bg-slate-900/60 hover:text-slate-200'
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
                     <div
-                      className="p-2 rounded-xl text-white"
+                      className="p-1.5 rounded-lg text-white"
                       style={{ backgroundColor: moduleColors[entry.id] }}
                     >
                       <Icon className="w-4 h-4" />
                     </div>
                     <div className="flex-1">
                       <div className="text-sm font-bold leading-tight">{entry.label}</div>
-                      <div className="text-[11px] text-[var(--color-text-muted)] mt-0.5 leading-tight">
-                        {entry.sublabel}
-                      </div>
                     </div>
                     {hasSubItems && (
                       <ChevronDown className={`w-4 h-4 transition-transform ${expanded ? 'rotate-180' : ''}`} />
@@ -209,17 +208,14 @@ export default function Sidebar() {
                         <li key={item.id}>
                           <button
                             onClick={() => handleNav(item.id)}
-                            className={`w-full text-left p-2.5 rounded-xl transition-all duration-200 border flex items-center gap-2.5 ${
+                            className={`w-full text-left px-2.5 py-2 rounded-lg transition-colors flex items-center gap-2.5 ${
                               subActive
-                                ? 'bg-slate-800 text-white border-slate-600'
-                                : 'text-[var(--color-text-muted)] hover:bg-slate-900/50 hover:text-slate-200 border-transparent'
+                                ? 'bg-slate-800 text-white'
+                                : 'text-[var(--color-text-muted)] hover:bg-slate-900/50 hover:text-slate-200'
                             }`}
                           >
                             <ItemIcon className="w-3.5 h-3.5 shrink-0" />
-                            <div className="text-left">
-                              <div className="text-xs font-medium leading-tight">{item.label}</div>
-                              <div className="text-[10px] text-[var(--color-text-muted)] leading-tight mt-0.5">{item.sublabel}</div>
-                            </div>
+                            <div className="text-xs font-medium leading-tight text-left">{item.label}</div>
                           </button>
                         </li>
                       );

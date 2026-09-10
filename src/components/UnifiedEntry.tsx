@@ -71,7 +71,7 @@ export const UnifiedEntry: React.FC = () => {
   const { startLoading, stopLoading } = useGlobalUI();
   const defaultSample = `事發於民國112年11月15日晚上約11點，在台北市信義區租屋處。我與房東因退租押金發生爭執，房東以無合理依據之清潔費為由拒絕退還新台幣5萬元押金，並威脅若再爭執將把我的私人物品丟到走廊。我有雙方簽署之房屋租賃契約書、歷次匯款房租水電之銀行明細，以及當日 LINE 對話紀錄截圖。請問我的法律權利為何？`;
 
-  const [inputNarrative, setInputNarrative] = useState<string>(defaultSample);
+  const [inputNarrative, setInputNarrative] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [workflowState, setWorkflowState] = useState<LegalWorkflowState | null>(null);
   const [supplementInput, setSupplementInput] = useState<string>('');
@@ -454,7 +454,7 @@ export const UnifiedEntry: React.FC = () => {
 
   const handleResetWorkflow = () => {
     setWorkflowState(null);
-    setInputNarrative(defaultSample);
+    setInputNarrative('');
     setSupplementInput('');
     setAcknowledgeSafetyInSession(false);
     setBatchQueue([]);
@@ -482,9 +482,9 @@ export const UnifiedEntry: React.FC = () => {
       <div className="max-w-5xl mx-auto w-full space-y-4">
         <UnifiedHeader {...sharedProps} />
         <HistoryModal {...sharedProps} />
-        <UnifiedProgress {...sharedProps} />
-        <AIProviderSettings value={aiConfig} onChange={setAiConfig} />
         <InputNode {...sharedProps} />
+        <AIProviderSettings value={aiConfig} onChange={setAiConfig} />
+        {(workflowState || isSubmitting) && <UnifiedProgress {...sharedProps} />}
         <TriageNode {...sharedProps} />
         <SafetyNode {...sharedProps} />
         <CitationNode {...sharedProps} />

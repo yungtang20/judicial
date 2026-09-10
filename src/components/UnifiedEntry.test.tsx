@@ -50,11 +50,12 @@ describe('UnifiedEntry component', () => {
     expect(fileInput.accept).toContain('.txt');
   });
 
-  it('loads colloquial fact sample into textarea when clicked', () => {
+  it('loads colloquial fact sample into textarea when selected', () => {
     renderComponent();
 
-    const sampleButton = screen.getByText(/範例 5：消費詐欺糾紛/);
-    fireEvent.click(sampleButton);
+    fireEvent.change(screen.getByRole('combobox', { name: '載入範例案件' }), {
+      target: { value: '4' },
+    });
 
     const textarea = screen.getByRole('textbox') as HTMLTextAreaElement;
     expect(textarea.value).toContain('我上個月在蝦皮買了一台二手筆電');

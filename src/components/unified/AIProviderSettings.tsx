@@ -16,13 +16,13 @@ export const AIProviderSettings: React.FC<Props> = ({ value, onChange }) => {
   const [expanded, setExpanded] = React.useState(false);
   const update = (patch: Partial<AIProviderConfigDraft>) => onChange({ ...value, ...patch });
   return (
-    <section className="rounded-2xl border border-indigo-500/30 bg-indigo-950/20 p-4 space-y-3" aria-label="AI 提供商設定">
-      <button type="button" onClick={() => setExpanded((open) => !open)} className="w-full text-left">
-        <h2 className="text-sm font-bold text-indigo-200">AI 提供商設定 {expanded ? '▾' : '▸'}</h2>
-        <p className="text-xs text-[var(--color-text-muted)] mt-1">可在每次工作流執行前切換相容 OpenAI API 的模型；設定只保留在本次頁面工作階段。</p>
+    <section className="border-y border-slate-800/80 py-3 space-y-3" aria-label="AI 提供商設定">
+      <button type="button" onClick={() => setExpanded((open) => !open)} aria-expanded={expanded} className="w-full min-h-6 py-1 flex items-center justify-between gap-3 text-left">
+        <span className="text-xs font-semibold text-slate-300">AI 模型 · {value.model}</span>
+        <span className="text-xs text-[var(--color-text-muted)]">設定 {expanded ? '▴' : '▾'}</span>
       </button>
-      {!expanded ? <p className="text-xs text-indigo-300">目前：Custom Provider · {value.model}</p> : null}
       {expanded && <>
+      <p className="text-xs text-[var(--color-text-muted)]">設定僅保留在本次頁面工作階段。</p>
       <div className="grid gap-3 md:grid-cols-2">
         <label className="text-xs text-slate-300">
           提供商類型
