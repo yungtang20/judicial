@@ -27,7 +27,7 @@ export default function EvidenceListGenerator() {
   const [submitDate, setSubmitDate] = useState(todayRoc);
 
   // 1. 調查證據列表
-  const [items, setItems] = useState<EvidenceRowItem[]>(activeCase.evidences.length ? activeCase.evidences.map(item => ({
+  const [items, setItems] = useState<EvidenceRowItem[]>(activeCase.evidences?.length ? activeCase.evidences?.map(item => ({
     id: item.id,
     code: item.code,
     relatedIssue: item.relatedIssue,

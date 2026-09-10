@@ -302,7 +302,7 @@ export const GuideModals: React.FC<GuideModalsProps> = (props) => {
                       </span>
                     </div>
                     <div className="flex flex-wrap gap-1.5 pt-1">
-                      {aiTriageResult.antiGhostVerification.verifiedCitations.map((c: any, i: number) => (
+                      {aiTriageResult.antiGhostVerification.verifiedCitations?.map((c: any, i: number) => (
                         <span
                           key={i}
                           className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] bg-slate-800 text-slate-200 border border-slate-700"

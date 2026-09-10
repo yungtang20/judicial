@@ -34,12 +34,12 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
   const [formInputs, setFormInputs] = useState<Record<string, any>>(DEFAULT_FORM_INPUTS);
 
   React.useEffect(() => {
-    if (!activeCase.facts && activeCase.issues.length === 0) return;
+    if (!activeCase.facts && !activeCase.issues?.length) return;
     setFormInputs(prev => ({
       ...prev,
       incidentDetails: activeCase.facts || prev.incidentDetails,
-      issueSummary: activeCase.issues.map(issue => issue.title).join('\n') || prev.issueSummary,
-      evidenceList: activeCase.evidences.map(evidence => evidence.provenFact).join('\n') || prev.evidenceList
+      issueSummary: activeCase.issues?.map(issue => issue.title).join('\n') || prev.issueSummary,
+      evidenceList: activeCase.evidences?.map(evidence => evidence.provenFact).join('\n') || prev.evidenceList
     }));
   }, [activeCase]);
 

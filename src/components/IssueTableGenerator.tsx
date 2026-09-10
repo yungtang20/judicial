@@ -31,7 +31,7 @@ export default function IssueTableGenerator() {
   const [submitter, setSubmitter] = useState('上訴人 王小明');
   const [submitDate, setSubmitDate] = useState(todayRoc);
 
-  const [issues, setIssues] = useState<FullIssueRow[]>(activeCase.issues.length ? activeCase.issues.map(issue => ({
+  const [issues, setIssues] = useState<FullIssueRow[]>(activeCase.issues?.length ? activeCase.issues?.map(issue => ({
     id: issue.id,
     title: issue.title,
     originalHolding: issue.originalHolding,

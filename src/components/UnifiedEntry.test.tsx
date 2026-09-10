@@ -4,6 +4,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { UnifiedEntry } from './UnifiedEntry';
 import * as pdfUtils from '../lib/pdfUtils';
 import { ToolProvider } from '../contexts/ToolContext';
+import { GlobalUIProvider } from '../contexts/GlobalUIContext';
 
 // Mock pdfUtils
 vi.mock('../lib/pdfUtils', () => ({
@@ -26,9 +27,9 @@ describe('UnifiedEntry component', () => {
 
   const renderComponent = () => {
     return render(
-      <ToolProvider>
+      <GlobalUIProvider><ToolProvider>
         <UnifiedEntry />
-      </ToolProvider>
+      </ToolProvider></GlobalUIProvider>
     );
   };
 

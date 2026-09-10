@@ -51,6 +51,7 @@ export const LegalDocAiChecker: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const [externalResults, setExternalResults] = useState<ExternalCitationResult[] | null>(null);
   const [isExternalChecking, setIsExternalChecking] = useState(false);
+  const [externalConsent, setExternalConsent] = useState(false);
 
   const handleScan = () => {
     setIsScanning(true);
@@ -78,7 +79,7 @@ export const LegalDocAiChecker: React.FC = () => {
     try {
       const response = await fetch('/api/external-citations/verify', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ citations, consent: true })
+        body: JSON.stringify({ citations, consent: externalConsent })
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || '外部查詢失敗');
@@ -175,7 +176,7 @@ export const LegalDocAiChecker: React.FC = () => {
                 {isExternalChecking ? '正在查詢第三方裁判字號資料庫...' : '外部裁判字號存在性覆核'}
               </button>
               <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">
-                提示：外部查驗僅將擷取之裁判字號送至第三方查詢，非官方官方終審判定，可隨時點擊驗證。
+                提示：只將文件擷取出的裁判字號送至第三方，非官方官方終審判定，可隨時點擊驗證。
               </p>
             </div>
           </div>
@@ -183,7 +184,7 @@ export const LegalDocAiChecker: React.FC = () => {
           {externalResults && (
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-xs space-y-2">
               <div className="font-bold text-slate-200">外部交叉檢查結果（非官方核實）</div>
-              {externalResults.length === 0 ? <p className="text-slate-400">文件中沒有可解析的裁判字號。</p> : externalResults.map((result) => (
+              {externalResults?.length === 0 ? <p className="text-slate-400">文件中沒有可解析的裁判字號。</p> : externalResults?.map((result) => (
                 <div key={`${result.citation}-${result.status}`} className="flex items-start justify-between gap-3 border-t border-slate-800 pt-2">
                   <span className="text-slate-300">{result.citation}</span>
                   <span className={result.status === 'verified' ? 'text-emerald-400' : 'text-amber-400'}>{result.status}：{result.message}</span>
@@ -284,13 +285,13 @@ export const LegalDocAiChecker: React.FC = () => {
               {/* 極簡引用檢核清單排列，消除巢狀卡片 */}
               {scanResult ? (
                 <div className="max-h-[380px] overflow-y-auto pr-1">
-                  {filteredCitations.length === 0 ? (
+                  {filteredCitations?.length === 0 ? (
                     <div className="text-center py-8 text-xs text-slate-400">
                       無符合當前篩選條件之引述
                     </div>
                   ) : (
                     <div className="divide-y divide-slate-800 text-xs">
-                      {filteredCitations.map((item, idx) => (
+                      {filteredCitations?.map((item, idx) => (
                         <div
                           key={idx}
                           className="py-3 space-y-1.5"
