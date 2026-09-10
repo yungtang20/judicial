@@ -43,12 +43,12 @@ export const JudicialAndAiChecker: React.FC<JudicialAndAiCheckerProps> = ({ init
           </div>
 
           {/* 標籤頁切換 */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 lg:pb-0 scrollbar-none bg-slate-950/80 p-1.5 rounded-2xl border border-slate-800">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 lg:pb-0 scrollbar-none bg-slate-950/80 p-1.5 rounded-xl border border-slate-800">
             <button
               onClick={() => setActiveTab('antiGhost')}
               className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 ${
                 activeTab === 'antiGhost'
-                  ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20 font-bold'
+                  ? 'bg-emerald-500 text-slate-950 font-bold'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'
               }`}
             >
@@ -60,7 +60,7 @@ export const JudicialAndAiChecker: React.FC<JudicialAndAiCheckerProps> = ({ init
               onClick={() => setActiveTab('openData')}
               className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 ${
                 activeTab === 'openData'
-                  ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20 font-bold'
+                  ? 'bg-emerald-500 text-slate-950 font-bold'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'
               }`}
             >
@@ -72,7 +72,7 @@ export const JudicialAndAiChecker: React.FC<JudicialAndAiCheckerProps> = ({ init
               onClick={() => setActiveTab('localSearch')}
               className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 ${
                 activeTab === 'localSearch'
-                  ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20 font-bold'
+                  ? 'bg-emerald-500 text-slate-950 font-bold'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'
               }`}
             >

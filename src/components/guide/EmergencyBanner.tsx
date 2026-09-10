@@ -25,7 +25,7 @@ export const EmergencyBanner: React.FC<EmergencyBannerProps> = (props) => {
     <>
         {/* 緊急安全支援指引（當使用者查詢性侵、暴力、保護令時主動顯示） */}
         {isSafetyQuery && (
-          <div className="rounded-2xl p-5 bg-gradient-to-r from-rose-950/70 via-slate-900 to-rose-950/50 border border-rose-800/80 shadow-xl space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="rounded-xl p-6 bg-rose-950/40 border border-rose-800/60 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5 text-rose-300 font-bold text-sm">
                 <ShieldAlert className="w-5 h-5 text-rose-400 shrink-0" />
@@ -33,7 +33,7 @@ export const EmergencyBanner: React.FC<EmergencyBannerProps> = (props) => {
               </div>
               <a 
                 href="tel:113" 
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-colors shadow-sm"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-colors"
               >
                 <PhoneCall className="w-3.5 h-3.5" />
                 撥打 113 保護專線（24小時免費）

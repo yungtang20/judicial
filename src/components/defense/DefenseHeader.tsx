@@ -13,11 +13,8 @@ export const DefenseHeader: React.FC<DefenseHeaderProps> = ({
   onLoadPreset3,
 }) => {
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden">
-      <div className="absolute -right-10 -bottom-10 opacity-10 pointer-events-none">
-        <ShieldAlert className="w-80 h-80 text-amber-400" />
-      </div>
-      <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="bg-[#0e1424] border border-slate-800 rounded-xl p-6 text-white relative">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-1 rounded-md text-xs font-semibold bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center gap-1.5">

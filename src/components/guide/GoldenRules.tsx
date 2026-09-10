@@ -23,7 +23,7 @@ export const GoldenRules: React.FC<GoldenRulesProps> = (props) => {
   return (
     <>
         {/* 新手自保 3 大黃金原則 */}
-        <div className="rounded-2xl bg-gradient-to-r from-slate-900 to-indigo-950/40 border border-indigo-900/40 p-6 space-y-4">
+        <div className="rounded-xl bg-slate-900 border border-slate-800 p-6 space-y-4">
           <h3 className="text-sm font-bold text-indigo-300 flex items-center gap-2">
             <BookmarkCheck className="w-4 h-4 text-indigo-400" />
             實務法務重點：非法律人打官司/自保 3 大黃金步驟

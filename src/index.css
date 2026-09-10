@@ -120,6 +120,15 @@ textarea::placeholder {
 }
 
 /* Badge and Alert Overrides in Dark Theme */
+@keyframes loading-bar {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}
+
+.animate-loading-bar {
+  animation: loading-bar 1.5s ease-in-out infinite;
+}
+
 .bg-blue-50, .bg-blue-50\/50, .bg-blue-50\/70 {
   background-color: rgba(30, 58, 138, 0.28) !important;
 }

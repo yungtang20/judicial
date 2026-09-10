@@ -1,92 +1,159 @@
 
 import React from 'react';
 import {
-  Send, Sparkles, ShieldAlert, ShieldCheck, AlertTriangle, CheckCircle2,
-  Cpu, Layers, FileCheck2, FileText, RotateCcw, Copy, Check, Loader2,
-  ChevronRight, ArrowRight, HelpCircle, Clock, BookOpen, Scale,
-  Upload, History, Download, Printer, Trash2, X, FilePlus, ChevronDown,
-  ChevronUp, Star, Edit3, Plus, Bookmark, PenTool, LayoutTemplate, MessageSquare
+  Scale, Copy, Check, Download, Printer, ChevronDown, ChevronUp
 } from 'lucide-react';
-import { formatLegalChapter, formatVerificationStatus } from '../../lib/legalChapterLabels';
 
 export interface SyllogismNodeProps {
   [key: string]: any;
 }
 
 export const SyllogismNode: React.FC<SyllogismNodeProps> = (props) => {
-  const { inputNarrative, setInputNarrative, isSubmitting, setIsSubmitting, workflowState, setWorkflowState, supplementInput, setSupplementInput, isCopied, setIsCopied, acknowledgeSafetyInSession, setAcknowledgeSafetyInSession, isNode2Open, setIsNode2Open, isNode4Open, setIsNode4Open, isNode5Open, setIsNode5Open, isNode6Open, setIsNode6Open, customPreset, setCustomPreset, showCustomPresetModal, setShowCustomPresetModal, editPresetTitle, setEditPresetTitle, editPresetNarrative, setEditPresetNarrative, fileInputRef, isDragOver, setIsDragOver, isParsingFiles, setIsParsingFiles, parsingStatus, setParsingStatus, batchQueue, setBatchQueue, batchIndex, setBatchIndex, isBatchRunning, setIsBatchRunning, showHistory, setShowHistory, historyList, setHistoryList, handleFiles, handleDrop, handleExecuteWorkflow, handleSupplementFact, handleProceedFromSafety, handleResetWorkflow, handleCopyAnalysis, loadFromHistory, handleBatchNext, handleBatchPrev, handleSaveCurrentAsCustomPreset, handleSelectSuggestedOption, handleSaveCustomPreset, handleToggleAllNodes, defaultSample, handleSelectTool, saveCrossFeatureContext, exportAsHtml, exportAsText, printReport, deleteFromHistory, clearHistory, loadHistory, showDocTypeModal, setShowDocTypeModal } = props;
+  const {
+    workflowState,
+    isCopied,
+    isNode5Open,
+    setIsNode5Open,
+    handleCopyAnalysis,
+    exportAsHtml,
+    exportAsText,
+    printReport
+  } = props;
+
+  if (!workflowState?.syllogism) return null;
+
+  const syllogism = workflowState.syllogism;
 
   return (
-    <>
-        {/* 節點 5：三段論涵攝法學分析 (預設收起，可點擊展開) */}
-        {workflowState?.syllogism && (
-          <div className="p-5 rounded-3xl bg-slate-900/90 border border-emerald-500/30 shadow-xl space-y-4 transition-all">
-            <div
-              className="flex items-center justify-between cursor-pointer select-none"
-              onClick={() => setIsNode5Open(prev => !prev)}
+    <div className="rounded-xl bg-[#0e1424] border border-slate-800 text-slate-100 overflow-hidden">
+      {/* 節點 5 標頭列：極簡標題，操作按鈕集合 */}
+      <div
+        className="px-5 py-3.5 flex items-center justify-between cursor-pointer select-none bg-slate-900/50 hover:bg-slate-900/80 transition-colors"
+        onClick={() => setIsNode5Open((prev: boolean) => !prev)}
+      >
+        <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
+            <span className="text-xs px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-bold">
+              分析結果
+            </span>
+            <h2 className="text-sm font-bold text-white">三段論涵攝法學分析</h2>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={handleCopyAnalysis}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition-colors cursor-pointer"
+              title="複製分析結果"
             >
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400">
-                  <Scale className="w-4 h-4" />
-                </div>
-                <div>
-                  <h2 className="text-base font-bold text-white flex items-center gap-2">
-                    <span>節點 5：三段論涵攝法學分析</span>
-                  </h2>
-                  <p className="text-xs text-slate-400">大前提法規要件 ➔ 小前提事實涵攝 ➔ 結論請求權主張</p>
-                </div>
-              </div>
+              {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{isCopied ? '已複製' : '複製'}</span>
+            </button>
+            <button
+              onClick={() => exportAsHtml(workflowState)}
+              className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition-colors cursor-pointer"
+              title="匯出 HTML"
+            >
+              HTML
+            </button>
+            <button
+              onClick={() => exportAsText(workflowState)}
+              className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition-colors cursor-pointer"
+              title="匯出 TXT"
+            >
+              TXT
+            </button>
+            <button
+              onClick={() => printReport(workflowState)}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition-colors cursor-pointer"
+              title="列印報告"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span>列印</span>
+            </button>
+          </div>
 
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1.5 mr-2" onClick={(e) => e.stopPropagation()}>
-                  <button
-                    onClick={handleCopyAnalysis}
-                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold border border-slate-700 transition-colors"
-                  >
-                    {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                    <span>{isCopied ? '已複製' : '複製'}</span>
-                  </button>
-                  <button
-                    onClick={() => exportAsHtml(workflowState)}
-                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold border border-slate-700 transition-colors"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    <span>HTML</span>
-                  </button>
-                  <button
-                    onClick={() => exportAsText(workflowState)}
-                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold border border-slate-700 transition-colors"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    <span>TXT</span>
-                  </button>
-                  <button
-                    onClick={() => printReport(workflowState)}
-                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold border border-slate-700 transition-colors"
-                  >
-                    <Printer className="w-3.5 h-3.5" />
-                    <span>列印</span>
-                  </button>
-                </div>
-                <span className="text-xs font-medium text-slate-400">
-                  {isNode5Open ? '收起資料' : '展開檢視'}
-                </span>
-                {isNode5Open ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
-              </div>
-            </div>
+          <button
+            type="button"
+            onClick={() => setIsNode5Open((prev: boolean) => !prev)}
+            className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors ml-1"
+          >
+            {isNode5Open ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
+        </div>
+      </div>
 
-            {isNode5Open && (
-              <div className="pt-3 border-t border-slate-800">
-                <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800">
-                  <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap font-sans">
-                    {workflowState.syllogism.fullAnalysis}
+      {/* 展開後的內容：採用極簡清單排列，消除巢狀卡片 */}
+      {isNode5Open && (
+        <div className="p-5 border-t border-slate-800/80">
+          {syllogism.majorPremise || syllogism.minorPremise || syllogism.subsumption || syllogism.conclusion ? (
+            <div className="divide-y divide-slate-800 text-xs">
+              {syllogism.majorPremise && (
+                <div className="py-3 flex flex-col md:flex-row md:items-start gap-3">
+                  <div className="md:w-36 shrink-0">
+                    <span className="font-bold text-blue-400 block">大前提</span>
+                    <span className="text-[11px] text-slate-500">法定規範與構成要件</span>
+                  </div>
+                  <p className="text-slate-300 leading-relaxed whitespace-pre-wrap flex-1">
+                    {syllogism.majorPremise}
                   </p>
                 </div>
-              </div>
-            )}
-          </div>
-        )}
+              )}
 
-    </>
+              {syllogism.minorPremise && (
+                <div className="py-3 flex flex-col md:flex-row md:items-start gap-3">
+                  <div className="md:w-36 shrink-0">
+                    <span className="font-bold text-amber-400 block">小前提</span>
+                    <span className="text-[11px] text-slate-500">案件事實認定</span>
+                  </div>
+                  <p className="text-slate-300 leading-relaxed whitespace-pre-wrap flex-1">
+                    {syllogism.minorPremise}
+                  </p>
+                </div>
+              )}
+
+              {syllogism.subsumption && (
+                <div className="py-3 flex flex-col md:flex-row md:items-start gap-3">
+                  <div className="md:w-36 shrink-0">
+                    <span className="font-bold text-indigo-400 block">涵攝過程</span>
+                    <span className="text-[11px] text-slate-500">事實與要件比對</span>
+                  </div>
+                  <p className="text-slate-300 leading-relaxed whitespace-pre-wrap flex-1">
+                    {syllogism.subsumption}
+                  </p>
+                </div>
+              )}
+
+              {syllogism.conclusion && (
+                <div className="py-3 flex flex-col md:flex-row md:items-start gap-3">
+                  <div className="md:w-36 shrink-0">
+                    <span className="font-bold text-emerald-400 block">效果與結論</span>
+                    <span className="text-[11px] text-slate-500">救濟權利與法律效果</span>
+                  </div>
+                  <p className="text-slate-200 font-medium leading-relaxed whitespace-pre-wrap flex-1">
+                    {syllogism.conclusion}
+                  </p>
+                </div>
+              )}
+
+              {syllogism.fullAnalysis && (
+                <div className="pt-3">
+                  <span className="font-bold text-slate-400 block mb-1.5">完整法學論述全文</span>
+                  <p className="text-slate-300 leading-relaxed whitespace-pre-wrap font-mono text-[11px] bg-slate-950/60 p-3 rounded-lg border border-slate-800">
+                    {syllogism.fullAnalysis}
+                  </p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">
+              {syllogism.fullAnalysis}
+            </p>
+          )}
+        </div>
+      )}
+    </div>
   );
 };
+

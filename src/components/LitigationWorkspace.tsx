@@ -14,6 +14,7 @@ import IssueTableGenerator from './IssueTableGenerator';
 import EvidenceListGenerator from './EvidenceListGenerator';
 import AppealDeadlineTool from './AppealDeadlineTool';
 import { LegalToolbox } from './LegalToolbox';
+import { loadCrossFeatureContext } from '../lib/crossFeatureContext';
 
 interface LitigationWorkspaceProps {
   initialTab?: 'toolbox' | 'defense' | 'issues' | 'evidence' | 'appeal' | 'deadline';
@@ -21,34 +22,39 @@ interface LitigationWorkspaceProps {
 }
 
 export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initialTab = 'toolbox', initialToolId }) => {
+  // Check cross-feature context if available
+  const crossCtx = loadCrossFeatureContext();
+  const effectiveInitialTab = initialTab || crossCtx?.initialTab || 'toolbox';
+  const effectiveToolId = initialToolId || crossCtx?.preselectedToolId;
+
   // Determine main tab from initial tab
-  const getInitialMainTab = () => {
-    if (initialTab === 'toolbox') return 'toolbox';
-    if (initialTab === 'defense') return 'defense';
-    if (['issues', 'evidence'].includes(initialTab)) return 'issues_evidence';
-    if (['appeal', 'deadline'].includes(initialTab)) return 'appeal_deadline';
+  const getInitialMainTab = (tab: string) => {
+    if (tab === 'toolbox') return 'toolbox';
+    if (tab === 'defense') return 'defense';
+    if (['issues', 'evidence'].includes(tab)) return 'issues_evidence';
+    if (['appeal', 'deadline'].includes(tab)) return 'appeal_deadline';
     return 'toolbox';
   };
 
-  const [activeMainTab, setActiveMainTab] = useState<'toolbox' | 'defense' | 'issues_evidence' | 'appeal_deadline'>(getInitialMainTab());
+  const [activeMainTab, setActiveMainTab] = useState<'toolbox' | 'defense' | 'issues_evidence' | 'appeal_deadline'>(getInitialMainTab(effectiveInitialTab));
   
   // Keep track of subtabs
   const [issuesSubTab, setIssuesSubTab] = useState<'issues' | 'evidence'>(
-    initialTab === 'evidence' ? 'evidence' : 'issues'
+    effectiveInitialTab === 'evidence' ? 'evidence' : 'issues'
   );
   const [appealSubTab, setAppealSubTab] = useState<'appeal' | 'deadline'>(
-    initialTab === 'deadline' ? 'deadline' : 'appeal'
+    effectiveInitialTab === 'deadline' ? 'deadline' : 'appeal'
   );
 
   useEffect(() => {
-    setActiveMainTab(getInitialMainTab());
-    if (initialTab === 'evidence' || initialTab === 'issues') {
-      setIssuesSubTab(initialTab);
+    setActiveMainTab(getInitialMainTab(effectiveInitialTab));
+    if (effectiveInitialTab === 'evidence' || effectiveInitialTab === 'issues') {
+      setIssuesSubTab(effectiveInitialTab);
     }
-    if (initialTab === 'appeal' || initialTab === 'deadline') {
-      setAppealSubTab(initialTab);
+    if (effectiveInitialTab === 'appeal' || effectiveInitialTab === 'deadline') {
+      setAppealSubTab(effectiveInitialTab);
     }
-  }, [initialTab]);
+  }, [effectiveInitialTab]);
 
   const mainTabs = [
     {
@@ -82,19 +88,19 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initia
   ];
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden bg-slate-950 text-slate-100">
-      {/* 頂部整合分頁導覽列 */}
-      <div className="bg-slate-900 border-b border-slate-800 px-4 md:px-8 py-3.5 flex-shrink-0 z-10">
+    <div className="flex-1 flex flex-col h-full overflow-hidden bg-[#090d16] text-slate-100">
+      {/* 頂部整合分頁導覽列：極簡無多餘重陰影，統一 12px 圓角 */}
+      <div className="bg-[#0e1424] border-b border-slate-800 px-6 py-3.5 flex-shrink-0 z-10">
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+            <div className="p-2 rounded-xl bg-slate-800 text-amber-400 border border-slate-700">
               <Gavel className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-base font-bold text-white tracking-tight">全生命週期法務與訴訟工作台</h1>
-                <span className="hidden md:inline-block text-[11px] px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 font-semibold">
-                  一站式服務
+                <h1 className="text-sm font-bold text-white tracking-tight">全生命週期法務與訴訟工作台</h1>
+                <span className="hidden md:inline-block text-[11px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-medium border border-slate-700">
+                  一站式法務
                 </span>
               </div>
               <p className="text-xs text-slate-400">
@@ -103,8 +109,8 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initia
             </div>
           </div>
 
-          {/* 橫向切換主分頁 */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 lg:pb-0 scrollbar-none bg-slate-950/80 p-1.5 rounded-2xl border border-slate-800">
+          {/* 橫向切換主分頁：12px 圓角 (rounded-xl) 平緩極簡風格 */}
+          <div className="flex items-center gap-1 overflow-x-auto pb-1 lg:pb-0 scrollbar-none bg-[#090d16] p-1 rounded-xl border border-slate-800">
             {mainTabs.map((tab) => {
               const IconComp = tab.icon;
               const isActive = activeMainTab === tab.id;
@@ -112,17 +118,17 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initia
                 <button
                   key={tab.id}
                   onClick={() => setActiveMainTab(tab.id as any)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors flex items-center gap-1.5 ${
                     isActive
-                      ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-bold'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'
+                      ? 'bg-amber-500 text-slate-950 font-bold'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
                   }`}
                   title={tab.desc}
                 >
                   <IconComp className="w-3.5 h-3.5" />
                   <span>{tab.label}</span>
-                  <span className={`hidden md:inline-block px-1.5 py-0.5 rounded-md text-[9px] font-bold ${
-                    isActive ? 'bg-slate-900/20 text-slate-900' : 'bg-slate-800 text-slate-400'
+                  <span className={`hidden md:inline-block px-1.5 py-0.5 rounded-md text-[9px] font-medium ${
+                    isActive ? 'bg-slate-950/20 text-slate-900' : 'bg-slate-900 text-slate-400'
                   }`}>
                     {tab.badge}
                   </span>
@@ -133,20 +139,20 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initia
         </div>
       </div>
 
-      {/* 子分頁切換列 (如果需要) */}
+      {/* 子分頁切換列：極簡細邊線與 12px 圓角 */}
       {activeMainTab === 'issues_evidence' && (
-        <div className="bg-slate-900/50 border-b border-slate-800 px-4 py-2 flex justify-center">
-          <div className="flex bg-slate-950/80 p-1 rounded-lg border border-slate-800 text-xs font-medium">
+        <div className="bg-[#0b101d] border-b border-slate-800 px-6 py-2 flex justify-center">
+          <div className="flex bg-[#090d16] p-1 rounded-xl border border-slate-800 text-xs font-medium gap-1">
             <button
               onClick={() => setIssuesSubTab('issues')}
-              className={`px-4 py-1.5 rounded-md flex items-center gap-2 transition-colors ${issuesSubTab === 'issues' ? 'bg-slate-800 text-amber-400' : 'text-slate-400 hover:text-slate-200'}`}
+              className={`px-4 py-1.5 rounded-xl flex items-center gap-2 transition-colors ${issuesSubTab === 'issues' ? 'bg-slate-800 text-amber-400 font-semibold' : 'text-slate-400 hover:text-slate-200'}`}
             >
               <Table className="w-3.5 h-3.5" />
               法庭爭點整理表
             </button>
             <button
               onClick={() => setIssuesSubTab('evidence')}
-              className={`px-4 py-1.5 rounded-md flex items-center gap-2 transition-colors ${issuesSubTab === 'evidence' ? 'bg-slate-800 text-amber-400' : 'text-slate-400 hover:text-slate-200'}`}
+              className={`px-4 py-1.5 rounded-xl flex items-center gap-2 transition-colors ${issuesSubTab === 'evidence' ? 'bg-slate-800 text-amber-400 font-semibold' : 'text-slate-400 hover:text-slate-200'}`}
             >
               <FileSpreadsheet className="w-3.5 h-3.5" />
               調查證據聲請清單
@@ -156,18 +162,18 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initia
       )}
 
       {activeMainTab === 'appeal_deadline' && (
-        <div className="bg-slate-900/50 border-b border-slate-800 px-4 py-2 flex justify-center">
-          <div className="flex bg-slate-950/80 p-1 rounded-lg border border-slate-800 text-xs font-medium">
+        <div className="bg-[#0b101d] border-b border-slate-800 px-6 py-2 flex justify-center">
+          <div className="flex bg-[#090d16] p-1 rounded-xl border border-slate-800 text-xs font-medium gap-1">
             <button
               onClick={() => setAppealSubTab('appeal')}
-              className={`px-4 py-1.5 rounded-md flex items-center gap-2 transition-colors ${appealSubTab === 'appeal' ? 'bg-slate-800 text-amber-400' : 'text-slate-400 hover:text-slate-200'}`}
+              className={`px-4 py-1.5 rounded-xl flex items-center gap-2 transition-colors ${appealSubTab === 'appeal' ? 'bg-slate-800 text-amber-400 font-semibold' : 'text-slate-400 hover:text-slate-200'}`}
             >
               <Scale className="w-3.5 h-3.5" />
               判決分析與上訴狀
             </button>
             <button
               onClick={() => setAppealSubTab('deadline')}
-              className={`px-4 py-1.5 rounded-md flex items-center gap-2 transition-colors ${appealSubTab === 'deadline' ? 'bg-slate-800 text-amber-400' : 'text-slate-400 hover:text-slate-200'}`}
+              className={`px-4 py-1.5 rounded-xl flex items-center gap-2 transition-colors ${appealSubTab === 'deadline' ? 'bg-slate-800 text-amber-400 font-semibold' : 'text-slate-400 hover:text-slate-200'}`}
             >
               <Clock className="w-3.5 h-3.5" />
               上訴法定期間試算
@@ -176,38 +182,46 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initia
         </div>
       )}
 
-      {/* 內容區塊 */}
+      {/* 內容區塊：統一平緩的 p-6 內邊距與自適應高度 */}
       <div className="flex-1 overflow-y-auto">
         {activeMainTab === 'toolbox' && (
-          <div className="p-4 md:p-8 max-w-[90rem] mx-auto h-full">
-            <LegalToolbox initialToolId={initialToolId}  />
+          <div className="p-6 max-w-7xl mx-auto h-full">
+            <LegalToolbox initialToolId={effectiveToolId} />
           </div>
         )}
         
         {activeMainTab === 'defense' && (
-          <div className="p-4 md:p-8 max-w-7xl mx-auto">
+          <div className="p-6 max-w-7xl mx-auto">
             <DefenseWorkflowTool />
           </div>
         )}
         
         {activeMainTab === 'issues_evidence' && issuesSubTab === 'issues' && (
-          <div className="p-4 md:p-8 max-w-7xl mx-auto">
-            <IssueTableGenerator />
+          <div className="p-6 max-w-7xl mx-auto">
+            <div className="rounded-xl border border-slate-800 overflow-hidden bg-white">
+              <IssueTableGenerator />
+            </div>
           </div>
         )}
         
         {activeMainTab === 'issues_evidence' && issuesSubTab === 'evidence' && (
-          <div className="p-4 md:p-8 max-w-7xl mx-auto">
-            <EvidenceListGenerator />
+          <div className="p-6 max-w-7xl mx-auto">
+            <div className="rounded-xl border border-slate-800 overflow-hidden bg-white">
+              <EvidenceListGenerator />
+            </div>
           </div>
         )}
         
         {activeMainTab === 'appeal_deadline' && appealSubTab === 'appeal' && (
-          <SmartAppealAssistant />
+          <div className="p-6 max-w-7xl mx-auto">
+            <div className="rounded-xl border border-slate-800 overflow-hidden bg-slate-900/40">
+              <SmartAppealAssistant />
+            </div>
+          </div>
         )}
         
         {activeMainTab === 'appeal_deadline' && appealSubTab === 'deadline' && (
-          <div className="p-4 md:p-8 max-w-7xl mx-auto">
+          <div className="p-6 max-w-7xl mx-auto">
             <AppealDeadlineTool />
           </div>
         )}

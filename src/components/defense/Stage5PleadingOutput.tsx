@@ -122,7 +122,7 @@ export const Stage5PleadingOutput: React.FC<Stage5PleadingOutputProps> = ({
               />
 
               {/* Pleading Preview Box */}
-              <div className="relative border border-slate-300 rounded-xl bg-slate-900 text-slate-100 p-5 font-mono text-xs leading-relaxed max-h-120 overflow-y-auto shadow-inner">
+              <div className="relative border border-slate-700 rounded-xl bg-slate-900 text-slate-100 p-5 font-mono text-xs leading-relaxed max-h-120 overflow-y-auto">
                 <pre className="whitespace-pre-wrap font-mono">
                   {activeOutputTab === 'LAWYER' 
                     ? (lawyerPleading?.pleadingText || '正在產製律師書狀...')

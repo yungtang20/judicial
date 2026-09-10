@@ -15,10 +15,13 @@ import { ToolboxHeader } from './toolbox/ToolboxHeader';
 import { ToolSelectorGrid } from './toolbox/ToolSelectorGrid';
 import { DynamicToolForm } from './toolbox/DynamicToolForm';
 import { ToolResultPanel } from './toolbox/ToolResultPanel';
+import { UIConstants } from '../constants/ui';
+import { useGlobalUI } from '../contexts/GlobalUIContext';
 
 type DocumentGenerationStage = 'input' | 'analyzing' | 'formatting' | 'ready' | 'error';
 
 export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialToolId }) => {
+  const { startLoading, stopLoading } = useGlobalUI();
   const activeCase = useCaseStore(getActiveCase);
   const { handleSelectTool } = useToolContext();
   const addDocument = useCaseStore(state => state.addDocument);
@@ -72,6 +75,7 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
     setIsLoading(true);
     setGenerationStage('analyzing');
     setGenerateError(null);
+    startLoading();
 
     const formattingTimer = setTimeout(() => {
       setGenerationStage('formatting');
@@ -102,11 +106,13 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
       if (res?.documentText) {
         handleFullVerify(res.documentText);
       }
+      stopLoading({ message: '文件產製完成', type: 'success' });
     } catch (err: any) {
       clearTimeout(formattingTimer);
       console.error('Toolbox generate error:', err);
       setGenerationStage('error');
       setGenerateError(err?.message || '文件產製未通過法規引用驗證，請稍候重試或調整案情內容');
+      stopLoading({ message: '產製失敗', type: 'error' });
     } finally {
       setIsLoading(false);
     }
@@ -121,6 +127,7 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
     
     setIsVerifyingAi(true);
     setVerifyNotice(null);
+    startLoading();
     try {
       const verifyRes = await apiClient.toolboxVerifyCitations({ documentText: text });
       if (verifyRes?.antiGhostVerification) {
@@ -128,16 +135,18 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
         const { totalCitationsChecked, ghostCitationsFound } = verifyRes.antiGhostVerification;
         setVerifyNotice(`全篇引用檢查完成：共核對 ${totalCitationsChecked} 處法律引用，疑似幽靈引用：${ghostCitationsFound} 處；結果仍需人工查證。`);
       }
+      stopLoading(); // Optional: show toast here, but user might be overwhelmed, so no toast.
     } catch (err: any) {
       console.error('Full AI verification failed:', err);
       setVerifyNotice('引用檢查暫時無法完成，請稍後重試並人工查證來源。');
+      stopLoading();
     } finally {
       setIsVerifyingAi(false);
     }
   };
 
   return (
-    <div className="space-y-6 pb-20 max-w-7xl mx-auto px-4 md:px-8 pt-4 md:pt-6" id="legal-toolbox-root" data-tools-count={LEGAL_TOOLS.length}>
+    <div className="space-y-6 pb-20 max-w-7xl mx-auto" id="legal-toolbox-root" data-tools-count={LEGAL_TOOLS.length}>
       <ToolboxHeader 
         selectedGroup={selectedGroup}
         onSelectGroup={setSelectedGroup}
@@ -168,15 +177,15 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div id="tool-form-section" className="lg:col-span-5 space-y-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl sticky top-6">
+          <div className={`${UIConstants.card} sticky top-6`}>
             <div className="flex items-center gap-3 mb-5 pb-4 border-b border-slate-800">
-              <div className="p-2 rounded-xl bg-blue-500/20 text-blue-400">
+              <div className="p-2 rounded-xl bg-sky-500/20 text-sky-400">
                 <currentTool.icon className="w-5 h-5" />
               </div>
               <div>
                 <h2 className="text-base font-bold text-white leading-tight">{currentTool.name}</h2>
                 <div className="flex items-center gap-1.5 mt-1">
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-slate-800 text-slate-300 font-medium tracking-wide">
+                  <span className={UIConstants.badgePrimary}>
                     {currentTool.badge}
                   </span>
                   <span className="text-[10px] text-slate-400">{currentTool.legalBasis}</span>
@@ -194,7 +203,7 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
             <button
               onClick={handleGenerate}
               disabled={isLoading || generationStage === 'analyzing' || generationStage === 'formatting'}
-              className="mt-6 w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-lg shadow-blue-900/50 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className={`mt-6 w-full ${UIConstants.buttonPrimary}`}
             >
               {(isLoading || generationStage === 'analyzing' || generationStage === 'formatting') ? (
                 <>
@@ -217,6 +226,8 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
           isVerifyingAi={isVerifyingAi}
           verifyNotice={verifyNotice}
           onFullVerify={() => handleFullVerify()}
+          isLoading={isLoading || generationStage === 'analyzing' || generationStage === 'formatting'}
+          generationStage={generationStage}
         />
       </div>
     </div>

@@ -14,9 +14,13 @@ export function ToolProvider({ children }: { children: ReactNode }) {
   const [activeTool, setActiveTool] = useState('unified');
   const [initialData, setInitialData] = useState<any>(undefined);
 
-  const handleSelectTool = (toolId: string, _subTab?: string, data?: any) => {
+  const handleSelectTool = (toolId: string, subTab?: string, data?: any) => {
     if (typeof toolId !== 'string') return;
-    setInitialData(data);
+    const mergedData = {
+      ...(data || {}),
+      ...(subTab ? { initialTab: subTab } : {})
+    };
+    setInitialData(mergedData);
     setActiveTool(toolId);
   };
 

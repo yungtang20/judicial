@@ -32,7 +32,7 @@ export const AntiGhostBadge: React.FC<AntiGhostBadgeProps> = ({
 
   if (compact) {
     return (
-      <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 shadow-sm ${className}`}>
+      <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 ${className}`}>
         <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
         <span>引用掃描結果（不等同官方核實）</span>
         {total > 0 && (
@@ -45,11 +45,11 @@ export const AntiGhostBadge: React.FC<AntiGhostBadgeProps> = ({
   }
 
   return (
-    <div className={`bg-slate-950 border border-emerald-900/50 rounded-2xl p-3.5 md:p-4 text-xs text-white shadow-xl shadow-emerald-950/20 space-y-3 ${className}`}>
+    <div className={`bg-slate-950 border border-emerald-900/50 rounded-xl p-3.5 md:p-4 text-xs text-white space-y-3 ${className}`}>
       {/* Header Bar */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shadow-inner">
+          <div className="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
             <ShieldCheck className="w-4 h-4" />
           </div>
           <div>

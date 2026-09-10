@@ -1,6 +1,7 @@
 import React from 'react';
 import { TOOL_FIELD_SCHEMAS } from '../../lib/toolFieldSchemas';
 import { AiSuggestButton } from './AiSuggestButton';
+import { UIConstants } from '../../constants/ui';
 
 export interface DynamicToolFormProps {
   toolId: string;
@@ -13,13 +14,13 @@ export const DynamicToolForm: React.FC<DynamicToolFormProps> = ({ toolId, formIn
   const fields = TOOL_FIELD_SCHEMAS[toolId] || [];
 
   return (
-    <div className="space-y-3 text-xs">
-      <div className="grid grid-cols-2 gap-2">
-        {fields.map((field, index) => {
+    <div className="space-y-3.5 text-xs">
+      <div className="grid grid-cols-2 gap-3">
+        {fields.map((field) => {
           if (field.type === 'textarea') {
             return (
               <div key={field.key} className="col-span-2">
-                <div className="flex justify-between items-end mb-1">
+                <div className="flex justify-between items-end mb-1.5">
                   <label className="block font-medium text-slate-300">{field.label}</label>
                   {field.showAiSuggest && (
                     <AiSuggestButton 
@@ -35,15 +36,16 @@ export const DynamicToolForm: React.FC<DynamicToolFormProps> = ({ toolId, formIn
                   rows={field.rows || 5}
                   value={formInputs[field.key] || ''}
                   onChange={(e) => onChange(field.key, e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-slate-200 text-sm focus:border-blue-500 outline-none leading-relaxed resize-y"
+                  className={UIConstants.textarea}
+                  placeholder={`請輸入${field.label}...`}
                 />
               </div>
             );
           }
           
           return (
-            <div key={field.key}>
-              <div className="flex justify-between items-end mb-1">
+            <div key={field.key} className={field.type === 'number' ? 'col-span-1' : 'col-span-2 sm:col-span-1'}>
+              <div className="flex justify-between items-end mb-1.5">
                 <label className="block font-medium text-slate-300">{field.label}</label>
                 {field.showAiSuggest && (
                   <AiSuggestButton 
@@ -59,7 +61,8 @@ export const DynamicToolForm: React.FC<DynamicToolFormProps> = ({ toolId, formIn
                 type={field.type === 'number' ? 'number' : 'text'}
                 value={formInputs[field.key] || ''}
                 onChange={(e) => onChange(field.key, e.target.value)}
-                className="w-full px-3 py-2 md:py-1.5 rounded-lg border border-slate-700 bg-slate-950 text-slate-200 text-base md:text-sm focus:border-blue-500 outline-none"
+                className={UIConstants.input}
+                placeholder={`輸入${field.label}`}
               />
             </div>
           );

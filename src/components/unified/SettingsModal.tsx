@@ -21,7 +21,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = (props) => {
         {/* Document Type Selection Modal */}
         {showDocTypeModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-            <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-[380px] shadow-2xl space-y-4">
+            <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 w-[380px] space-y-4">
               <h3 className="text-base font-bold text-white">選擇文書類型</h3>
               <p className="text-xs text-slate-400">根據您的案件類型，推薦以下文書：</p>
               <div className="space-y-2">
@@ -75,7 +75,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = (props) => {
         {/* Custom Preset Case Modal */}
         {showCustomPresetModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-            <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 w-full max-w-xl shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 w-full max-w-xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
               <div className="flex items-center justify-between pb-3 border-b border-slate-800">
                 <div className="flex items-center gap-2">
                   <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400">
@@ -140,7 +140,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = (props) => {
                     setShowCustomPresetModal(false);
                   }}
                   disabled={!editPresetTitle.trim() || !editPresetNarrative.trim()}
-                  className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 disabled:opacity-40 text-white text-xs font-bold transition-colors shadow-lg shadow-amber-950/50"
+                  className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 disabled:opacity-40 text-white text-xs font-bold transition-colors"
                 >
                   儲存並套用為預設案例
                 </button>

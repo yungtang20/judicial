@@ -20,25 +20,24 @@ export const CitationNode: React.FC<CitationNodeProps> = (props) => {
     <>
         {/* 節點 4：法規與裁判要件檢索庫 (預設收起，可點擊展開) */}
         {workflowState?.rag && (
-          <div className="p-5 rounded-3xl bg-slate-900/90 border border-slate-800 shadow-xl space-y-4 transition-all">
+          <div className="p-4 rounded-xl bg-[#0e1424] border border-slate-800 space-y-3 transition-all">
             <div
               className="flex items-center justify-between cursor-pointer select-none"
               onClick={() => setIsNode4Open(prev => !prev)}
             >
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400">
-                  <BookOpen className="w-4 h-4" />
-                </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-bold">
+                  檢索庫
+                </span>
                 <div>
-                  <h2 className="text-base font-bold text-white flex items-center gap-2">
-                    <span>節點 4：法規與裁判要件庫檢索</span>
+                  <h2 className="text-sm font-bold text-white flex items-center gap-2">
+                    <span>法規與裁判要件庫檢索</span>
                     {!isNode4Open && (
-                      <span className="text-xs font-normal text-slate-400 bg-slate-800 px-2 py-0.5 rounded-md hidden sm:inline">
+                      <span className="text-[11px] font-normal text-slate-400 bg-slate-800 px-2 py-0.5 rounded hidden sm:inline">
                         法規 {workflowState.rag.statuteCitations?.length || 0} 筆 · 判例 {workflowState.rag.precedents?.length || 0} 筆
                       </span>
                     )}
                   </h2>
-                  <p className="text-xs text-slate-400">智慧法條要件對照與實務裁判先例</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -50,48 +49,68 @@ export const CitationNode: React.FC<CitationNodeProps> = (props) => {
             </div>
 
             {isNode4Open && (
-              <div className="pt-3 border-t border-slate-800 space-y-3">
-                <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">{workflowState.rag.legalElements}</p>
+              <div className="pt-3 border-t border-slate-800 space-y-3 text-xs">
+                {workflowState.rag.legalElements && (
+                  <p className="text-slate-300 leading-relaxed whitespace-pre-wrap">{workflowState.rag.legalElements}</p>
+                )}
+
                 {workflowState.rag.statuteCitations?.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {workflowState.rag.statuteCitations.map((citation, i) => (
-                      <span key={i} className="px-2.5 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/30 text-xs text-indigo-200">{citation}</span>
-                    ))}
+                  <div className="pt-1">
+                    <span className="text-[11px] font-bold text-slate-400 block mb-1.5 uppercase tracking-wider">關聯實體法條清單</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {workflowState.rag.statuteCitations.map((citation: string, i: number) => (
+                        <span key={i} className="px-2.5 py-1 rounded bg-slate-900 border border-slate-700 text-xs text-indigo-200 font-mono">{citation}</span>
+                      ))}
+                    </div>
                   </div>
                 )}
+
                 {workflowState.rag.precedents?.length > 0 && (
-                  <div className="space-y-2">
-                    {workflowState.rag.precedents.map((precedent, i) => (
-                      <div key={i} className="p-3 rounded-xl bg-slate-950 border border-slate-800">
-                        <p className="text-xs font-bold text-sky-300">{precedent.caseNumber} · {precedent.courtName}</p>
-                        <p className="text-xs text-slate-300 leading-relaxed">{precedent.summary}</p>
-                        {precedent.sourceUrl && (
-                          <a className="text-xs text-sky-400 underline" href={precedent.sourceUrl} target="_blank" rel="noreferrer">開啟司法院裁判全文</a>
-                        )}
-                      </div>
-                    ))}
+                  <div className="pt-2">
+                    <span className="text-[11px] font-bold text-slate-400 block mb-1.5 uppercase tracking-wider">實務裁判先例清單</span>
+                    <div className="divide-y divide-slate-800/80">
+                      {workflowState.rag.precedents.map((precedent: any, i: number) => (
+                        <div key={i} className="py-2.5 flex flex-col sm:flex-row sm:items-baseline justify-between gap-1.5">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 font-mono">
+                              <span className="font-bold text-sky-300">{precedent.caseNumber}</span>
+                              <span className="text-slate-600">·</span>
+                              <span className="text-slate-400 text-[11px]">{precedent.courtName}</span>
+                            </div>
+                            <p className="text-xs text-slate-300 leading-relaxed mt-1">{precedent.summary}</p>
+                          </div>
+                          {precedent.sourceUrl && (
+                            <a className="text-xs text-sky-400 hover:underline shrink-0" href={precedent.sourceUrl} target="_blank" rel="noreferrer">
+                              裁判全文 ↗
+                            </a>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
-                {workflowState.rag.officialSearch && (
-                  <div className="text-xs text-slate-400 border-t border-slate-800 pt-3">
-                    司法院裁判查詢：{workflowState.rag.officialSearch.status} · {workflowState.rag.officialSearch.source} · {new Date(workflowState.rag.officialSearch.checkedAt).toLocaleString()}
-                    {workflowState.rag.officialSearch.sourceUrl && <> · <a className="text-sky-400 underline" href={workflowState.rag.officialSearch.sourceUrl} target="_blank" rel="noreferrer">查詢來源</a></>}
-                    {workflowState.rag.officialSearch.error ? ` · ${workflowState.rag.officialSearch.error}` : ''}
-                  </div>
-                )}
+
                 {workflowState.rag.officialEvidence?.length > 0 && (
-                  <div className="space-y-1 border-t border-slate-800 pt-3">
-                    <p className="text-xs font-bold text-indigo-300">官方查證紀錄</p>
-                    {workflowState.rag.officialEvidence.map((item, i) => (
-                      <p key={i} className="text-xs text-slate-400">
-                        {item.citation} · 存在性 {item.status}{item.claimSupportStatus ? ` · 主張綁定 ${item.claimSupportStatus}` : ''} · {item.source} · {new Date(item.checkedAt).toLocaleString()}
-                        {item.sourceUrl && <> · <a className="text-sky-400 underline" href={item.sourceUrl} target="_blank" rel="noreferrer">來源</a></>}
-                      </p>
-                    ))}
+                  <div className="border-t border-slate-800 pt-2.5">
+                    <span className="text-[11px] font-bold text-slate-400 block mb-1.5 uppercase tracking-wider">官方資料庫查驗紀錄</span>
+                    <div className="divide-y divide-slate-800/80">
+                      {workflowState.rag.officialEvidence.map((item: any, i: number) => (
+                        <div key={i} className="py-1.5 flex items-center justify-between text-[11px] text-slate-400">
+                          <div>
+                            <span className="font-mono text-slate-200">{item.citation}</span>
+                            <span className="mx-1.5 text-slate-600">·</span>
+                            <span className={item.status === 'VALID' ? 'text-emerald-400' : 'text-amber-400'}>{item.status}</span>
+                            {item.claimSupportStatus && <span className="ml-1 text-slate-500">({item.claimSupportStatus})</span>}
+                          </div>
+                          {item.sourceUrl && (
+                            <a className="text-sky-400 hover:underline shrink-0" href={item.sourceUrl} target="_blank" rel="noreferrer">
+                              {item.source}
+                            </a>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                )}
-                {(!workflowState.rag.officialEvidence || workflowState.rag.officialEvidence.length === 0) && (
-                  <p className="text-xs text-amber-300 border-t border-slate-800 pt-3">官方查證：無可查證引用或尚未取得官方結果（待法學審核）</p>
                 )}
               </div>
             )}

@@ -19,7 +19,7 @@ export const ToolSelectorGrid: React.FC<ToolSelectorGridProps> = ({ tools, activ
             onClick={() => onSelect(tool.id)}
             className={`p-3 rounded-xl border text-left transition-all flex flex-col justify-between space-y-2 ${
               isSelected
-                ? 'bg-blue-600/90 border-blue-400 text-white ring-2 ring-blue-400/40 shadow-lg font-bold'
+                ? 'bg-blue-600/90 border-blue-400 text-white ring-2 ring-blue-400/40 font-bold'
                 : 'bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800/90 hover:border-slate-700'
             }`}
           >

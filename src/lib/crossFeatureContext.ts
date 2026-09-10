@@ -16,6 +16,14 @@ export interface CrossFeatureContext {
   domain?: string;
   /** 案由/罪名 */
   cause?: string;
+  /** 案件事實內容 */
+  facts?: string;
+  /** 相關法律爭點摘要 */
+  issuesSummary?: string;
+  /** 預選工具 ID (如 CRIMINAL_COMPLAINT_TRAFFIC) */
+  preselectedToolId?: string;
+  /** 預選工作台分頁 ('toolbox' | 'defense' | 'issues' | 'evidence' | 'appeal' | 'deadline') */
+  initialTab?: 'toolbox' | 'defense' | 'issues' | 'evidence' | 'appeal' | 'deadline';
   /** 來源功能ID */
   sourceTool?: string;
   /** 文書類型 */

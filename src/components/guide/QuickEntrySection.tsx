@@ -27,10 +27,10 @@ export const QuickEntrySection: React.FC<QuickEntrySectionProps> = (props) => {
         {/* 法律流程引導（互動式表單）橫幅推薦 */}
         <div 
           onClick={() => handleSelectTool('processGuide')}
-          className="cursor-pointer rounded-2xl p-5 bg-gradient-to-r from-indigo-950/80 via-slate-900 to-rose-950/60 border border-indigo-500/40 hover:border-indigo-400 hover:shadow-indigo-950/50 hover:shadow-xl transition-all flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
+          className="cursor-pointer rounded-xl p-6 bg-slate-900 border border-indigo-500/30 hover:border-indigo-400 transition-all flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
         >
           <div className="flex items-center gap-3.5">
-            <div className="p-3 rounded-2xl bg-gradient-to-br from-indigo-500 to-rose-600 text-white shadow-lg shadow-indigo-500/20 shrink-0">
+            <div className="p-3 rounded-xl bg-indigo-600 text-white shrink-0">
               <Compass className="w-6 h-6" />
             </div>
             <div>
@@ -49,7 +49,7 @@ export const QuickEntrySection: React.FC<QuickEntrySectionProps> = (props) => {
           </div>
           <button
             type="button"
-            className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md transition-all cursor-pointer"
+            className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all cursor-pointer"
           >
             <span>開始流程引導</span>
             <ArrowRight className="w-4 h-4" />
@@ -60,7 +60,7 @@ export const QuickEntrySection: React.FC<QuickEntrySectionProps> = (props) => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div 
             onClick={() => handleSelectTool('legalToolbox')}
-            className="group cursor-pointer rounded-2xl p-5 bg-slate-900/80 border border-slate-800 hover:border-indigo-500/50 hover:bg-slate-900 transition-all shadow-lg relative overflow-hidden"
+            className="group cursor-pointer rounded-xl p-6 bg-slate-900/80 border border-slate-800 hover:border-indigo-500/50 hover:bg-slate-900 transition-all relative overflow-hidden"
           >
             <div className="flex items-start justify-between">
               <div className="p-3 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
@@ -83,7 +83,7 @@ export const QuickEntrySection: React.FC<QuickEntrySectionProps> = (props) => {
 
           <div 
             onClick={() => handleSelectTool('litigation')}
-            className="group cursor-pointer rounded-2xl p-5 bg-slate-900/80 border border-slate-800 hover:border-amber-500/50 hover:bg-slate-900 transition-all shadow-lg relative overflow-hidden"
+            className="group cursor-pointer rounded-xl p-6 bg-slate-900/80 border border-slate-800 hover:border-amber-500/50 hover:bg-slate-900 transition-all relative overflow-hidden"
           >
             <div className="flex items-start justify-between">
               <div className="p-3 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
@@ -106,7 +106,7 @@ export const QuickEntrySection: React.FC<QuickEntrySectionProps> = (props) => {
 
           <div 
             onClick={() => handleSelectTool('checker')}
-            className="group cursor-pointer rounded-2xl p-5 bg-slate-900/80 border border-slate-800 hover:border-emerald-500/50 hover:bg-slate-900 transition-all shadow-lg relative overflow-hidden"
+            className="group cursor-pointer rounded-xl p-6 bg-slate-900/80 border border-slate-800 hover:border-emerald-500/50 hover:bg-slate-900 transition-all relative overflow-hidden"
           >
             <div className="flex items-start justify-between">
               <div className="p-3 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">

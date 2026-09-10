@@ -20,7 +20,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = (props) => {
     <>
         {/* History Panel (collapsible) */}
         {showHistory && (
-          <div className="p-4 rounded-2xl bg-slate-900/95 border border-slate-800 shadow-xl max-h-72 overflow-y-auto space-y-2">
+          <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 max-h-72 overflow-y-auto space-y-2">
             <div className="flex items-center justify-between pb-2 border-b border-slate-800">
               <div className="flex items-center gap-3">
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
@@ -31,10 +31,8 @@ export const HistoryModal: React.FC<HistoryModalProps> = (props) => {
                   <button
                     type="button"
                     onClick={() => {
-                      if (window.confirm('確定要清空所有歷史記錄嗎？')) {
-                        clearHistory();
-                        setHistoryList([]);
-                      }
+                      clearHistory();
+                      setHistoryList([]);
                     }}
                     className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-semibold border border-rose-500/30 transition-colors cursor-pointer"
                   >

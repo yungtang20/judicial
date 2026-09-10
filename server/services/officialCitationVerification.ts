@@ -445,34 +445,35 @@ export async function verifyOfficialCitations(
 
   const fetchImpl = options.fetchImpl || fetch;
   const timeout = options.timeoutMs ?? 8000;
-  const evidence: OfficialEvidence[] = [];
 
-  for (const item of unique) {
-    const checkedAt = new Date().toISOString();
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeout);
-    try {
-      evidence.push(item.type === "PRECEDENT"
-        ? await verifyPrecedent(item.citation, item.claim, fetchImpl, controller.signal, checkedAt)
-        : await verifyStatute(item.citation, item.claim, fetchImpl, controller.signal, checkedAt));
-    } catch (error: any) {
-      evidence.push({
-        citation: item.citation,
-        type: item.type,
-        status: "UNAVAILABLE",
-        source: item.type === "PRECEDENT" ? "司法院裁判書系統" : "全國法規資料庫",
-        sourceUrl: item.type === "PRECEDENT" ? JUDGMENT_SEARCH : LAW_ORIGIN,
-        checkedAt,
-        query: item.citation,
-        matchStrategy: item.type === "PRECEDENT"
-          ? "OFFICIAL_SEARCH_AND_DOCUMENT_EXACT_CASE_NUMBER"
-          : "OFFICIAL_ARTICLE_PAGE",
-        error: error?.name === "AbortError" ? "TIMEOUT" : "FETCH_FAILED"
-      });
-    } finally {
-      clearTimeout(timer);
-    }
-  }
+  const evidence: OfficialEvidence[] = await Promise.all(
+    unique.map(async (item) => {
+      const checkedAt = new Date().toISOString();
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeout);
+      try {
+        return item.type === "PRECEDENT"
+          ? await verifyPrecedent(item.citation, item.claim, fetchImpl, controller.signal, checkedAt)
+          : await verifyStatute(item.citation, item.claim, fetchImpl, controller.signal, checkedAt);
+      } catch (error: any) {
+        return {
+          citation: item.citation,
+          type: item.type,
+          status: "UNAVAILABLE" as const,
+          source: item.type === "PRECEDENT" ? "司法院裁判書系統" : "全國法規資料庫",
+          sourceUrl: item.type === "PRECEDENT" ? JUDGMENT_SEARCH : LAW_ORIGIN,
+          checkedAt,
+          query: item.citation,
+          matchStrategy: item.type === "PRECEDENT"
+            ? "OFFICIAL_SEARCH_AND_DOCUMENT_EXACT_CASE_NUMBER"
+            : "OFFICIAL_ARTICLE_PAGE",
+          error: error?.name === "AbortError" ? "TIMEOUT" : "FETCH_FAILED"
+        };
+      } finally {
+        clearTimeout(timer);
+      }
+    })
+  );
 
   return {
     evidence,

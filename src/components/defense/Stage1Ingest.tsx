@@ -12,7 +12,7 @@ export const Stage1Ingest: React.FC<Stage1IngestProps> = ({
   clientStatement, setClientStatement, isLoadingTriage, handleRunTriage
 }) => {
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
+    <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
       <div className="flex items-center justify-between border-b border-slate-100 pb-3">
         <div className="space-y-0.5">
           <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
@@ -42,7 +42,7 @@ export const Stage1Ingest: React.FC<Stage1IngestProps> = ({
         <button
           onClick={handleRunTriage}
           disabled={isLoadingTriage || !clientStatement.trim()}
-          className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-bold text-sm bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white shadow-md hover:shadow-lg disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+          className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-bold text-sm bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-50 transition-all flex items-center justify-center gap-2"
         >
           {isLoadingTriage ? (
             <>

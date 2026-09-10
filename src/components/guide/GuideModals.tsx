@@ -36,10 +36,10 @@ export const GuideModals: React.FC<GuideModalsProps> = (props) => {
       {/* AI 全能即時診斷與書狀生成 Modal */}
       {showAiTriageModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
-          <div className="bg-slate-900 border border-indigo-500/40 rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6 md:p-8 space-y-6 shadow-2xl">
+          <div className="bg-slate-900 border border-indigo-500/30 rounded-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-6">
             <div className="flex items-start justify-between border-b border-slate-800 pb-4">
               <div className="flex items-center gap-3">
-                <div className="p-3 rounded-2xl bg-indigo-500/20 border border-indigo-500/30 text-indigo-400">
+                <div className="p-3 rounded-xl bg-indigo-500/20 border border-indigo-500/30 text-indigo-400">
                   <Sparkles className="w-6 h-6 animate-spin-slow" />
                 </div>
                 <div>
@@ -74,7 +74,7 @@ export const GuideModals: React.FC<GuideModalsProps> = (props) => {
               <div className="space-y-5 text-xs md:text-sm">
                 {/* 敏感案件保護路徑強制提醒 */}
                 {aiTriageResult.protectionNotice && (
-                  <div id="triage-sensitive-protection-notice" className="bg-rose-950/80 border-2 border-rose-500/80 text-rose-200 p-4 rounded-2xl shadow-lg flex items-start gap-3">
+                  <div id="triage-sensitive-protection-notice" className="bg-rose-950/80 border border-rose-500/60 text-rose-200 p-6 rounded-xl flex items-start gap-3">
                     <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
                     <div className="space-y-1">
                       <div className="font-bold text-sm text-rose-300">緊急人身保護與通報提醒</div>
@@ -85,7 +85,7 @@ export const GuideModals: React.FC<GuideModalsProps> = (props) => {
 
                 {/* 適用法條與時效防呆提醒 */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="bg-slate-950/70 p-4 rounded-2xl border border-indigo-900/50 space-y-1.5">
+                  <div className="bg-slate-950/70 p-6 rounded-xl border border-indigo-900/50 space-y-1.5">
                     <span className="text-xs font-bold text-indigo-400 flex items-center gap-1.5">
                       <Scale className="w-3.5 h-3.5" /> 適用實體法依據
                     </span>
@@ -98,7 +98,7 @@ export const GuideModals: React.FC<GuideModalsProps> = (props) => {
                     </div>
                   </div>
 
-                  <div className={`bg-slate-950/70 p-4 rounded-2xl border space-y-1.5 ${
+                  <div className={`bg-slate-950/70 p-6 rounded-xl border space-y-1.5 ${
                     aiTriageResult.caseType === 'CIVIL'
                       ? 'border-blue-900/50'
                       : aiTriageResult.caseType === 'CRIMINAL_PUBLIC'
@@ -130,7 +130,7 @@ export const GuideModals: React.FC<GuideModalsProps> = (props) => {
                 </div>
 
                 {/* 外部法律資料分組檢索 */}
-                <div className="bg-slate-950/70 p-4 rounded-2xl border border-slate-800 space-y-3">
+                <div className="bg-slate-950/70 p-6 rounded-xl border border-slate-800 space-y-3">
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs font-bold text-sky-400 flex items-center gap-1.5"><BookOpen className="w-3.5 h-3.5" /> 法規／裁判／函釋檢索</span>
                     <div className="flex items-center gap-2"><a href="https://www.lawbank.com.tw/SearchResult.aspx" target="_blank" rel="noreferrer" className="text-[10px] text-sky-400 hover:text-sky-300">Lawbank 外部搜尋 ↗</a><span className="text-[10px] text-slate-500">{aiTriageResult.sources?.enabled ? 'tw-legal-rag 外部資料源' : '未啟用外部資料源'}</span></div>
@@ -159,7 +159,7 @@ export const GuideModals: React.FC<GuideModalsProps> = (props) => {
                 </div>
 
                 {/* 白話診斷分析 */}
-                <div className="bg-slate-950/70 p-4 rounded-2xl border border-slate-800 space-y-3">
+                <div className="bg-slate-950/70 p-6 rounded-xl border border-slate-800 space-y-3">
                   <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
                     <CheckCircle2 className="w-3.5 h-3.5" /> 白話案情與法律要件剖析
                   </span>
@@ -237,7 +237,7 @@ export const GuideModals: React.FC<GuideModalsProps> = (props) => {
                               setTimeout(() => handleRunAiTriage(searchQuery + "\n補充說明：\n" + appended), 300);
                             }
                           }}
-                          className="bg-rose-500 hover:bg-rose-400 text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors shadow-md"
+                          className="bg-rose-500 hover:bg-rose-400 text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors"
                         >
                           送出補充事實並重新分析
                         </button>
@@ -261,7 +261,7 @@ export const GuideModals: React.FC<GuideModalsProps> = (props) => {
 
                 {/* 建議行動與必備證據 */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="bg-slate-950/70 p-4 rounded-2xl border border-slate-800 space-y-2">
+                  <div className="bg-slate-950/70 p-6 rounded-xl border border-slate-800 space-y-2">
                     <span className="text-xs font-bold text-sky-400 flex items-center gap-1.5">
                       <Zap className="w-3.5 h-3.5" /> 建議進行之法律行動
                     </span>
@@ -275,7 +275,7 @@ export const GuideModals: React.FC<GuideModalsProps> = (props) => {
                     </ul>
                   </div>
 
-                  <div className="bg-slate-950/70 p-4 rounded-2xl border border-slate-800 space-y-2">
+                  <div className="bg-slate-950/70 p-6 rounded-xl border border-slate-800 space-y-2">
                     <span className="text-xs font-bold text-purple-400 flex items-center gap-1.5">
                       <BookOpen className="w-3.5 h-3.5" /> 關鍵證據保全清單
                     </span>
@@ -333,7 +333,7 @@ export const GuideModals: React.FC<GuideModalsProps> = (props) => {
                         {copiedDraft ? '✓ 已複製到剪貼簿' : '複製完整書狀'}
                       </button>
                     </div>
-                    <pre className="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-[11px] font-mono text-slate-300 whitespace-pre-wrap max-h-60 overflow-y-auto leading-relaxed shadow-inner">
+                    <pre className="p-4 rounded-xl bg-slate-950 border border-slate-800 text-[11px] font-mono text-slate-300 whitespace-pre-wrap max-h-60 overflow-y-auto leading-relaxed">
                       {aiTriageResult.pleadingDraft}
                     </pre>
                   </div>
@@ -384,7 +384,7 @@ export const GuideModals: React.FC<GuideModalsProps> = (props) => {
                   setSelectedCategory('ALL');
                   handleSelectTool('litigation');
                 }}
-                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-bold transition-all shadow-lg shadow-indigo-600/30 flex items-center gap-2"
+                className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all flex items-center gap-2"
               >
                 <Sparkles className="w-4 h-4" />
                 進入法律工具箱
@@ -440,7 +440,7 @@ export const GuideModals: React.FC<GuideModalsProps> = (props) => {
                           }
                         });
                       }}
-                      className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-bold transition-all shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2"
+                      className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all flex items-center justify-center gap-2"
                     >
                       <Sparkles className="w-4 h-4" />
                       <span>進入法律工具箱編輯並產製此書狀</span>

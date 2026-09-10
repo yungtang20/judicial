@@ -31,7 +31,7 @@ export const ScenarioList: React.FC<ScenarioListProps> = (props) => {
               onClick={() => setSelectedCategory(cat.id)}
               className={`px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 ${
                 selectedCategory === cat.id
-                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+                  ? 'bg-indigo-600 text-white'
                   : 'bg-slate-900/80 text-slate-400 hover:text-slate-200 border border-slate-800 hover:border-slate-700'
               }`}
             >
@@ -55,7 +55,7 @@ export const ScenarioList: React.FC<ScenarioListProps> = (props) => {
                 }}
                 className={`px-3 py-1.5 rounded-full text-[11px] font-semibold border transition-all ${
                   selectedCategory === qt.tag
-                    ? "bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/30"
+                    ? "bg-indigo-600 text-white border-indigo-500"
                     : "bg-slate-900/80 text-slate-300 border-slate-700/50 hover:border-indigo-600/50 hover:text-indigo-300"
                 }`}
               >
@@ -76,8 +76,8 @@ export const ScenarioList: React.FC<ScenarioListProps> = (props) => {
 
           {/* 當無靜態情境符合時呈現動態 AI 深度診斷卡 */}
           {filteredScenarios.length === 0 && (
-            <div className="rounded-3xl bg-gradient-to-br from-indigo-950/80 via-slate-900 to-purple-950/70 border border-indigo-500/40 p-8 text-center space-y-4 shadow-2xl">
-              <div className="w-16 h-16 rounded-2xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center mx-auto shadow-inner">
+            <div className="rounded-xl bg-slate-900 border border-indigo-500/30 p-6 text-center space-y-4">
+              <div className="w-16 h-16 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center mx-auto">
                 <Sparkles className="w-8 h-8 animate-pulse" />
               </div>
               <div className="max-w-md mx-auto space-y-2">
@@ -91,7 +91,7 @@ export const ScenarioList: React.FC<ScenarioListProps> = (props) => {
               <button
                 onClick={() => handleRunAiTriage(searchQuery)}
                 disabled={aiTriageLoading}
-                className="px-8 py-3 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-sm shadow-xl shadow-indigo-600/30 transition-all inline-flex items-center gap-2"
+                className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm transition-all inline-flex items-center gap-2"
               >
                 {aiTriageLoading ? (
                   <>
@@ -114,7 +114,7 @@ export const ScenarioList: React.FC<ScenarioListProps> = (props) => {
               return (
                 <div
                   key={scenario.id}
-                  className="rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 p-5 flex flex-col justify-between transition-all hover:shadow-xl space-y-4"
+                  className="rounded-xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 p-6 flex flex-col justify-between transition-all space-y-4"
                 >
                   <div className="space-y-3">
                     <div className="flex items-start gap-3">
@@ -164,7 +164,7 @@ export const ScenarioList: React.FC<ScenarioListProps> = (props) => {
                     </button>
                     <button
                       onClick={() => handleLaunchScenario(scenario)}
-                      className="flex-1 py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-all shadow-md shadow-indigo-600/30 flex items-center justify-center gap-1.5"
+                      className="flex-1 py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-all flex items-center justify-center gap-1.5"
                     >
                       <Sparkles className="w-3.5 h-3.5" />
                       一鍵啟用此工具

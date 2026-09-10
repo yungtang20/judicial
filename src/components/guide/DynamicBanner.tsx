@@ -24,7 +24,7 @@ export const DynamicBanner: React.FC<DynamicBannerProps> = (props) => {
     <>
         {/* AI 即時動態導診橫幅（當有輸入內容時突顯） */}
         {searchQuery.trim().length > 0 && (
-          <div className="p-4 md:p-5 rounded-2xl bg-gradient-to-r from-indigo-950/90 via-purple-950/70 to-slate-900 border border-indigo-500/50 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-in fade-in slide-in-from-top-1">
+          <div className="p-6 rounded-xl bg-slate-900 border border-indigo-500/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-in fade-in slide-in-from-top-1">
             <div className="space-y-1">
               <div className="flex items-center gap-2 text-indigo-300 font-bold text-sm">
                 <Sparkles className="w-4 h-4 text-indigo-400 animate-spin-slow" />
@@ -37,7 +37,7 @@ export const DynamicBanner: React.FC<DynamicBannerProps> = (props) => {
             <button
               onClick={() => handleRunAiTriage(searchQuery)}
               disabled={aiTriageLoading}
-              className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold shadow-lg shadow-indigo-600/40 transition-all flex items-center gap-2 shrink-0 w-full md:w-auto justify-center"
+              className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold transition-all flex items-center gap-2 shrink-0 w-full md:w-auto justify-center"
             >
               {aiTriageLoading ? (
                 <>

@@ -24,7 +24,7 @@ export const HeroSection: React.FC<HeroSectionProps> = (props) => {
   return (
     <>
         {/* Hero Banner: 非法律人友善引導 */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-indigo-950/40 to-slate-900 border border-slate-800 p-6 md:p-10 shadow-2xl">
+        <div className="relative overflow-hidden rounded-xl bg-slate-900 border border-slate-800 p-6">
           <div className="relative z-10 max-w-3xl space-y-4">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 text-xs font-semibold tracking-wide">
               <Compass className="w-3.5 h-3.5" />
@@ -32,7 +32,7 @@ export const HeroSection: React.FC<HeroSectionProps> = (props) => {
             </div>
             <h1 className="text-2xl md:text-4xl font-bold text-white tracking-tight">
               您遇到什麼法律問題？<br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-sky-300 to-teal-300">
+              <span className="text-indigo-400">
                 點選生活情境，3 秒找到解答與標準書狀
               </span>
             </h1>
@@ -56,7 +56,7 @@ export const HeroSection: React.FC<HeroSectionProps> = (props) => {
                     }
                   }}
                   placeholder="輸入任何法律問題或狀況，例如：被女友竊盜了、車禍受傷、房客欠租、朋友借錢、收到判決..."
-                  className="w-full pl-12 pr-4 md:pr-44 pb-14 md:pb-3.5 py-3.5 min-h-[120px] resize-y rounded-2xl bg-slate-950/80 border border-indigo-500/30 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all shadow-inner"
+                  className="w-full pl-12 pr-4 md:pr-44 pb-14 md:pb-3.5 py-3.5 min-h-[120px] resize-y rounded-xl bg-slate-950/80 border border-indigo-500/30 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                 />
                 <div className="absolute right-2.5 bottom-2.5 md:bottom-auto md:top-1/2 md:-translate-y-1/2 flex items-center gap-1.5">
                   {searchQuery && (
@@ -70,7 +70,7 @@ export const HeroSection: React.FC<HeroSectionProps> = (props) => {
                   <button
                     onClick={() => handleRunAiTriage(searchQuery)}
                     disabled={!searchQuery.trim() || aiTriageLoading}
-                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 disabled:opacity-50 text-white text-xs font-bold shadow-md shadow-indigo-600/30 transition-all cursor-pointer"
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold transition-all cursor-pointer"
                   >
                     <Sparkles className="w-3.5 h-3.5" />
                     <span>AI 診斷與產狀</span>

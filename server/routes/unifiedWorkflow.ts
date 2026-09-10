@@ -538,8 +538,13 @@ router.post("/api/workflow/execute", async (req: Request, res: Response) => {
     state.router = routerResult;
 
     // 條件邊界 1: 敏感案件保護分流 (is_sensitive == true)
-    if (routerResult.is_sensitive && !acknowledgeSafety) {
-      state.currentStep = 'SAFETY_PROTECTION';
+    // 依使用者指示：性自主案件取消手動按同意再繼續的環節，直接附帶保護指引並順暢執行分析
+    const isSexualAutonomy = routerResult.category === 'CRIMINAL_COMPLAINT_SEXUAL_ASSAULT' ||
+      Boolean(routerResult.chapter?.includes("性自主")) ||
+      Boolean(routerResult.cause?.includes("性自主")) ||
+      /性自主|性侵|猥褻|乘機性交|強制性交/.test(state.userNarrative);
+
+    if (routerResult.is_sensitive) {
       state.safety = {
         emergencyHotlines: [
           { label: "全國婦幼保護專線", number: "113", desc: "24 小時免付費，提供家暴、性侵、兒少保護諮詢與通報" },
@@ -557,9 +562,13 @@ router.post("/api/workflow/execute", async (req: Request, res: Response) => {
           "至醫療院所開立驗傷診斷證明書並採證",
           "向轄區分局報案製作筆錄並聲請保護令"
         ],
-        acknowledged: false
+        acknowledged: Boolean(acknowledgeSafety || isSexualAutonomy)
       };
-      return res.json({ success: true, data: state });
+
+      if (!acknowledgeSafety && !isSexualAutonomy) {
+        state.currentStep = 'SAFETY_PROTECTION';
+        return res.json({ success: true, data: state });
+      }
     }
 
     // 條件邊界 2: 事實要素不完整或有時間矛盾 (is_complete == false) ➔ 必須中斷工作流，返回追問請求

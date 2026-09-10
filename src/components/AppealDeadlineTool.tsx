@@ -298,14 +298,14 @@ ${reasonDeadlineDate ? `補提上訴理由書最晚期限：${formatROCDate(reas
   return (
     <div className="w-full max-w-6xl mx-auto p-4 md:p-6 space-y-6">
       {/* 標題與簡介 */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white p-6 rounded-2xl shadow-lg border border-slate-700">
+      <div className="bg-slate-900 text-white p-6 rounded-xl border border-slate-800">
         <div className="flex items-center gap-3 mb-2">
-          <div className="bg-amber-500/20 p-2.5 rounded-xl border border-amber-500/30 text-amber-400">
+          <div className="bg-slate-800 p-2.5 rounded-xl border border-slate-700 text-amber-400">
             <Scale className="w-6 h-6" />
           </div>
           <div>
             <h1 className="text-xl md:text-2xl font-bold tracking-tight">
-              ⚖️ 上訴與救濟法定期間對照表暨智慧計算系統
+              上訴與救濟法定期間對照表暨智慧計算系統
             </h1>
             <p className="text-xs md:text-sm text-slate-300 mt-1">
               依據司法院「訴訟須知」標準與民刑事及行政訴訟法，精準計算判決上訴、裁定抗告與理由書補提期限
@@ -316,7 +316,7 @@ ${reasonDeadlineDate ? `補提上訴理由書最晚期限：${formatROCDate(reas
         <div className="mt-4 p-3 bg-slate-800/80 rounded-xl border border-slate-700/80 text-xs text-slate-300 flex items-start gap-2">
           <Info className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
           <div>
-            <strong>💡 法定算日三大黃金法則：</strong>
+            <strong>法定算日三大黃金法則：</strong>
             <span className="text-slate-300 ml-1">
               ① <strong>初日不算（始日不計）</strong>：收到裁判當日為第 0 天，隔日開始起算；② <strong>扣除在途期間</strong>：不在法院所在地者得扣除在途天數；③ <strong>末日遇假日順延</strong>：期間最後一日若為星期六、日或國定假日，自動順延至次一工作日。
             </span>
@@ -325,14 +325,14 @@ ${reasonDeadlineDate ? `補提上訴理由書最晚期限：${formatROCDate(reas
       </div>
 
       {/* 訴訟類別頁籤導航 (刑事 / 民事 / 行政) */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-2 rounded-2xl border border-slate-200 shadow-xs">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-2 rounded-xl border border-slate-200">
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <button
             type="button"
             onClick={() => setLitigationType('criminal')}
             className={`flex-1 sm:flex-initial px-5 py-2.5 rounded-xl text-xs md:text-sm font-bold transition-all flex items-center justify-center gap-2 ${
               litigationType === 'criminal'
-                ? 'bg-indigo-600 text-white shadow-md'
+                ? 'bg-indigo-600 text-white'
                 : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
@@ -345,7 +345,7 @@ ${reasonDeadlineDate ? `補提上訴理由書最晚期限：${formatROCDate(reas
             onClick={() => setLitigationType('civil')}
             className={`flex-1 sm:flex-initial px-5 py-2.5 rounded-xl text-xs md:text-sm font-bold transition-all flex items-center justify-center gap-2 ${
               litigationType === 'civil'
-                ? 'bg-amber-600 text-white shadow-md'
+                ? 'bg-amber-600 text-white'
                 : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
@@ -358,7 +358,7 @@ ${reasonDeadlineDate ? `補提上訴理由書最晚期限：${formatROCDate(reas
             onClick={() => setLitigationType('administrative')}
             className={`flex-1 sm:flex-initial px-5 py-2.5 rounded-xl text-xs md:text-sm font-bold transition-all flex items-center justify-center gap-2 ${
               litigationType === 'administrative'
-                ? 'bg-emerald-600 text-white shadow-md'
+                ? 'bg-emerald-600 text-white'
                 : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
@@ -373,7 +373,7 @@ ${reasonDeadlineDate ? `補提上訴理由書最晚期限：${formatROCDate(reas
       </div>
 
       {/* 第一部分：司法院對照表 (Statutory Period Matrix) */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+      <div className="bg-white p-6 rounded-xl border border-slate-200 space-y-4">
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
             <BookOpen className="w-5 h-5 text-indigo-600" />
@@ -417,7 +417,7 @@ ${reasonDeadlineDate ? `補提上訴理由書最晚期限：${formatROCDate(reas
       </div>
 
       {/* 第二部分：動態計算器主體 */}
-      <div ref={containerRef} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+      <div ref={containerRef} className="bg-white p-6 rounded-xl border border-slate-200 space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-100 pb-4">
           <div className="flex items-center gap-2">
             <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600">
@@ -579,7 +579,7 @@ ${reasonDeadlineDate ? `補提上訴理由書最晚期限：${formatROCDate(reas
         )}
 
         {/* 第三部分：試算結果大卡片 */}
-        <div className="bg-slate-900 text-white p-6 rounded-2xl shadow-md space-y-6">
+        <div className="bg-slate-900 text-white p-6 rounded-xl border border-slate-800 space-y-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
             <div>
               <span className="text-3xs font-bold uppercase tracking-wider text-amber-400 bg-amber-400/10 border border-amber-400/30 px-2.5 py-1 rounded-md">
@@ -629,7 +629,7 @@ ${reasonDeadlineDate ? `補提上訴理由書最晚期限：${formatROCDate(reas
             </div>
 
             {/* 順延後最終期限 */}
-            <div className="bg-gradient-to-br from-indigo-900 to-indigo-950 p-4 rounded-xl border border-indigo-500/50 space-y-1 md:col-span-2 lg:col-span-1">
+            <div className="bg-indigo-950/80 p-4 rounded-xl border border-indigo-500/50 space-y-1 md:col-span-2 lg:col-span-1">
               <div className="text-3xs text-amber-300 font-bold flex items-center gap-1">
                 <CheckCircle2 className="w-3.5 h-3.5" /> 最終應遞狀截止期限
               </div>

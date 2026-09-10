@@ -251,7 +251,7 @@ export default function JudicialOpenDataTool() {
     <div className="flex-1 p-6 md:p-8 bg-karoshi-bg overflow-y-auto">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* 頁面標題 */}
-        <div className="bg-white p-6 rounded-xl border border-karoshi-border shadow-sm">
+        <div className="bg-white p-6 rounded-xl border border-karoshi-border">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
               <h1 className="text-2xl font-bold text-karoshi-text flex items-center gap-2">
@@ -391,17 +391,17 @@ export default function JudicialOpenDataTool() {
             )}
 
             {resources.length > 0 && (
-              <div className="space-y-4 pt-4 border-t border-gray-100">
-                <h4 className="text-xs font-bold text-gray-700">
-                  分類 [{selectedCategory}] 之資料集列表：
+              <div className="space-y-3 pt-4 border-t border-gray-100">
+                <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                  分類 [{selectedCategory}] 資料集清單：
                 </h4>
-                <div className="grid grid-cols-1 gap-4">
+                <div className="divide-y divide-gray-200">
                   {resources.map((resItem) => (
-                    <div key={resItem.datasetId} className="p-4 border border-gray-200 rounded-lg bg-gray-50/50 space-y-2">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <span className="text-xs font-bold text-karoshi-accent bg-blue-50 px-2 py-0.5 rounded border border-blue-100 mr-2">
-                            ID: {resItem.datasetId}
+                    <div key={resItem.datasetId} className="py-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-karoshi-accent bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
+                            #{resItem.datasetId}
                           </span>
                           <span className="font-semibold text-sm text-gray-900">{resItem.title}</span>
                         </div>
@@ -409,28 +409,24 @@ export default function JudicialOpenDataTool() {
                       </div>
 
                       {resItem.filesets && resItem.filesets.length > 0 && (
-                        <div className="mt-3 space-y-1.5">
-                          <div className="text-xs text-gray-600 font-medium">資料源 (filesets)：</div>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                            {resItem.filesets.map((f) => (
-                              <div key={f.fileSetId} className="flex items-center justify-between bg-white p-2.5 rounded border border-gray-200 text-xs">
-                                <div>
-                                  <span className="font-mono text-gray-800 font-bold mr-2">ID #{f.fileSetId}</span>
-                                  <span className="bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded text-[10px] uppercase font-semibold">
-                                    {f.resourceFormat}
-                                  </span>
-                                  <p className="text-gray-500 text-[11px] mt-0.5">{f.resourceDescription}</p>
-                                </div>
-                                <button
-                                  onClick={() => fetchFileContent(String(f.fileSetId))}
-                                  className="px-2.5 py-1 bg-gray-800 text-white rounded text-[11px] hover:bg-black transition flex items-center gap-1"
-                                >
-                                  <Download className="w-3 h-3" />
-                                  檢視內容
-                                </button>
+                        <div className="pl-3 border-l-2 border-gray-100 space-y-1">
+                          {resItem.filesets.map((f) => (
+                            <div key={f.fileSetId} className="flex items-center justify-between py-1 text-xs">
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono text-gray-800 font-semibold">#{f.fileSetId}</span>
+                                <span className="bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded text-[10px] uppercase font-semibold">
+                                  {f.resourceFormat}
+                                </span>
+                                <span className="text-gray-500 text-[11px]">{f.resourceDescription}</span>
                               </div>
-                            ))}
-                          </div>
+                              <button
+                                onClick={() => fetchFileContent(String(f.fileSetId))}
+                                className="px-2.5 py-1 bg-gray-800 text-white rounded text-[11px] hover:bg-black transition cursor-pointer"
+                              >
+                                檢視內容
+                              </button>
+                            </div>
+                          ))}
                         </div>
                       )}
                     </div>

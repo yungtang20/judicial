@@ -126,10 +126,10 @@ export default function IssueTableGenerator() {
   return (
     <div className="w-full flex flex-col md:flex-row h-full overflow-hidden bg-karoshi-bg">
       {/* 左側編輯區 */}
-      <div className="w-full md:w-1/2 lg:w-5/12 p-6 overflow-y-auto border-r border-karoshi-border bg-white shadow-xs space-y-6">
+      <div className="w-full md:w-1/2 lg:w-5/12 p-6 overflow-y-auto border-r border-karoshi-border bg-white space-y-6">
         <div>
           <h2 className="text-xl font-bold text-[#2C7873] flex items-center gap-2">
-            <span>📊 爭點整理表格小工具</span>
+            <span>爭點整理表格小工具</span>
           </h2>
           <p className="text-xs text-gray-500 mt-1">產生司法院標準【爭點整理對照表】（7欄標準格式），釐清原審認定與我方攻擊防禦，方便法官審理。</p>
         </div>
@@ -240,7 +240,7 @@ export default function IssueTableGenerator() {
 
           <div className="space-y-4">
             {issues.map((issue, idx) => (
-              <div key={issue.id} className="p-3.5 bg-amber-50/30 rounded-xl border border-amber-200 relative space-y-3 shadow-2xs">
+              <div key={issue.id} className="p-3.5 bg-amber-50/30 rounded-xl border border-amber-200 relative space-y-3">
                 <div className="flex justify-between items-center border-b border-amber-200 pb-2">
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-xs text-amber-950">項次 {idx + 1}</span>
@@ -337,7 +337,7 @@ export default function IssueTableGenerator() {
             <button 
               onClick={handleFullVerify}
               disabled={isVerifyingAi}
-              className="w-1/2 bg-emerald-800 hover:bg-emerald-700 text-white py-3 rounded-xl font-bold text-xs shadow-md transition-all flex justify-center items-center gap-1.5"
+              className="w-1/2 bg-emerald-800 hover:bg-emerald-700 text-white py-2.5 rounded-xl font-bold text-xs transition-colors flex justify-center items-center gap-1.5"
             >
               {isVerifyingAi ? (
                 <>
@@ -354,9 +354,9 @@ export default function IssueTableGenerator() {
 
             <button 
               onClick={handlePrint}
-              className="w-1/2 bg-[#2C7873] text-white py-3 rounded-xl font-bold text-xs shadow-md hover:opacity-90 transition-all flex justify-center items-center gap-1.5"
+              className="w-1/2 bg-[#2C7873] text-white py-2.5 rounded-xl font-bold text-xs hover:opacity-90 transition-colors flex justify-center items-center gap-1.5"
             >
-              📥 下載/列印 PDF
+              下載/列印 PDF
             </button>
           </div>
         </div>
@@ -365,7 +365,7 @@ export default function IssueTableGenerator() {
       {/* 右側：A4 列印模擬預覽區 */}
       <div className="w-full md:w-1/2 lg:w-7/12 p-8 overflow-y-auto bg-gray-200/80 flex flex-col items-center">
         {verifyNotice && (
-          <div className="w-full max-w-[210mm] mb-3 p-3 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs flex items-center justify-between animate-fadeIn shadow-xs">
+          <div className="w-full max-w-[210mm] mb-3 p-3 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs flex items-center justify-between animate-fadeIn">
             <span className="flex items-center gap-2 font-medium">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
               {verifyNotice}
@@ -383,7 +383,7 @@ export default function IssueTableGenerator() {
           <AntiGhostBadge verification={verification} />
         </div>
 
-        <div className="bg-white p-10 rounded shadow-lg w-full max-w-[210mm] min-h-[297mm] text-black text-xs leading-relaxed border border-gray-300 font-serif space-y-4">
+        <div className="bg-white p-10 rounded-xl w-full max-w-[210mm] min-h-[297mm] text-black text-xs leading-relaxed border border-gray-300 font-serif space-y-4">
           <div className="text-left font-bold text-sm text-black">
             {attachmentText || '附表一'}
           </div>

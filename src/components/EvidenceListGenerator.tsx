@@ -83,10 +83,10 @@ export default function EvidenceListGenerator() {
   return (
     <div className="w-full flex flex-col md:flex-row h-full overflow-hidden bg-karoshi-bg">
       {/* 左側編輯區 */}
-      <div className="w-full md:w-1/2 lg:w-5/12 p-6 overflow-y-auto border-r border-karoshi-border bg-white shadow-xs space-y-6">
+      <div className="w-full md:w-1/2 lg:w-5/12 p-6 overflow-y-auto border-r border-karoshi-border bg-white space-y-6">
         <div>
           <h2 className="text-xl font-bold text-[#2C7873] flex items-center gap-2">
-            <span>🛠 調查證據聲請表小工具</span>
+            <span>調查證據聲請表小工具</span>
           </h2>
           <p className="text-xs text-gray-500 mt-1">產生符合司法院及 Karoshibox 標準格式之【調查證據聲請表】，支援即時編輯與列印 PDF。</p>
         </div>
@@ -184,7 +184,7 @@ export default function EvidenceListGenerator() {
 
           <div className="space-y-4">
             {items.map((item, idx) => (
-              <div key={item.id} className="p-3.5 bg-gray-50/70 rounded-xl border border-gray-300 relative space-y-3 shadow-2xs">
+              <div key={item.id} className="p-3.5 bg-gray-50/70 rounded-xl border border-gray-300 relative space-y-3">
                 <div className="flex justify-between items-center border-b border-gray-200 pb-2">
                   <span className="font-bold text-xs text-gray-800">編號 {idx + 1}</span>
                   <button 
@@ -270,16 +270,16 @@ export default function EvidenceListGenerator() {
 
           <button 
             onClick={handlePrint}
-            className="w-full bg-[#185A56] text-white py-3 rounded-xl font-bold text-sm shadow-md hover:bg-[#124542] transition-all flex justify-center items-center gap-2 mt-4"
+            className="w-full bg-[#185A56] text-white py-2.5 rounded-xl font-bold text-sm hover:bg-[#124542] transition-colors flex justify-center items-center gap-2 mt-4"
           >
-            📥 下載 PDF
+            下載 PDF
           </button>
         </div>
       </div>
 
       {/* 右側：A4 列印模擬預覽區 */}
       <div className="w-full md:w-1/2 lg:w-7/12 p-8 overflow-y-auto bg-gray-200/80 flex justify-center items-start">
-        <div className="bg-white p-10 rounded shadow-lg w-full max-w-[210mm] min-h-[297mm] text-black text-xs leading-relaxed border border-gray-300 font-serif space-y-4">
+        <div className="bg-white p-10 rounded-xl w-full max-w-[210mm] min-h-[297mm] text-black text-xs leading-relaxed border border-gray-300 font-serif space-y-4">
           {/* 左上角附件標籤 */}
           <div className="text-left font-bold text-sm text-black">
             {attachmentText || '附件'}

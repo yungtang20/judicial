@@ -73,7 +73,7 @@ export function QuickExampleCard({ example, onSelectTool }: QuickExampleCardProp
     <button
       type="button"
       onClick={() => onSelectTool(example.toolId, undefined, { preselectedToolId: example.subTool })}
-      className="group relative rounded-2xl p-4 bg-slate-900/90 border border-slate-800 hover:border-indigo-500/50 transition-all shadow-md hover:shadow-xl hover:shadow-indigo-500/10 text-left flex flex-col gap-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/60"
+      className="group relative rounded-xl p-4 bg-slate-900 border border-slate-800 hover:border-indigo-500/50 transition-colors text-left flex flex-col gap-3 focus:outline-none focus:ring-1 focus:ring-indigo-500/60"
     >
       {example.badge && (
         <span className="absolute top-3 right-3 text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700">

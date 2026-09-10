@@ -21,8 +21,10 @@ import {
   SdlcProjectState
 } from '../domain/sdlc/types';
 import { apiClient } from '../lib/apiClient';
+import { useGlobalUI } from '../contexts/GlobalUIContext';
 
 export const LegalSdlcWorkbench: React.FC = () => {
+  const { startLoading, stopLoading } = useGlobalUI();
   const [projectId] = useState<string>('project_legal_sdlc_master');
   const [projectTitle, setProjectTitle] = useState<string>('民事損害賠償與不當得利 AI 原生交付專案');
   const [legalDomain, setLegalDomain] = useState<string>('CIVIL');
@@ -64,13 +66,9 @@ export const LegalSdlcWorkbench: React.FC = () => {
   }, []);
 
   const handleExecuteStage = async () => {
-    if (!stageInputText && !projectState?.artifacts[selectedStageId]?.length) {
-      if (!confirm('尚未輸入本階段專屬資訊，是否依系統既有上下文直接由 AI Agent 執行交付生成？')) {
-        return;
-      }
-    }
     try {
       setLoading(true);
+      startLoading();
       const res = await apiClient.sdlcExecuteStage({
         projectId,
         stageId: selectedStageId,
@@ -79,8 +77,10 @@ export const LegalSdlcWorkbench: React.FC = () => {
       if (res.project) {
         setProjectState(res.project);
       }
+      stopLoading({ message: '階段執行完成', type: 'success' });
     } catch (err: any) {
       alert('階段執行錯誤: ' + (err?.message || '未知錯誤'));
+      stopLoading({ message: '執行失敗', type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -89,6 +89,7 @@ export const LegalSdlcWorkbench: React.FC = () => {
   const handleApproveGate = async () => {
     try {
       setLoading(true);
+      startLoading();
       const res = await apiClient.sdlcAdvanceGate({
         projectId,
         stageId: selectedStageId,
@@ -100,8 +101,10 @@ export const LegalSdlcWorkbench: React.FC = () => {
         setSelectedStageId(res.project.currentStageId);
         setShowGateModal(false);
       }
+      stopLoading({ message: '放行成功', type: 'success' });
     } catch (err: any) {
       alert('審批放行失敗: ' + (err?.message || '未知錯誤'));
+      stopLoading({ message: '放行失敗', type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -110,6 +113,7 @@ export const LegalSdlcWorkbench: React.FC = () => {
   const handleTriggerFeedbackLoop = async () => {
     try {
       setLoading(true);
+      startLoading();
       const res = await apiClient.sdlcFeedbackLoop({
         projectId,
         fromStage: selectedStageId,
@@ -122,8 +126,10 @@ export const LegalSdlcWorkbench: React.FC = () => {
         setSelectedStageId(feedbackTargetStage);
         setShowFeedbackModal(false);
       }
+      stopLoading({ message: '反饋已觸發', type: 'success' });
     } catch (err: any) {
       alert('觸發閉環反饋失敗: ' + (err?.message || '未知錯誤'));
+      stopLoading({ message: '反饋失敗', type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -139,7 +145,7 @@ export const LegalSdlcWorkbench: React.FC = () => {
       {/* 頂部 Header */}
       <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md px-6 py-4 sticky top-0 z-30 flex items-center justify-between">
         <div className="flex items-center space-x-3">
-          <div className="p-2 bg-gradient-to-tr from-emerald-500 to-cyan-500 rounded-xl shadow-lg shadow-emerald-500/20 text-slate-950 font-bold">
+          <div className="p-2 bg-emerald-500 rounded-xl text-slate-950 font-bold">
             <Layers className="w-5 h-5" />
           </div>
           <div>
@@ -256,7 +262,7 @@ export const LegalSdlcWorkbench: React.FC = () => {
         {/* 左側：當前階段規格、輸入與輸出契約 */}
         <div className="lg:col-span-5 space-y-6 flex flex-col">
           {/* 階段核心卡片 */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
               <div>
                 <div className="text-xs font-mono uppercase text-emerald-400 font-semibold tracking-wider">
@@ -324,7 +330,7 @@ export const LegalSdlcWorkbench: React.FC = () => {
           </div>
 
           {/* 驅動面板 */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold font-mono text-slate-400 uppercase">
                 輸入自訂背景／本階段指令
@@ -344,7 +350,7 @@ export const LegalSdlcWorkbench: React.FC = () => {
               <button
                 onClick={handleExecuteStage}
                 disabled={loading}
-                className="flex-1 py-2.5 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 text-white font-semibold text-xs rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/30 transition"
+                className="flex-1 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-semibold text-xs rounded-xl flex items-center justify-center gap-2 transition-colors"
               >
                 {loading ? (
                   <RefreshCw className="w-4 h-4 animate-spin" />
@@ -377,7 +383,7 @@ export const LegalSdlcWorkbench: React.FC = () => {
 
         {/* 右側：可追溯工件（Artifacts）即時檢視與歷史版本 */}
         <div className="lg:col-span-7 flex flex-col space-y-6">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex-1 flex flex-col">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 flex-1 flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
               <div className="flex items-center gap-2">
                 <FolderGit2 className="w-5 h-5 text-emerald-400" />
@@ -446,7 +452,7 @@ export const LegalSdlcWorkbench: React.FC = () => {
       {/* 人工審批 Gate 彈窗 */}
       {showGateModal && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-lg w-full p-6 space-y-5">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-emerald-950 border border-emerald-500/30 rounded-xl text-emerald-400">
                 <ShieldCheck className="w-6 h-6" />
@@ -520,7 +526,7 @@ export const LegalSdlcWorkbench: React.FC = () => {
       {/* 閉環回流反饋 彈窗 */}
       {showFeedbackModal && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-lg w-full p-6 space-y-5">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-amber-950 border border-amber-500/30 rounded-xl text-amber-400">
                 <RotateCcw className="w-6 h-6" />

@@ -1,61 +1,67 @@
 
 import React from 'react';
-import {
-  Send, Sparkles, ShieldAlert, ShieldCheck, AlertTriangle, CheckCircle2,
-  Cpu, Layers, FileCheck2, FileText, RotateCcw, Copy, Check, Loader2,
-  ChevronRight, ArrowRight, HelpCircle, Clock, BookOpen, Scale,
-  Upload, History, Download, Printer, Trash2, X, FilePlus, ChevronDown,
-  ChevronUp, Star, Edit3, Plus, Bookmark, PenTool, LayoutTemplate, MessageSquare
-} from 'lucide-react';
-import { formatLegalChapter, formatVerificationStatus } from '../../lib/legalChapterLabels';
+import { ChevronRight } from 'lucide-react';
+import { UIConstants } from '../../constants/ui';
 
 export interface UnifiedProgressProps {
   [key: string]: any;
 }
 
 export const UnifiedProgress: React.FC<UnifiedProgressProps> = (props) => {
-  const { inputNarrative, setInputNarrative, isSubmitting, setIsSubmitting, workflowState, setWorkflowState, supplementInput, setSupplementInput, isCopied, setIsCopied, acknowledgeSafetyInSession, setAcknowledgeSafetyInSession, isNode2Open, setIsNode2Open, isNode4Open, setIsNode4Open, isNode5Open, setIsNode5Open, isNode6Open, setIsNode6Open, customPreset, setCustomPreset, showCustomPresetModal, setShowCustomPresetModal, editPresetTitle, setEditPresetTitle, editPresetNarrative, setEditPresetNarrative, fileInputRef, isDragOver, setIsDragOver, isParsingFiles, setIsParsingFiles, parsingStatus, setParsingStatus, batchQueue, setBatchQueue, batchIndex, setBatchIndex, isBatchRunning, setIsBatchRunning, showHistory, setShowHistory, historyList, setHistoryList, handleFiles, handleDrop, handleExecuteWorkflow, handleSupplementFact, handleProceedFromSafety, handleResetWorkflow, handleCopyAnalysis, loadFromHistory, handleBatchNext, handleBatchPrev, handleSaveCurrentAsCustomPreset, handleSelectSuggestedOption, handleSaveCustomPreset, handleToggleAllNodes, defaultSample, handleSelectTool, saveCrossFeatureContext, exportAsHtml, exportAsText, printReport, deleteFromHistory, clearHistory, loadHistory, showDocTypeModal, setShowDocTypeModal } = props;
+  const { workflowState } = props;
+
+  const steps = [
+    { num: '1', label: '輸入文本', active: !!workflowState },
+    { num: '2', label: '智慧分流', active: !!workflowState?.router },
+    { 
+      num: '3', 
+      label: '要件比對', 
+      active: !!workflowState?.router?.is_complete || workflowState?.currentStep === 'QUESTIONING',
+      highlight: workflowState?.currentStep === 'QUESTIONING'
+    },
+    { num: '4', label: '法規要件', active: !!workflowState?.rag },
+    { num: '5', label: '三段論涵攝', active: !!workflowState?.syllogism },
+    { 
+      num: '6', 
+      label: '真確性檢核', 
+      active: !!workflowState?.verification,
+      success: workflowState?.verification?.passGate
+    }
+  ];
 
   return (
-    <>
-        {/* 狀態導航節點進度列 (StateGraph Timeline) */}
-        <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs">
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl font-bold ${workflowState ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' : 'bg-slate-800 text-slate-400'}`}>
-            <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[10px]">1</span>
-            <span>文本輸入</span>
-          </div>
-          <ChevronRight className="w-4 h-4 text-slate-600 hidden sm:block" />
-
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl font-bold ${workflowState?.router ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' : 'bg-slate-800 text-slate-500'}`}>
-            <span className="w-5 h-5 rounded-full bg-slate-700 text-white flex items-center justify-center text-[10px]">2</span>
-            <span>智慧分流</span>
-          </div>
-          <ChevronRight className="w-4 h-4 text-slate-600 hidden sm:block" />
-
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl font-bold ${workflowState?.currentStep === 'QUESTIONING' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse' : workflowState?.currentStep === 'SAFETY_PROTECTION' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse' : workflowState?.router?.is_complete ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-slate-800 text-slate-500'}`}>
-            <span className="w-5 h-5 rounded-full bg-slate-700 text-white flex items-center justify-center text-[10px]">3</span>
-            <span>條件邊界分流</span>
-          </div>
-          <ChevronRight className="w-4 h-4 text-slate-600 hidden sm:block" />
-
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl font-bold ${workflowState?.rag ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' : 'bg-slate-800 text-slate-500'}`}>
-            <span className="w-5 h-5 rounded-full bg-slate-700 text-white flex items-center justify-center text-[10px]">4</span>
-            <span>法規裁判要件庫</span>
-          </div>
-          <ChevronRight className="w-4 h-4 text-slate-600 hidden sm:block" />
-
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl font-bold ${workflowState?.syllogism ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' : 'bg-slate-800 text-slate-500'}`}>
-            <span className="w-5 h-5 rounded-full bg-slate-700 text-white flex items-center justify-center text-[10px]">5</span>
-            <span>三段論涵攝</span>
-          </div>
-          <ChevronRight className="w-4 h-4 text-slate-600 hidden sm:block" />
-
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl font-bold ${workflowState?.verification ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-slate-800 text-slate-500'}`}>
-            <span className="w-5 h-5 rounded-full bg-slate-700 text-white flex items-center justify-center text-[10px]">6</span>
-            <span>真確性檢核閘門</span>
-          </div>
-        </div>
-
-    </>
+    <div className={UIConstants.cardSubtleCompact}>
+      <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+        {steps.map((step, idx) => (
+          <React.Fragment key={step.num}>
+            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold transition-colors ${
+              step.highlight
+                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                : step.success
+                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                : step.active
+                ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
+                : 'bg-slate-950 text-slate-500 border border-slate-800'
+            }`}>
+              <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] ${
+                step.highlight
+                  ? 'bg-amber-600 text-white'
+                  : step.success
+                  ? 'bg-emerald-600 text-white'
+                  : step.active
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-slate-800 text-slate-400'
+              }`}>
+                {step.num}
+              </span>
+              <span>{step.label}</span>
+            </div>
+            {idx < steps.length - 1 && (
+              <ChevronRight className="w-3.5 h-3.5 text-slate-700 hidden sm:block shrink-0" />
+            )}
+          </React.Fragment>
+        ))}
+      </div>
+    </div>
   );
 };

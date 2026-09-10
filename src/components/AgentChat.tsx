@@ -170,7 +170,7 @@ export const AgentChat: React.FC = () => {
           <button
             onClick={handleSend}
             disabled={!input.trim() || isLoading}
-            className="p-3 rounded-xl bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-lg shadow-indigo-950/30"
+            className="p-3 rounded-xl bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             {isLoading ? (
               <Loader2 className="w-4 h-4 animate-spin" />

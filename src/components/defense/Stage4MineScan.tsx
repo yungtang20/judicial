@@ -19,7 +19,7 @@ export const Stage4MineScan: React.FC<Stage4MineScanProps> = ({
     <>
           {/* STAGE 4: PHASE 3 - 6 ADMISSION MINE SCAN RESULTS */}
           {mineScanResult && (
-            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-6 animate-fadeIn">
+            <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-6 animate-fadeIn">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 gap-2">
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-2">
@@ -122,7 +122,7 @@ export const Stage4MineScan: React.FC<Stage4MineScanProps> = ({
                 <button
                   onClick={() => handleGeneratePleading('CLIENT_PERSONAL_REPORT')}
                   disabled={isLoadingPleading}
-                  className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-rose-600 to-orange-600 hover:from-rose-700 hover:to-orange-700 text-white rounded-xl font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2"
+                  className="w-full sm:w-auto px-6 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2"
                 >
                   {isLoadingPleading ? (
                     <>

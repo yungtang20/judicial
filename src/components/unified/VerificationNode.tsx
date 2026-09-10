@@ -1,77 +1,97 @@
 
 import React from 'react';
 import {
-  Send, Sparkles, ShieldAlert, ShieldCheck, AlertTriangle, CheckCircle2,
-  Cpu, Layers, FileCheck2, FileText, RotateCcw, Copy, Check, Loader2,
-  ChevronRight, ArrowRight, HelpCircle, Clock, BookOpen, Scale,
-  Upload, History, Download, Printer, Trash2, X, FilePlus, ChevronDown,
-  ChevronUp, Star, Edit3, Plus, Bookmark, PenTool, LayoutTemplate, MessageSquare
+  ShieldCheck, AlertTriangle, ChevronDown, ChevronUp
 } from 'lucide-react';
-import { formatLegalChapter, formatVerificationStatus } from '../../lib/legalChapterLabels';
+import { formatVerificationStatus } from '../../lib/legalChapterLabels';
 
 export interface VerificationNodeProps {
   [key: string]: any;
 }
 
 export const VerificationNode: React.FC<VerificationNodeProps> = (props) => {
-  const { inputNarrative, setInputNarrative, isSubmitting, setIsSubmitting, workflowState, setWorkflowState, supplementInput, setSupplementInput, isCopied, setIsCopied, acknowledgeSafetyInSession, setAcknowledgeSafetyInSession, isNode2Open, setIsNode2Open, isNode4Open, setIsNode4Open, isNode5Open, setIsNode5Open, isNode6Open, setIsNode6Open, customPreset, setCustomPreset, showCustomPresetModal, setShowCustomPresetModal, editPresetTitle, setEditPresetTitle, editPresetNarrative, setEditPresetNarrative, fileInputRef, isDragOver, setIsDragOver, isParsingFiles, setIsParsingFiles, parsingStatus, setParsingStatus, batchQueue, setBatchQueue, batchIndex, setBatchIndex, isBatchRunning, setIsBatchRunning, showHistory, setShowHistory, historyList, setHistoryList, handleFiles, handleDrop, handleExecuteWorkflow, handleSupplementFact, handleProceedFromSafety, handleResetWorkflow, handleCopyAnalysis, loadFromHistory, handleBatchNext, handleBatchPrev, handleSaveCurrentAsCustomPreset, handleSelectSuggestedOption, handleSaveCustomPreset, handleToggleAllNodes, defaultSample, handleSelectTool, saveCrossFeatureContext, exportAsHtml, exportAsText, printReport, deleteFromHistory, clearHistory, loadHistory, showDocTypeModal, setShowDocTypeModal } = props;
+  const { workflowState, isNode6Open, setIsNode6Open } = props;
+
+  if (!workflowState?.verification) return null;
+
+  const verification = workflowState.verification;
+  const isPass = verification.passGate;
 
   return (
-    <>
-        {/* 節點 6：真確性檢核閘門 (預設收起，可點擊展開) */}
-        {workflowState?.verification && (
-          <div className={`p-5 rounded-3xl border shadow-xl space-y-3 transition-all ${workflowState.verification.passGate ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-rose-500/10 border-rose-500/30'}`}>
-            <div
-              className="flex items-center justify-between cursor-pointer select-none"
-              onClick={() => setIsNode6Open(prev => !prev)}
-            >
-              <div className="flex items-center gap-3">
-                {workflowState.verification.passGate ? (
-                  <ShieldCheck className="w-6 h-6 text-emerald-400" />
-                ) : (
-                  <AlertTriangle className="w-6 h-6 text-rose-400" />
-                )}
-                <div>
-                  <h2 className="text-base font-bold text-white flex items-center gap-2">
-                    <span>節點 6：真確性檢核閘門</span>
-                    <span className={`text-xs px-2 py-0.5 rounded-md font-bold ${workflowState.verification.passGate ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'}`}>
-                      {workflowState.verification.passGate ? '✓ 檢核通過' : '⚠ 待人工法學審核'}
-                    </span>
-                  </h2>
-                  <p className="text-xs text-slate-400">
-                    查核 {workflowState.verification.totalChecked} 處 · 幽靈法條 {workflowState.verification.ghostCount} 處
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-slate-400">
-                  {isNode6Open ? '收起資料' : '展開檢視'}
-                </span>
-                {isNode6Open ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+    <div className={`rounded-xl border transition-colors overflow-hidden ${isPass ? 'bg-[#0e1424] border-emerald-500/40' : 'bg-[#180f14] border-rose-500/40'}`}>
+      {/* 節點 6 標頭：極簡條列化 */}
+      <div
+        className="px-5 py-3.5 flex items-center justify-between cursor-pointer select-none bg-slate-900/50 hover:bg-slate-900/80 transition-colors"
+        onClick={() => setIsNode6Open((prev: boolean) => !prev)}
+      >
+        <div className="flex items-center gap-2.5">
+          <span className={`text-xs px-2 py-0.5 rounded font-bold ${isPass ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'}`}>
+            {isPass ? '檢核通過' : '待人工審核'}
+          </span>
+          <div>
+            <h2 className="text-sm font-bold text-white">真確性檢核結果</h2>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              檢核 {verification.totalChecked} 處 · 異常 {verification.ghostCount} 處 · {formatVerificationStatus(verification.verificationStatus)}
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setIsNode6Open((prev: boolean) => !prev)}
+          className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors"
+        >
+          {isNode6Open ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        </button>
+      </div>
+
+      {/* 展開之極簡證據清單 */}
+      {isNode6Open && (
+        <div className="p-4 border-t border-slate-800/80 space-y-2.5 text-xs">
+          {verification.warningNotice && (
+            <div className="py-2 text-slate-300 border-b border-slate-800">
+              {verification.warningNotice}
+            </div>
+          )}
+
+          {verification.officialEvidence && verification.officialEvidence.length > 0 ? (
+            <div>
+              <span className="text-[11px] font-bold text-slate-400 block mb-1.5 uppercase tracking-wider">實質檢核明細清單</span>
+              <div className="divide-y divide-slate-800">
+                {verification.officialEvidence.map((item: any, i: number) => (
+                  <div key={i} className="py-2 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                    <div className="flex items-center gap-2 font-mono">
+                      <span className="font-bold text-slate-200">{item.citation}</span>
+                      <span className="text-slate-600">·</span>
+                      <span className={item.status === 'VALID' ? 'text-emerald-400 font-semibold' : 'text-amber-400 font-semibold'}>
+                        {item.status}
+                      </span>
+                      {item.claimSupportStatus && (
+                        <span className="text-slate-500">({item.claimSupportStatus})</span>
+                      )}
+                    </div>
+                    {item.sourceUrl && (
+                      <a
+                        className="text-sky-400 hover:underline shrink-0"
+                        href={item.sourceUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {item.source}
+                      </a>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
-
-            {isNode6Open && (
-              <div className="pt-3 border-t border-slate-800 space-y-3">
-                <p className="text-sm text-slate-300">{workflowState.verification.warningNotice || `檢核狀態：${formatVerificationStatus(workflowState.verification.verificationStatus)}`}</p>
-                <p className="text-xs text-slate-400">狀態：{formatVerificationStatus(workflowState.verification.verificationStatus)} · 查核 {workflowState.verification.totalChecked} 處 · 幽靈法條 {workflowState.verification.ghostCount} 處</p>
-                {workflowState.verification.officialEvidence?.length > 0 && (
-                  <div className="space-y-1 border-t border-slate-800 pt-3">
-                    <p className="text-xs font-bold text-slate-200">逐筆官方證據</p>
-                    {workflowState.verification.officialEvidence.map((item, i) => (
-                      <p key={i} className="text-xs text-slate-400">
-                        {item.citation} · 存在性 {item.status}{item.claimSupportStatus ? ` · 主張綁定 ${item.claimSupportStatus}` : ''} · {new Date(item.checkedAt).toLocaleString()} · <a className="text-sky-400 underline" href={item.sourceUrl} target="_blank" rel="noreferrer">{item.source}</a>
-                      </p>
-                    ))}
-                  </div>
-                )}
-                {(!workflowState.verification.officialEvidence || workflowState.verification.officialEvidence.length === 0) && (
-                  <p className="text-xs text-amber-300">逐筆官方證據：無可查證引用（待法學審核）</p>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-    </>
+          ) : (
+            <div className="text-[11px] text-amber-300/80 py-2">
+              逐筆官方證據：無可查證引用（已納入保守防偽機制）
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 };
+

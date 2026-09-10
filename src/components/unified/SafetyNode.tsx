@@ -1,65 +1,58 @@
 
 import React from 'react';
-import {
-  Send, Sparkles, ShieldAlert, ShieldCheck, AlertTriangle, CheckCircle2,
-  Cpu, Layers, FileCheck2, FileText, RotateCcw, Copy, Check, Loader2,
-  ChevronRight, ArrowRight, HelpCircle, Clock, BookOpen, Scale,
-  Upload, History, Download, Printer, Trash2, X, FilePlus, ChevronDown,
-  ChevronUp, Star, Edit3, Plus, Bookmark, PenTool, LayoutTemplate, MessageSquare
-} from 'lucide-react';
-import { formatLegalChapter, formatVerificationStatus } from '../../lib/legalChapterLabels';
+import { ShieldAlert, HelpCircle, PhoneCall, ShieldCheck } from 'lucide-react';
+import { UIConstants } from '../../constants/ui';
 
 export interface SafetyNodeProps {
   [key: string]: any;
 }
 
 export const SafetyNode: React.FC<SafetyNodeProps> = (props) => {
-  const { inputNarrative, setInputNarrative, isSubmitting, setIsSubmitting, workflowState, setWorkflowState, supplementInput, setSupplementInput, isCopied, setIsCopied, acknowledgeSafetyInSession, setAcknowledgeSafetyInSession, isNode2Open, setIsNode2Open, isNode4Open, setIsNode4Open, isNode5Open, setIsNode5Open, isNode6Open, setIsNode6Open, customPreset, setCustomPreset, showCustomPresetModal, setShowCustomPresetModal, editPresetTitle, setEditPresetTitle, editPresetNarrative, setEditPresetNarrative, fileInputRef, isDragOver, setIsDragOver, isParsingFiles, setIsParsingFiles, parsingStatus, setParsingStatus, batchQueue, setBatchQueue, batchIndex, setBatchIndex, isBatchRunning, setIsBatchRunning, showHistory, setShowHistory, historyList, setHistoryList, handleFiles, handleDrop, handleExecuteWorkflow, handleSupplementFact, handleProceedFromSafety, handleResetWorkflow, handleCopyAnalysis, loadFromHistory, handleBatchNext, handleBatchPrev, handleSaveCurrentAsCustomPreset, handleSelectSuggestedOption, handleSaveCustomPreset, handleToggleAllNodes, defaultSample, handleSelectTool, saveCrossFeatureContext, exportAsHtml, exportAsText, printReport, deleteFromHistory, clearHistory, loadHistory, showDocTypeModal, setShowDocTypeModal } = props;
+  const { workflowState, supplementInput, setSupplementInput, acknowledgeSafetyInSession, isSubmitting, handleSupplementFact, handleProceedFromSafety, handleResetWorkflow, handleSelectSuggestedOption } = props;
+
+  const isSexualAutonomy = workflowState?.router?.chapter?.includes('性自主') ||
+    Boolean(workflowState?.router?.cause?.includes('性自主')) ||
+    /性自主|性侵|猥褻|乘機性交|強制性交/.test(workflowState?.userNarrative || '');
 
   return (
     <>
-        {/* Safety Protection Node */}
-        {workflowState?.currentStep === 'SAFETY_PROTECTION' && !acknowledgeSafetyInSession && (
-          <div className="p-6 rounded-3xl bg-rose-950/40 border border-rose-500/40 shadow-xl space-y-4">
-            <div className="flex items-center gap-3">
-              <ShieldAlert className="w-6 h-6 text-rose-400" />
-              <h2 className="text-lg font-bold text-rose-200">安全保護節點觸發</h2>
+        {/* Safety Protection Node - 敏感案件保護提示（直接顯示保護指引與援助資源，無須阻擋點擊確認） */}
+        {workflowState?.safety && (
+          <div className="p-4 rounded-xl bg-rose-950/20 border border-rose-500/20 space-y-2.5 text-xs text-rose-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 font-bold text-rose-300">
+                <ShieldCheck className="w-4 h-4 text-rose-400" />
+                <span>{isSexualAutonomy ? '性自主保護指引與援助資源（已自動加載）' : '敏感法律保護指引與社會援助資源（已自動加載）'}</span>
+              </div>
+              <span className={UIConstants.badgeDanger}>保護指引已啟用</span>
             </div>
-            <p className="text-sm text-rose-200/80 leading-relaxed">
-              您的案件涉及敏感法律領域（家庭暴力、性侵、自殺等），系統將啟動安全保護機制。
-              分析結果將附帶心理健康資源資訊，並優先建議尋求專業協助。
+            <p className="opacity-90 leading-relaxed">
+              {isSexualAutonomy
+                ? '本件已自動附帶性自主權益保護資源。若有人身危難或急迫採證需求，請優先保全生物檢體與通話紀錄，並可即刻撥打 24 小時免付費保護專線。'
+                : '本案件涉及敏感法律領域，系統已自動加載心理支持與人身安全指引。分析持續進行，若有緊急危難請即刻尋求專業或緊急救助。'}
             </p>
-            <div className="flex gap-3">
-              <button
-                onClick={handleProceedFromSafety}
-                className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-sm font-bold transition-colors"
-              >
-                我已了解，繼續分析
-              </button>
-              <button
-                onClick={handleResetWorkflow}
-                className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-bold border border-slate-700 transition-colors"
-              >
-                重新輸入
-              </button>
+            <div className="flex flex-wrap items-center gap-3 pt-1 text-[11px] font-semibold text-rose-300">
+              <span className="flex items-center gap-1"><PhoneCall className="w-3.5 h-3.5 text-rose-400" /> 全國婦幼保護專線：113</span>
+              <span className="flex items-center gap-1"><PhoneCall className="w-3.5 h-3.5 text-rose-400" /> 緊急報案：110</span>
+              <span className="flex items-center gap-1"><PhoneCall className="w-3.5 h-3.5 text-rose-400" /> 衛福部安心專線：1925</span>
             </div>
           </div>
         )}
 
         {/* Questioning Node */}
         {workflowState?.questioning && !workflowState?.router?.is_complete && (
-          <div className="p-6 rounded-3xl bg-amber-500/10 border border-amber-500/30 shadow-xl space-y-4">
-            <div className="flex items-center gap-3">
-              <HelpCircle className="w-6 h-6 text-amber-400" />
-              <h2 className="text-lg font-bold text-amber-200">動態追問節點</h2>
-              <span className={`text-[11px] px-2 py-0.5 rounded-md font-bold ${workflowState.questioning.generationMode === 'AI' ? 'bg-violet-500/20 text-violet-300' : 'bg-amber-500/20 text-amber-300'}`}>
+          <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 space-y-3">
+            <div className="flex items-center gap-2.5">
+              <HelpCircle className="w-5 h-5 text-amber-400" />
+              <h2 className="text-sm font-bold text-amber-200">動態追問節點</h2>
+              <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${workflowState.questioning.generationMode === 'AI' ? 'bg-violet-500/20 text-violet-300' : 'bg-amber-500/20 text-amber-300'}`}>
                 {workflowState.questioning.generationMode === 'AI' ? 'AI 動態生成' : '規則式安全備援'}
               </span>
             </div>
-            <p className="text-sm text-amber-200/80">{workflowState.questioning.rawMessage}</p>
+            <p className="text-xs text-amber-200/80 leading-relaxed">{workflowState.questioning.rawMessage}</p>
 
             <div className="flex flex-wrap gap-2">
-              {workflowState.questioning.suggestedOptions?.map((opt, i) => (
+              {workflowState.questioning.suggestedOptions?.map((opt: string, i: number) => (
                 <button
                   key={i}
                   type="button"

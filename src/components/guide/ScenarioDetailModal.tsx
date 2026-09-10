@@ -43,10 +43,10 @@ export const ScenarioDetailModal: React.FC<ScenarioDetailModalProps> = ({
   onSelectTool
 }) => (
   <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-    <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 md:p-8 space-y-6 shadow-2xl">
+    <div className="bg-slate-900 border border-slate-700 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-6">
       <div className="flex items-start justify-between border-b border-slate-800 pb-4">
         <div className="flex items-center gap-3">
-          <div className={`p-3 rounded-2xl bg-gradient-to-br ${scenario.color} border`}>
+          <div className="p-3 rounded-xl bg-slate-800 border">
             {React.createElement(scenario.icon, { className: 'w-6 h-6' })}
           </div>
           <div>
@@ -63,14 +63,14 @@ export const ScenarioDetailModal: React.FC<ScenarioDetailModalProps> = ({
       </div>
 
       <div className="space-y-4 text-xs md:text-sm">
-        <div className="space-y-1.5 bg-slate-950/60 p-4 rounded-2xl border border-slate-800">
+        <div className="space-y-1.5 bg-slate-950/60 p-6 rounded-xl border border-slate-800">
           <span className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
             <AlertTriangle className="w-3.5 h-3.5" /> 什麼時候該用這個？（適用時機）
           </span>
           <p className="text-slate-300 leading-relaxed">{scenario.situation}</p>
         </div>
 
-        <div className="space-y-1.5 bg-slate-950/60 p-4 rounded-2xl border border-slate-800">
+        <div className="space-y-1.5 bg-slate-950/60 p-6 rounded-xl border border-slate-800">
           <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
             <CheckCircle2 className="w-3.5 h-3.5" /> 律師建議的最佳解法
           </span>
@@ -78,13 +78,13 @@ export const ScenarioDetailModal: React.FC<ScenarioDetailModalProps> = ({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 space-y-1">
+          <div className="bg-slate-950/60 p-6 rounded-xl border border-slate-800 space-y-1">
             <span className="text-xs font-bold text-sky-400 flex items-center gap-1.5">
               <DollarSign className="w-3.5 h-3.5" /> 法院或行政規費
             </span>
             <p className="text-slate-300 text-xs">{scenario.feeInfo}</p>
           </div>
-          <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 space-y-1">
+          <div className="bg-slate-950/60 p-6 rounded-xl border border-slate-800 space-y-1">
             <span className="text-xs font-bold text-rose-400 flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5" /> 重要法定期間與時效
             </span>
@@ -92,7 +92,7 @@ export const ScenarioDetailModal: React.FC<ScenarioDetailModalProps> = ({
           </div>
         </div>
 
-        <div className="space-y-2 bg-slate-950/60 p-4 rounded-2xl border border-slate-800">
+        <div className="space-y-2 bg-slate-950/60 p-6 rounded-xl border border-slate-800">
           <span className="text-xs font-bold text-indigo-400 flex items-center gap-1.5">
             <BookOpen className="w-3.5 h-3.5" /> 必備文件與證據清單（請先準備好）
           </span>
@@ -145,7 +145,7 @@ export const ScenarioDetailModal: React.FC<ScenarioDetailModalProps> = ({
               onClose();
               onLaunch(scenario);
             }}
-            className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-bold transition-all shadow-lg shadow-indigo-600/30 flex items-center gap-2"
+            className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all flex items-center gap-2"
           >
             <Sparkles className="w-4 h-4" />
             立即啟用此工具

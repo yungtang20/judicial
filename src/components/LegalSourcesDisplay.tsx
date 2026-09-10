@@ -20,7 +20,7 @@ export function LegalSourcesDisplay({ sources, isExternal, statusMessage, allowe
   const isDark = theme === 'dark';
 
   return (
-    <div className={`mt-4 border rounded-xl overflow-hidden shadow-sm ${isDark ? 'border-slate-800 bg-slate-950 text-slate-200' : 'border-slate-200 bg-slate-50 text-slate-800'}`}>
+    <div className={`mt-4 border rounded-xl overflow-hidden ${isDark ? 'border-slate-800 bg-slate-950 text-slate-200' : 'border-slate-200 bg-slate-50 text-slate-800'}`}>
       <div 
         className={`px-4 py-3 border-b flex items-center justify-between cursor-pointer transition-colors ${isDark ? 'bg-slate-900 border-slate-800 hover:bg-slate-800' : 'bg-white border-slate-200 hover:bg-slate-50'}`}
         onClick={() => setIsExpanded(!isExpanded)}

@@ -221,7 +221,7 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
         </div>
 
         {/* 113 / 110 緊急求助徽章 */}
-        <div className="flex items-center gap-2.5 p-3 rounded-2xl bg-rose-950/40 border border-rose-800/60 shadow-inner">
+        <div className="flex items-center gap-2.5 p-3 rounded-xl bg-rose-950/40 border border-rose-800/60">
           <div className="p-2 rounded-xl bg-rose-500/20 text-rose-400">
             <PhoneCall className="w-5 h-5 animate-pulse" />
           </div>
@@ -235,7 +235,7 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
       </div>
 
       {/* 步驟指示器 */}
-      <div className="grid grid-cols-4 gap-2 bg-slate-900/60 p-2 rounded-2xl border border-slate-800">
+      <div className="grid grid-cols-4 gap-2 bg-slate-900/60 p-2 rounded-xl border border-slate-800">
         {[
           { num: 1, title: '爭議情境' },
           { num: 2, title: '事實陳述與篩查' },
@@ -247,7 +247,7 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
             onClick={() => setCurrentStep(step.num)}
             className={`flex items-center justify-center md:justify-start gap-2 p-2.5 rounded-xl transition-all text-xs font-bold ${
               currentStep === step.num
-                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/40'
+                ? 'bg-indigo-600 text-white'
                 : currentStep > step.num
                 ? 'bg-slate-800/80 text-indigo-300 hover:bg-slate-800'
                 : 'text-slate-500 hover:text-slate-400'
@@ -269,7 +269,7 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
 
       {/* 步驟一：爭議情境選取 */}
       {currentStep === 1 && (
-        <div className="space-y-6 bg-slate-900/40 p-6 rounded-2xl border border-slate-800/80">
+        <div className="space-y-6 bg-slate-900/40 p-6 rounded-xl border border-slate-800/80">
           <div>
             <h2 className="text-lg font-bold text-white mb-1">步驟 1：請問您遇到的是哪一類生活爭議或侵害？</h2>
             <p className="text-xs text-slate-400">請選取最接近的情境，系統將為您建立針對性的問答框架：</p>
@@ -392,7 +392,7 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
           <div className="flex justify-end pt-4">
             <button
               onClick={() => setCurrentStep(2)}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-900/50 transition-all"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-all"
             >
               下一步：填寫事實陳述
               <ArrowRight className="w-4 h-4" />
@@ -403,7 +403,7 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
 
       {/* 步驟二：事實陳述與即時敏感關鍵詞過濾 */}
       {currentStep === 2 && (
-        <div className="space-y-6 bg-slate-900/40 p-6 rounded-2xl border border-slate-800/80">
+        <div className="space-y-6 bg-slate-900/40 p-6 rounded-xl border border-slate-800/80">
           <div>
             <h2 className="text-lg font-bold text-white mb-1">步驟 2：請描述事情發生的經過</h2>
             <p className="text-xs text-slate-400">
@@ -465,7 +465,7 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
           </div>
 
           {/* 節點 1：智能路由與完整度檢查 */}
-          <div className="p-5 rounded-2xl bg-slate-950/90 border border-indigo-500/30 space-y-4">
+          <div className="p-6 rounded-xl bg-slate-950/90 border border-indigo-500/30 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <div className="p-2 rounded-lg bg-indigo-500/20 text-indigo-400">
@@ -485,7 +485,7 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
                 type="button"
                 onClick={handleRunRouter}
                 disabled={!narrative.trim() || isEvaluatingRouter}
-                className="shrink-0 flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-xs font-bold transition-all shadow-md cursor-pointer"
+                className="shrink-0 flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-xs font-bold transition-all cursor-pointer"
               >
                 {isEvaluatingRouter ? (
                   <>
@@ -501,54 +501,41 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
               </button>
             </div>
 
-            {/* 節點 1 評估結果呈現 */}
+            {/* 節點 1 評估結果呈現：極簡清單排列 */}
             {routerResult && (
-              <div className="space-y-3 pt-2 border-t border-slate-800">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                  <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
-                    <span className="text-[10px] text-slate-400 block">法律領域 (domain)</span>
-                    <span className="text-xs font-bold text-indigo-300">{routerResult.domain}</span>
+              <div className="pt-2 border-t border-slate-800 text-xs">
+                <span className="text-[11px] font-bold text-slate-400 block mb-1.5 uppercase tracking-wider">分流屬性清單</span>
+                <div className="divide-y divide-slate-800">
+                  <div className="py-2 flex items-center justify-between">
+                    <span className="text-slate-400">法律領域</span>
+                    <span className="font-bold text-indigo-300">{routerResult.domain}</span>
                   </div>
-                  <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
-                    <span className="text-[10px] text-slate-400 block">罪章/領域 (chapter)</span>
-                    <span className="text-xs font-bold text-white truncate block">{routerResult.chapter}</span>
+                  <div className="py-2 flex items-center justify-between">
+                    <span className="text-slate-400">罪章/領域</span>
+                    <span className="font-semibold text-white truncate max-w-xs">{routerResult.chapter}</span>
                   </div>
-                  <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
-                    <span className="text-[10px] text-slate-400 block">案由罪名 (cause)</span>
-                    <span className="text-xs font-bold text-amber-300 truncate block">{routerResult.cause}</span>
+                  <div className="py-2 flex items-center justify-between">
+                    <span className="text-slate-400">案由罪名</span>
+                    <span className="font-semibold text-amber-300 truncate max-w-xs">{routerResult.cause}</span>
                   </div>
-                  <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
-                    <span className="text-[10px] text-slate-400 block">敏感性 (is_sensitive)</span>
-                    <span className={`text-xs font-bold ${routerResult.is_sensitive ? 'text-rose-400' : 'text-emerald-400'}`}>
-                      {routerResult.is_sensitive ? '⚠️ 敏感人身安全' : '一般爭議'}
+                  <div className="py-2 flex items-center justify-between">
+                    <span className="text-slate-400">敏感案件保護</span>
+                    <span className={`font-bold ${routerResult.is_sensitive ? 'text-rose-400' : 'text-emerald-400'}`}>
+                      {routerResult.is_sensitive ? '敏感人身安全案件' : '一般訴訟爭端'}
+                    </span>
+                  </div>
+                  <div className="py-2 flex items-center justify-between">
+                    <span className="text-slate-400">事實要素完整度</span>
+                    <span className={`font-bold ${routerResult.is_complete ? 'text-emerald-400' : 'text-amber-400'}`}>
+                      {routerResult.is_complete ? '要件完整' : '缺少關鍵事實（已啟動追問）'}
                     </span>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between p-3 rounded-xl bg-slate-900/80 border border-slate-800">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-300 font-medium">事實要素完整度 (is_complete)：</span>
-                    {routerResult.is_complete ? (
-                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-bold flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3" />
-                        要件完整 (true)
-                      </span>
-                    ) : (
-                      <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-bold flex items-center gap-1">
-                        <AlertTriangle className="w-3 h-3" />
-                        缺少關鍵事實 (false)
-                      </span>
-                    )}
-                  </div>
-                  {!routerResult.is_complete && (
-                    <span className="text-[11px] text-amber-400">已自動觸發節點 2 動態追問</span>
-                  )}
-                </div>
-
                 {routerResult.missing_elements && routerResult.missing_elements.length > 0 && (
-                  <div className="p-3 rounded-xl bg-amber-950/30 border border-amber-800/40 text-xs space-y-1.5">
+                  <div className="p-3 mt-2 rounded-xl bg-amber-950/30 border border-amber-800/40 text-xs space-y-1">
                     <span className="font-bold text-amber-300">缺少的關鍵事實（人、事、時、地、證據）：</span>
-                    <ul className="list-disc list-inside space-y-1 text-slate-300">
+                    <ul className="list-disc list-inside space-y-0.5 text-slate-300">
                       {routerResult.missing_elements.map((item, idx) => (
                         <li key={idx}>{item}</li>
                       ))}
@@ -561,7 +548,7 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
 
           {/* 節點 2：動態追問 (Questioning Prompt) */}
           {(questioningResult || isLoadingQuestion) && (
-            <div className="p-5 rounded-2xl bg-indigo-950/30 border border-indigo-500/40 space-y-4 animate-in fade-in">
+            <div className="p-6 rounded-xl bg-indigo-950/30 border border-indigo-500/40 space-y-4 animate-in fade-in">
               <div className="flex items-center gap-2 text-indigo-300">
                 <MessageSquareQuote className="w-5 h-5 text-indigo-400" />
                 <h3 className="text-sm font-bold text-white">
@@ -616,7 +603,7 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
             <button
               onClick={() => setCurrentStep(3)}
               disabled={!narrative.trim()}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white font-bold text-xs shadow-lg shadow-indigo-900/50 transition-all"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white font-bold text-xs transition-all"
             >
               下一步：確認身分與危害特徵
               <ArrowRight className="w-4 h-4" />
@@ -627,7 +614,7 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
 
       {/* 步驟三：關係人與危害特徵勾選 */}
       {currentStep === 3 && (
-        <div className="space-y-6 bg-slate-900/40 p-6 rounded-2xl border border-slate-800/80">
+        <div className="space-y-6 bg-slate-900/40 p-6 rounded-xl border border-slate-800/80">
           <div>
             <h2 className="text-lg font-bold text-white mb-1">步驟 3：雙方身分關係與即時處境確認</h2>
             <p className="text-xs text-slate-400">
@@ -743,7 +730,7 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
             </button>
             <button
               onClick={() => setCurrentStep(4)}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-900/50 transition-all"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-all"
             >
               產出法律流程分類與指引報告
               <ArrowRight className="w-4 h-4" />
@@ -756,7 +743,7 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
       {currentStep === 4 && (
         <div className="space-y-6">
           {/* 報告頂部橫幅 */}
-          <div className={`p-6 rounded-2xl border ${
+          <div className={`p-6 rounded-xl border ${
             guideResult.isHighRiskSafety 
               ? 'bg-rose-950/40 border-rose-700/80' 
               : 'bg-indigo-950/40 border-indigo-700/80'
@@ -801,17 +788,17 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
             </p>
           </div>
 
-          {/* 安全處置與急診指引 */}
+          {/* 安全處置與急診指引：極簡清單排列 */}
           {guideResult.safetyGuidelines.length > 0 && (
-            <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-3">
-              <h3 className="text-sm font-bold text-amber-300 flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-amber-400" />
-                緊急處置與安全指引守則
+            <div className="p-6 rounded-xl bg-slate-900/60 border border-slate-800 space-y-3">
+              <h3 className="text-xs font-bold text-amber-300 uppercase tracking-wider">
+                緊急處置與安全指引守則清單
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="divide-y divide-slate-800 text-xs text-slate-300">
                 {guideResult.safetyGuidelines.map((guide, idx) => (
-                  <div key={idx} className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800/80 text-xs text-slate-300 leading-relaxed">
-                    {guide}
+                  <div key={idx} className="py-2.5 flex items-start gap-2.5">
+                    <span className="text-amber-400 font-bold leading-relaxed">·</span>
+                    <p className="leading-relaxed flex-1">{guide}</p>
                   </div>
                 ))}
               </div>
@@ -829,7 +816,7 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
               {guideResult.recommendedPaths.map(path => (
                 <div
                   key={path.pathId}
-                  className="p-5 rounded-2xl bg-slate-900/80 border border-indigo-500/40 hover:border-indigo-400 transition-all flex flex-col justify-between space-y-4 shadow-lg shadow-indigo-950/20"
+                  className="p-6 rounded-xl bg-slate-900/80 border border-indigo-500/40 hover:border-indigo-400 transition-all flex flex-col justify-between space-y-4"
                 >
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
@@ -856,7 +843,7 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
                         }
                       }
                     }}
-                    className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-md transition-all"
+                    className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center justify-center gap-2 transition-all"
                   >
                     <span>前往專屬書狀／工作台</span>
                     <ArrowRight className="w-4 h-4" />
@@ -867,7 +854,7 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
           </div>
 
           {/* 節點 3：三段論涵攝引擎 (Syllogism Engine Prompt) */}
-          <div className="p-6 rounded-2xl bg-slate-900/90 border border-indigo-500/40 space-y-4 shadow-xl">
+          <div className="p-6 rounded-xl bg-slate-900/90 border border-indigo-500/40 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
               <div className="flex items-center gap-2.5">
                 <div className="p-2.5 rounded-xl bg-indigo-500/20 text-indigo-400">
@@ -892,7 +879,7 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
                 type="button"
                 onClick={handleRunSyllogism}
                 disabled={!narrative.trim() || isLoadingSyllogism}
-                className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 disabled:opacity-40 text-white text-xs font-bold shadow-lg shadow-indigo-950/50 transition-all cursor-pointer"
+                className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-xs font-bold transition-all cursor-pointer"
               >
                 {isLoadingSyllogism ? (
                   <>
@@ -961,38 +948,36 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
             )}
           </div>
 
-          {/* 適用法條依據與舉證清單雙欄 */}
+          {/* 適用法條依據與舉證清單雙欄：極簡清單排列 */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* 實體法條依據 */}
-            <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-2.5">
-              <h4 className="text-xs font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-1.5">
-                <Scale className="w-3.5 h-3.5" />
-                適用實體法依據
+            <div className="p-6 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
+              <h4 className="text-xs font-bold text-indigo-300 uppercase tracking-wider">
+                適用實體法條清單
               </h4>
-              <ul className="space-y-2">
+              <div className="divide-y divide-slate-800 text-xs text-slate-300">
                 {guideResult.statuteCitations.map((cit, i) => (
-                  <li key={i} className="text-xs text-slate-300 flex items-start gap-2 bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/60">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-indigo-400 shrink-0 mt-0.5" />
-                    <span>{cit}</span>
-                  </li>
+                  <div key={i} className="py-2 flex items-center justify-between">
+                    <span className="font-mono text-indigo-200">{cit}</span>
+                    <span className="text-[11px] text-slate-500">法定規範</span>
+                  </div>
                 ))}
-              </ul>
+              </div>
             </div>
 
             {/* 舉證檢核清單 */}
-            <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-2.5">
-              <h4 className="text-xs font-bold text-emerald-300 uppercase tracking-wider flex items-center gap-1.5">
-                <FileText className="w-3.5 h-3.5" />
+            <div className="p-6 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
+              <h4 className="text-xs font-bold text-emerald-300 uppercase tracking-wider">
                 建議優先保全證據清單
               </h4>
-              <ul className="space-y-2">
+              <div className="divide-y divide-slate-800 text-xs text-slate-300">
                 {guideResult.evidenceChecklist.map((evi, i) => (
-                  <li key={i} className="text-xs text-slate-300 flex items-start gap-2 bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/60">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                  <div key={i} className="py-2 flex items-center justify-between">
                     <span>{evi}</span>
-                  </li>
+                    <span className="text-[11px] text-emerald-400 font-semibold shrink-0 ml-2">待保存</span>
+                  </div>
                 ))}
-              </ul>
+              </div>
             </div>
           </div>
 

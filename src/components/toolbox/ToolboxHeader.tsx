@@ -22,11 +22,8 @@ export const ToolboxHeader: React.FC<ToolboxHeaderProps> = ({
   const countToolsInGroup = (group: string) => LEGAL_TOOLS.filter(t => t.categoryGroup === group).length;
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden">
-      <div className="absolute -right-10 -bottom-10 opacity-10 pointer-events-none">
-        <FolderLock className="w-80 h-80 text-blue-400" />
-      </div>
-      <div className="relative z-10 space-y-3">
+    <div className="bg-[#0e1424] border border-slate-800 rounded-xl p-6 text-white relative">
+      <div className="space-y-3">
         <div className="flex items-center gap-2 mb-2">
           <button
             onClick={onNavigateGuide}

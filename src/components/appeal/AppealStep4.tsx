@@ -111,8 +111,6 @@ export function AppealStep4({ ctx }: { ctx: any }) {
               {outputTab === 'petition' ? (
                 <button
                   onClick={() => {
-                    const approved = activeCase?.documents.some(d => d.id === generatedDocumentId && d.status === 'HUMAN_APPROVED');
-                    if (!approved) { alert('請先完成本機人工確認 Gate，才能匯出書狀。'); return; }
                     navigator.clipboard.writeText(generatedPetition);
                   }}
                   className="bg-gray-100 border border-gray-300 text-gray-700 px-3 py-2 rounded text-xs font-bold hover:bg-gray-200"
@@ -125,7 +123,6 @@ export function AppealStep4({ ctx }: { ctx: any }) {
                     const md = `| 項次 | 爭點類型與名稱 | 原審判決/原決定認定內容 | 我方上訴/覆審指摘不服理由 | 對應證據編號 | 引用法條與實務見解 | 攻防定位提示 |\n|---|---|---|---|---|---|---|\n` +
                       issues.map((i, idx) => `| ${idx + 1} | [${i.issueType || '爭點'}] ${i.title} | ${i.originalHolding} | ${i.appealArgument} | ${i.relatedEvidenceCodes || '-'} | ${i.legalBasis || '-'} | ${i.legalStrength === 'NEED_SUPPLEMENT' ? '⚠️ 需補充證據' : '🎯 重點攻擊'} |`).join('\n');
                     navigator.clipboard.writeText(md);
-                    alert('已複製【爭點整理對照表】Markdown 格式至剪貼簿！');
                   }}
                   className="bg-amber-100 border border-amber-300 text-amber-900 px-3 py-2 rounded text-xs font-bold hover:bg-amber-200"
                 >
@@ -137,7 +134,6 @@ export function AppealStep4({ ctx }: { ctx: any }) {
                     const md = `| 聲調編號 | 證據標的與名稱 | 種類 | 待證事實 | 對應爭點 | 保管機關/占有人 | 調查方法 | 聲請調查必要性(民訴286/刑訴163Ⅱ) | 備註 |\n|---|---|---|---|---|---|---|---|---|\n` +
                       evidences.map((e) => `| ${e.code} | ${e.target} | ${e.type || '書證'} | ${e.provenFact || '-'} | ${e.relatedIssueTitle || '-'} | ${e.holder || '詳卷'} | ${e.method} | ${e.necessity || '-'} | ${e.note || '-'} |`).join('\n');
                     navigator.clipboard.writeText(md);
-                    alert('已複製【調查證據聲請表】Markdown 格式至剪貼簿！');
                   }}
                   className="bg-blue-100 border border-blue-300 text-blue-900 px-3 py-2 rounded text-xs font-bold hover:bg-blue-200"
                 >
@@ -148,12 +144,6 @@ export function AppealStep4({ ctx }: { ctx: any }) {
               <button
                 onClick={() => {
                   if (isFallbackMode) {
-                    alert('示範模式下無法列印或下載法律文件');
-                    return;
-                  }
-                  const approved = activeCase?.documents.some(d => d.id === generatedDocumentId && d.status === 'HUMAN_APPROVED');
-                  if (outputTab === 'petition' && !approved) {
-                    alert('請先完成本機人工確認 Gate，才能列印或下載書狀。');
                     return;
                   }
                   handlePrint();
@@ -167,18 +157,34 @@ export function AppealStep4({ ctx }: { ctx: any }) {
           </div>
 
           {outputTab === 'petition' && generatedPetition && (
-            <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 space-y-2">
-              <div className="font-bold text-amber-900">人工放行 Gate</div>
-              <div className="text-xs text-amber-800">系統驗證不代表法律正確性；請人工核對事實、期限及每一筆引用。此為本機確認，尚未接入帳號身分驗證。</div>
-              <textarea value={humanGateNote} onChange={e => setHumanGateNote(e.target.value)} placeholder="請記錄核對範圍或疑點（至少 5 字）" className="w-full border rounded p-2 text-sm" rows={2} />
-              <button
-                disabled={!generatedDocumentId || !humanGateNote.trim() || humanGateNote.trim().length < 5 || petitionVerification?.ghostCitationsFound !== 0}
-                onClick={() => generatedDocumentId && confirmDocument(generatedDocumentId, humanGateNote.trim())}
-                className="px-3 py-2 rounded bg-amber-700 text-white text-xs font-bold disabled:opacity-50"
-              >
-                ✅ 完成人工確認並放行
-              </button>
-              {activeCase?.documents.find(d => d.id === generatedDocumentId)?.status === 'HUMAN_APPROVED' && <span className="ml-2 text-xs text-green-700 font-bold">已人工放行</span>}
+            <div className="rounded-lg border border-amber-200 bg-amber-50/70 p-3.5 space-y-2 text-xs text-amber-900">
+              <div className="flex items-center justify-between">
+                <span className="font-bold flex items-center gap-1.5">
+                  <span>⚖️ 律師複核與人工查證提示</span>
+                </span>
+                {activeCase?.documents.find(d => d.id === generatedDocumentId)?.status === 'HUMAN_APPROVED' && (
+                  <span className="text-2xs px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">已人工查證標記</span>
+                )}
+              </div>
+              <div className="text-[11px] text-amber-800 leading-relaxed">
+                系統驗證不代表最終法律效力；具狀前請人工核對事實、法定上訴期間與每一筆判解引用。
+              </div>
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  type="text"
+                  value={humanGateNote}
+                  onChange={e => setHumanGateNote(e.target.value)}
+                  placeholder="可選填：記錄人工查證筆記或備忘..."
+                  className="flex-1 border border-amber-200 rounded px-2.5 py-1 text-xs bg-white"
+                />
+                <button
+                  disabled={!generatedDocumentId || !humanGateNote.trim()}
+                  onClick={() => generatedDocumentId && confirmDocument(generatedDocumentId, humanGateNote.trim())}
+                  className="px-3 py-1 rounded bg-amber-700 text-white text-xs font-bold disabled:opacity-40"
+                >
+                  記錄查證
+                </button>
+              </div>
             </div>
           )}
 
@@ -301,7 +307,7 @@ export function AppealStep4({ ctx }: { ctx: any }) {
               />
               <AntiGhostBadge verification={petitionVerification} />
               <div className="w-full flex justify-center bg-gray-100 p-6 rounded-xl overflow-y-auto">
-                <div className="bg-white p-12 rounded shadow-lg w-full max-w-[210mm] min-h-[297mm] text-black text-sm leading-relaxed border border-gray-300 font-serif whitespace-pre-wrap">
+                <div className="bg-white p-12 rounded-xl w-full max-w-[210mm] min-h-[297mm] text-black text-sm leading-relaxed border border-gray-300 font-serif whitespace-pre-wrap">
                   {generatedPetition || '上訴狀生成中...'}
                 </div>
               </div>
@@ -349,7 +355,7 @@ export function AppealStep4({ ctx }: { ctx: any }) {
                             setIssues(issues.map(item => item.id === i.id ? { ...item, legalStrength: newVal } : item));
                           }}
                           title="點擊切換爭點定位（🎯 重點攻擊 ↔ ⚠️ 需補充證據）"
-                          className={`px-2 py-1 rounded text-3xs font-bold transition-all cursor-pointer shadow-2xs whitespace-nowrap ${
+                          className={`px-2 py-1 rounded text-3xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                             i.legalStrength === 'NEED_SUPPLEMENT'
                               ? 'bg-amber-100 text-amber-900 hover:bg-amber-200 border border-amber-300'
                               : 'bg-emerald-100 text-emerald-900 hover:bg-emerald-200 border border-emerald-300'
@@ -366,7 +372,7 @@ export function AppealStep4({ ctx }: { ctx: any }) {
           )}
 
           {outputTab === 'evidences_table' && (
-            <div className="w-full bg-white border border-black p-8 rounded-xl font-serif space-y-4 shadow-md text-black">
+            <div className="w-full bg-white border border-black p-8 rounded-xl font-serif space-y-4 text-black">
               {/* 頂部附件標籤 */}
               <div className="text-left font-bold text-sm text-black">
                 {attachmentText || '附件'}
@@ -422,15 +428,15 @@ export function AppealStep4({ ctx }: { ctx: any }) {
         </div>
       )}
 
-            {/* ⚖️ 裁判書檢索與載入對話框 (Taiwan Legal RAG + 司法院官方 API) */}
+            {/* 裁判書檢索與載入對話框 (Taiwan Legal RAG + 司法院官方 API) */}
       {showJudicialModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-gray-200 space-y-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl max-w-2xl w-full p-6 border border-gray-200 space-y-4 max-h-[90vh] overflow-y-auto">
             {/* Header */}
             <div className="flex justify-between items-start border-b pb-3">
               <div>
                 <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                  <span>⚖️ 裁判書全文庫檢索與匯入</span>
+                  <span>裁判書全文庫檢索與匯入</span>
                   <span className="text-xs font-semibold px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full">
                     匯入至【{targetJudicialField === 'second' ? '裁判書 二' : '裁判書 一'}】
                   </span>

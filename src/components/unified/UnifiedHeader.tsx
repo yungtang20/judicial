@@ -19,32 +19,28 @@ export const UnifiedHeader: React.FC<UnifiedHeaderProps> = (props) => {
   return (
     <>
         {/* 頂部 Header */}
-        <div className="p-6 rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border border-indigo-500/30 shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
-            <Layers className="w-48 h-48 text-indigo-400" />
-          </div>
-
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="space-y-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 text-xs font-bold tracking-wide">
+        <div className="p-5 rounded-xl bg-[#0e1424] border border-slate-800 text-white relative">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="space-y-1.5">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-xs font-semibold">
                 <Cpu className="w-3.5 h-3.5" />
                 <span>統一入口自動化工作流 · 全流程狀態圖導航</span>
               </div>
-              <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">
+              <h1 className="text-xl md:text-2xl font-black text-white tracking-tight">
                 智慧法律統一分析工作台
               </h1>
-              <p className="text-sm text-slate-300 max-w-2xl leading-relaxed">
-                廢除分散工具跳轉，以單一入口接收文本。由狀態機自動導航執行：
-                <span className="text-indigo-300 font-semibold"> 智慧分流 ➔ 缺件追問 / 安全保護 ➔ 法規要件檢索 ➔ 三段論涵攝 ➔ 防偽真確性閘門</span>。
+              <p className="text-xs text-slate-400 max-w-2xl leading-relaxed">
+                以單一入口接收案情文本，由狀態機自動導航：
+                <span className="text-slate-300"> 智慧分流 ➔ 缺件追問 / 安全保護 ➔ 法規要件檢索 ➔ 三段論涵攝 ➔ 防偽真確性閘門</span>。
               </p>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               {/* History button */}
               <button
                 type="button"
                 onClick={() => setShowHistory(!showHistory)}
-                className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 transition-colors shadow-md"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-colors"
               >
                 <History className="w-3.5 h-3.5" />
                 <span>歷史記錄 ({historyList.length})</span>
@@ -54,10 +50,10 @@ export const UnifiedHeader: React.FC<UnifiedHeaderProps> = (props) => {
                 <button
                   type="button"
                   onClick={handleResetWorkflow}
-                  className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 transition-colors shadow-md"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-colors"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
-                  <span>開立新案件分析</span>
+                  <span>開立新案件</span>
                 </button>
               )}
             </div>

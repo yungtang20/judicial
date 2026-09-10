@@ -105,7 +105,7 @@ export default function Sidebar() {
       {/* Mobile Header */}
       <div className="md:hidden flex items-center justify-between p-4 bg-slate-900 border-b border-slate-800 shrink-0 sticky top-0 z-40">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-sky-600 flex items-center justify-center text-white shadow-lg">
+          <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center text-white">
             <Scale className="w-4 h-4" />
           </div>
           <h2 className="text-sm font-extrabold text-white tracking-tight">智慧法律書狀系統</h2>
@@ -128,14 +128,14 @@ export default function Sidebar() {
 
       {/* Sidebar */}
       <nav
-        className={`fixed md:relative top-[65px] md:top-0 left-0 w-3/4 max-w-[300px] md:w-[290px] h-[calc(100vh-65px)] md:h-screen bg-slate-950 flex flex-col border-r border-slate-800 select-none shadow-2xl transition-transform duration-300 ease-in-out z-50 ${
+        className={`fixed md:relative top-[65px] md:top-0 left-0 w-3/4 max-w-[300px] md:w-[290px] h-[calc(100vh-65px)] md:h-screen bg-[#090d16] flex flex-col border-r border-slate-800/90 select-none transition-transform duration-300 ease-in-out z-50 ${
           isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         }`}
       >
         {/* Desktop Header */}
-        <header className="hidden md:block p-5 border-b border-slate-800/80 bg-slate-900/60">
+        <header className="hidden md:block p-5 border-b border-slate-800 bg-[#0c1220]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-sky-600 flex items-center justify-center text-white font-black shadow-lg shadow-indigo-500/20">
+            <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-black">
               <Scale className="w-5 h-5" />
             </div>
             <div>
@@ -168,9 +168,9 @@ export default function Sidebar() {
               <li key={entry.id}>
                 <button
                   onClick={() => hasSubItems ? toggleGroup(entry.id) : handleNav(entry.id)}
-                  className={`w-full text-left p-3 rounded-2xl transition-all duration-200 border ${
+                  className={`w-full text-left p-3 rounded-xl transition-colors border ${
                     active
-                      ? 'bg-indigo-500/20 text-white border-indigo-500/60 shadow-lg shadow-indigo-950/50'
+                      ? 'bg-slate-800 text-white border-slate-700'
                       : 'text-slate-400 hover:bg-slate-900/60 hover:text-slate-200 border-slate-800/60 hover:border-slate-700'
                   }`}
                 >
@@ -227,8 +227,8 @@ export default function Sidebar() {
         </ul>
 
         {/* Bottom Status */}
-        <div className="p-4 border-t border-slate-800/80 bg-slate-900/40 space-y-3 mt-auto">
-          <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800/80 space-y-1.5 hidden md:block">
+        <div className="p-4 border-t border-slate-800 bg-[#0c1220] space-y-3 mt-auto">
+          <div className="p-3 rounded-xl bg-[#090d16] border border-slate-800 space-y-1.5 hidden md:block">
             <div className="flex items-center gap-2 text-xs font-bold text-slate-300">
               <Sparkles className="w-3.5 h-3.5 text-amber-400" />
               <span>不知道該用哪一個？</span>

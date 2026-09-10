@@ -3,6 +3,7 @@ import Sidebar from './components/Sidebar';
 import { RecentUsage, trackToolUsage } from './components/RecentUsage';
 import { Scale } from 'lucide-react';
 import { ToolProvider, useToolContext } from './contexts/ToolContext';
+import { GlobalUIProvider } from './contexts/GlobalUIContext';
 
 const UnifiedEntry = React.lazy(() => import('./components/UnifiedEntry').then(m => ({ default: m.default || m.UnifiedEntry })));
 const LegalGuideHome = React.lazy(() => import('./components/LegalGuideHome').then(m => ({ default: m.default || m.LegalGuideHome })));
@@ -13,7 +14,7 @@ const JudicialAndAiChecker = React.lazy(() => import('./components/JudicialAndAi
 
 function LoadingFallback() {
   return (
-    <div className="flex-1 flex items-center justify-center bg-[#0a0e1a]">
+    <div className="flex-1 flex items-center justify-center bg-[#090d16]">
       <div className="text-center space-y-4">
         <div className="w-12 h-12 mx-auto border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
         <p className="text-slate-400 text-sm">載入中...</p>
@@ -64,7 +65,7 @@ function AppContent() {
   };
 
   return (
-    <div className="flex flex-col md:flex-row h-screen bg-[#0a0e1a] text-white overflow-hidden font-sans">
+    <div className="flex flex-col md:flex-row h-screen bg-[#090d16] text-white overflow-hidden font-sans">
       <Sidebar />
       <main className="flex-1 overflow-y-auto">
         <Suspense fallback={<LoadingFallback />}>
@@ -73,8 +74,8 @@ function AppContent() {
             <div className="max-w-4xl mx-auto px-4 md:px-6 pt-4 md:pt-6 space-y-6">
               {/* Hero header */}
               <div className="text-center space-y-2 pt-2 md:pt-8">
-                <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-indigo-500 to-sky-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                  <Scale className="w-8 h-8 text-white" />
+                <div className="w-14 h-14 mx-auto rounded-xl bg-indigo-600 flex items-center justify-center">
+                  <Scale className="w-7 h-7 text-white" />
                 </div>
                 <h1 className="text-2xl font-extrabold text-white">智慧法律書狀系統</h1>
                 <p className="text-slate-400 text-sm max-w-md mx-auto">
@@ -102,8 +103,10 @@ function AppContent() {
 
 export default function App() {
   return (
-    <ToolProvider>
-      <AppContent />
-    </ToolProvider>
+    <GlobalUIProvider>
+      <ToolProvider>
+        <AppContent />
+      </ToolProvider>
+    </GlobalUIProvider>
   );
 }
