@@ -1,5 +1,7 @@
 import { Router, Request, Response } from "express";
+import { AIProvider } from "../../src/ai/providers/AIProvider.js";
 import { defaultAIProvider } from "../../src/ai/providers/providerRegistry.js";
+import { OpenAICompatibleProvider } from "../../src/ai/providers/OpenAICompatibleProvider.js";
 import { 
   buildQuestioningPrompt, 
   buildSyllogismEnginePrompt,
@@ -20,8 +22,62 @@ import {
 } from "../../src/lib/universalTriage.js";
 import { formatLegalChapter } from "../../src/lib/legalChapterLabels.js";
 import { searchOfficialJudgments, verifyOfficialCitations } from "../services/officialCitationVerification.js";
+import { isBasicSafeUrl, verifyDnsSafe } from "./fetchUrl.js";
 
 const router = Router();
+
+export interface CustomAIProviderInput {
+  providerType?: "custom";
+  baseUrl?: string;
+  apiKey?: string;
+  model?: string;
+}
+
+/**
+ * Builds a request-scoped Custom Provider without mutating process.env.
+ * Blank fields intentionally fall back to the server-side Agnes defaults.
+ */
+export async function resolveRequestAIProvider(input: unknown): Promise<AIProvider> {
+  if (input == null) return defaultAIProvider;
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    throw new Error("AI_PROVIDER_CONFIG_INVALID");
+  }
+
+  const config = input as CustomAIProviderInput;
+  if (config.providerType !== "custom") throw new Error("AI_PROVIDER_TYPE_UNSUPPORTED");
+
+  const baseUrl = typeof config.baseUrl === "string" && config.baseUrl.trim()
+    ? config.baseUrl.trim()
+    : "https://apihub.agnes-ai.com/v1";
+  const urlCheck = isBasicSafeUrl(baseUrl);
+  if (!urlCheck.safe || !urlCheck.parsed || urlCheck.parsed.protocol !== "https:") {
+    throw new Error("AI_PROVIDER_URL_INVALID");
+  }
+  if (!(await verifyDnsSafe(urlCheck.parsed.hostname))) {
+    throw new Error("AI_PROVIDER_URL_DNS_UNSAFE");
+  }
+
+  const apiKey = typeof config.apiKey === "string" ? config.apiKey.trim() : undefined;
+  const model = typeof config.model === "string" && config.model.trim() ? config.model.trim() : "agnes-3.0-flash";
+  if (baseUrl.length > 2048 || model.length > 128 || (apiKey && apiKey.length > 512)) {
+    throw new Error("AI_PROVIDER_CONFIG_TOO_LARGE");
+  }
+  if (!/^[A-Za-z0-9._:/-]+$/.test(model)) throw new Error("AI_PROVIDER_MODEL_INVALID");
+
+  return new OpenAICompatibleProvider({
+    providerId: "CUSTOM",
+    providerName: "CustomProvider",
+    apiKeyEnv: "AGNES_API_KEY",
+    baseUrlEnv: "AGNES_BASE_URL",
+    modelEnv: "AGNES_MODEL",
+    timeoutEnv: "AGNES_TIMEOUT_MS",
+    defaultBaseUrl: "https://apihub.agnes-ai.com/v1",
+    defaultModel: "agnes-3.0-flash",
+    apiKey: apiKey || undefined,
+    baseUrl,
+    model
+  });
+}
 
 /**
  * 節點 1：RouterNode 執行器
@@ -143,7 +199,8 @@ export function buildOfficialSearchEvidence(results: Array<{
 async function runQuestioningNode(
   missingElements: string[], 
   userInput: string,
-  temporalConflict?: ReturnType<typeof detectTemporalConflict>
+  temporalConflict?: ReturnType<typeof detectTemporalConflict>,
+  aiProvider: AIProvider = defaultAIProvider
 ): Promise<{ rawMessage: string; suggestedOptions: string[]; generationMode: "AI" | "RULE_FALLBACK"; generationReason: string }> {
   // 若有時間矛盾，優先生成具體矛盾澄清追問
   if (temporalConflict?.hasConflict && temporalConflict.questionPrompt) {
@@ -167,7 +224,7 @@ async function runQuestioningNode(
 
 請只回傳 JSON 物件，不得加入 Markdown：
 {"rawMessage":"給使用者的完整追問文字","suggestedOptions":["選項一","選項二","選項三"]}`;
-    const aiPromise = defaultAIProvider.generateStructured<{
+    const aiPromise = aiProvider.generateStructured<{
       rawMessage?: unknown;
       suggestedOptions?: unknown;
     }>(prompt, {
@@ -317,7 +374,8 @@ async function runRagNode(
 async function runSyllogismNode(
   legalElements: string, 
   userFacts: string,
-  routerMeta: { is_sensitive?: boolean; category?: string; protectionNotice?: string; legalBasis?: string[]; missing_elements?: string[] }
+  routerMeta: { is_sensitive?: boolean; category?: string; protectionNotice?: string; legalBasis?: string[]; missing_elements?: string[] },
+  aiProvider: AIProvider = defaultAIProvider
 ): Promise<{
   majorPremise: string;
   minorPremise: string;
@@ -332,7 +390,7 @@ async function runSyllogismNode(
 
   try {
     const prompt = buildSyllogismEnginePrompt(legalElements, userFacts.trim(), routerMeta.missing_elements);
-    const aiPromise = defaultAIProvider.generate(prompt, { temperature: 0.2 });
+    const aiPromise = aiProvider.generate(prompt, { temperature: 0.2 });
     const timeoutPromise = new Promise<never>((_, reject) => 
       setTimeout(() => reject(new Error("AI_SYLLOGISM_TIMEOUT")), 45000)
     );
@@ -453,14 +511,22 @@ async function runVerificationGateNode(
  */
 router.post("/api/workflow/execute", async (req: Request, res: Response) => {
   try {
-    const { userInput, stateId, acknowledgeSafety } = req.body as {
+    const { userInput, stateId, acknowledgeSafety, aiConfig } = req.body as {
       userInput?: string;
       stateId?: string;
       acknowledgeSafety?: boolean;
+      aiConfig?: unknown;
     };
 
     if (!userInput || !userInput.trim()) {
       return res.status(400).json({ error: "請提供案情描述或輸入文本" });
+    }
+
+    let requestAIProvider: AIProvider;
+    try {
+      requestAIProvider = await resolveRequestAIProvider(aiConfig);
+    } catch (error: any) {
+      return res.status(400).json({ error: "AI 提供商設定無效", code: error?.message || "AI_PROVIDER_CONFIG_INVALID" });
     }
 
     const state: LegalWorkflowState = createInitialWorkflowState(userInput.trim());
@@ -502,7 +568,8 @@ router.post("/api/workflow/execute", async (req: Request, res: Response) => {
       const questionData = await runQuestioningNode(
         routerResult.missing_elements,
         state.userNarrative,
-        routerResult.temporalConflict
+        routerResult.temporalConflict,
+        requestAIProvider
       );
       state.questioning = questionData;
       // 時間矛盾屬於重大邏輯錯誤，無法生成草稿，必須嚴格中斷
@@ -564,14 +631,22 @@ router.post("/api/workflow/execute", async (req: Request, res: Response) => {
  */
 router.post("/api/workflow/supplement", async (req: Request, res: Response) => {
   try {
-    const { existingNarrative, supplementText, acknowledgeSafety } = req.body as {
+    const { existingNarrative, supplementText, acknowledgeSafety, aiConfig } = req.body as {
       existingNarrative?: string;
       supplementText?: string;
       acknowledgeSafety?: boolean;
+      aiConfig?: unknown;
     };
 
     if (!supplementText || !supplementText.trim()) {
       return res.status(400).json({ error: "請提供補充內容" });
+    }
+
+    let requestAIProvider: AIProvider;
+    try {
+      requestAIProvider = await resolveRequestAIProvider(aiConfig);
+    } catch (error: any) {
+      return res.status(400).json({ error: "AI 提供商設定無效", code: error?.message || "AI_PROVIDER_CONFIG_INVALID" });
     }
 
     const merged = existingNarrative && existingNarrative.trim()
@@ -608,7 +683,8 @@ router.post("/api/workflow/supplement", async (req: Request, res: Response) => {
       const questionData = await runQuestioningNode(
         routerResult.missing_elements,
         merged,
-        routerResult.temporalConflict
+        routerResult.temporalConflict,
+        requestAIProvider
       );
       state.questioning = questionData;
       
@@ -638,7 +714,7 @@ router.post("/api/workflow/supplement", async (req: Request, res: Response) => {
       protectionNotice: routerResult.protectionNotice,
       legalBasis: routerResult.legalBasis,
       missing_elements: routerResult.missing_elements
-    });
+    }, requestAIProvider);
     state.syllogism = syllogismData;
 
     state.currentStep = 'VERIFICATION_GATE';

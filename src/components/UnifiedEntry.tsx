@@ -10,6 +10,7 @@ import { SyllogismNode } from './unified/SyllogismNode';
 import { VerificationNode } from './unified/VerificationNode';
 import { UnifiedNav } from './unified/UnifiedNav';
 import { SettingsModal } from './unified/SettingsModal';
+import { AIProviderSettings, AIProviderConfigDraft } from './unified/AIProviderSettings';
 import {
   Send, Sparkles, ShieldAlert, ShieldCheck, AlertTriangle, CheckCircle2,
   Cpu, Layers, FileCheck2, FileText, RotateCcw, Copy, Check, Loader2,
@@ -73,6 +74,12 @@ export const UnifiedEntry: React.FC = () => {
   const [showDocTypeModal, setShowDocTypeModal] = useState<boolean>(false);
   const [isCopied, setIsCopied] = useState<boolean>(false);
   const [acknowledgeSafetyInSession, setAcknowledgeSafetyInSession] = useState<boolean>(false);
+  const [aiConfig, setAiConfig] = useState<AIProviderConfigDraft>({
+    providerType: 'custom',
+    baseUrl: 'https://apihub.agnes-ai.com/v1',
+    apiKey: '',
+    model: 'agnes-3.0-flash'
+  });
 
   // 折疊手風琴卡片狀態（依用戶要求：預設全部收起資料，避免版面雜亂）
   const [isNode2Open, setIsNode2Open] = useState<boolean>(false);
@@ -242,6 +249,7 @@ export const UnifiedEntry: React.FC = () => {
           userInput: text,
           stateId: workflowState?.id,
           acknowledgeSafety: safetyAck ?? acknowledgeSafetyInSession
+          , aiConfig
         })
       });
 
@@ -281,6 +289,7 @@ export const UnifiedEntry: React.FC = () => {
           existingNarrative: workflowState.userNarrative,
           supplementText: supplement,
           acknowledgeSafety: true
+          , aiConfig
         })
       });
 
@@ -333,7 +342,7 @@ export const UnifiedEntry: React.FC = () => {
   };
 
 
-  const sharedProps = { inputNarrative, setInputNarrative, isSubmitting, setIsSubmitting, workflowState, setWorkflowState, supplementInput, setSupplementInput, isCopied, setIsCopied, acknowledgeSafetyInSession, setAcknowledgeSafetyInSession, isNode2Open, setIsNode2Open, isNode4Open, setIsNode4Open, isNode5Open, setIsNode5Open, isNode6Open, setIsNode6Open, customPreset, setCustomPreset, showCustomPresetModal, setShowCustomPresetModal, editPresetTitle, setEditPresetTitle, editPresetNarrative, setEditPresetNarrative, fileInputRef, isDragOver, setIsDragOver, isParsingFiles, setIsParsingFiles, parsingStatus, setParsingStatus, batchQueue, setBatchQueue, batchIndex, setBatchIndex, isBatchRunning, setIsBatchRunning, showHistory, setShowHistory, historyList, setHistoryList, handleFiles, handleDrop, handleExecuteWorkflow, handleSupplementFact, handleProceedFromSafety, handleResetWorkflow, handleCopyAnalysis, loadFromHistory, handleBatchNext, handleBatchPrev, handleSaveCurrentAsCustomPreset, handleSelectSuggestedOption, handleSaveCustomPreset, handleToggleAllNodes, defaultSample, handleSelectTool, saveCrossFeatureContext, exportAsHtml, exportAsText, printReport, deleteFromHistory, clearHistory, loadHistory, showDocTypeModal, setShowDocTypeModal };
+  const sharedProps = { inputNarrative, setInputNarrative, isSubmitting, setIsSubmitting, workflowState, setWorkflowState, supplementInput, setSupplementInput, isCopied, setIsCopied, acknowledgeSafetyInSession, setAcknowledgeSafetyInSession, aiConfig, setAiConfig, isNode2Open, setIsNode2Open, isNode4Open, setIsNode4Open, isNode5Open, setIsNode5Open, isNode6Open, setIsNode6Open, customPreset, setCustomPreset, showCustomPresetModal, setShowCustomPresetModal, editPresetTitle, setEditPresetTitle, editPresetNarrative, setEditPresetNarrative, fileInputRef, isDragOver, setIsDragOver, isParsingFiles, setIsParsingFiles, parsingStatus, setParsingStatus, batchQueue, setBatchQueue, batchIndex, setBatchIndex, isBatchRunning, setIsBatchRunning, showHistory, setShowHistory, historyList, setHistoryList, handleFiles, handleDrop, handleExecuteWorkflow, handleSupplementFact, handleProceedFromSafety, handleResetWorkflow, handleCopyAnalysis, loadFromHistory, handleBatchNext, handleBatchPrev, handleSaveCurrentAsCustomPreset, handleSelectSuggestedOption, handleSaveCustomPreset, handleToggleAllNodes, defaultSample, handleSelectTool, saveCrossFeatureContext, exportAsHtml, exportAsText, printReport, deleteFromHistory, clearHistory, loadHistory, showDocTypeModal, setShowDocTypeModal };
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-y-auto bg-slate-950 text-slate-100 p-4 md:p-8">
@@ -341,6 +350,7 @@ export const UnifiedEntry: React.FC = () => {
         <UnifiedHeader {...sharedProps} />
         <HistoryModal {...sharedProps} />
         <UnifiedProgress {...sharedProps} />
+        <AIProviderSettings value={aiConfig} onChange={setAiConfig} />
         <InputNode {...sharedProps} />
         <TriageNode {...sharedProps} />
         <SafetyNode {...sharedProps} />

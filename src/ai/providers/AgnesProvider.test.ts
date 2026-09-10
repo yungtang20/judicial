@@ -40,7 +40,7 @@ describe('Agnes provider', () => {
     expect(result.text).toBe('分析結果');
     expect(result.usage?.totalTokens).toBe(5);
     expect(fetchMock.mock.calls[0]?.[0]).toBe('https://apihub.agnes-ai.com/v1/chat/completions');
-    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)).model).toBe('agnes-2.5-flash');
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)).model).toBe('agnes-3.0-flash');
     expect((fetchMock.mock.calls[0]?.[1] as RequestInit).body).not.toContain('test-only-key');
   });
 

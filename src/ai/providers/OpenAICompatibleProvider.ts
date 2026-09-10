@@ -9,6 +9,11 @@ export interface OpenAICompatibleProviderConfig {
   timeoutEnv: string;
   defaultBaseUrl: string;
   defaultModel: string;
+  /** Optional request-scoped overrides; never persisted or logged. */
+  apiKey?: string;
+  baseUrl?: string;
+  model?: string;
+  timeoutMs?: number;
 }
 
 const HCNSEC_CONFIG: OpenAICompatibleProviderConfig = {
@@ -30,9 +35,9 @@ export class OpenAICompatibleProvider implements AIProvider {
     this.name = config.providerName;
   }
 
-  private get key() { return process.env[this.config.apiKeyEnv]?.trim(); }
-  private get baseUrl() { return (process.env[this.config.baseUrlEnv] || this.config.defaultBaseUrl).replace(/\/$/, ''); }
-  private get model() { return process.env[this.config.modelEnv] || this.config.defaultModel; }
+  private get key() { return (this.config.apiKey?.trim() || process.env[this.config.apiKeyEnv]?.trim()); }
+  private get baseUrl() { return (this.config.baseUrl?.trim() || process.env[this.config.baseUrlEnv] || this.config.defaultBaseUrl).replace(/\/$/, ''); }
+  private get model() { return this.config.model?.trim() || process.env[this.config.modelEnv] || this.config.defaultModel; }
   private errorCode(suffix: string) { return `${this.config.providerId}_${suffix}`; }
 
   private async request(prompt: string, options?: AIProviderGenerateOptions): Promise<AIProviderResponse> {
@@ -43,7 +48,8 @@ export class OpenAICompatibleProvider implements AIProvider {
       { role: 'user', content: prompt }
     ];
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), Number(process.env[this.config.timeoutEnv] || 30_000));
+    const timeoutMs = this.config.timeoutMs ?? Number(process.env[this.config.timeoutEnv] || 30_000);
+    const timer = setTimeout(() => controller.abort(), Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : 30_000);
     try {
       const response = await fetch(`${this.baseUrl}/chat/completions`, {
         method: 'POST',

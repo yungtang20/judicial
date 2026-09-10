@@ -11,7 +11,7 @@ export class AgnesProvider extends OpenAICompatibleProvider {
       modelEnv: 'AGNES_MODEL',
       timeoutEnv: 'AGNES_TIMEOUT_MS',
       defaultBaseUrl: 'https://apihub.agnes-ai.com/v1',
-      defaultModel: 'agnes-2.5-flash'
+      defaultModel: 'agnes-3.0-flash'
     });
   }
 }

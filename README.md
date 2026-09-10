@@ -72,11 +72,13 @@ Render 部署設定位於根目錄的 `render.yaml`。部署時必須在 Render 
 ```text
 JWT_SECRET       # 至少 32 字元且具足夠熵值
 AGNES_API_KEY    # 使用 Agnes AI provider 時必要，僅存於 Render Environment
-AGNES_MODEL      # Agnes AI 官方模型 ID；目前預設 agnes-2.5-flash
+AGNES_MODEL      # Agnes AI 官方模型 ID；目前預設 agnes-3.0-flash
 APP_URL          # Production 公開網址
 ```
 
 目前 Render 設定 `AI_PROVIDER=agnes`，使用 Agnes AI 的 OpenAI 相容端點 `https://apihub.agnes-ai.com/v1/chat/completions`。金鑰不得放在前端、README、commit 或公開設定檔；請只透過 Render Environment 設定。HCNSEC 與 Gemini adapter 仍保留，供明確切換及回復使用，不會在 Agnes 失敗時靜默跨供應商傳送法律文件。
+
+統一工作流頁面提供 `Custom Provider` 測試欄位（Base URL、API Key、模型）。欄位只存在目前瀏覽器分頁並以單次 HTTPS 請求傳送；API Key 留空時使用 Render 的 `AGNES_API_KEY`。Custom Provider 的 Base URL 必須是 HTTPS 且不可解析至本機或私有網路；系統不會將設定存入 localStorage、歷史紀錄或 audit log。
 
 Production 的首頁、前端 assets 與 `/api/health` 可公開存取；所有 `/api` 請求及非 GET 請求仍須提供有效的 Bearer Token 或 `X-API-Key`。
 

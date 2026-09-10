@@ -28,6 +28,6 @@ services:
       - key: AGNES_BASE_URL
         value: https://apihub.agnes-ai.com/v1
       - key: AGNES_MODEL
-        value: agnes-2.5-flash
+        value: agnes-3.0-flash
       - key: APP_URL
         sync: false
