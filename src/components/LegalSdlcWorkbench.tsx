@@ -153,7 +153,7 @@ export const LegalSdlcWorkbench: React.FC = () => {
               <span className="text-xs uppercase font-mono tracking-widest text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-500/30">
                 AI 原生 SDLC 骨架
               </span>
-              <span className="text-xs text-slate-400 font-mono">
+              <span className="text-xs text-[var(--color-text-muted)] font-mono">
                 「模型只是執行層，流程才是系統骨架」
               </span>
             </div>
@@ -169,7 +169,7 @@ export const LegalSdlcWorkbench: React.FC = () => {
             <button
               onClick={() => setActiveTab('flow')}
               className={`px-3 py-1.5 rounded-md font-medium transition ${
-                activeTab === 'flow' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+                activeTab === 'flow' ? 'bg-emerald-600 text-white shadow' : 'text-[var(--color-text-muted)] hover:text-slate-200'
               }`}
             >
               交付流程全景
@@ -177,7 +177,7 @@ export const LegalSdlcWorkbench: React.FC = () => {
             <button
               onClick={() => setActiveTab('artifacts')}
               className={`px-3 py-1.5 rounded-md font-medium transition ${
-                activeTab === 'artifacts' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+                activeTab === 'artifacts' ? 'bg-emerald-600 text-white shadow' : 'text-[var(--color-text-muted)] hover:text-slate-200'
               }`}
             >
               工件存儲庫 ({Object.values(projectState?.artifacts || {}).flat().length})
@@ -185,7 +185,7 @@ export const LegalSdlcWorkbench: React.FC = () => {
             <button
               onClick={() => setActiveTab('gates')}
               className={`px-3 py-1.5 rounded-md font-medium transition ${
-                activeTab === 'gates' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+                activeTab === 'gates' ? 'bg-emerald-600 text-white shadow' : 'text-[var(--color-text-muted)] hover:text-slate-200'
               }`}
             >
               人工決策 Gate
@@ -193,7 +193,7 @@ export const LegalSdlcWorkbench: React.FC = () => {
             <button
               onClick={() => setActiveTab('feedback')}
               className={`px-3 py-1.5 rounded-md font-medium transition ${
-                activeTab === 'feedback' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+                activeTab === 'feedback' ? 'bg-emerald-600 text-white shadow' : 'text-[var(--color-text-muted)] hover:text-slate-200'
               }`}
             >
               閉環回流記錄 ({projectState?.feedbackHistory.length || 0})
@@ -203,7 +203,7 @@ export const LegalSdlcWorkbench: React.FC = () => {
           <button
             onClick={loadProject}
             disabled={loading}
-            className="p-2 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 transition"
+            className="p-2 text-[var(--color-text-muted)] hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 transition"
             title="重新同步流程狀態"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -221,7 +221,7 @@ export const LegalSdlcWorkbench: React.FC = () => {
             const isPassed = status === 'completed';
             const isIterating = status === 'iterating';
 
-            let statusColor = 'border-slate-700 bg-slate-800/60 text-slate-400';
+            let statusColor = 'border-slate-700 bg-slate-800/60 text-[var(--color-text-muted)]';
             if (isSelected) {
               statusColor = 'border-emerald-400 bg-emerald-950/40 text-emerald-300 ring-2 ring-emerald-500/30';
             } else if (isPassed) {
@@ -243,11 +243,11 @@ export const LegalSdlcWorkbench: React.FC = () => {
                     {isCurrent && !isPassed && <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />}
                   </div>
                   <div className="font-bold text-sm text-slate-100">{stage.name}</div>
-                  <div className="text-[11px] text-slate-400 font-mono">{stage.englishName}</div>
+                  <div className="text-[11px] text-[var(--color-text-muted)] font-mono">{stage.englishName}</div>
                 </div>
 
                 {idx < SDLC_STAGES.length - 1 && (
-                  <div className="px-2 text-slate-600">
+                  <div className="px-2 text-[var(--color-text-secondary)]">
                     <ArrowRight className="w-4 h-4" />
                   </div>
                 )}
@@ -332,10 +332,10 @@ export const LegalSdlcWorkbench: React.FC = () => {
           {/* 驅動面板 */}
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold font-mono text-slate-400 uppercase">
+              <span className="text-xs font-bold font-mono text-[var(--color-text-muted)] uppercase">
                 輸入自訂背景／本階段指令
               </span>
-              <span className="text-xs text-slate-500">Agent 即時分析</span>
+              <span className="text-xs text-[var(--color-text-muted)]">Agent 即時分析</span>
             </div>
             
             <textarea
@@ -391,18 +391,18 @@ export const LegalSdlcWorkbench: React.FC = () => {
                   階段可追溯工件 (Traceable Artifacts)
                 </h3>
               </div>
-              <div className="text-xs font-mono text-slate-400">
+              <div className="text-xs font-mono text-[var(--color-text-muted)]">
                 本階段工件版本數: {stageArtifacts.length}
               </div>
             </div>
 
             {stageArtifacts.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center p-12 text-center border border-dashed border-slate-800 rounded-xl bg-slate-950/40">
-                <FileText className="w-10 h-10 text-slate-600 mb-3" />
+                <FileText className="w-10 h-10 text-[var(--color-text-secondary)] mb-3" />
                 <p className="text-slate-300 text-sm font-medium mb-1">
                   尚無本階段之生成工件
                 </p>
-                <p className="text-slate-500 text-xs max-w-sm mb-4">
+                <p className="text-[var(--color-text-muted)] text-xs max-w-sm mb-4">
                   點擊左側「AI 執行本階段交付」按鈕，系統將依照三段論法與 SDLC 規範生成並留存可追溯之意圖、規格、代碼、測試報告或發布紀錄。
                 </p>
                 <button
@@ -427,12 +427,12 @@ export const LegalSdlcWorkbench: React.FC = () => {
                         </span>
                         <span className="text-slate-200 font-semibold">{art.name}</span>
                       </div>
-                      <span className="text-slate-500 font-mono text-[11px]">
+                      <span className="text-[var(--color-text-muted)] font-mono text-[11px]">
                         {new Date(art.createdAt).toLocaleString()}
                       </span>
                     </div>
 
-                    <div className="text-xs text-slate-400 font-mono bg-slate-900/80 p-2.5 rounded border border-slate-800">
+                    <div className="text-xs text-[var(--color-text-muted)] font-mono bg-slate-900/80 p-2.5 rounded border border-slate-800">
                       {art.summary}
                     </div>
 
@@ -461,7 +461,7 @@ export const LegalSdlcWorkbench: React.FC = () => {
                 <h3 className="font-bold text-white text-base">
                   人工決策放行審核 (Human Gate Review)
                 </h3>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-[var(--color-text-muted)]">
                   {selectedStage.name} ({selectedStage.englishName}) → 推進至下一階段
                 </p>
               </div>
@@ -483,7 +483,7 @@ export const LegalSdlcWorkbench: React.FC = () => {
 
             <div className="space-y-3">
               <div>
-                <label className="text-xs text-slate-400 block mb-1">審查人身分／姓名</label>
+                <label className="text-xs text-[var(--color-text-muted)] block mb-1">審查人身分／姓名</label>
                 <input
                   type="text"
                   value={approverName}
@@ -493,7 +493,7 @@ export const LegalSdlcWorkbench: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-xs text-slate-400 block mb-1">放行意見與決策註記</label>
+                <label className="text-xs text-[var(--color-text-muted)] block mb-1">放行意見與決策註記</label>
                 <textarea
                   value={approvalNote}
                   onChange={(e) => setApprovalNote(e.target.value)}
@@ -535,7 +535,7 @@ export const LegalSdlcWorkbench: React.FC = () => {
                 <h3 className="font-bold text-white text-base">
                   觸發持續反饋驅動迭代 (Continuous Feedback Loop)
                 </h3>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-[var(--color-text-muted)]">
                   將後續階段（如 Maintain/Test）的事故或爭點回流至前置架構階段
                 </p>
               </div>
@@ -543,7 +543,7 @@ export const LegalSdlcWorkbench: React.FC = () => {
 
             <div className="space-y-3 text-xs">
               <div>
-                <label className="text-slate-400 block mb-1">目標回流階段 (Target Stage)</label>
+                <label className="text-[var(--color-text-muted)] block mb-1">目標回流階段 (Target Stage)</label>
                 <select
                   value={feedbackTargetStage}
                   onChange={(e) => setFeedbackTargetStage(e.target.value as SdlcStageId)}
@@ -558,7 +558,7 @@ export const LegalSdlcWorkbench: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-1">觸發回流原因 / 裁判或對造事故記錄</label>
+                <label className="text-[var(--color-text-muted)] block mb-1">觸發回流原因 / 裁判或對造事故記錄</label>
                 <textarea
                   value={feedbackReason}
                   onChange={(e) => setFeedbackReason(e.target.value)}
@@ -568,7 +568,7 @@ export const LegalSdlcWorkbench: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-1">建議規格/架構修正方針</label>
+                <label className="text-[var(--color-text-muted)] block mb-1">建議規格/架構修正方針</label>
                 <textarea
                   value={feedbackAdjustments}
                   onChange={(e) => setFeedbackAdjustments(e.target.value)}

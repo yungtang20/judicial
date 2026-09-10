@@ -73,7 +73,7 @@ export const QuickEntrySection: React.FC<QuickEntrySectionProps> = (props) => {
             <h3 className="text-base font-bold text-white mt-4 group-hover:text-indigo-300 transition-colors">
               常用生活法務與契約總匯
             </h3>
-            <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+            <p className="text-xs text-[var(--color-text-muted)] mt-1 leading-relaxed">
               妨害性自主告訴、親密關係保護令、車禍、借據、存證信函、支付命令、自書遺囑。
             </p>
             <div className="mt-4 flex items-center text-xs font-semibold text-indigo-400 group-hover:translate-x-1 transition-transform">
@@ -96,7 +96,7 @@ export const QuickEntrySection: React.FC<QuickEntrySectionProps> = (props) => {
             <h3 className="text-base font-bold text-white mt-4 group-hover:text-amber-300 transition-colors">
               訴訟與上訴一站式中心
             </h3>
-            <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+            <p className="text-xs text-[var(--color-text-muted)] mt-1 leading-relaxed">
               判決書智慧上訴、原告/被告防禦、爭點證據整理、法定 20 天期限試算。
             </p>
             <div className="mt-4 flex items-center text-xs font-semibold text-amber-400 group-hover:translate-x-1 transition-transform">
@@ -119,7 +119,7 @@ export const QuickEntrySection: React.FC<QuickEntrySectionProps> = (props) => {
             <h3 className="text-base font-bold text-white mt-4 group-hover:text-emerald-300 transition-colors">
               判決檢索與 AI 防幽靈檢核
             </h3>
-            <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+            <p className="text-xs text-[var(--color-text-muted)] mt-1 leading-relaxed">
               查裁判白話文解讀、書狀一鍵查核「幽靈假法條與假案號」真實性。
             </p>
             <div className="mt-4 flex items-center text-xs font-semibold text-emerald-400 group-hover:translate-x-1 transition-transform">

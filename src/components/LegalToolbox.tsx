@@ -155,7 +155,6 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
         onNavigateGuide={() => handleSelectTool('guide')}
         onNavigateUnified={() => handleSelectTool('unified')}
       />
-
       <ToolSelectorGrid 
         tools={filteredTools}
         activeToolId={activeToolId}
@@ -188,7 +187,7 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
                   <span className={UIConstants.badgePrimary}>
                     {currentTool.badge}
                   </span>
-                  <span className="text-[10px] text-slate-400">{currentTool.legalBasis}</span>
+                  <span className="text-[10px] text-[var(--color-text-muted)]">{currentTool.legalBasis}</span>
                 </div>
               </div>
             </div>

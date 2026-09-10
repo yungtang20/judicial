@@ -27,22 +27,22 @@ export const Stage5PleadingOutput: React.FC<Stage5PleadingOutputProps> = ({
     <>
           {/* STAGE 5: DUAL PLEADING OUTPUT DISPLAY */}
           {(lawyerPleading || personalPleading) && (
-            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-5 animate-fadeIn">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 gap-3">
+            <div className="bg-[var(--color-surface-overlay)] border border-[var(--color-border-subtle)] rounded-xl p-6 shadow-sm space-y-5 animate-fadeIn">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[var(--color-border-subtle)] gap-3">
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center text-xs font-bold">5</span>
-                    <h2 className="text-base font-bold text-slate-800">
+                    <span className="w-6 h-6 rounded-full bg-emerald-100 text-[var(--color-status-success)] flex items-center justify-center text-xs font-bold">5</span>
+                    <h2 className="text-base font-bold text-[var(--color-text-primary)]">
                       雙軌訴訟書狀產製與責任隔離檢閱
                     </h2>
                   </div>
-                  <p className="text-xs text-slate-500 pl-8">
+                  <p className="text-xs text-[var(--color-text-muted)] pl-8">
                     嚴格遵守臺灣律師倫理與實務慣例，明確區分律師專業具名與當事人個人陳報
                   </p>
                 </div>
 
                 {/* Tabs */}
-                <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-semibold pl-8 sm:pl-0">
+                <div className="flex bg-[var(--color-surface-overlay)] p-1 rounded-xl text-xs font-semibold pl-8 sm:pl-0">
                   <button
                     onClick={() => {
                       if (!lawyerPleading) handleGeneratePleading('LAWYER_PLEADING');
@@ -50,8 +50,8 @@ export const Stage5PleadingOutput: React.FC<Stage5PleadingOutputProps> = ({
                     }}
                     className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
                       activeOutputTab === 'LAWYER'
-                        ? 'bg-white text-emerald-800 shadow-xs font-bold'
-                        : 'text-slate-600 hover:text-slate-900'
+                        ? 'bg-[var(--color-surface-overlay)] text-[var(--color-status-success)] shadow-xs font-bold'
+                        : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
                     }`}
                   >
                     <FileCheck2 className="w-3.5 h-3.5 text-emerald-600" />
@@ -64,8 +64,8 @@ export const Stage5PleadingOutput: React.FC<Stage5PleadingOutputProps> = ({
                     }}
                     className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
                       activeOutputTab === 'PERSONAL'
-                        ? 'bg-white text-rose-800 shadow-xs font-bold'
-                        : 'text-slate-600 hover:text-slate-900'
+                        ? 'bg-[var(--color-surface-overlay)] text-[var(--color-status-danger)] shadow-xs font-bold'
+                        : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
                     }`}
                   >
                     <UserCheck className="w-3.5 h-3.5 text-rose-600" />
@@ -76,7 +76,7 @@ export const Stage5PleadingOutput: React.FC<Stage5PleadingOutputProps> = ({
 
               {/* Disclaimer Banner */}
               {activeOutputTab === 'PERSONAL' ? (
-                <div className="bg-rose-50 border border-rose-200 rounded-xl p-3.5 text-xs text-rose-900 flex items-start gap-2.5">
+                <div className="bg-[var(--color-status-danger-bg)] border border-[var(--color-status-danger)]/30 rounded-xl p-3.5 text-xs text-[var(--color-status-danger)] flex items-start gap-2.5">
                   <AlertOctagon className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
                   <div>
                     <strong>【重要責任隔離說明】：</strong>
@@ -84,7 +84,7 @@ export const Stage5PleadingOutput: React.FC<Stage5PleadingOutputProps> = ({
                   </div>
                 </div>
               ) : (
-                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 text-xs text-emerald-900 flex items-start gap-2.5">
+                <div className="bg-[var(--color-status-success-bg)] border border-[var(--color-status-success)]/30 rounded-xl p-3.5 text-xs text-[var(--color-status-success)] flex items-start gap-2.5">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                   <div>
                     <strong>【律師專業攻防書狀】：</strong>
@@ -95,14 +95,14 @@ export const Stage5PleadingOutput: React.FC<Stage5PleadingOutputProps> = ({
 
               {/* Verify Notice */}
               {verifyNotice && (
-                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs flex items-center justify-between animate-fadeIn shadow-xs">
+                <div className="p-3 rounded-xl bg-[var(--color-status-success-bg)] border border-emerald-300 text-[var(--color-status-success)] text-xs flex items-center justify-between animate-fadeIn shadow-xs">
                   <span className="flex items-center gap-2 font-medium">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                     {verifyNotice}
                   </span>
                   <button 
                     onClick={() => setVerifyNotice(null)} 
-                    className="text-emerald-700 hover:text-emerald-900 text-xs ml-2 font-bold"
+                    className="text-emerald-700 hover:text-[var(--color-status-success)] text-xs ml-2 font-bold"
                   >
                     ✕
                   </button>
@@ -132,7 +132,7 @@ export const Stage5PleadingOutput: React.FC<Stage5PleadingOutputProps> = ({
 
               {/* Action Toolbar */}
               <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-                <div className="text-xs text-slate-500">
+                <div className="text-xs text-[var(--color-text-muted)]">
                   可直接複製全文或匯出標準 UTF-8 純文字檔供列印排版
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -179,7 +179,7 @@ export const Stage5PleadingOutput: React.FC<Stage5PleadingOutputProps> = ({
 
                   <button
                     onClick={() => window.print()}
-                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5"
+                    className="px-4 py-2 bg-[var(--color-surface-overlay)] hover:bg-[var(--color-border-strong)] text-[var(--color-text-primary)] border border-[var(--color-border-strong)] rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5"
                   >
                     <Printer className="w-3.5 h-3.5" /> 列印預覽
                   </button>

@@ -60,13 +60,13 @@ export const DocumentProgressTracker: React.FC<DocumentProgressTrackerProps> = (
           <span className="text-xs font-bold text-slate-200">
             {currentInfo.title}
           </span>
-          <span className="text-xs text-slate-400 hidden sm:inline">
+          <span className="text-xs text-[var(--color-text-muted)] hidden sm:inline">
             · {currentInfo.desc}
           </span>
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-xs font-mono font-semibold text-slate-400">
+          <span className="text-xs font-mono font-semibold text-[var(--color-text-muted)]">
             {currentStage === 'ready' ? '100%' : `${percentage}%`}
           </span>
           <span className={

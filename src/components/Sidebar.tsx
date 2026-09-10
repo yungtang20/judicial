@@ -43,6 +43,12 @@ const coreEntries: NavItem[] = [
   },
 ];
 
+const moduleColors: Record<string, string> = {
+  unified: 'var(--color-module-analysis)',
+  litigation: 'var(--color-module-litigation)',
+  appeal: 'var(--color-module-appeal)',
+};
+
 // 判決分析與上訴子項目
 const appealSubItems: NavItem[] = [
   { id: 'appeal', label: '判決剖析與上訴理由', sublabel: '原審違誤論理與撤銷改判主張', icon: Scale },
@@ -142,7 +148,7 @@ export default function Sidebar() {
               <h2 className="m-0 text-base font-extrabold text-white tracking-tight leading-tight">
                 智慧法律書狀系統
               </h2>
-              <div className="text-[11px] text-slate-400 font-medium mt-0.5">
+              <div className="text-[11px] text-[var(--color-text-muted)] font-medium mt-0.5">
                 專業司法實務 · 智慧法務工作台
               </div>
             </div>
@@ -151,7 +157,7 @@ export default function Sidebar() {
 
         {/* Section Label */}
         <div className="p-3">
-          <div className="text-[10px] font-bold tracking-wider text-slate-400 uppercase px-3 py-1.5">
+          <div className="text-[10px] font-bold tracking-wider text-[var(--color-text-muted)] uppercase px-3 py-1.5">
             核心功能
           </div>
         </div>
@@ -171,20 +177,19 @@ export default function Sidebar() {
                   className={`w-full text-left p-3 rounded-xl transition-colors border ${
                     active
                       ? 'bg-slate-800 text-white border-slate-700'
-                      : 'text-slate-400 hover:bg-slate-900/60 hover:text-slate-200 border-slate-800/60 hover:border-slate-700'
+                      : 'text-[var(--color-text-muted)] hover:bg-slate-900/60 hover:text-slate-200 border-slate-800/60 hover:border-slate-700'
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
                     <div
-                      className={`p-2 rounded-xl ${
-                        active ? 'bg-indigo-500/20 text-indigo-400' : 'bg-slate-800/80 text-slate-400'
-                      }`}
+                      className="p-2 rounded-xl text-white"
+                      style={{ backgroundColor: moduleColors[entry.id] }}
                     >
                       <Icon className="w-4 h-4" />
                     </div>
                     <div className="flex-1">
                       <div className="text-sm font-bold leading-tight">{entry.label}</div>
-                      <div className="text-[11px] text-slate-400 mt-0.5 leading-tight">
+                      <div className="text-[11px] text-[var(--color-text-muted)] mt-0.5 leading-tight">
                         {entry.sublabel}
                       </div>
                     </div>
@@ -207,13 +212,13 @@ export default function Sidebar() {
                             className={`w-full text-left p-2.5 rounded-xl transition-all duration-200 border flex items-center gap-2.5 ${
                               subActive
                                 ? 'bg-slate-800 text-white border-slate-600'
-                                : 'text-slate-400 hover:bg-slate-900/50 hover:text-slate-200 border-transparent'
+                                : 'text-[var(--color-text-muted)] hover:bg-slate-900/50 hover:text-slate-200 border-transparent'
                             }`}
                           >
                             <ItemIcon className="w-3.5 h-3.5 shrink-0" />
                             <div className="text-left">
                               <div className="text-xs font-medium leading-tight">{item.label}</div>
-                              <div className="text-[10px] text-slate-500 leading-tight mt-0.5">{item.sublabel}</div>
+                              <div className="text-[10px] text-[var(--color-text-muted)] leading-tight mt-0.5">{item.sublabel}</div>
                             </div>
                           </button>
                         </li>
@@ -233,16 +238,16 @@ export default function Sidebar() {
               <Sparkles className="w-3.5 h-3.5 text-amber-400" />
               <span>不知道該用哪一個？</span>
             </div>
-            <p className="text-[11px] text-slate-400 leading-relaxed">
+            <p className="text-[11px] text-[var(--color-text-muted)] leading-relaxed">
               點擊 <strong className="text-sky-400">案件分析 → 情境導診</strong>，輸入遇到的狀況，系統將自動為您推薦最適書狀與步驟。
             </p>
           </div>
-          <div className="flex items-center justify-between text-[11px] text-slate-400 px-1">
+          <div className="flex items-center justify-between text-[11px] text-[var(--color-text-muted)] px-1">
             <span className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
               司法院資料庫連線中
             </span>
-            <span className="text-slate-400 font-mono">v2.6</span>
+            <span className="text-[var(--color-text-muted)] font-mono">v2.6</span>
           </div>
         </div>
       </nav>

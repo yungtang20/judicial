@@ -36,7 +36,7 @@ export const JudicialAndAiChecker: React.FC<JudicialAndAiCheckerProps> = ({ init
                   正版司法院資料庫連線
                 </span>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-[var(--color-text-muted)]">
                 結合司法院開放資料官方 API、本機裁判書全文檢索，以及 AI 書狀真偽查核（防止生成虛構幽靈法條）
               </p>
             </div>
@@ -49,7 +49,7 @@ export const JudicialAndAiChecker: React.FC<JudicialAndAiCheckerProps> = ({ init
               className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 ${
                 activeTab === 'antiGhost'
                   ? 'bg-emerald-500 text-slate-950 font-bold'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'
+                  : 'text-[var(--color-text-muted)] hover:text-slate-200 hover:bg-slate-800/80'
               }`}
             >
               <ShieldCheck className="w-3.5 h-3.5" />
@@ -61,7 +61,7 @@ export const JudicialAndAiChecker: React.FC<JudicialAndAiCheckerProps> = ({ init
               className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 ${
                 activeTab === 'openData'
                   ? 'bg-emerald-500 text-slate-950 font-bold'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'
+                  : 'text-[var(--color-text-muted)] hover:text-slate-200 hover:bg-slate-800/80'
               }`}
             >
               <Database className="w-3.5 h-3.5" />
@@ -73,7 +73,7 @@ export const JudicialAndAiChecker: React.FC<JudicialAndAiCheckerProps> = ({ init
               className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 ${
                 activeTab === 'localSearch'
                   ? 'bg-emerald-500 text-slate-950 font-bold'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'
+                  : 'text-[var(--color-text-muted)] hover:text-slate-200 hover:bg-slate-800/80'
               }`}
             >
               <FolderSearch className="w-3.5 h-3.5" />

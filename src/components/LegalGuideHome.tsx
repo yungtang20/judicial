@@ -357,7 +357,7 @@ export const LegalGuideHome: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-50 text-slate-900 pb-24">
+    <div className="flex-1 overflow-y-auto bg-[var(--color-surface-raised)] text-[var(--color-text-primary)] pb-24">
       <HeroSection {...sharedProps} />
       <DynamicBanner {...sharedProps} />
       <EmergencyBanner {...sharedProps} />

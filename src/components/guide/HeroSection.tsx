@@ -44,7 +44,7 @@ export const HeroSection: React.FC<HeroSectionProps> = (props) => {
             {/* 即時智慧搜尋欄 */}
             <div className="pt-2">
               <div className="relative flex items-center">
-                <Search className="w-5 h-5 absolute left-4 text-slate-400" />
+                <Search className="w-5 h-5 absolute left-4 text-[var(--color-text-muted)]" />
                 <textarea rows={4}
                   
                   value={searchQuery}

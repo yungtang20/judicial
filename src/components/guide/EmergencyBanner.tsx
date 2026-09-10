@@ -44,7 +44,7 @@ export const EmergencyBanner: React.FC<EmergencyBannerProps> = (props) => {
                 <div className="font-semibold text-rose-200 flex items-center gap-1.5">
                   <ShieldCheck className="w-4 h-4 text-rose-400" /> 1. 非告訴乃論公訴罪
                 </div>
-                <p className="text-slate-400 text-[11px] leading-relaxed">
+                <p className="text-[var(--color-text-muted)] text-[11px] leading-relaxed">
                   刑法第221條妨害性自主為公訴罪，不受6個月告訴時效限制。不論受害者為男性或女性、不論加害者是否為現任伴侶/女友，法律一律平等究責追訴。
                 </p>
               </div>
@@ -52,7 +52,7 @@ export const EmergencyBanner: React.FC<EmergencyBannerProps> = (props) => {
                 <div className="font-semibold text-amber-200 flex items-center gap-1.5">
                   <Clock className="w-4 h-4 text-amber-400" /> 2. 72小時驗傷採證黃金期
                 </div>
-                <p className="text-slate-400 text-[11px] leading-relaxed">
+                <p className="text-[var(--color-text-muted)] text-[11px] leading-relaxed">
                   請儘速前往公私立醫院急診進行「一站式性侵害採證」，切勿先行沐浴、刷牙或更換衣物，並將衣物放入紙袋保存DNA生物跡證。
                 </p>
               </div>
@@ -60,7 +60,7 @@ export const EmergencyBanner: React.FC<EmergencyBannerProps> = (props) => {
                 <div className="font-semibold text-sky-200 flex items-center gap-1.5">
                   <HeartHandshake className="w-4 h-4 text-sky-400" /> 3. 伴侶保護令與社工陪同
                 </div>
-                <p className="text-slate-400 text-[11px] leading-relaxed">
+                <p className="text-[var(--color-text-muted)] text-[11px] leading-relaxed">
                   受親密伴侶肢體暴力、性暴力或恐嚇騷擾，可依家庭暴力防治法第63條之1聲請保護令；警詢與偵訊時可要求社工全程陪同並隱匿個人身分。
                 </p>
               </div>

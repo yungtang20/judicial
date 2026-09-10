@@ -77,7 +77,7 @@ export const SyllogismNode: React.FC<SyllogismNodeProps> = (props) => {
           <button
             type="button"
             onClick={() => setIsNode5Open((prev: boolean) => !prev)}
-            className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors ml-1"
+            className="p-1 rounded-lg hover:bg-slate-800 text-[var(--color-text-muted)] hover:text-slate-200 transition-colors ml-1"
           >
             {isNode5Open ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
@@ -93,7 +93,7 @@ export const SyllogismNode: React.FC<SyllogismNodeProps> = (props) => {
                 <div className="py-3 flex flex-col md:flex-row md:items-start gap-3">
                   <div className="md:w-36 shrink-0">
                     <span className="font-bold text-blue-400 block">大前提</span>
-                    <span className="text-[11px] text-slate-500">法定規範與構成要件</span>
+                    <span className="text-[11px] text-[var(--color-text-muted)]">法定規範與構成要件</span>
                   </div>
                   <p className="text-slate-300 leading-relaxed whitespace-pre-wrap flex-1">
                     {syllogism.majorPremise}
@@ -105,7 +105,7 @@ export const SyllogismNode: React.FC<SyllogismNodeProps> = (props) => {
                 <div className="py-3 flex flex-col md:flex-row md:items-start gap-3">
                   <div className="md:w-36 shrink-0">
                     <span className="font-bold text-amber-400 block">小前提</span>
-                    <span className="text-[11px] text-slate-500">案件事實認定</span>
+                    <span className="text-[11px] text-[var(--color-text-muted)]">案件事實認定</span>
                   </div>
                   <p className="text-slate-300 leading-relaxed whitespace-pre-wrap flex-1">
                     {syllogism.minorPremise}
@@ -117,7 +117,7 @@ export const SyllogismNode: React.FC<SyllogismNodeProps> = (props) => {
                 <div className="py-3 flex flex-col md:flex-row md:items-start gap-3">
                   <div className="md:w-36 shrink-0">
                     <span className="font-bold text-indigo-400 block">涵攝過程</span>
-                    <span className="text-[11px] text-slate-500">事實與要件比對</span>
+                    <span className="text-[11px] text-[var(--color-text-muted)]">事實與要件比對</span>
                   </div>
                   <p className="text-slate-300 leading-relaxed whitespace-pre-wrap flex-1">
                     {syllogism.subsumption}
@@ -129,7 +129,7 @@ export const SyllogismNode: React.FC<SyllogismNodeProps> = (props) => {
                 <div className="py-3 flex flex-col md:flex-row md:items-start gap-3">
                   <div className="md:w-36 shrink-0">
                     <span className="font-bold text-emerald-400 block">效果與結論</span>
-                    <span className="text-[11px] text-slate-500">救濟權利與法律效果</span>
+                    <span className="text-[11px] text-[var(--color-text-muted)]">救濟權利與法律效果</span>
                   </div>
                   <p className="text-slate-200 font-medium leading-relaxed whitespace-pre-wrap flex-1">
                     {syllogism.conclusion}
@@ -139,7 +139,7 @@ export const SyllogismNode: React.FC<SyllogismNodeProps> = (props) => {
 
               {syllogism.fullAnalysis && (
                 <div className="pt-3">
-                  <span className="font-bold text-slate-400 block mb-1.5">完整法學論述全文</span>
+                  <span className="font-bold text-[var(--color-text-muted)] block mb-1.5">完整法學論述全文</span>
                   <p className="text-slate-300 leading-relaxed whitespace-pre-wrap font-mono text-[11px] bg-slate-950/60 p-3 rounded-lg border border-slate-800">
                     {syllogism.fullAnalysis}
                   </p>

@@ -41,12 +41,12 @@ export const HistoryModal: React.FC<HistoryModalProps> = (props) => {
                   </button>
                 )}
               </div>
-              <button onClick={() => setShowHistory(false)} className="text-slate-400 hover:text-white p-1">
+              <button onClick={() => setShowHistory(false)} className="text-[var(--color-text-muted)] hover:text-white p-1">
                 <X className="w-4 h-4" />
               </button>
             </div>
             {historyList.length === 0 ? (
-              <p className="text-xs text-slate-500 py-4 text-center">尚無歷史記錄</p>
+              <p className="text-xs text-[var(--color-text-muted)] py-4 text-center">尚無歷史記錄</p>
             ) : (
               historyList.map((record) => (
                 <div
@@ -56,12 +56,12 @@ export const HistoryModal: React.FC<HistoryModalProps> = (props) => {
                 >
                   <div className="flex-1 min-w-0 pr-3">
                     <p className="text-sm font-semibold text-slate-200 truncate">{record.title}</p>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
+                    <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">
                       {new Date(record.timestamp).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })}
                       {' · '}
                       <span className="text-indigo-400">{record.workflowState?.router?.domain || '—'}</span>
                       {record.workflowState?.router?.chapter && (
-                        <span className="text-slate-500"> · {formatLegalChapter(record.workflowState.router.chapter)}</span>
+                        <span className="text-[var(--color-text-muted)]"> · {formatLegalChapter(record.workflowState.router.chapter)}</span>
                       )}
                     </p>
                   </div>
@@ -79,7 +79,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = (props) => {
                       <Trash2 className="w-3.5 h-3.5" />
                       <span>刪除</span>
                     </button>
-                    <ChevronRight className="w-4 h-4 text-slate-500" />
+                    <ChevronRight className="w-4 h-4 text-[var(--color-text-muted)]" />
                   </div>
                 </div>
               ))

@@ -175,7 +175,7 @@ export const LegalDocAiChecker: React.FC = () => {
               >
                 {isExternalChecking ? '正在查詢第三方裁判字號資料庫...' : '外部裁判字號存在性覆核'}
               </button>
-              <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">
+              <p className="text-[11px] text-[var(--color-text-muted)] mt-2 leading-relaxed">
                 提示：只將文件擷取出的裁判字號送至第三方，非官方官方終審判定，可隨時點擊驗證。
               </p>
             </div>
@@ -184,7 +184,7 @@ export const LegalDocAiChecker: React.FC = () => {
           {externalResults && (
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-xs space-y-2">
               <div className="font-bold text-slate-200">外部交叉檢查結果（非官方核實）</div>
-              {externalResults?.length === 0 ? <p className="text-slate-400">文件中沒有可解析的裁判字號。</p> : externalResults?.map((result) => (
+              {externalResults?.length === 0 ? <p className="text-[var(--color-text-muted)]">文件中沒有可解析的裁判字號。</p> : externalResults?.map((result) => (
                 <div key={`${result.citation}-${result.status}`} className="flex items-start justify-between gap-3 border-t border-slate-800 pt-2">
                   <span className="text-slate-300">{result.citation}</span>
                   <span className={result.status === 'verified' ? 'text-emerald-400' : 'text-amber-400'}>{result.status}：{result.message}</span>
@@ -225,7 +225,7 @@ export const LegalDocAiChecker: React.FC = () => {
                     <ShieldCheck className="w-4 h-4 text-emerald-400" />
                     外部文件引用檢查報告
                   </h3>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-[var(--color-text-muted)]">
                     {scanResult ? `掃描完成：共檢核 ${scanResult.totalChecked} 處法條及判決字號` : '等待掃描執行'}
                   </p>
                 </div>
@@ -235,7 +235,7 @@ export const LegalDocAiChecker: React.FC = () => {
                     <button
                       onClick={() => setFilterType('ALL')}
                       className={`px-2 py-1 text-[11px] rounded font-medium ${
-                        filterType === 'ALL' ? 'bg-slate-800 text-white' : 'bg-slate-950 text-slate-400'
+                        filterType === 'ALL' ? 'bg-slate-800 text-white' : 'bg-slate-950 text-[var(--color-text-muted)]'
                       }`}
                     >
                       全部 ({scanResult.results.length})
@@ -286,7 +286,7 @@ export const LegalDocAiChecker: React.FC = () => {
               {scanResult ? (
                 <div className="max-h-[380px] overflow-y-auto pr-1">
                   {filteredCitations?.length === 0 ? (
-                    <div className="text-center py-8 text-xs text-slate-400">
+                    <div className="text-center py-8 text-xs text-[var(--color-text-muted)]">
                       無符合當前篩選條件之引述
                     </div>
                   ) : (
@@ -301,7 +301,7 @@ export const LegalDocAiChecker: React.FC = () => {
                               <span className="font-bold text-slate-200 font-mono">
                                 {item.citationText}
                               </span>
-                              <span className="text-[10px] text-slate-500">
+                              <span className="text-[10px] text-[var(--color-text-muted)]">
                                 ({item.type === 'STATUTE' ? '法條' : '裁判字號'})
                               </span>
                             </div>
@@ -329,7 +329,7 @@ export const LegalDocAiChecker: React.FC = () => {
 
                           {/* 實務法定要旨：極簡字樣排列 */}
                           {item.officialSnippet && (
-                            <p className="text-[11px] text-slate-400 leading-relaxed font-mono pl-2 border-l border-slate-700">
+                            <p className="text-[11px] text-[var(--color-text-muted)] leading-relaxed font-mono pl-2 border-l border-slate-700">
                               {item.officialSnippet}
                             </p>
                           )}
@@ -346,7 +346,7 @@ export const LegalDocAiChecker: React.FC = () => {
                   )}
                 </div>
               ) : (
-                <div className="h-64 flex flex-col items-center justify-center text-center p-6 text-slate-400 border border-dashed border-slate-800 rounded-xl space-y-2 bg-slate-950/30">
+                <div className="h-64 flex flex-col items-center justify-center text-center p-6 text-[var(--color-text-muted)] border border-dashed border-slate-800 rounded-xl space-y-2 bg-slate-950/30">
                   <p className="text-xs">請點選上方「開始掃描」以檢驗左方書狀內容之法規引用真確性</p>
                 </div>
               )}
@@ -355,7 +355,7 @@ export const LegalDocAiChecker: React.FC = () => {
             {/* Bottom Actions: Copy Cleaned Sanitized Version */}
             {scanResult && (
               <div className="pt-4 border-t border-slate-800 flex items-center justify-between">
-                <span className="text-xs text-slate-400">
+                <span className="text-xs text-[var(--color-text-muted)]">
                   {scanResult.ghostCount > 0
                     ? '已自動生成「過濾幽靈判決之安全替換版」'
                     : '書狀引用結構健全，可直接使用'}

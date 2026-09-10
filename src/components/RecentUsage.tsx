@@ -89,7 +89,7 @@ export const RecentUsage: React.FC = () => {
   return (
     <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800/80 space-y-3">
       <div className="flex items-center gap-2 text-xs font-bold text-slate-300">
-        <Clock className="w-3.5 h-3.5 text-slate-400" />
+        <Clock className="w-3.5 h-3.5 text-[var(--color-text-muted)]" />
         <span>最近使用</span>
       </div>
       <div className="flex flex-wrap gap-2">
@@ -102,10 +102,10 @@ export const RecentUsage: React.FC = () => {
               onClick={() => handleSelectTool(String(item.toolId))}
               className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 hover:border-slate-600 text-slate-200 text-xs font-medium transition-all group"
             >
-              <Icon className="w-3.5 h-3.5 text-slate-400 group-hover:text-indigo-400" />
+              <Icon className="w-3.5 h-3.5 text-[var(--color-text-muted)] group-hover:text-indigo-400" />
               <span>{String(item.label || item.toolId)}</span>
-              <span className="text-[10px] text-slate-500">{timeAgo(item.timestamp)}</span>
-              <ChevronRight className="w-3 h-3 text-slate-500 group-hover:text-indigo-400" />
+              <span className="text-[10px] text-[var(--color-text-muted)]">{timeAgo(item.timestamp)}</span>
+              <ChevronRight className="w-3 h-3 text-[var(--color-text-muted)] group-hover:text-indigo-400" />
             </button>
           );
         })}

@@ -37,8 +37,8 @@ describe('UnifiedEntry component', () => {
     renderComponent();
 
     // Verifies helper text mentions both colloquial facts and Judicial Yuan PDF/TXT upload
-    expect(screen.getByText(/支援直接輸入口語事實/)).toBeInTheDocument();
-    expect(screen.getByText(/司法院裁判書（\.pdf 與 \.txt 格式）/)).toBeInTheDocument();
+    expect(screen.getByText(/支援口語輸入自動提煉爭點/)).toBeInTheDocument();
+    expect(screen.getByText(/拖曳上傳裁判書（\.pdf \/ \.txt）/)).toBeInTheDocument();
 
     // Check button label
     expect(screen.getByText(/上傳裁判書 \(PDF\/TXT\)/)).toBeInTheDocument();
@@ -53,7 +53,7 @@ describe('UnifiedEntry component', () => {
   it('loads colloquial fact sample into textarea when clicked', () => {
     renderComponent();
 
-    const sampleButton = screen.getByText(/範例 5：網購交易糾紛（口語事實直接輸入）/);
+    const sampleButton = screen.getByText(/範例 5：消費詐欺糾紛/);
     fireEvent.click(sampleButton);
 
     const textarea = screen.getByRole('textbox') as HTMLTextAreaElement;

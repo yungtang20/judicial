@@ -85,7 +85,7 @@ export const InputNode: React.FC<InputNodeProps> = (props) => {
                   </>
                 )}
               </button>
-              <span className="text-xs text-slate-400">
+              <span className="text-xs text-[var(--color-text-muted)]">
                 字數：{inputNarrative.length} 字
               </span>
             </div>
@@ -101,7 +101,7 @@ export const InputNode: React.FC<InputNodeProps> = (props) => {
 
           {/* Quick sample buttons */}
           <div className="flex flex-wrap items-center gap-2 pt-1">
-            <span className="text-xs text-slate-400">快速載入測試：</span>
+            <span className="text-xs text-[var(--color-text-muted)]">快速載入測試：</span>
             <button
               type="button"
               onClick={() => setInputNarrative(defaultSample)}
@@ -164,7 +164,7 @@ export const InputNode: React.FC<InputNodeProps> = (props) => {
               <button
                 type="button"
                 onClick={handleSaveCurrentAsCustomPreset}
-                className="px-2 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 text-[11px] border border-slate-700 transition-colors"
+                className="px-2 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-[var(--color-text-muted)] hover:text-slate-200 text-[11px] border border-slate-700 transition-colors"
                 title="將目前輸入框內容存為自訂預設案例"
               >
                 設為自訂
@@ -178,11 +178,11 @@ export const InputNode: React.FC<InputNodeProps> = (props) => {
             disabled={isSubmitting || isParsingFiles}
             placeholder="請直接輸入口語事實或案發經過（例如：我上個月在租屋處退租時房東扣住五萬元押金不還，說要收清潔費但沒收據...）&#10;&#10;亦可點選右上角按鈕或直接拖曳上傳司法院裁判書 PDF 檔（.pdf）或文字檔（.txt）。"
             rows={5}
-            className="w-full p-4 rounded-xl bg-slate-950 border border-slate-700 text-slate-100 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 transition-colors leading-relaxed placeholder:text-slate-600 disabled:opacity-50"
+            className="w-full p-4 rounded-xl bg-slate-950 border border-slate-700 text-slate-100 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 transition-colors leading-relaxed placeholder:text-[var(--color-text-secondary)] disabled:opacity-50"
           />
 
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
-            <div className="text-xs text-slate-400 flex items-center gap-1.5">
+            <div className="text-xs text-[var(--color-text-muted)] flex items-center gap-1.5">
               <Sparkles className="w-4 h-4 text-indigo-400 shrink-0" />
               <span>支援口語輸入自動提煉爭點，或拖曳上傳裁判書（.pdf / .txt）</span>
             </div>

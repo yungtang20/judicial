@@ -33,7 +33,7 @@ export const CitationNode: React.FC<CitationNodeProps> = (props) => {
                   <h2 className="text-sm font-bold text-white flex items-center gap-2">
                     <span>法規與裁判要件庫檢索</span>
                     {!isNode4Open && (
-                      <span className="text-[11px] font-normal text-slate-400 bg-slate-800 px-2 py-0.5 rounded hidden sm:inline">
+                      <span className="text-[11px] font-normal text-[var(--color-text-muted)] bg-slate-800 px-2 py-0.5 rounded hidden sm:inline">
                         法規 {workflowState.rag.statuteCitations?.length || 0} 筆 · 判例 {workflowState.rag.precedents?.length || 0} 筆
                       </span>
                     )}
@@ -41,10 +41,10 @@ export const CitationNode: React.FC<CitationNodeProps> = (props) => {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-slate-400">
+                <span className="text-xs font-medium text-[var(--color-text-muted)]">
                   {isNode4Open ? '收起資料' : '展開檢視'}
                 </span>
-                {isNode4Open ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                {isNode4Open ? <ChevronUp className="w-4 h-4 text-[var(--color-text-muted)]" /> : <ChevronDown className="w-4 h-4 text-[var(--color-text-muted)]" />}
               </div>
             </div>
 
@@ -56,7 +56,7 @@ export const CitationNode: React.FC<CitationNodeProps> = (props) => {
 
                 {workflowState.rag.statuteCitations?.length > 0 && (
                   <div className="pt-1">
-                    <span className="text-[11px] font-bold text-slate-400 block mb-1.5 uppercase tracking-wider">關聯實體法條清單</span>
+                    <span className="text-[11px] font-bold text-[var(--color-text-muted)] block mb-1.5 uppercase tracking-wider">關聯實體法條清單</span>
                     <div className="flex flex-wrap gap-1.5">
                       {workflowState.rag.statuteCitations.map((citation: string, i: number) => (
                         <span key={i} className="px-2.5 py-1 rounded bg-slate-900 border border-slate-700 text-xs text-indigo-200 font-mono">{citation}</span>
@@ -67,15 +67,15 @@ export const CitationNode: React.FC<CitationNodeProps> = (props) => {
 
                 {workflowState.rag.precedents?.length > 0 && (
                   <div className="pt-2">
-                    <span className="text-[11px] font-bold text-slate-400 block mb-1.5 uppercase tracking-wider">實務裁判先例清單</span>
+                    <span className="text-[11px] font-bold text-[var(--color-text-muted)] block mb-1.5 uppercase tracking-wider">實務裁判先例清單</span>
                     <div className="divide-y divide-slate-800/80">
                       {workflowState.rag.precedents.map((precedent: any, i: number) => (
                         <div key={i} className="py-2.5 flex flex-col sm:flex-row sm:items-baseline justify-between gap-1.5">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 font-mono">
                               <span className="font-bold text-sky-300">{precedent.caseNumber}</span>
-                              <span className="text-slate-600">·</span>
-                              <span className="text-slate-400 text-[11px]">{precedent.courtName}</span>
+                              <span className="text-[var(--color-text-secondary)]">·</span>
+                              <span className="text-[var(--color-text-muted)] text-[11px]">{precedent.courtName}</span>
                             </div>
                             <p className="text-xs text-slate-300 leading-relaxed mt-1">{precedent.summary}</p>
                           </div>
@@ -92,15 +92,15 @@ export const CitationNode: React.FC<CitationNodeProps> = (props) => {
 
                 {workflowState.rag.officialEvidence?.length > 0 && (
                   <div className="border-t border-slate-800 pt-2.5">
-                    <span className="text-[11px] font-bold text-slate-400 block mb-1.5 uppercase tracking-wider">官方資料庫查驗紀錄</span>
+                    <span className="text-[11px] font-bold text-[var(--color-text-muted)] block mb-1.5 uppercase tracking-wider">官方資料庫查驗紀錄</span>
                     <div className="divide-y divide-slate-800/80">
                       {workflowState.rag.officialEvidence.map((item: any, i: number) => (
-                        <div key={i} className="py-1.5 flex items-center justify-between text-[11px] text-slate-400">
+                        <div key={i} className="py-1.5 flex items-center justify-between text-[11px] text-[var(--color-text-muted)]">
                           <div>
                             <span className="font-mono text-slate-200">{item.citation}</span>
-                            <span className="mx-1.5 text-slate-600">·</span>
+                            <span className="mx-1.5 text-[var(--color-text-secondary)]">·</span>
                             <span className={item.status === 'VALID' ? 'text-emerald-400' : 'text-amber-400'}>{item.status}</span>
-                            {item.claimSupportStatus && <span className="ml-1 text-slate-500">({item.claimSupportStatus})</span>}
+                            {item.claimSupportStatus && <span className="ml-1 text-[var(--color-text-muted)]">({item.claimSupportStatus})</span>}
                           </div>
                           {item.sourceUrl && (
                             <a className="text-sky-400 hover:underline shrink-0" href={item.sourceUrl} target="_blank" rel="noreferrer">

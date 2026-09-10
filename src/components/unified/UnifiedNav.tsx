@@ -49,7 +49,7 @@ export const UnifiedNav: React.FC<UnifiedNavProps> = (props) => {
           <CheckCircle2 className="w-4 h-4 text-emerald-400" />
           <span className="text-sm font-bold text-white">案件分析完成 · 跨模組後續行動指引</span>
         </div>
-        <span className="text-xs text-slate-400">數據已就緒，可直接帶入各訴訟模組</span>
+        <span className="text-xs text-[var(--color-text-muted)]">數據已就緒，可直接帶入各訴訟模組</span>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -61,10 +61,10 @@ export const UnifiedNav: React.FC<UnifiedNavProps> = (props) => {
             <FileText className="w-4 h-4 text-violet-400 shrink-0" />
             <div>
               <div className="font-bold">生成對應文書</div>
-              <div className="text-[10px] text-slate-400 font-normal">依分析結果產製</div>
+              <div className="text-[10px] text-[var(--color-text-muted)] font-normal">依分析結果產製</div>
             </div>
           </div>
-          <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+          <ArrowRight className="w-3.5 h-3.5 text-[var(--color-text-muted)]" />
         </button>
 
         <button
@@ -75,10 +75,10 @@ export const UnifiedNav: React.FC<UnifiedNavProps> = (props) => {
             <Briefcase className="w-4 h-4 text-amber-400 shrink-0" />
             <div>
               <div className="font-bold">實用法務書狀</div>
-              <div className="text-[10px] text-slate-400 font-normal">起訴狀與存證信函</div>
+              <div className="text-[10px] text-[var(--color-text-muted)] font-normal">起訴狀與存證信函</div>
             </div>
           </div>
-          <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+          <ArrowRight className="w-3.5 h-3.5 text-[var(--color-text-muted)]" />
         </button>
 
         <button
@@ -89,10 +89,10 @@ export const UnifiedNav: React.FC<UnifiedNavProps> = (props) => {
             <Table className="w-4 h-4 text-sky-400 shrink-0" />
             <div>
               <div className="font-bold">法庭爭點整理表</div>
-              <div className="text-[10px] text-slate-400 font-normal">帶入三段論爭點</div>
+              <div className="text-[10px] text-[var(--color-text-muted)] font-normal">帶入三段論爭點</div>
             </div>
           </div>
-          <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+          <ArrowRight className="w-3.5 h-3.5 text-[var(--color-text-muted)]" />
         </button>
 
         <button
@@ -103,14 +103,14 @@ export const UnifiedNav: React.FC<UnifiedNavProps> = (props) => {
             <Scale className="w-4 h-4 text-indigo-400 shrink-0" />
             <div>
               <div className="font-bold">判決剖析與上訴</div>
-              <div className="text-[10px] text-slate-400 font-normal">20天期間與上訴狀</div>
+              <div className="text-[10px] text-[var(--color-text-muted)] font-normal">20天期間與上訴狀</div>
             </div>
           </div>
-          <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+          <ArrowRight className="w-3.5 h-3.5 text-[var(--color-text-muted)]" />
         </button>
       </div>
 
-      <div className="pt-1 flex items-center justify-between text-xs text-slate-400">
+      <div className="pt-1 flex items-center justify-between text-xs text-[var(--color-text-muted)]">
         <span>需要一般生活狀況解方？</span>
         <button
           onClick={handleJumpToGuide}

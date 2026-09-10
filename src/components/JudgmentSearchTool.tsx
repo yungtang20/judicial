@@ -289,14 +289,14 @@ export default function JudgmentSearchTool() {
 
   return (
     <div className="w-full max-w-[1100px] mx-auto p-4 md:p-8 overflow-y-auto">
-      <div className="bg-white p-6 md:p-10 rounded-lg border border-karoshi-border shadow-xs">
-        <h1 className="text-2xl md:text-3xl font-bold text-center text-karoshi-text border-b-2 border-karoshi-accent pb-4 mb-8">
+      <div className="bg-[var(--color-surface-overlay)] p-6 md:p-10 rounded-lg border border-[var(--color-border-subtle)] shadow-xs">
+        <h1 className="text-2xl md:text-3xl font-bold text-center text-[var(--color-text-primary)] border-b-2 border-[var(--color-brand-primary)] pb-4 mb-8">
           🚀 自行匯入判決檢索小工具
         </h1>
 
         {/* 1. 資料來源 */}
-        <div className="pb-6 mb-6 border-b border-karoshi-border">
-          <h3 className="text-lg font-bold text-karoshi-text-light border-b border-dashed border-karoshi-border pb-2 mb-4">
+        <div className="pb-6 mb-6 border-b border-[var(--color-border-subtle)]">
+          <h3 className="text-lg font-bold text-[var(--color-text-muted)] border-b border-dashed border-[var(--color-border-subtle)] pb-2 mb-4">
             1. 資料來源
           </h3>
 
@@ -312,15 +312,15 @@ export default function JudgmentSearchTool() {
 
           <div 
             onClick={() => fileInputRef.current?.click()}
-            className="border-2 border-dashed border-karoshi-border bg-karoshi-bg p-8 text-center rounded-lg cursor-pointer hover:border-karoshi-accent hover:bg-white transition-all text-karoshi-text-light"
+            className="border-2 border-dashed border-[var(--color-border-subtle)] bg-[var(--color-surface-base)] p-8 text-center rounded-lg cursor-pointer hover:border-[var(--color-brand-primary)] hover:bg-[var(--color-surface-overlay)] transition-all text-[var(--color-text-muted)]"
           >
             <div className="text-4xl mb-2">📂</div>
             <div className="font-medium text-base">點擊選取資料夾 / 檔案 (支援 JSON / PDF / TXT)</div>
-            <div className="text-xs text-gray-500 mt-1">可批次選擇或拖曳司法官網下載的 PDF 或 Open Data JSON 檔案</div>
+            <div className="text-xs text-[var(--color-text-muted)] mt-1">可批次選擇或拖曳司法官網下載的 PDF 或 Open Data JSON 檔案</div>
           </div>
 
           {progress !== null && (
-            <div className="w-full bg-gray-200 rounded-full h-4 mt-4 overflow-hidden">
+            <div className="w-full bg-[var(--color-border-strong)] rounded-full h-4 mt-4 overflow-hidden">
               <div 
                 className="bg-[#569E78] h-full text-xs text-white text-center leading-4 transition-all duration-200"
                 style={{ width: `${progress}%` }}
@@ -330,12 +330,12 @@ export default function JudgmentSearchTool() {
             </div>
           )}
 
-          <div className="text-sm text-karoshi-text-light mt-3">{statusMessage}</div>
+          <div className="text-sm text-[var(--color-text-muted)] mt-3">{statusMessage}</div>
         </div>
 
         {/* 2. 搜尋設定 */}
-        <div className="pb-6 mb-6 border-b border-karoshi-border">
-          <h3 className="text-lg font-bold text-karoshi-text-light border-b border-dashed border-karoshi-border pb-2 mb-4">
+        <div className="pb-6 mb-6 border-b border-[var(--color-border-subtle)]">
+          <h3 className="text-lg font-bold text-[var(--color-text-muted)] border-b border-dashed border-[var(--color-border-subtle)] pb-2 mb-4">
             2. 搜尋設定
           </h3>
 
@@ -347,13 +347,13 @@ export default function JudgmentSearchTool() {
               placeholder="輸入關鍵字 (例如:車禍+與有過失)"
               disabled={allData.length === 0}
               onKeyDown={e => e.key === 'Enter' && startSearch()}
-              className="flex-1 border border-karoshi-border rounded px-3 py-2 text-karoshi-text focus:outline-none focus:border-karoshi-accent disabled:bg-gray-100 disabled:cursor-not-allowed"
+              className="flex-1 border border-[var(--color-border-subtle)] rounded px-3 py-2 text-[var(--color-text-primary)] focus:outline-none focus:border-[var(--color-brand-primary)] disabled:bg-[var(--color-surface-overlay)] disabled:cursor-not-allowed"
             />
             {!isSearching ? (
               <button 
                 onClick={startSearch}
                 disabled={allData.length === 0}
-                className="bg-karoshi-text text-white px-6 py-2 rounded font-medium hover:opacity-90 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all"
+                className="bg-[var(--color-brand-primary)] text-white px-6 py-2 rounded font-medium hover:opacity-90 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all"
               >
                 🔍 搜尋
               </button>
@@ -367,8 +367,8 @@ export default function JudgmentSearchTool() {
             )}
           </div>
 
-          <div className="bg-karoshi-bg p-4 rounded text-sm text-karoshi-text-light leading-relaxed">
-            <div className="font-bold mb-1 text-karoshi-text">語法說明：</div>
+          <div className="bg-[var(--color-surface-base)] p-4 rounded text-sm text-[var(--color-text-muted)] leading-relaxed">
+            <div className="font-bold mb-1 text-[var(--color-text-primary)]">語法說明：</div>
             <div><b>And</b>：用「+」或「and」(如: 損害賠償+車禍)</div>
             <div><b>Or</b>：用「*」(如: 繼承*遺囑)</div>
             <div><b>Not</b>：用「 -」(空白加減號) (如: 離婚 -未成年子女)</div>
@@ -378,11 +378,11 @@ export default function JudgmentSearchTool() {
 
         {/* 3. 結果列表 */}
         <div>
-          <h3 className="text-lg font-bold text-karoshi-text-light border-b border-dashed border-karoshi-border pb-2 mb-4">
+          <h3 className="text-lg font-bold text-[var(--color-text-muted)] border-b border-dashed border-[var(--color-border-subtle)] pb-2 mb-4">
             3. 結果列表
           </h3>
 
-          <div className="flex justify-between items-center mb-4 flex-wrap gap-2 text-sm font-bold text-karoshi-text-light">
+          <div className="flex justify-between items-center mb-4 flex-wrap gap-2 text-sm font-bold text-[var(--color-text-muted)]">
             <span>{searchResults.length > 0 ? `搜尋完成：共找到 ${searchResults.length} 筆` : '尚未搜尋'}</span>
             {searchResults.length > 0 && (
               <div className="flex gap-2">
@@ -394,7 +394,7 @@ export default function JudgmentSearchTool() {
                 </button>
                 <button 
                   onClick={downloadJSON} 
-                  className="bg-karoshi-text-light text-white px-3 py-1.5 rounded text-xs font-medium hover:opacity-90 transition-all"
+                  className="bg-[var(--color-border-strong)] text-white px-3 py-1.5 rounded text-xs font-medium hover:opacity-90 transition-all"
                 >
                   📥 下載 JSON
                 </button>
@@ -402,29 +402,29 @@ export default function JudgmentSearchTool() {
             )}
           </div>
 
-          <ul className="border border-karoshi-border rounded max-h-[600px] overflow-y-auto divide-y divide-karoshi-border">
+          <ul className="border border-[var(--color-border-subtle)] rounded max-h-[600px] overflow-y-auto divide-y divide-[var(--color-border-subtle)]">
             {searchResults.length === 0 ? (
-              <li className="p-8 text-center text-gray-500">
+              <li className="p-8 text-center text-[var(--color-text-muted)]">
                 {allData.length === 0 ? '請先匯入判決檔案 (JSON / PDF / TXT)' : '輸入關鍵字並點擊搜尋'}
               </li>
             ) : (
               searchResults.slice(0, renderLimit).map((item, index) => (
-                <li key={index} className="p-5 hover:bg-karoshi-bg transition-colors relative">
+                <li key={index} className="p-5 hover:bg-[var(--color-surface-base)] transition-colors relative">
                   <button 
                     onClick={() => deleteItem(index)}
-                    className="absolute top-4 right-4 text-gray-400 hover:bg-[#C85A5A] hover:text-white border border-gray-200 rounded w-6 h-6 flex items-center justify-center text-xs transition-colors"
+                    className="absolute top-4 right-4 text-[var(--color-text-muted)] hover:bg-[#C85A5A] hover:text-white border border-[var(--color-border-subtle)] rounded w-6 h-6 flex items-center justify-center text-xs transition-colors"
                     title="移除此筆"
                   >
                     ✖
                   </button>
-                  <div className="flex justify-between pr-10 text-xs text-karoshi-text-light mb-1">
-                    <span className="text-karoshi-accent font-bold text-sm">{item.id}</span>
+                  <div className="flex justify-between pr-10 text-xs text-[var(--color-text-muted)] mb-1">
+                    <span className="text-[var(--color-brand-primary)] font-bold text-sm">{item.id}</span>
                     <span>{item.date}</span>
                   </div>
-                  <div className="font-bold text-karoshi-text mb-1 text-base">
+                  <div className="font-bold text-[var(--color-text-primary)] mb-1 text-base">
                     {item.title}
                   </div>
-                  <div className="text-gray-600 text-xs truncate">
+                  <div className="text-[var(--color-text-secondary)] text-xs truncate">
                     {(item.full || "").substring(0, 80).replace(/\s+/g, ' ')}...
                   </div>
                 </li>
@@ -435,7 +435,7 @@ export default function JudgmentSearchTool() {
           {renderLimit < searchResults.length && (
             <button 
               onClick={() => setRenderLimit(prev => Math.min(prev + BATCH_SIZE, searchResults.length))}
-              className="w-full mt-4 py-3 bg-karoshi-text-light text-white font-medium rounded hover:bg-karoshi-text transition-colors"
+              className="w-full mt-4 py-3 bg-[var(--color-border-strong)] text-white font-medium rounded hover:bg-[var(--color-brand-primary)] transition-colors"
             >
               顯示更多結果 ({renderLimit} / {searchResults.length})
             </button>

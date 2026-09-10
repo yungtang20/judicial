@@ -22,7 +22,7 @@ export const TriageNode: React.FC<TriageNodeProps> = (props) => {
         {workflowState?.router && (
           <div className="p-3.5 rounded-xl bg-[#0e1424] border border-slate-800 flex flex-wrap items-center justify-between gap-2.5">
             <div className="flex flex-wrap items-center gap-2 text-xs">
-              <span className="text-slate-400 font-bold">分析簡報：</span>
+              <span className="text-[var(--color-text-muted)] font-bold">分析簡報：</span>
               <span className="px-2 py-0.5 rounded-md bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 font-bold">
                 領域：{workflowState.router.domain}
               </span>
@@ -40,7 +40,7 @@ export const TriageNode: React.FC<TriageNodeProps> = (props) => {
             </div>
 
             <div className="flex items-center gap-2 ml-auto">
-              <span className="text-[11px] text-slate-500 hidden md:inline">預設已收起詳細資料</span>
+              <span className="text-[11px] text-[var(--color-text-muted)] hidden md:inline">預設已收起詳細資料</span>
               <button
                 type="button"
                 onClick={() => handleToggleAllNodes(true)}
@@ -82,39 +82,39 @@ export const TriageNode: React.FC<TriageNodeProps> = (props) => {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-slate-400">
+                <span className="text-xs font-medium text-[var(--color-text-muted)]">
                   {isNode2Open ? '收起資料' : '展開檢視'}
                 </span>
-                {isNode2Open ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                {isNode2Open ? <ChevronUp className="w-4 h-4 text-[var(--color-text-muted)]" /> : <ChevronDown className="w-4 h-4 text-[var(--color-text-muted)]" />}
               </div>
             </div>
 
             {isNode2Open && (
               <div className="pt-3 border-t border-slate-800 text-xs">
-                <span className="text-[11px] font-bold text-slate-400 block mb-1.5 uppercase tracking-wider">分流屬性清單</span>
+                <span className="text-[11px] font-bold text-[var(--color-text-muted)] block mb-1.5 uppercase tracking-wider">分流屬性清單</span>
                 <div className="divide-y divide-slate-800">
                   <div className="py-2 flex items-center justify-between">
-                    <span className="text-slate-400">法律領域</span>
+                    <span className="text-[var(--color-text-muted)]">法律領域</span>
                     <span className="font-bold text-indigo-300">{workflowState.router.domain}</span>
                   </div>
                   <div className="py-2 flex items-center justify-between">
-                    <span className="text-slate-400">罪章/實體法專節</span>
+                    <span className="text-[var(--color-text-muted)]">罪章/實體法專節</span>
                     <span className="font-semibold text-white truncate max-w-xs" title={formatLegalChapter(workflowState.router.chapter)}>
                       {formatLegalChapter(workflowState.router.chapter)}
                     </span>
                   </div>
                   <div className="py-2 flex items-center justify-between">
-                    <span className="text-slate-400">案由爭點</span>
+                    <span className="text-[var(--color-text-muted)]">案由爭點</span>
                     <span className="font-semibold text-amber-300 truncate max-w-xs">{workflowState.router.cause}</span>
                   </div>
                   <div className="py-2 flex items-center justify-between">
-                    <span className="text-slate-400">案件屬性</span>
+                    <span className="text-[var(--color-text-muted)]">案件屬性</span>
                     <span className={`font-bold ${workflowState.router.is_sensitive ? 'text-rose-400' : 'text-emerald-400'}`}>
                       {workflowState.router.is_sensitive ? '敏感人身保護案件' : '一般訴訟爭端'}
                     </span>
                   </div>
                   <div className="py-2 flex items-center justify-between">
-                    <span className="text-slate-400">事實完整度評估</span>
+                    <span className="text-[var(--color-text-muted)]">事實完整度評估</span>
                     <span className="font-semibold text-slate-300">
                       {Math.round(
                         (typeof workflowState.router.completeness === 'number'

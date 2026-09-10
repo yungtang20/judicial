@@ -19,7 +19,7 @@ export const AIProviderSettings: React.FC<Props> = ({ value, onChange }) => {
     <section className="rounded-2xl border border-indigo-500/30 bg-indigo-950/20 p-4 space-y-3" aria-label="AI 提供商設定">
       <button type="button" onClick={() => setExpanded((open) => !open)} className="w-full text-left">
         <h2 className="text-sm font-bold text-indigo-200">AI 提供商設定 {expanded ? '▾' : '▸'}</h2>
-        <p className="text-xs text-slate-400 mt-1">可在每次工作流執行前切換相容 OpenAI API 的模型；設定只保留在本次頁面工作階段。</p>
+        <p className="text-xs text-[var(--color-text-muted)] mt-1">可在每次工作流執行前切換相容 OpenAI API 的模型；設定只保留在本次頁面工作階段。</p>
       </button>
       {!expanded ? <p className="text-xs text-indigo-300">目前：Custom Provider · {value.model}</p> : null}
       {expanded && <>

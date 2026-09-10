@@ -49,14 +49,14 @@ export const GuideModals: React.FC<GuideModalsProps> = (props) => {
                       臺灣實體法與實務規則校準
                     </span>
                   </h3>
-                  <span className="text-xs text-slate-400">
+                  <span className="text-xs text-[var(--color-text-muted)]">
                     針對爭議：「<strong className="text-slate-200">{searchQuery}</strong>」
                   </span>
                 </div>
               </div>
               <button
                 onClick={() => setShowAiTriageModal(false)}
-                className="text-slate-400 hover:text-white p-2 rounded-xl bg-slate-800 hover:bg-slate-700 transition-colors"
+                className="text-[var(--color-text-muted)] hover:text-white p-2 rounded-xl bg-slate-800 hover:bg-slate-700 transition-colors"
               >
                 ✕
               </button>
@@ -67,7 +67,7 @@ export const GuideModals: React.FC<GuideModalsProps> = (props) => {
                 <div className="w-12 h-12 border-4 border-indigo-500/30 border-t-indigo-400 rounded-full animate-spin mx-auto" />
                 <div className="space-y-1">
                   <p className="text-base font-bold text-white">正在連線司法院實務規章與法律知識庫...</p>
-                  <p className="text-xs text-slate-400">分析管轄法院、適用法條、追訴時效及起訴/告訴狀標準格式</p>
+                  <p className="text-xs text-[var(--color-text-muted)]">分析管轄法院、適用法條、追訴時效及起訴/告訴狀標準格式</p>
                 </div>
               </div>
             ) : aiTriageResult ? (
@@ -123,7 +123,7 @@ export const GuideModals: React.FC<GuideModalsProps> = (props) => {
                             : '⚠️ 刑事告訴乃論（知悉犯人起 6 個月內須具狀提告）'
                       )}
                     </p>
-                    <p className="text-slate-400 text-xs">
+                    <p className="text-[var(--color-text-muted)] text-xs">
                       時效說明：{aiTriageResult.timeLimit}
                     </p>
                   </div>
@@ -133,29 +133,29 @@ export const GuideModals: React.FC<GuideModalsProps> = (props) => {
                 <div className="bg-slate-950/70 p-6 rounded-xl border border-slate-800 space-y-3">
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs font-bold text-sky-400 flex items-center gap-1.5"><BookOpen className="w-3.5 h-3.5" /> 法規／裁判／函釋檢索</span>
-                    <div className="flex items-center gap-2"><a href="https://www.lawbank.com.tw/SearchResult.aspx" target="_blank" rel="noreferrer" className="text-[10px] text-sky-400 hover:text-sky-300">Lawbank 外部搜尋 ↗</a><span className="text-[10px] text-slate-500">{aiTriageResult.sources?.enabled ? 'tw-legal-rag 外部資料源' : '未啟用外部資料源'}</span></div>
+                    <div className="flex items-center gap-2"><a href="https://www.lawbank.com.tw/SearchResult.aspx" target="_blank" rel="noreferrer" className="text-[10px] text-sky-400 hover:text-sky-300">Lawbank 外部搜尋 ↗</a><span className="text-[10px] text-[var(--color-text-muted)]">{aiTriageResult.sources?.enabled ? 'tw-legal-rag 外部資料源' : '未啟用外部資料源'}</span></div>
                   </div>
                   <div className="flex flex-wrap gap-2 border-b border-slate-800 pb-2">
                     {([
                       ['statutes', '法規'], ['judgments', '裁判'], ['references', '函釋'], ['literature', '論著']
                     ] as const).map(([key, label]) => (
-                      <button key={key} onClick={() => setSourceTab(key)} className={`px-3 py-1.5 rounded-full text-xs border ${sourceTab === key ? 'border-sky-400 text-sky-300 bg-sky-950/50' : 'border-slate-700 text-slate-400'}`}>
+                      <button key={key} onClick={() => setSourceTab(key)} className={`px-3 py-1.5 rounded-full text-xs border ${sourceTab === key ? 'border-sky-400 text-sky-300 bg-sky-950/50' : 'border-slate-700 text-[var(--color-text-muted)]'}`}>
                         {label} {(aiTriageResult.sources?.[key] || []).length}
                       </button>
                     ))}
                   </div>
                   <div className="space-y-2">
                     {(aiTriageResult.sources?.[sourceTab] || []).length === 0 ? (
-                      <p className="text-xs text-slate-500">目前沒有可顯示的結果；查無結果不代表法源不存在。</p>
+                      <p className="text-xs text-[var(--color-text-muted)]">目前沒有可顯示的結果；查無結果不代表法源不存在。</p>
                     ) : (aiTriageResult.sources[sourceTab] || []).map((source: any, index: number) => (
                       <div key={`${source.citation}-${index}`} className="border-b border-slate-800 last:border-0 pb-2 last:pb-0">
                         <div className="flex items-start justify-between gap-2"><span className="font-semibold text-slate-200">{source.title}</span>{source.status && <span className="text-[10px] text-amber-300">{source.status}</span>}</div>
-                        {source.excerpt && <p className="text-xs text-slate-400 leading-relaxed mt-1">{source.excerpt}</p>}
+                        {source.excerpt && <p className="text-xs text-[var(--color-text-muted)] leading-relaxed mt-1">{source.excerpt}</p>}
                         {source.sourceUrl && <a href={source.sourceUrl} target="_blank" rel="noreferrer" className="text-[11px] text-sky-400 hover:text-sky-300">查看來源 ↗</a>}
                       </div>
                     ))}
                   </div>
-                  <p className="text-[10px] text-slate-500">{aiTriageResult.sources?.disclaimer || '外部資料僅供查考，引用前請閱讀原文與官方來源。'}</p>
+                  <p className="text-[10px] text-[var(--color-text-muted)]">{aiTriageResult.sources?.disclaimer || '外部資料僅供查考，引用前請閱讀原文與官方來源。'}</p>
                 </div>
 
                 {/* 白話診斷分析 */}
@@ -178,7 +178,7 @@ export const GuideModals: React.FC<GuideModalsProps> = (props) => {
                           return (
                           <li key={i} className="text-xs bg-slate-900/80 p-3 rounded-lg border border-slate-700/50">
                             <div className="font-bold text-amber-300 mb-1">Q: {q.question}</div>
-                            <div className="text-slate-400 mb-2">📝 {q.reason}</div>
+                            <div className="text-[var(--color-text-muted)] mb-2">📝 {q.reason}</div>
                             
                             {q.options && q.options.length > 0 && (
                               <div className="space-y-2 mb-3">

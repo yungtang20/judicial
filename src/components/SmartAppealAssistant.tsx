@@ -29,21 +29,21 @@ export default function SmartAppealAssistant() {
   } = useSmartAppealAssistant();
 
   return (
-    <div className="w-full flex flex-col h-full overflow-y-auto bg-karoshi-bg p-4 md:p-6">
+    <div className="w-full flex flex-col h-full overflow-y-auto bg-[var(--color-surface-base)] p-4 md:p-6">
       {/* 頂部：上訴期間與警示 Banner */}
-      <div className="bg-white rounded-xl shadow-xs p-4 mb-6 border border-karoshi-border flex flex-col md:flex-row justify-between items-center gap-4">
+      <div className="bg-[var(--color-surface-overlay)] rounded-xl shadow-xs p-4 mb-6 border border-[var(--color-border-subtle)] flex flex-col md:flex-row justify-between items-center gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-red-100 border border-red-200 text-red-600 flex items-center justify-center font-bold text-xl shrink-0">
+          <div className="w-12 h-12 rounded-full bg-red-100 border border-[var(--color-status-danger)]/30 text-red-600 flex items-center justify-center font-bold text-xl shrink-0">
             ⏳
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-bold text-lg text-karoshi-text">上訴法定期間檢示</span>
+              <span className="font-bold text-lg text-[var(--color-text-primary)]">上訴法定期間檢示</span>
               <span className="text-xs bg-red-600 text-white px-2 py-0.5 rounded-full font-bold">
                 不變期間 20 日
               </span>
             </div>
-            <div className="text-xs text-gray-600 mt-1 flex flex-wrap gap-x-4">
+            <div className="text-xs text-[var(--color-text-secondary)] mt-1 flex flex-wrap gap-x-4">
               <span>送達日期：<input type="date" value={deliveryDate} onChange={e => setDeliveryDate(e.target.value)} className="border rounded px-1 text-xs font-bold" /></span>
               <span>在途期間加計：
                 <select value={travelDays} onChange={e => setTravelDays(Number(e.target.value))} className="border rounded px-1 text-xs">
@@ -56,14 +56,14 @@ export default function SmartAppealAssistant() {
           </div>
         </div>
 
-        <div className="flex gap-4 items-center border-t md:border-t-0 md:border-l border-karoshi-border pt-3 md:pt-0 md:pl-6 w-full md:w-auto justify-around">
+        <div className="flex gap-4 items-center border-t md:border-t-0 md:border-l border-[var(--color-border-subtle)] pt-3 md:pt-0 md:pl-6 w-full md:w-auto justify-around">
           <div className="text-center">
-            <div className="text-xs text-gray-500 font-medium">聲明上訴最後期限</div>
+            <div className="text-xs text-[var(--color-text-muted)] font-medium">聲明上訴最後期限</div>
             <div className="text-sm font-bold text-red-600">{deadlineInfo.declarationDeadline}</div>
           </div>
           <div className="text-center">
-            <div className="text-xs text-gray-500 font-medium">剩餘天數</div>
-            <div className={`text-lg font-extrabold ${deadlineInfo.daysLeft <= 5 ? 'text-red-600 animate-pulse' : 'text-karoshi-accent'}`}>
+            <div className="text-xs text-[var(--color-text-muted)] font-medium">剩餘天數</div>
+            <div className={`text-lg font-extrabold ${deadlineInfo.daysLeft <= 5 ? 'text-red-600 animate-pulse' : 'text-[var(--color-brand-primary)]'}`}>
               {deadlineInfo.daysLeft > 0 ? `${deadlineInfo.daysLeft} 天` : '已逾期或今日截止'}
             </div>
           </div>
@@ -71,7 +71,7 @@ export default function SmartAppealAssistant() {
       </div>
 
       {/* 步驟導引指示器 */}
-      <div className="bg-white rounded-xl shadow-xs p-3 mb-6 border border-karoshi-border flex flex-wrap justify-between items-center text-xs md:text-sm font-bold">
+      <div className="bg-[var(--color-surface-overlay)] rounded-xl shadow-xs p-3 mb-6 border border-[var(--color-border-subtle)] flex flex-wrap justify-between items-center text-xs md:text-sm font-bold">
         {[
           { num: 1, label: '1. 匯入裁判書 (上傳/API)' },
           { num: 2, label: '2. 分析爭點與判解函釋' },
@@ -81,9 +81,9 @@ export default function SmartAppealAssistant() {
           <button
             key={step.num}
             onClick={() => setCurrentStep(step.num)}
-            className={`px-4 py-2 rounded-lg transition-all flex items-center gap-2 ${currentStep === step.num ? 'bg-karoshi-accent text-white shadow-xs' : 'text-gray-500 hover:bg-gray-100'}`}
+            className={`px-4 py-2 rounded-lg transition-all flex items-center gap-2 ${currentStep === step.num ? 'bg-[var(--color-brand-primary)] text-white shadow-xs' : 'text-[var(--color-text-muted)] hover:bg-[var(--color-surface-overlay)]'}`}
           >
-            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${currentStep === step.num ? 'bg-white text-karoshi-accent font-extrabold' : 'bg-gray-200 text-gray-600'}`}>{step.num}</span>
+            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${currentStep === step.num ? 'bg-[var(--color-surface-overlay)] text-[var(--color-brand-primary)] font-extrabold' : 'bg-[var(--color-border-strong)] text-[var(--color-text-secondary)]'}`}>{step.num}</span>
             {step.label}
           </button>
         ))}

@@ -98,12 +98,16 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initia
             </div>
             <div>
               <div className="flex items-center gap-2">
+                <span
+                  className={`h-2 w-2 rounded-full ${activeMainTab === 'appeal_deadline' ? 'bg-[var(--color-module-appeal)]' : 'bg-[var(--color-module-litigation)]'}`}
+                  aria-hidden="true"
+                />
                 <h1 className="text-sm font-bold text-white tracking-tight">全生命週期法務與訴訟工作台</h1>
                 <span className="hidden md:inline-block text-[11px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-medium border border-slate-700">
                   一站式法務
                 </span>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-[var(--color-text-muted)]">
                 整合日常合約、起訴書狀、法庭攻防、爭點證據與上訴救濟
               </p>
             </div>
@@ -121,14 +125,14 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initia
                   className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors flex items-center gap-1.5 ${
                     isActive
                       ? 'bg-amber-500 text-slate-950 font-bold'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                      : 'text-[var(--color-text-muted)] hover:text-slate-200 hover:bg-slate-900'
                   }`}
                   title={tab.desc}
                 >
                   <IconComp className="w-3.5 h-3.5" />
                   <span>{tab.label}</span>
                   <span className={`hidden md:inline-block px-1.5 py-0.5 rounded-md text-[9px] font-medium ${
-                    isActive ? 'bg-slate-950/20 text-slate-900' : 'bg-slate-900 text-slate-400'
+                    isActive ? 'bg-slate-950/20 text-[var(--color-text-primary)]' : 'bg-slate-900 text-[var(--color-text-muted)]'
                   }`}>
                     {tab.badge}
                   </span>
@@ -145,14 +149,14 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initia
           <div className="flex bg-[#090d16] p-1 rounded-xl border border-slate-800 text-xs font-medium gap-1">
             <button
               onClick={() => setIssuesSubTab('issues')}
-              className={`px-4 py-1.5 rounded-xl flex items-center gap-2 transition-colors ${issuesSubTab === 'issues' ? 'bg-slate-800 text-amber-400 font-semibold' : 'text-slate-400 hover:text-slate-200'}`}
+              className={`px-4 py-1.5 rounded-xl flex items-center gap-2 transition-colors ${issuesSubTab === 'issues' ? 'bg-slate-800 text-amber-400 font-semibold' : 'text-[var(--color-text-muted)] hover:text-slate-200'}`}
             >
               <Table className="w-3.5 h-3.5" />
               法庭爭點整理表
             </button>
             <button
               onClick={() => setIssuesSubTab('evidence')}
-              className={`px-4 py-1.5 rounded-xl flex items-center gap-2 transition-colors ${issuesSubTab === 'evidence' ? 'bg-slate-800 text-amber-400 font-semibold' : 'text-slate-400 hover:text-slate-200'}`}
+              className={`px-4 py-1.5 rounded-xl flex items-center gap-2 transition-colors ${issuesSubTab === 'evidence' ? 'bg-slate-800 text-amber-400 font-semibold' : 'text-[var(--color-text-muted)] hover:text-slate-200'}`}
             >
               <FileSpreadsheet className="w-3.5 h-3.5" />
               調查證據聲請清單
@@ -166,14 +170,14 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initia
           <div className="flex bg-[#090d16] p-1 rounded-xl border border-slate-800 text-xs font-medium gap-1">
             <button
               onClick={() => setAppealSubTab('appeal')}
-              className={`px-4 py-1.5 rounded-xl flex items-center gap-2 transition-colors ${appealSubTab === 'appeal' ? 'bg-slate-800 text-amber-400 font-semibold' : 'text-slate-400 hover:text-slate-200'}`}
+              className={`px-4 py-1.5 rounded-xl flex items-center gap-2 transition-colors ${appealSubTab === 'appeal' ? 'bg-slate-800 text-amber-400 font-semibold' : 'text-[var(--color-text-muted)] hover:text-slate-200'}`}
             >
               <Scale className="w-3.5 h-3.5" />
               判決分析與上訴狀
             </button>
             <button
               onClick={() => setAppealSubTab('deadline')}
-              className={`px-4 py-1.5 rounded-xl flex items-center gap-2 transition-colors ${appealSubTab === 'deadline' ? 'bg-slate-800 text-amber-400 font-semibold' : 'text-slate-400 hover:text-slate-200'}`}
+              className={`px-4 py-1.5 rounded-xl flex items-center gap-2 transition-colors ${appealSubTab === 'deadline' ? 'bg-slate-800 text-amber-400 font-semibold' : 'text-[var(--color-text-muted)] hover:text-slate-200'}`}
             >
               <Clock className="w-3.5 h-3.5" />
               上訴法定期間試算
@@ -198,7 +202,7 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initia
         
         {activeMainTab === 'issues_evidence' && issuesSubTab === 'issues' && (
           <div className="p-6 max-w-7xl mx-auto">
-            <div className="rounded-xl border border-slate-800 overflow-hidden bg-white">
+            <div className="rounded-xl border border-slate-800 overflow-hidden bg-[var(--color-surface-overlay)]">
               <IssueTableGenerator />
             </div>
           </div>
@@ -206,7 +210,7 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initia
         
         {activeMainTab === 'issues_evidence' && issuesSubTab === 'evidence' && (
           <div className="p-6 max-w-7xl mx-auto">
-            <div className="rounded-xl border border-slate-800 overflow-hidden bg-white">
+            <div className="rounded-xl border border-slate-800 overflow-hidden bg-[var(--color-surface-overlay)]">
               <EvidenceListGenerator />
             </div>
           </div>

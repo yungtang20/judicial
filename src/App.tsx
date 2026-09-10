@@ -11,13 +11,14 @@ const LegalSdlcWorkbench = React.lazy(() => import('./components/LegalSdlcWorkbe
 const LitigationWorkspace = React.lazy(() => import('./components/LitigationWorkspace').then(m => ({ default: m.default || m.LitigationWorkspace })));
 const AgentChat = React.lazy(() => import('./components/AgentChat').then(m => ({ default: m.default || m.AgentChat })));
 const JudicialAndAiChecker = React.lazy(() => import('./components/JudicialAndAiChecker').then(m => ({ default: m.default || m.JudicialAndAiChecker })));
+const LegalProcessGuide = React.lazy(() => import('./components/LegalProcessGuide').then(m => ({ default: m.LegalProcessGuide })));
 
 function LoadingFallback() {
   return (
     <div className="flex-1 flex items-center justify-center bg-[#090d16]">
       <div className="text-center space-y-4">
         <div className="w-12 h-12 mx-auto border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-        <p className="text-slate-400 text-sm">載入中...</p>
+        <p className="text-[var(--color-text-muted)] text-sm">載入中...</p>
       </div>
     </div>
   );
@@ -36,6 +37,8 @@ function AppContent() {
         return <UnifiedEntry />;
       case 'guide':
         return <LegalGuideHome />;
+      case 'processGuide':
+        return <LegalProcessGuide onNavigateToTool={handleSelectTool} />;
       case 'sdlc':
         return <LegalSdlcWorkbench />;
       case 'litigation':
@@ -78,7 +81,7 @@ function AppContent() {
                   <Scale className="w-7 h-7 text-white" />
                 </div>
                 <h1 className="text-2xl font-extrabold text-white">智慧法律書狀系統</h1>
-                <p className="text-slate-400 text-sm max-w-md mx-auto">
+                <p className="text-[var(--color-text-muted)] text-sm max-w-md mx-auto">
                   司法院資料庫整合 · AI 防幽靈法條 · StateGraph 自動化工作流
                 </p>
               </div>

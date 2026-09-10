@@ -51,12 +51,12 @@ export const AiSuggestButton: React.FC<AiSuggestButtonProps> = ({ fieldLabel, fi
       {isOpen && (
         <div className="absolute top-full right-0 mt-1 z-50 w-64 bg-slate-800 border border-slate-700 rounded-xl overflow-hidden p-2.5">
           {isLoading ? (
-            <div className="text-xs text-slate-400 p-2 text-center animate-pulse">產生中...</div>
+            <div className="text-xs text-[var(--color-text-muted)] p-2 text-center animate-pulse">產生中...</div>
           ) : (
             <div className="flex flex-col gap-1.5">
               <div className="flex justify-between items-center px-1 mb-1">
-                <span className="text-[10px] font-bold text-slate-400">選擇一項快速帶入</span>
-                <button type="button" onClick={() => setIsOpen(false)} className="text-[10px] text-slate-500 hover:text-slate-300">關閉</button>
+                <span className="text-[10px] font-bold text-[var(--color-text-muted)]">選擇一項快速帶入</span>
+                <button type="button" onClick={() => setIsOpen(false)} className="text-[10px] text-[var(--color-text-muted)] hover:text-slate-300">關閉</button>
               </div>
               {options.map((opt, i) => (
                 <button

@@ -32,7 +32,7 @@ export const ScenarioList: React.FC<ScenarioListProps> = (props) => {
               className={`px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 ${
                 selectedCategory === cat.id
                   ? 'bg-indigo-600 text-white'
-                  : 'bg-slate-900/80 text-slate-400 hover:text-slate-200 border border-slate-800 hover:border-slate-700'
+                  : 'bg-slate-900/80 text-[var(--color-text-muted)] hover:text-slate-200 border border-slate-800 hover:border-slate-700'
               }`}
             >
               {cat.label}
@@ -42,7 +42,7 @@ export const ScenarioList: React.FC<ScenarioListProps> = (props) => {
 
           {/* 熱門關鍵字快捷搜尋 */}
           <div className="flex flex-wrap items-center gap-2 pb-4 border-b border-slate-800/50">
-            <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1.5 mr-1">
+            <span className="text-[11px] font-bold text-[var(--color-text-muted)] flex items-center gap-1.5 mr-1">
               <Zap className="w-3.5 h-3.5 text-amber-400" />
               快捷搜尋
             </span>
@@ -71,7 +71,7 @@ export const ScenarioList: React.FC<ScenarioListProps> = (props) => {
               <Zap className="w-5 h-5 text-amber-400" />
               常見法律狀況速查指引（共 {filteredScenarios.length} 種生活情境）
             </h2>
-            <span className="text-xs text-slate-400">點選卡片查看詳細白話解法與必備文件</span>
+            <span className="text-xs text-[var(--color-text-muted)]">點選卡片查看詳細白話解法與必備文件</span>
           </div>
 
           {/* 當無靜態情境符合時呈現動態 AI 深度診斷卡 */}
@@ -125,7 +125,7 @@ export const ScenarioList: React.FC<ScenarioListProps> = (props) => {
                         <h3 className="text-base font-bold text-slate-100 leading-snug">
                           {scenario.title}
                         </h3>
-                        <p className="text-xs text-slate-400 mt-1.5 line-clamp-2 leading-relaxed">
+                        <p className="text-xs text-[var(--color-text-muted)] mt-1.5 line-clamp-2 leading-relaxed">
                           {scenario.plainDesc}
                         </p>
                       </div>
@@ -135,18 +135,18 @@ export const ScenarioList: React.FC<ScenarioListProps> = (props) => {
                     <div className="grid grid-cols-2 gap-2 pt-2 text-xs border-t border-slate-800/80">
                       <div className="flex items-center gap-1.5 text-slate-300">
                         <DollarSign className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-                        <span className="truncate text-slate-400">規費：<strong className="text-slate-200">{scenario.feeInfo.split('（')[0]}</strong></span>
+                        <span className="truncate text-[var(--color-text-muted)]">規費：<strong className="text-slate-200">{scenario.feeInfo.split('（')[0]}</strong></span>
                       </div>
                       <div className="flex items-center gap-1.5 text-slate-300">
                         <Clock className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
-                        <span className="truncate text-slate-400">時效：<strong className="text-slate-200">{scenario.timeInfo.split('：')[1] || scenario.timeInfo}</strong></span>
+                        <span className="truncate text-[var(--color-text-muted)]">時效：<strong className="text-slate-200">{scenario.timeInfo.split('：')[1] || scenario.timeInfo}</strong></span>
                       </div>
                     </div>
 
                     {/* 標籤 */}
                     <div className="flex flex-wrap gap-1.5 pt-1">
                       {scenario.tags.slice(0, 4).map((tag, idx) => (
-                        <span key={idx} className="text-[11px] px-2 py-0.5 rounded-md bg-slate-800 text-slate-400 border border-slate-700/50">
+                        <span key={idx} className="text-[11px] px-2 py-0.5 rounded-md bg-slate-800 text-[var(--color-text-muted)] border border-slate-700/50">
                           #{tag}
                         </span>
                       ))}
@@ -159,7 +159,7 @@ export const ScenarioList: React.FC<ScenarioListProps> = (props) => {
                       onClick={() => setSelectedScenario(scenario)}
                       className="flex-1 py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 border border-slate-700"
                     >
-                      <HelpCircle className="w-3.5 h-3.5 text-slate-400" />
+                      <HelpCircle className="w-3.5 h-3.5 text-[var(--color-text-muted)]" />
                       白話步驟與準備清單
                     </button>
                     <button
