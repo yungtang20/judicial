@@ -14,6 +14,43 @@
   --color-karoshi-border: #1e293b;
   --color-karoshi-hover: #1e293b;
   --color-karoshi-civil: #334155;
+
+  /* Design tokens (new) */
+  /* Surface / border / text */
+  --color-surface-base: var(--color-karoshi-bg); /* #090d16 */
+  --color-surface-raised: var(--color-karoshi-sidebar); /* #0f172a */
+  --color-surface-overlay: rgba(11,17,32,0.9); /* overlay for dialogs */
+  --color-border-subtle: var(--color-karoshi-border); /* #1e293b */
+  --color-border-strong: var(--color-karoshi-civil); /* #334155 */
+  --color-text-primary: var(--color-karoshi-text); /* #f8fafc */
+  --color-text-secondary: #e2e8f0;
+  --color-text-muted: var(--color-karoshi-text-light); /* #94a3b8 */
+
+  /* Semantic / status colors (only for status meaning) */
+  --color-status-success: #10b981;
+  --color-status-success-bg: rgba(16,185,129,0.08);
+  --color-status-warning: #f59e0b;
+  --color-status-warning-bg: rgba(245,158,11,0.08);
+  --color-status-danger: #ef4444;
+  --color-status-danger-bg: rgba(244,63,94,0.08);
+  --color-status-info: #3b82f6;
+  --color-status-info-bg: rgba(59,130,246,0.08);
+
+  /* Typography scale */
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-base: 16px;
+  --text-lg: 20px;
+  --text-xl: 24px;
+  --text-2xl: 32px;
+
+  /* Spacing scale (4's multiples) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
 }
 
 /* Global Dark Theme (黑底 UI) Settings */
