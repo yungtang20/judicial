@@ -28,7 +28,7 @@ describe('UnifiedResult', () => {
     render(<UnifiedResult workflowState={baseState} {...handlers} />);
 
     expect(screen.getByText('分析結論')).toBeInTheDocument();
-    expect(screen.getByText('已確認支持本結論')).toBeInTheDocument();
+    expect(screen.getByText('可以使用｜已確認支持目前結論')).toBeInTheDocument();
     expect(screen.getByText(/民法第195條/)).toBeInTheDocument();
     expect(screen.getAllByText('民法第184條')).toHaveLength(1);
     const details = screen.getByText('深入了解分析依據').closest('details') as HTMLDetailsElement;
@@ -44,14 +44,16 @@ describe('UnifiedResult', () => {
       verification: {
         ...baseState.verification!, passGate: false, verificationStatus: 'FAIL', ghostCount: 1,
         results: [{ verified: false, citationText: '民法第9999條', type: 'STATUTE', officialTitle: '', officialSourceUrl: '', isGhostOrFake: true, hallucinationRisk: 'FAKE_GHOST_CITATION', correctionSuggestion: '查無此條文' }],
-        officialEvidence: [{ citation: '民法第184條', type: 'STATUTE', status: 'VALID', source: '全國法規資料庫', sourceUrl: 'https://law.moj.gov.tw/', checkedAt: '2026-09-11', claimSupportStatus: 'NEEDS_REVIEW' }],
+        warningNotice: '官方資料庫未能逐筆確認所有引用，已 fail-closed 並標註待人工審查。',
+        officialEvidence: [{ citation: '民法第184條', type: 'STATUTE', status: 'VERIFIED', source: '全國法規資料庫', sourceUrl: 'https://law.moj.gov.tw/', checkedAt: '2026-09-11', claimSupportStatus: 'NEEDS_REVIEW' }],
       },
     };
 
     render(<UnifiedResult workflowState={failed} {...handlers} />);
     expect(screen.getByText('需先修正的引用')).toBeInTheDocument();
     expect(screen.getByText(/民法第9999條/)).toBeInTheDocument();
-    expect(screen.getByText('來源存在，但未確認支持本主張')).toBeInTheDocument();
+    expect(screen.getByText('僅供參考｜尚未確認適用於您的案件')).toBeInTheDocument();
+    expect(screen.queryByText(/fail-closed/)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '複製' })).toBeDisabled();
   });
 

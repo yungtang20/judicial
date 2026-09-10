@@ -482,10 +482,10 @@ async function runVerificationGateNode(
     passGate = false;
     verificationStatus = "NEEDS_REVIEW";
     warningNotice = !official.attempted && official.reason === "NO_CITATIONS"
-      ? "沒有可查證引用，已 fail-closed 並標註待人工審查。"
+      ? "目前沒有可供系統查驗的引用，因此結論僅供參考，請補充法條或交由專業人士確認。"
       : official.evidence.some(e => e.status === "UNAVAILABLE")
-      ? "官方查證服務無法取得，已 fail-closed 並標註待人工審查。"
-      : "官方資料庫未能逐筆確認所有引用，已 fail-closed 並標註待人工審查。";
+      ? "暫時無法連線至官方資料庫，因此結論僅供參考，請稍後重新分析或交由專業人士確認。"
+      : "部分引用尚未經官方資料庫確認，因此目前只能參考，不能直接用於書狀或法律主張。";
   } else {
     passGate = true;
     verificationStatus = "PASS";

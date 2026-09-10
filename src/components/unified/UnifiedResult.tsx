@@ -1,7 +1,7 @@
 import React from 'react';
 import { AlertTriangle, Check, Copy, ExternalLink, FileCheck2, Printer } from 'lucide-react';
 import type { LegalWorkflowState } from '../../lib/workflow/unifiedStateGraph';
-import { formatLegalChapter, formatVerificationStatus } from '../../lib/legalChapterLabels';
+import { formatLegalChapter } from '../../lib/legalChapterLabels';
 
 interface UnifiedResultProps {
   workflowState: LegalWorkflowState;
@@ -25,8 +25,16 @@ export const UnifiedResult: React.FC<UnifiedResultProps> = ({
 
   const canUseResult = canUseWorkflowResult(workflowState);
   const status = workflowState.error ? 'FAIL' : verification?.verificationStatus || 'NEEDS_REVIEW';
+  const useLabel = canUseResult
+    ? '可以使用｜已完成來源查驗'
+    : status === 'FAIL'
+      ? '不可使用｜引用內容或來源有疑義'
+      : '僅供參考｜尚未確認適用於您的案件';
   const title = workflowState.error ? '分析失敗' : canUseResult ? '分析結論' : status === 'FAIL' ? '分析草稿（檢核未通過）' : '初步分析（待查驗）';
   const problemResults = verification?.results?.filter(item => !item.verified || item.isGhostOrFake) || [];
+  const warningNotice = verification?.warningNotice?.includes('fail-closed')
+    ? '部分引用尚未經官方資料庫確認，因此目前只能參考，不能直接用於書狀或法律主張。'
+    : verification?.warningNotice;
   const officialEvidence = verification?.officialEvidence || [];
   const verifiedKeys = new Set(officialEvidence.map(item => `${item.type}:${item.citation.replace(/\s/g, '')}`));
   const references = [
@@ -40,8 +48,7 @@ export const UnifiedResult: React.FC<UnifiedResultProps> = ({
     <section aria-labelledby="analysis-result-title" className="rounded-xl border border-slate-800 bg-[#0e1424] overflow-hidden">
       <div className={`px-5 py-3 flex items-center gap-2 text-xs font-semibold ${canUseResult ? 'bg-emerald-500/10 text-emerald-300' : 'bg-amber-500/10 text-amber-200'}`} role="status">
         {canUseResult ? <FileCheck2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
-        <span>{canUseResult ? '真確性檢核通過' : formatVerificationStatus(status)}</span>
-        {!canUseResult && <span className="text-[var(--color-text-muted)]">· 尚不可直接交付或帶入後續文書</span>}
+        <span>{useLabel}</span>
       </div>
 
       <div className="p-5 md:p-6 space-y-6">
@@ -64,21 +71,25 @@ export const UnifiedResult: React.FC<UnifiedResultProps> = ({
           </div>
           <h1 id="analysis-result-title" className="text-base font-bold text-white mb-2">{title}</h1>
           <p className="text-sm md:text-base leading-7 text-slate-200 whitespace-pre-wrap">{syllogism.conclusion}</p>
-          {verification?.warningNotice && !canUseResult && (
-            <p className="mt-3 text-xs leading-5 text-amber-200/90">{verification.warningNotice}</p>
+          {warningNotice && !canUseResult && (
+            <p className="mt-3 text-xs leading-5 text-amber-200/90">{warningNotice}</p>
+          )}
+          {!canUseResult && !workflowState.error && (
+            <p className="mt-2 text-xs leading-5 text-slate-300">目前不能直接拿來主張權利或製作文書；請先核對適用要件，或交由專業人士確認。</p>
           )}
         </div>
 
         <div className="space-y-3">
-          <h2 className="text-sm font-bold text-white">官方查驗與證據</h2>
+          <h2 className="text-sm font-bold text-white">這些資料目前能怎麼用</h2>
           {officialEvidence.length > 0 ? officialEvidence.map((item, index) => {
             const supportsClaim = item.status === 'VALID' && item.claimSupportStatus === 'SUPPORTED';
+            const isValidSource = ['VALID', 'VERIFIED', 'AUTHORITATIVE'].includes(item.status);
             return (
               <div key={`${item.type}-${item.citation}-${index}`} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 py-2 border-t border-slate-800 text-xs">
                 <div>
                   <span className="font-semibold text-slate-200">{item.citation}</span>
-                  <span className={`ml-2 ${supportsClaim ? 'text-emerald-400' : 'text-amber-300'}`}>
-                    {supportsClaim ? '已確認支持本結論' : '來源存在，但未確認支持本主張'}
+                  <span className={`ml-2 ${supportsClaim ? 'text-emerald-400' : isValidSource ? 'text-amber-300' : 'text-rose-300'}`}>
+                    {supportsClaim ? '可以使用｜已確認支持目前結論' : isValidSource ? '僅供參考｜尚未確認適用於您的案件' : '不可使用｜來源或引用有疑義'}
                   </span>
                 </div>
                 {item.sourceUrl && <a href={item.sourceUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-sky-400 hover:underline">{item.source}<ExternalLink className="w-3 h-3" /></a>}

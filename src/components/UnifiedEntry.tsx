@@ -327,7 +327,7 @@ export const UnifiedEntry: React.FC = () => {
       sanitizedText: verification.sanitizedText,
       passGate: false,
       verificationStatus: verification.ghostCount > 0 ? 'FAIL' : 'NEEDS_REVIEW',
-      warningNotice: verification.ghostCount === 0 ? "已完成本機法條格式檢查；尚未完成官方來源查驗，請人工審查。" : "查核發現疑義法條，請人工審查。"
+      warningNotice: verification.ghostCount === 0 ? "已完成本機法條格式檢查；尚未完成官方來源查驗，目前只能參考，不能直接用於書狀或法律主張。" : "查核發現疑義法條，目前不可使用，請先修正後重新分析。"
     };
 
     state.currentStep = 'COMPLETED';

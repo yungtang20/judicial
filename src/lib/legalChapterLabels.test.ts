@@ -19,8 +19,8 @@ describe('legalChapterLabels', () => {
   });
 
   it('translates verification statuses into Traditional Chinese', () => {
-    expect(formatVerificationStatus('PASS')).toContain('檢核通過');
-    expect(formatVerificationStatus('NEEDS_REVIEW')).toContain('待法學審核');
-    expect(formatVerificationStatus('FAIL')).toContain('檢核未通過');
+    expect(formatVerificationStatus('PASS')).toContain('可以使用');
+    expect(formatVerificationStatus('NEEDS_REVIEW')).toContain('僅供參考');
+    expect(formatVerificationStatus('FAIL')).toContain('不可使用');
   });
 });
