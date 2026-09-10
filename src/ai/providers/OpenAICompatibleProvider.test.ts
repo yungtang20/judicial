@@ -42,4 +42,14 @@ describe('OpenAI-compatible provider', () => {
 
     expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)).model).toBe('kimi-k3');
   });
+
+  it('parses structured JSON wrapped in a Markdown code fence', async () => {
+    process.env.HCNSEC_API_KEY = 'test-only-key';
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({
+      choices: [{ message: { content: '```json\n{"value":"ok"}\n```' } }]
+    }), { status: 200 }));
+
+    await expect(new OpenAICompatibleProvider().generateStructured<{ value: string }>('test', {}))
+      .resolves.toEqual({ value: 'ok' });
+  });
 });

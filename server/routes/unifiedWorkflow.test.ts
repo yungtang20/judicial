@@ -78,7 +78,8 @@ describe("Unified StateGraph Workflow API", { timeout: 30000 }, () => {
     expect(state.questioning).toBeDefined();
     expect(state.questioning.rawMessage).toBeDefined();
     expect(Array.isArray(state.questioning.suggestedOptions)).toBe(true);
-    expect(["AI", "RULE_FALLBACK"]).toContain(state.questioning.generationMode);
+    expect(state.questioning.generationMode).toBe("AI");
+    expect(state.questioning.suggestedOptions.length).toBeGreaterThanOrEqual(2);
   });
 
   it("2. 邊界條件：涉敏感案件時 (is_sensitive == true) 應導向保護路徑 (SAFETY_PROTECTION)", async () => {

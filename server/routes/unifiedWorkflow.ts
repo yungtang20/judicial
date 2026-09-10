@@ -163,16 +163,34 @@ async function runQuestioningNode(
   let generationReason = "AI_PROVIDER";
 
   try {
-    const prompt = buildQuestioningPrompt(missing, userInput);
-    const aiPromise = defaultAIProvider.generate(prompt, { temperature: 0.3 });
+    const prompt = `${buildQuestioningPrompt(missing, userInput)}
+
+請只回傳 JSON 物件，不得加入 Markdown：
+{"rawMessage":"給使用者的完整追問文字","suggestedOptions":["選項一","選項二","選項三"]}`;
+    const aiPromise = defaultAIProvider.generateStructured<{
+      rawMessage?: unknown;
+      suggestedOptions?: unknown;
+    }>(prompt, {
+      type: "object",
+      properties: {
+        rawMessage: { type: "string" },
+        suggestedOptions: { type: "array", items: { type: "string" } }
+      },
+      required: ["rawMessage", "suggestedOptions"]
+    }, { temperature: 0.3 });
     const timeoutPromise = new Promise<never>((_, reject) => 
       setTimeout(() => reject(new Error("AI_QUESTION_TIMEOUT_ERR")), 45000)
     );
     const response = await Promise.race([aiPromise, timeoutPromise]);
-    rawMessage = response.text?.trim() || "";
-    const optionMatches = rawMessage.match(/\[(.*?)\]/g) || [];
-    suggestedOptions = optionMatches.map(m => m.replace(/^\[|\]$/g, "").trim()).filter(Boolean);
-    if (!rawMessage || suggestedOptions.length === 0) throw new Error("AI_QUESTION_FORMAT_INVALID");
+    rawMessage = typeof response.rawMessage === "string" ? response.rawMessage.trim() : "";
+    suggestedOptions = Array.isArray(response.suggestedOptions)
+      ? Array.from(new Set(response.suggestedOptions
+        .filter((option): option is string => typeof option === "string")
+        .map(option => option.trim())
+        .filter(Boolean)))
+        .slice(0, 5)
+      : [];
+    if (!rawMessage || suggestedOptions.length < 2) throw new Error("AI_QUESTION_FORMAT_INVALID");
   } catch (err) {
     console.warn("[UnifiedWorkflow] AI QuestioningNode 異常或逾時，採用缺件導向規則備援:", err instanceof Error ? err.message : "UNKNOWN");
     const fallback = buildRuleBasedQuestioning(missing);

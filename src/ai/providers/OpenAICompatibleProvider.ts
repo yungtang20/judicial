@@ -65,7 +65,9 @@ export class OpenAICompatibleProvider implements AIProvider {
 
   async generateStructured<T = any>(prompt: string, schema: any, options?: AIProviderGenerateOptions): Promise<T> {
     const result = await this.request(prompt, { ...options, responseMimeType: 'application/json', responseSchema: schema });
-    try { return JSON.parse(result.text) as T; } catch (error: any) { throw new Error(`STRUCTURED_OUTPUT_PARSE_ERROR: ${error.message}`); }
+    const fencedJson = result.text.trim().match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+    const jsonText = fencedJson?.[1] || result.text;
+    try { return JSON.parse(jsonText) as T; } catch (error: any) { throw new Error(`STRUCTURED_OUTPUT_PARSE_ERROR: ${error.message}`); }
   }
 
   async healthCheck() {
