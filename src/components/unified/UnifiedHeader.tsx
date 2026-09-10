@@ -21,7 +21,9 @@ export const UnifiedHeader: React.FC<UnifiedHeaderProps> = (props) => {
               </h1>
               <div className="h-0.5 w-16 rounded-full bg-[var(--color-module-analysis)]" aria-hidden="true" />
               <p className="text-xs text-[var(--color-text-muted)] max-w-2xl leading-relaxed">
-                輸入案件事實，由系統依序完成分流、法規檢索、法律分析與真確性檢核。
+                {workflowState?.syllogism
+                  ? '先看結論與官方證據；需要時再展開分析依據或修改案件內容。'
+                  : '輸入案件事實，取得法律結論、官方證據與可查找的下一步。'}
               </p>
             </div>
 

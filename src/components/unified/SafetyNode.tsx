@@ -36,6 +36,16 @@ export const SafetyNode: React.FC<SafetyNodeProps> = (props) => {
               <span className="flex items-center gap-1"><PhoneCall className="w-3.5 h-3.5 text-rose-400" /> 緊急報案：110</span>
               <span className="flex items-center gap-1"><PhoneCall className="w-3.5 h-3.5 text-rose-400" /> 衛福部安心專線：1925</span>
             </div>
+            <div className="grid gap-2 pt-2 md:grid-cols-2">
+              <div>
+                <div className="font-bold text-rose-300 mb-1">立即行動</div>
+                {workflowState.safety.immediateSteps.map((step: string) => <div key={step}>• {step}</div>)}
+              </div>
+              <div>
+                <div className="font-bold text-rose-300 mb-1">證據保全</div>
+                {workflowState.safety.preservationTips.map((tip: string) => <div key={tip}>• {tip}</div>)}
+              </div>
+            </div>
           </div>
         )}
 

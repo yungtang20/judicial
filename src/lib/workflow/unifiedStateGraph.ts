@@ -93,6 +93,7 @@ export interface WorkflowVerificationData {
   sanitizedText: string;
   externalCitations?: ExternalCitationResult[];
   passGate: boolean;
+  verificationStatus?: 'PASS' | 'NEEDS_REVIEW' | 'FAIL';
   warningNotice?: string;
   officialEvidence?: Array<{ citation: string; type: string; status: string; source: string; sourceUrl: string; checkedAt: string; snippet?: string; claimSupportStatus?: 'SUPPORTED' | 'NEEDS_REVIEW' | 'UNVERIFIABLE'; error?: string }>;
 }

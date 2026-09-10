@@ -3,11 +3,8 @@ import { UnifiedHeader } from './unified/UnifiedHeader';
 import { HistoryModal } from './unified/HistoryModal';
 import { UnifiedProgress } from './unified/UnifiedProgress';
 import { InputNode } from './unified/InputNode';
-import { TriageNode } from './unified/TriageNode';
 import { SafetyNode } from './unified/SafetyNode';
-import { CitationNode } from './unified/CitationNode';
-import { SyllogismNode } from './unified/SyllogismNode';
-import { VerificationNode } from './unified/VerificationNode';
+import { UnifiedResult } from './unified/UnifiedResult';
 import { UnifiedNav } from './unified/UnifiedNav';
 import { SettingsModal } from './unified/SettingsModal';
 import { AIProviderSettings, AIProviderConfigDraft } from './unified/AIProviderSettings';
@@ -328,8 +325,9 @@ export const UnifiedEntry: React.FC = () => {
       ghostCount: verification.ghostCount,
       results: verification.results,
       sanitizedText: verification.sanitizedText,
-      passGate: verification.ghostCount === 0 && verification.totalChecked > 0,
-      warningNotice: verification.ghostCount === 0 ? "已通過本機防幽靈法條檢核，法源引用有效。" : "查核發現疑義法條，請人工審查。"
+      passGate: false,
+      verificationStatus: verification.ghostCount > 0 ? 'FAIL' : 'NEEDS_REVIEW',
+      warningNotice: verification.ghostCount === 0 ? "已完成本機法條格式檢查；尚未完成官方來源查驗，請人工審查。" : "查核發現疑義法條，請人工審查。"
     };
 
     state.currentStep = 'COMPLETED';
@@ -476,21 +474,28 @@ export const UnifiedEntry: React.FC = () => {
 
 
   const sharedProps = { inputNarrative, setInputNarrative, isSubmitting, setIsSubmitting, workflowState, setWorkflowState, supplementInput, setSupplementInput, isCopied, setIsCopied, acknowledgeSafetyInSession, setAcknowledgeSafetyInSession, aiConfig, setAiConfig, isNode2Open, setIsNode2Open, isNode4Open, setIsNode4Open, isNode5Open, setIsNode5Open, isNode6Open, setIsNode6Open, customPreset, setCustomPreset, showCustomPresetModal, setShowCustomPresetModal, editPresetTitle, setEditPresetTitle, editPresetNarrative, setEditPresetNarrative, fileInputRef, isDragOver, setIsDragOver, isParsingFiles, setIsParsingFiles, parsingStatus, setParsingStatus, batchQueue, setBatchQueue, batchIndex, setBatchIndex, isBatchRunning, setIsBatchRunning, showHistory, setShowHistory, historyList, setHistoryList, handleFiles, handleDrop, handleExecuteWorkflow, handleSupplementFact, handleProceedFromSafety, handleResetWorkflow, handleCopyAnalysis, loadFromHistory, handleBatchNext, handleBatchPrev, handleSaveCurrentAsCustomPreset, handleSelectSuggestedOption, handleSaveCustomPreset, handleToggleAllNodes, defaultSample, handleSelectTool, saveCrossFeatureContext, exportAsHtml, exportAsText, printReport, deleteFromHistory, clearHistory, loadHistory, showDocTypeModal, setShowDocTypeModal };
+  const hasResult = Boolean(workflowState?.syllogism);
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-y-auto bg-[#090d16] text-slate-100 p-4 md:p-6">
       <div className="max-w-5xl mx-auto w-full space-y-4">
         <UnifiedHeader {...sharedProps} />
         <HistoryModal {...sharedProps} />
-        <InputNode {...sharedProps} />
-        <AIProviderSettings value={aiConfig} onChange={setAiConfig} />
-        {(workflowState || isSubmitting) && <UnifiedProgress {...sharedProps} />}
-        <TriageNode {...sharedProps} />
+        {!hasResult && <InputNode {...sharedProps} />}
+        {!hasResult && <AIProviderSettings value={aiConfig} onChange={setAiConfig} />}
+        {(isSubmitting || workflowState?.error) && <UnifiedProgress {...sharedProps} />}
         <SafetyNode {...sharedProps} />
-        <CitationNode {...sharedProps} />
-        <SyllogismNode {...sharedProps} />
-        <VerificationNode {...sharedProps} />
-        <UnifiedNav {...sharedProps} />
+        {workflowState && <UnifiedResult {...sharedProps} workflowState={workflowState} />}
+        {hasResult && <UnifiedNav {...sharedProps} />}
+        {hasResult && (
+          <details className="rounded-xl border border-slate-800 bg-[#0e1424]">
+            <summary className="cursor-pointer px-5 py-3 text-sm font-semibold text-slate-300 hover:text-white">查看或修改案件內容</summary>
+            <div className="p-4 border-t border-slate-800 space-y-4">
+              <InputNode {...sharedProps} />
+              <AIProviderSettings value={aiConfig} onChange={setAiConfig} />
+            </div>
+          </details>
+        )}
         <SettingsModal {...sharedProps} />
       </div>
     </div>
