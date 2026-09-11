@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import http from "http";
 import express from "express";
-import unifiedWorkflowRouter, { buildOfficialJudgmentQueries, buildOfficialSearchEvidence, buildRuleBasedQuestioning } from "./unifiedWorkflow.js";
+import unifiedWorkflowRouter, { buildFallbackFactMappings, buildOfficialJudgmentQueries, buildOfficialSearchEvidence, buildRuleBasedQuestioning, parseFactMappings } from "./unifiedWorkflow.js";
 
 describe("Unified StateGraph Workflow API", { timeout: 30000 }, () => {
   let server: http.Server;
@@ -39,6 +39,29 @@ describe("Unified StateGraph Workflow API", { timeout: 30000 }, () => {
     expect(result.suggestedOptions).toContain("我可以補充確切金額與計算方式");
     expect(result.rawMessage).not.toContain("家暴");
     expect(result.suggestedOptions.join(" ")).not.toContain("配偶");
+  });
+
+  it("只保留候選法條，並把證據綁定到個別案件事實", () => {
+    const mappings = parseFactMappings(JSON.stringify({ factMappings: [{
+      fact: "被害人服藥後昏睡",
+      statutes: [
+        { citation: "刑法第225條", name: "乘機性交罪", relation: "可能涉及不能抗拒狀態" },
+        { citation: "刑法第999條", name: "不存在", relation: "不應採用" }
+      ],
+      evidence: ["用藥紀錄", "毒物檢驗報告"]
+    }] }), ["刑法第225條"]);
+
+    expect(mappings).toEqual([{
+      fact: "被害人服藥後昏睡",
+      statutes: [{ citation: "刑法第225條", name: "乘機性交罪", relation: "可能涉及不能抗拒狀態" }],
+      evidence: ["用藥紀錄", "毒物檢驗報告"]
+    }]);
+  });
+
+  it("AI 無法回應時仍把不能抗拒事實綁定至法條與具體證據", () => {
+    const mappings = buildFallbackFactMappings("我服用安眠藥後昏睡，配偶趁我無法反抗時與我發生性行為", ["刑法第225條", "刑法第10條第5項", "家庭暴力防治法第2條"]);
+    expect(mappings.some(item => item.statutes.some(statute => statute.citation === "刑法第225條"))).toBe(true);
+    expect(mappings.flatMap(item => item.evidence).some(item => item.includes("用藥紀錄"))).toBe(true);
   });
 
   it("官方裁判查詢先用核心爭點，查無時可退回主要法條", () => {

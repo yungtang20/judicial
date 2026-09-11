@@ -79,12 +79,23 @@ export interface WorkflowRagData {
   officialSearch?: { query: string; status: string; attempted: boolean; source: string; sourceUrl: string; checkedAt: string; error?: string };
 }
 
+export interface WorkflowFactMapping {
+  fact: string;
+  statutes: Array<{
+    citation: string;
+    name: string;
+    relation: string;
+  }>;
+  evidence: string[];
+}
+
 export interface WorkflowSyllogismData {
   majorPremise: string; // 1. 大前提
   minorPremise: string; // 2. 小前提
   subsumption: string; // 3. 涵攝
   conclusion: string; // 4. 結論
   fullAnalysis: string;
+  factMappings?: WorkflowFactMapping[];
 }
 
 export interface WorkflowVerificationData {

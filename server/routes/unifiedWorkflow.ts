@@ -13,6 +13,7 @@ import { verifyLegalCitations } from "../../src/lib/citationVerifier.js";
 import { verifyExternalPrecedents } from "../../src/lib/externalCitationVerifier.js";
 import { 
   LegalWorkflowState, 
+  WorkflowFactMapping,
   createInitialWorkflowState 
 } from "../../src/lib/workflow/unifiedStateGraph.js";
 import { 
@@ -25,6 +26,85 @@ import { searchOfficialJudgments, verifyOfficialCitations } from "../services/of
 import { isBasicSafeUrl, verifyDnsSafe } from "./fetchUrl.js";
 
 const router = Router();
+
+const normalizeStatute = (value: string) => value.replace(/[\s　、，。,.;；：:（）()]/g, "");
+
+export function parseFactMappings(text: string, allowedCitations: string[]): WorkflowFactMapping[] {
+  try {
+    const json = JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] || "{}");
+    const resolveCitation = (value: unknown) => {
+      if (typeof value !== "string") return undefined;
+      const normalized = normalizeStatute(value);
+      if (!normalized) return undefined;
+      return allowedCitations.find(citation => {
+        const allowed = normalizeStatute(citation);
+        return normalized.includes(allowed) || allowed.includes(normalized);
+      });
+    };
+    if (Array.isArray(json.factMappings)) {
+      return json.factMappings.slice(0, 12).flatMap((item: any) => {
+        if (!item || typeof item.fact !== "string") return [];
+        const statutes = Array.isArray(item.statutes) ? item.statutes.slice(0, 5).flatMap((statute: any) => {
+          const citation = resolveCitation(statute?.citation);
+          if (!citation) return [];
+          return [{
+            citation,
+            name: typeof statute.name === "string" ? statute.name.slice(0, 120) : "適用規範",
+            relation: typeof statute.relation === "string" ? statute.relation.slice(0, 500) : "仍需比對法定構成要件"
+          }];
+        }) : [];
+        const evidence = Array.isArray(item.evidence) ? item.evidence.filter((value: unknown): value is string => typeof value === "string" && Boolean(value.trim())).slice(0, 8).map((value: string) => value.slice(0, 300)) : [];
+        return [{ fact: item.fact.trim().slice(0, 800), statutes, evidence }];
+      }).filter((item: WorkflowFactMapping) => item.fact);
+    }
+    if (Array.isArray(json.violatedStatutes)) {
+      const evidence = Array.isArray(json.requiredEvidence) ? json.requiredEvidence.filter((value: unknown): value is string => typeof value === "string" && Boolean(value.trim())) : [];
+      return json.violatedStatutes.slice(0, 12).flatMap((item: any) => {
+        const citation = resolveCitation(item?.statute);
+        if (!citation || typeof item.factDescription !== "string") return [];
+        return [{
+          fact: item.factDescription.trim(),
+          statutes: [{ citation, name: item.statute.replace(citation, "").trim() || "適用規範", relation: item.factDescription.trim() }],
+          evidence
+        }];
+      });
+    }
+  } catch {
+    return [];
+  }
+  return [];
+}
+
+const fallbackStatuteRules: Array<{ pattern: RegExp; citation: RegExp; name: string; relation: string }> = [
+  { pattern: /昏睡|無法反抗|不能抗拒|酒醉|安眠藥|藥物|不省人事/, citation: /刑法第225條/, name: "乘機性交或猥褻罪", relation: "可能涉及利用被害人不能或不知抗拒狀態；實際狀態及行為仍需證據確認" },
+  { pattern: /不同意|拒絕|強迫|暴力|脅迫/, citation: /刑法第221條/, name: "強制性交罪", relation: "可能涉及違反意願，但仍須確認是否存在強暴、脅迫或其他違反意願的方法" },
+  { pattern: /性交|性行為|性器官|口交/, citation: /刑法第10條第5項/, name: "性交行為定義", relation: "用來判斷陳述的行為是否屬刑法所稱性交" },
+  { pattern: /配偶|伴侶|家人|同居|家庭/, citation: /家庭暴力防治法第2條/, name: "家庭暴力及家庭成員定義", relation: "用來確認雙方關係及行為是否落入家庭暴力事件範圍" },
+  { pattern: /受傷|損害|侵害|賠償|不同意|性行為/, citation: /民法第184條/, name: "侵權行為損害賠償", relation: "可能涉及權利受侵害及損害賠償；仍須證明故意或過失、損害與因果關係" }
+];
+
+export function buildFallbackFactMappings(userFacts: string, allowedCitations: string[]): WorkflowFactMapping[] {
+  return userFacts.split(/[，。；\n]+/).map(value => value.trim()).filter(value => value.length > 2 && !/^(想請教|想了解|請告訴|不知道)/.test(value)).slice(0, 12).map(fact => {
+    const statutes = fallbackStatuteRules.flatMap(rule => {
+      const citation = allowedCitations.find(value => rule.citation.test(normalizeStatute(value)));
+      return rule.pattern.test(fact) && citation ? [{ citation, name: rule.name, relation: rule.relation }] : [];
+    });
+    const evidence = [
+      /時間|年|月|日|時/.test(fact) && "可確認時間的原始訊息、通聯紀錄、行事曆或定位紀錄",
+      /地點|租屋|住處|現場/.test(fact) && "租約、門禁或監視器畫面、定位及現場照片",
+      /昏睡|無法反抗|不能抗拒|酒醉|安眠藥|藥物/.test(fact) && "處方箋、就醫與用藥紀錄、毒物檢驗、目擊者或當時狀態紀錄",
+      /性交|性行為|性器官|口交/.test(fact) && "醫療驗傷與採證紀錄、生物跡證、案發衣物及現場資料",
+      /不同意|拒絕|質問|訊息|對話/.test(fact) && "完整對話匯出檔、截圖原檔與時間資訊、通話或當時向他人陳述的紀錄",
+      /配偶|伴侶|家人|同居/.test(fact) && "戶籍、婚姻、同居或其他可證明雙方關係的資料",
+      /衣物/.test(fact) && "保持乾燥並以乾淨紙袋分開保存的原始衣物及交付採證紀錄"
+    ].filter((value): value is string => Boolean(value));
+    return {
+      fact,
+      statutes,
+      evidence: evidence.length ? Array.from(new Set(evidence)) : ["可直接證明本項陳述的原始文件、數位紀錄或第三方證詞"]
+    };
+  });
+}
 
 export interface CustomAIProviderInput {
   providerType?: "custom";
@@ -383,20 +463,24 @@ async function runSyllogismNode(
   subsumption: string;
   conclusion: string;
   fullAnalysis: string;
+  factMappings: WorkflowFactMapping[];
 }> {
   let fullAnalysis = "";
+  let factMappings: WorkflowFactMapping[] = [];
   const isSexualOrDomestic = routerMeta.is_sensitive || 
     routerMeta.category?.includes("SEXUAL") || 
     routerMeta.category?.includes("DOMESTIC");
 
   try {
-    const prompt = buildSyllogismEnginePrompt(legalElements, userFacts.trim(), routerMeta.missing_elements);
+    const basePrompt = buildSyllogismEnginePrompt(legalElements, userFacts.trim(), routerMeta.missing_elements);
+    const prompt = `${basePrompt}\n\n請改以以下純 JSON 格式輸出，並把案件事實拆成可獨立舉證的項目：\n{"factMappings":[{"fact":"僅能取自或忠實改寫使用者陳述的單一事實","statutes":[{"citation":"只能選自候選法條","name":"罪名、請求權或規範名稱","relation":"本事實與構成要件的關係；不足時明示待補充"}],"evidence":["直接用來證明或反駁本項事實的具體證據"]}]}\n候選法條：${(routerMeta.legalBasis || []).join("、")}。不得加入候選清單以外的法條；每項證據必須放在它所證明的事實下面。`;
     const aiPromise = aiProvider.generate(prompt, { temperature: 0.2 });
     const timeoutPromise = new Promise<never>((_, reject) => 
       setTimeout(() => reject(new Error("AI_SYLLOGISM_TIMEOUT")), 45000)
     );
     const response = await Promise.race([aiPromise, timeoutPromise]);
     fullAnalysis = response.text;
+    factMappings = parseFactMappings(response.text, routerMeta.legalBasis || []);
   } catch (err) {
     console.warn("[UnifiedWorkflow] AI SyllogismNode 異常或逾時，啟用結構化三段論推論引擎:", err);
     
@@ -418,12 +502,17 @@ async function runSyllogismNode(
     }
   }
 
+  if (factMappings.length === 0) {
+    factMappings = buildFallbackFactMappings(userFacts, routerMeta.legalBasis || []);
+  }
+
   return {
     majorPremise: isSexualOrDomestic ? "刑法第221條、第225條及家庭暴力防治法" : "依中華民國法律構成要件與實務見解",
     minorPremise: `用戶陳述事實：「${userFacts.slice(0, 100)}...」`,
     subsumption: "比對事實樣態與法定構成要件之關聯性及舉證門檻",
     conclusion: "具備初步法律主張與救濟程序基礎，應保全關鍵佐證",
-    fullAnalysis
+    fullAnalysis,
+    factMappings
   };
 }
 
