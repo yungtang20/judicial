@@ -1,12 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Scale, 
-  ShieldCheck, 
+import {
   Table, 
   FileSpreadsheet, 
-  Clock, 
-  Gavel,
-  Compass
+  Gavel
 } from 'lucide-react';
 import { loadCrossFeatureContext } from '../lib/crossFeatureContext';
 
@@ -54,50 +50,11 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initia
     }
   }, [effectiveInitialTab]);
 
-  const mainTabs = appealOnly ? [
-    {
-      id: 'deadline',
-      label: '上訴法定期間試算',
-      badge: '期限',
-      icon: Clock,
-      desc: '依裁判送達日期試算上訴法定期間'
-    },
-    {
-      id: 'appeal',
-      label: '判決分析與上訴狀',
-      badge: '上訴',
-      icon: Scale,
-      desc: '匯入裁判書分析原審違誤並製作上訴狀'
-    },
-    {
-      id: 'defense',
-      label: '雙軌訴訟防禦',
-      badge: '防禦',
-      icon: ShieldCheck,
-      desc: '原告起訴主張 vs 被告抗辯攻防策略'
-    },
-    {
-      id: 'issues_evidence',
-      label: '爭點與證據清單',
-      badge: '附表',
-      icon: Table,
-      desc: '法庭爭點對照表與調查證據聲請清單'
-    },
-  ] : [
-    {
-      id: 'guide',
-      label: '生活法律導診與實用法務',
-      badge: '起點',
-      icon: Compass,
-      desc: '先辨識法律問題，再選擇適合的法務工具與書狀'
-    },
-  ];
-
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden bg-[#090d16] text-slate-100">
-      {/* 頂部整合分頁導覽列：極簡無多餘重陰影，統一 12px 圓角 */}
+      {/* 工作台標題列 */}
       <div className="bg-[#0e1424] border-b border-slate-800 px-6 py-3.5 flex-shrink-0 z-10">
-        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+        <div className="max-w-7xl mx-auto">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-xl bg-slate-800 text-amber-400 border border-slate-700">
               <Gavel className="w-5 h-5" />
@@ -117,34 +74,6 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initia
                 {appealOnly ? '整合期限試算、判決剖析、訴訟防禦與爭點證據' : '整合生活法律導診、日常法務與書狀工具'}
               </p>
             </div>
-          </div>
-
-          {/* 橫向切換主分頁：12px 圓角 (rounded-xl) 平緩極簡風格 */}
-          <div className="flex items-center gap-1 overflow-x-auto pb-1 lg:pb-0 scrollbar-none bg-[#090d16] p-1 rounded-xl border border-slate-800">
-            {mainTabs.map((tab) => {
-              const IconComp = tab.icon;
-              const isActive = activeMainTab === tab.id || (!appealOnly && tab.id === 'guide' && activeMainTab === 'toolbox');
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveMainTab(tab.id as any)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors flex items-center gap-1.5 ${
-                    isActive
-                      ? 'bg-amber-500 text-slate-950 font-bold'
-                      : 'text-[var(--color-text-muted)] hover:text-slate-200 hover:bg-slate-900'
-                  }`}
-                  title={tab.desc}
-                >
-                  <IconComp className="w-3.5 h-3.5" />
-                  <span>{tab.label}</span>
-                  <span className={`hidden md:inline-block px-1.5 py-0.5 rounded-md text-[9px] font-medium ${
-                    isActive ? 'bg-slate-950/20 text-[var(--color-text-primary)]' : 'bg-slate-900 text-[var(--color-text-muted)]'
-                  }`}>
-                    {tab.badge}
-                  </span>
-                </button>
-              );
-            })}
           </div>
         </div>
       </div>

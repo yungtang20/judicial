@@ -14,6 +14,7 @@ interface NavItem {
   label: string;
   sublabel: string;
   icon: any;
+  children?: Array<{ label: string; badge: string; tab: string }>;
 }
 
 // 四個任務導向入口；其餘工具收進對應工作台，避免左側重複。
@@ -29,12 +30,21 @@ const coreEntries: NavItem[] = [
     label: '智慧判決分析工作台',
     sublabel: '期限試算 · 判決剖析 · 訴訟防禦 · 爭點證據',
     icon: Scale,
+    children: [
+      { label: '上訴法定期間試算', badge: '期限', tab: 'deadline' },
+      { label: '判決分析與上訴狀', badge: '上訴', tab: 'appeal' },
+      { label: '雙軌訴訟防禦', badge: '防禦', tab: 'defense' },
+      { label: '爭點與證據清單', badge: '附表', tab: 'issues' },
+    ],
   },
   {
     id: 'litigation',
     label: '全方位實用法務工具箱',
     sublabel: '生活導診 · 日常法務 · 實用書狀',
     icon: Gavel,
+    children: [
+      { label: '生活法律導診與實用法務', badge: '起點', tab: 'guide' },
+    ],
   },
   {
     id: 'checker',
@@ -52,7 +62,7 @@ const moduleColors: Record<string, string> = {
 };
 
 export default function Sidebar() {
-  const { activeTool, handleSelectTool } = useToolContext();
+  const { activeTool, initialData, handleSelectTool } = useToolContext();
   const [isOpen, setIsOpen] = useState(false);
 
   const isActive = (id: string) =>
@@ -61,9 +71,13 @@ export default function Sidebar() {
     (id === 'litigation' &&
       ['guide', 'processGuide', 'legalToolbox', 'sdlc', 'agent-chat', 'defenseWorkflow', 'issueTableGenerator', 'evidenceListGenerator'].includes(activeTool)) ||
     (id === 'checker' && ['docAiChecker', 'judicialOpenData', 'judgmentSearch'].includes(activeTool));
+  const selectedTab = initialData?.initialTab ||
+    (activeTool === 'smartAppeal' ? 'appeal' :
+      (['appeal', 'appealDeadline'].includes(activeTool) ? 'deadline' :
+        (['litigation', 'guide'].includes(activeTool) ? 'guide' : undefined)));
 
-  const handleNav = (id: string) => {
-    handleSelectTool(id);
+  const handleNav = (id: string, tab?: string) => {
+    handleSelectTool(id, tab);
     setIsOpen(false);
   };
 
@@ -126,7 +140,7 @@ export default function Sidebar() {
         </div>
 
         {/* Core Entry Points */}
-        <ul className="list-none px-3 pb-2 m-0 space-y-1">
+        <ul className="list-none px-3 pb-2 m-0 space-y-1 flex-1 overflow-y-auto">
           {coreEntries.map((entry) => {
             const Icon = entry.icon;
             const active = isActive(entry.id);
@@ -154,6 +168,28 @@ export default function Sidebar() {
                     </div>
                   </div>
                 </button>
+                {entry.children && (
+                  <ul className="list-none m-0 ml-5 mt-1 space-y-1 border-l border-slate-800 pl-2">
+                    {entry.children.map((child) => {
+                      const childActive = active && selectedTab === child.tab;
+                      return (
+                        <li key={child.tab}>
+                          <button
+                            onClick={() => handleNav(entry.id, child.tab)}
+                            className={`flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-xs transition-colors ${
+                              childActive
+                                ? 'bg-slate-800 text-white'
+                                : 'text-[var(--color-text-muted)] hover:bg-slate-900/60 hover:text-slate-200'
+                            }`}
+                          >
+                            <span className="font-semibold">{child.label}</span>
+                            <span className="shrink-0 rounded-md bg-slate-900 px-1.5 py-0.5 text-[9px] text-slate-400">{child.badge}</span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
               </li>
             );
           })}

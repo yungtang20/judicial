@@ -1,7 +1,7 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { ToolProvider } from '../contexts/ToolContext';
+import { ToolProvider, useToolContext } from '../contexts/ToolContext';
 import Sidebar from './Sidebar';
 
 describe('Sidebar', () => {
@@ -12,5 +12,21 @@ describe('Sidebar', () => {
 
     expect(entries.every((entry, index) => index === 0 || Boolean(entries[index - 1].compareDocumentPosition(entry) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
     expect(screen.getByText(/幽靈法條與假判決精準攔截 · 支援 PDF/)).toBeInTheDocument();
+  });
+
+  it('shows workspace sections in the sidebar and routes the selected section', () => {
+    const Selection = () => {
+      const { activeTool, initialData } = useToolContext();
+      return <output>{activeTool}:{initialData?.initialTab || ''}</output>;
+    };
+    render(<ToolProvider><Sidebar /><Selection /></ToolProvider>);
+    const labels = ['上訴法定期間試算', '判決分析與上訴狀', '雙軌訴訟防禦', '爭點與證據清單'];
+    const entries = labels.map(label => screen.getByRole('button', { name: new RegExp(label) }));
+
+    expect(entries.every((entry, index) => index === 0 || Boolean(entries[index - 1].compareDocumentPosition(entry) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
+    fireEvent.click(entries[2]);
+    expect(screen.getByText('appeal:defense')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /生活法律導診與實用法務/ }));
+    expect(screen.getByText('litigation:guide')).toBeInTheDocument();
   });
 });
