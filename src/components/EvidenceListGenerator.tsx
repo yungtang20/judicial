@@ -81,95 +81,95 @@ export default function EvidenceListGenerator() {
   };
 
   return (
-    <div className="w-full flex flex-col md:flex-row h-full overflow-hidden bg-karoshi-bg">
+    <div className="w-full flex flex-col md:flex-row h-full overflow-hidden bg-[var(--color-surface-base)]">
       {/* 左側編輯區 */}
-      <div className="w-full md:w-1/2 lg:w-5/12 p-6 overflow-y-auto border-r border-karoshi-border bg-white space-y-6">
+      <div className="w-full md:w-1/2 lg:w-5/12 p-6 overflow-y-auto border-r border-[var(--color-border-subtle)] bg-[var(--color-surface-overlay)] space-y-6">
         <div>
           <h2 className="text-xl font-bold text-[#2C7873] flex items-center gap-2">
             <span>調查證據聲請表小工具</span>
           </h2>
-          <p className="text-xs text-gray-500 mt-1">產生符合司法院及 Karoshibox 標準格式之【調查證據聲請表】，支援即時編輯與列印 PDF。</p>
+          <p className="text-xs text-[var(--color-text-muted)] mt-1">產生符合司法院及 Karoshibox 標準格式之【調查證據聲請表】，支援即時編輯與列印 PDF。</p>
         </div>
 
         {/* 0. 案件基本資料 */}
-        <div className="space-y-3 bg-gray-50 p-4 rounded-xl border border-gray-200">
-          <div className="font-bold text-sm text-gray-800 border-b pb-1.5 border-gray-300">
+        <div className="space-y-3 bg-[var(--color-surface-raised)] p-4 rounded-xl border border-[var(--color-border-subtle)]">
+          <div className="font-bold text-sm text-[var(--color-text-primary)] border-b pb-1.5 border-[var(--color-border-strong)]">
             0. 案件基本資料
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">附件文字</label>
+            <label className="block text-xs font-bold text-[var(--color-text-secondary)] mb-1">附件文字</label>
             <input 
               type="text" 
               value={attachmentText} 
               onChange={e => setAttachmentText(e.target.value)}
-              className="w-full border border-gray-300 rounded p-1.5 text-xs bg-white font-bold"
+              className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)] font-bold"
               placeholder="附件"
             />
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
             <div className="col-span-2">
-              <label className="block font-bold text-gray-700 mb-1">法院名稱</label>
+              <label className="block font-bold text-[var(--color-text-secondary)] mb-1">法院名稱</label>
               <input 
                 type="text" 
                 value={courtName} 
                 onChange={e => setCourtName(e.target.value)}
-                className="w-full border border-gray-300 rounded p-1.5 text-xs bg-white"
+                className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)]"
                 placeholder="臺灣高等法院"
               />
             </div>
             <div>
-              <label className="block font-bold text-gray-700 mb-1">年度</label>
+              <label className="block font-bold text-[var(--color-text-secondary)] mb-1">年度</label>
               <input 
                 type="text" 
                 value={year} 
                 onChange={e => setYear(e.target.value)}
-                className="w-full border border-gray-300 rounded p-1.5 text-xs bg-white text-center font-mono"
+                className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)] text-center font-mono"
                 placeholder="112"
               />
             </div>
             <div>
-              <label className="block font-bold text-gray-700 mb-1">字別</label>
+              <label className="block font-bold text-[var(--color-text-secondary)] mb-1">字別</label>
               <input 
                 type="text" 
                 value={word} 
                 onChange={e => setWord(e.target.value)}
-                className="w-full border border-gray-300 rounded p-1.5 text-xs bg-white text-center"
+                className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)] text-center"
                 placeholder="重上"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">案號</label>
+            <label className="block text-xs font-bold text-[var(--color-text-secondary)] mb-1">案號</label>
             <input 
               type="text" 
               value={caseNo} 
               onChange={e => setCaseNo(e.target.value)}
-              className="w-full border border-gray-300 rounded p-1.5 text-xs bg-white font-mono"
+              className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)] font-mono"
               placeholder="123"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">提出人（簽章）</label>
+            <label className="block text-xs font-bold text-[var(--color-text-secondary)] mb-1">提出人（簽章）</label>
             <textarea 
               value={submitter} 
               onChange={e => setSubmitter(e.target.value)}
               rows={5}
-              className="w-full border border-gray-300 rounded p-1.5 text-xs bg-white"
+              className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)]"
               placeholder="例如：上訴人 王小明"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">提出日期</label>
+            <label className="block text-xs font-bold text-[var(--color-text-secondary)] mb-1">提出日期</label>
             <textarea 
               value={submitDate} 
               onChange={e => setSubmitDate(e.target.value)}
               rows={5}
-              className="w-full border border-gray-300 rounded p-1.5 text-xs bg-white"
+              className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)]"
               placeholder="例如：112年12月25日"
             />
           </div>
@@ -177,74 +177,74 @@ export default function EvidenceListGenerator() {
 
         {/* 1. 調查證據列表 */}
         <div className="space-y-3">
-          <div className="flex justify-between items-center border-b pb-2 border-gray-200">
-            <label className="font-bold text-sm text-gray-800">1. 調查證據列表</label>
-            <span className="text-3xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded font-mono">共 {items.length} 列</span>
+          <div className="flex justify-between items-center border-b pb-2 border-[var(--color-border-subtle)]">
+            <label className="font-bold text-sm text-[var(--color-text-primary)]">1. 調查證據列表</label>
+            <span className="text-3xs bg-[var(--color-surface-overlay)] text-[var(--color-text-secondary)] px-2 py-0.5 rounded font-mono">共 {items.length} 列</span>
           </div>
 
           <div className="space-y-4">
             {items.map((item, idx) => (
-              <div key={item.id} className="p-3.5 bg-gray-50/70 rounded-xl border border-gray-300 relative space-y-3">
-                <div className="flex justify-between items-center border-b border-gray-200 pb-2">
-                  <span className="font-bold text-xs text-gray-800">編號 {idx + 1}</span>
+              <div key={item.id} className="p-3.5 bg-[var(--color-surface-raised)]/70 rounded-xl border border-[var(--color-border-strong)] relative space-y-3">
+                <div className="flex justify-between items-center border-b border-[var(--color-border-subtle)] pb-2">
+                  <span className="font-bold text-xs text-[var(--color-text-primary)]">編號 {idx + 1}</span>
                   <button 
                     onClick={() => removeItem(item.id)}
-                    className="text-red-500 hover:text-red-700 font-bold text-3xs border border-red-200 px-2 py-0.5 rounded bg-red-50"
+                    className="text-red-500 hover:text-red-700 font-bold text-3xs border border-[var(--color-status-danger)]/30 px-2 py-0.5 rounded bg-[var(--color-status-danger-bg)]"
                   >
                     ✖ 刪除
                   </button>
                 </div>
 
                 <div>
-                  <label className="block text-3xs font-bold text-gray-700 mb-0.5">所涉爭點</label>
+                  <label className="block text-3xs font-bold text-[var(--color-text-secondary)] mb-0.5">所涉爭點</label>
                   <textarea 
                     value={item.relatedIssue} 
                     onChange={e => updateItem(item.id, 'relatedIssue', e.target.value)}
                     rows={5}
-                    className="w-full border border-gray-300 rounded p-1.5 text-xs bg-white"
+                    className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)]"
                     placeholder="例如：爭點一：消費借貸契約之成立與舉證責任"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div>
-                    <label className="block text-3xs font-bold text-gray-700 mb-0.5">調查事項</label>
+                    <label className="block text-3xs font-bold text-[var(--color-text-secondary)] mb-0.5">調查事項</label>
                     <textarea 
                       value={item.investigationItem} 
                       onChange={e => updateItem(item.id, 'investigationItem', e.target.value)}
                       rows={5}
-                      className="w-full border border-gray-300 rounded p-1.5 text-xs bg-white"
+                      className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)]"
                       placeholder="例如：訊問證人"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-3xs font-bold text-gray-700 mb-0.5">調查對象</label>
+                    <label className="block text-3xs font-bold text-[var(--color-text-secondary)] mb-0.5">調查對象</label>
                     <textarea 
                       value={item.investigationTarget} 
                       onChange={e => updateItem(item.id, 'investigationTarget', e.target.value)}
                       rows={5}
-                      className="w-full border border-gray-300 rounded p-1.5 text-xs bg-white"
+                      className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)]"
                       placeholder="姓名或單位"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-3xs font-bold text-gray-700 mb-0.5">對象地址及聯絡方式</label>
+                  <label className="block text-3xs font-bold text-[var(--color-text-secondary)] mb-0.5">對象地址及聯絡方式</label>
                   <textarea 
                     value={item.targetAddress} 
                     onChange={e => updateItem(item.id, 'targetAddress', e.target.value)}
                     rows={5}
-                    className="w-full border border-gray-300 rounded p-1.5 text-xs bg-white"
+                    className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)]"
                     placeholder="地址及電話或卷頁"
                   />
                 </div>
 
                 <div>
                   <div className="flex justify-between items-center mb-0.5">
-                    <label className="block text-3xs font-bold text-gray-700">待證事實 (限50字)</label>
-                    <span className={`text-3xs font-mono font-bold ${(item.provenFact || '').length > 50 ? 'text-red-600' : 'text-gray-400'}`}>
+                    <label className="block text-3xs font-bold text-[var(--color-text-secondary)]">待證事實 (限50字)</label>
+                    <span className={`text-3xs font-mono font-bold ${(item.provenFact || '').length > 50 ? 'text-red-600' : 'text-[var(--color-text-muted)]'}`}>
                       限制 : {(item.provenFact || '').length}/50字
                     </span>
                   </div>
@@ -253,7 +253,7 @@ export default function EvidenceListGenerator() {
                     onChange={e => updateItem(item.id, 'provenFact', e.target.value)}
                     rows={5}
                     maxLength={100}
-                    className={`w-full border rounded p-1.5 text-xs bg-white ${(item.provenFact || '').length > 50 ? 'border-red-400 bg-red-50/50' : 'border-gray-300'}`}
+                    className={`w-full border rounded p-1.5 text-xs bg-[var(--color-surface-overlay)] ${(item.provenFact || '').length > 50 ? 'border-red-400 bg-[var(--color-status-danger-bg)]/50' : 'border-[var(--color-border-strong)]'}`}
                     placeholder="限50字內說明待證事實"
                   />
                 </div>
@@ -263,7 +263,7 @@ export default function EvidenceListGenerator() {
 
           <button 
             onClick={addItem}
-            className="w-full py-2 border-2 border-dashed border-[#2C7873] text-[#2C7873] font-bold text-xs rounded-xl hover:bg-emerald-50 transition-all flex justify-center items-center gap-1 mt-3"
+            className="w-full py-2 border-2 border-dashed border-[#2C7873] text-[#2C7873] font-bold text-xs rounded-xl hover:bg-[var(--color-status-success-bg)] transition-all flex justify-center items-center gap-1 mt-3"
           >
             ⊕ 增加一列
           </button>
@@ -278,20 +278,20 @@ export default function EvidenceListGenerator() {
       </div>
 
       {/* 右側：A4 列印模擬預覽區 */}
-      <div className="w-full md:w-1/2 lg:w-7/12 p-8 overflow-y-auto bg-gray-200/80 flex justify-center items-start">
-        <div className="bg-white p-10 rounded-xl w-full max-w-[210mm] min-h-[297mm] text-black text-xs leading-relaxed border border-gray-300 font-serif space-y-4">
+      <div className="w-full md:w-1/2 lg:w-7/12 p-8 overflow-y-auto bg-[var(--color-border-strong)]/80 flex justify-center items-start">
+        <div className="bg-[var(--color-surface-overlay)] p-10 rounded-xl w-full max-w-[210mm] min-h-[297mm] text-black text-xs leading-relaxed border border-[var(--color-border-strong)] font-serif space-y-4">
           {/* 左上角附件標籤 */}
           <div className="text-left font-bold text-sm text-black">
             {attachmentText || '附件'}
           </div>
 
           {/* 標題框 */}
-          <div className="border-2 border-black p-3 text-center font-bold text-base text-black tracking-wider bg-gray-50/30">
+          <div className="border-2 border-black p-3 text-center font-bold text-base text-black tracking-wider bg-[var(--color-surface-raised)]/30">
             {courtName || '臺灣高等法院'}{year || '112'}年度{word || '重上'}字第{caseNo || '123'}號調查證據聲請表
           </div>
 
           {/* 提出人與日期列 */}
-          <div className="grid grid-cols-2 border border-black p-2 font-bold text-xs bg-gray-50/20">
+          <div className="grid grid-cols-2 border border-black p-2 font-bold text-xs bg-[var(--color-surface-raised)]/20">
             <div>提出人（簽章）：{submitter || ''}</div>
             <div className="text-right">提出日期：{submitDate || ''}</div>
           </div>
@@ -299,7 +299,7 @@ export default function EvidenceListGenerator() {
           {/* 表格 6 欄位 */}
           <table className="w-full border-collapse border border-black text-xs">
             <thead>
-              <tr className="bg-gray-100 text-black font-bold">
+              <tr className="bg-[var(--color-surface-overlay)] text-black font-bold">
                 <th className="border border-black p-2 w-[8%] text-center">編號</th>
                 <th className="border border-black p-2 w-[22%] text-center">所涉爭點</th>
                 <th className="border border-black p-2 w-[18%] text-center">調查事項</th>
@@ -315,7 +315,7 @@ export default function EvidenceListGenerator() {
                   <td className="border border-black p-2 whitespace-pre-wrap align-top">{item.relatedIssue}</td>
                   <td className="border border-black p-2 whitespace-pre-wrap align-top font-medium">{item.investigationItem}</td>
                   <td className="border border-black p-2 whitespace-pre-wrap align-top font-bold">{item.investigationTarget}</td>
-                  <td className="border border-black p-2 whitespace-pre-wrap align-top text-gray-800">{item.targetAddress}</td>
+                  <td className="border border-black p-2 whitespace-pre-wrap align-top text-[var(--color-text-primary)]">{item.targetAddress}</td>
                   <td className="border border-black p-2 whitespace-pre-wrap align-top">{item.provenFact}</td>
                 </tr>
               ))}

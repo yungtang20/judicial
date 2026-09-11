@@ -40,7 +40,7 @@ const STATUTORY_RULES = {
   criminal: {
     title: '刑事訴訟救濟法定期間',
     codeRef: '刑事訴訟法',
-    color: 'border-indigo-600 bg-indigo-50/50 text-indigo-900',
+    color: 'border-indigo-600 bg-[var(--color-status-info-bg)] text-[var(--color-status-info)]',
     badgeBg: 'bg-indigo-600 text-white',
     rules: [
       {
@@ -76,7 +76,7 @@ const STATUTORY_RULES = {
   civil: {
     title: '民事訴訟救濟法定期間',
     codeRef: '民事訴訟法',
-    color: 'border-amber-600 bg-amber-50/50 text-amber-900',
+    color: 'border-amber-600 bg-[var(--color-status-warning-bg)] text-[var(--color-status-warning)]',
     badgeBg: 'bg-amber-600 text-white',
     rules: [
       {
@@ -112,7 +112,7 @@ const STATUTORY_RULES = {
   administrative: {
     title: '行政訴訟救濟法定期間',
     codeRef: '行政訴訟法',
-    color: 'border-emerald-600 bg-emerald-50/50 text-emerald-900',
+    color: 'border-emerald-600 bg-[var(--color-status-success-bg)] text-[var(--color-status-success)]',
     badgeBg: 'bg-emerald-600 text-white',
     rules: [
       {
@@ -325,7 +325,7 @@ ${reasonDeadlineDate ? `補提上訴理由書最晚期限：${formatROCDate(reas
       </div>
 
       {/* 訴訟類別頁籤導航 (刑事 / 民事 / 行政) */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-2 rounded-xl border border-slate-200">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-[var(--color-surface-overlay)] p-2 rounded-xl border border-[var(--color-border-subtle)]">
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <button
             type="button"
@@ -333,7 +333,7 @@ ${reasonDeadlineDate ? `補提上訴理由書最晚期限：${formatROCDate(reas
             className={`flex-1 sm:flex-initial px-5 py-2.5 rounded-xl text-xs md:text-sm font-bold transition-all flex items-center justify-center gap-2 ${
               litigationType === 'criminal'
                 ? 'bg-indigo-600 text-white'
-                : 'text-slate-600 hover:bg-slate-100'
+                : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-overlay)]'
             }`}
           >
             <ShieldAlert className="w-4 h-4" />
@@ -346,7 +346,7 @@ ${reasonDeadlineDate ? `補提上訴理由書最晚期限：${formatROCDate(reas
             className={`flex-1 sm:flex-initial px-5 py-2.5 rounded-xl text-xs md:text-sm font-bold transition-all flex items-center justify-center gap-2 ${
               litigationType === 'civil'
                 ? 'bg-amber-600 text-white'
-                : 'text-slate-600 hover:bg-slate-100'
+                : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-overlay)]'
             }`}
           >
             <Building2 className="w-4 h-4" />
@@ -359,7 +359,7 @@ ${reasonDeadlineDate ? `補提上訴理由書最晚期限：${formatROCDate(reas
             className={`flex-1 sm:flex-initial px-5 py-2.5 rounded-xl text-xs md:text-sm font-bold transition-all flex items-center justify-center gap-2 ${
               litigationType === 'administrative'
                 ? 'bg-emerald-600 text-white'
-                : 'text-slate-600 hover:bg-slate-100'
+                : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-overlay)]'
             }`}
           >
             <FileText className="w-4 h-4" />
@@ -367,15 +367,15 @@ ${reasonDeadlineDate ? `補提上訴理由書最晚期限：${formatROCDate(reas
           </button>
         </div>
 
-        <div className="text-2xs font-bold text-slate-500 font-mono px-3 py-1 bg-slate-100 rounded-lg">
+        <div className="text-2xs font-bold text-[var(--color-text-muted)] font-mono px-3 py-1 bg-[var(--color-surface-overlay)] rounded-lg">
           參照標準：司法院訴訟須知 & {currentRules.codeRef}
         </div>
       </div>
 
       {/* 第一部分：司法院對照表 (Statutory Period Matrix) */}
-      <div className="bg-white p-6 rounded-xl border border-slate-200 space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-          <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+      <div className="bg-[var(--color-surface-overlay)] p-6 rounded-xl border border-[var(--color-border-subtle)] space-y-4">
+        <div className="flex items-center justify-between border-b border-[var(--color-border-subtle)] pb-3">
+          <h2 className="text-base font-bold text-[var(--color-text-primary)] flex items-center gap-2">
             <BookOpen className="w-5 h-5 text-indigo-600" />
             【{currentRules.title}】法定救濟期間檢視總表
           </h2>
@@ -391,10 +391,10 @@ ${reasonDeadlineDate ? `補提上訴理由書最晚期限：${formatROCDate(reas
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {currentRules.rules.map((rule, idx) => (
-            <div key={idx} className="bg-slate-50/80 p-4 rounded-xl border border-slate-200 flex flex-col justify-between space-y-3 hover:border-indigo-300 transition-colors">
+            <div key={idx} className="bg-[var(--color-surface-raised)]/80 p-4 rounded-xl border border-[var(--color-border-subtle)] flex flex-col justify-between space-y-3 hover:border-indigo-300 transition-colors">
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-xs font-bold text-slate-800">{rule.proc}</span>
+                  <span className="text-xs font-bold text-[var(--color-text-primary)]">{rule.proc}</span>
                   <span className={`text-3xs font-bold px-2 py-0.5 rounded-full ${currentRules.badgeBg}`}>
                     {rule.periodDays > 0 ? `${rule.periodDays} 日` : '無限制'}
                   </span>
@@ -402,13 +402,13 @@ ${reasonDeadlineDate ? `補提上訴理由書最晚期限：${formatROCDate(reas
                 <div className="text-2xs font-mono text-indigo-700 font-bold mb-2">
                   {rule.article}
                 </div>
-                <p className="text-2xs text-slate-600 leading-relaxed">
+                <p className="text-2xs text-[var(--color-text-secondary)] leading-relaxed">
                   {rule.desc}
                 </p>
               </div>
 
-              <div className="bg-white p-2.5 rounded-lg border border-slate-200/80 text-3xs text-slate-700 font-medium space-y-1">
-                <span className="font-bold text-slate-900 block">📝 補提理由書說明：</span>
+              <div className="bg-[var(--color-surface-overlay)] p-2.5 rounded-lg border border-[var(--color-border-subtle)]/80 text-3xs text-[var(--color-text-secondary)] font-medium space-y-1">
+                <span className="font-bold text-[var(--color-text-primary)] block">📝 補提理由書說明：</span>
                 <span>{rule.reasonPeriod}</span>
               </div>
             </div>
@@ -417,17 +417,17 @@ ${reasonDeadlineDate ? `補提上訴理由書最晚期限：${formatROCDate(reas
       </div>
 
       {/* 第二部分：動態計算器主體 */}
-      <div ref={containerRef} className="bg-white p-6 rounded-xl border border-slate-200 space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+      <div ref={containerRef} className="bg-[var(--color-surface-overlay)] p-6 rounded-xl border border-[var(--color-border-subtle)] space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-[var(--color-border-subtle)] pb-4">
           <div className="flex items-center gap-2">
-            <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600">
+            <div className="p-2 rounded-xl bg-[var(--color-status-info-bg)] text-indigo-600">
               <Calculator className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-900">
+              <h3 className="text-base font-bold text-[var(--color-text-primary)]">
                 智慧法定期間精密試算器
               </h3>
-              <p className="text-2xs text-slate-500">輸入判決/裁定送達日期，系統將自動套用始日不計、在途期間與例假日順延規則</p>
+              <p className="text-2xs text-[var(--color-text-muted)]">輸入判決/裁定送達日期，系統將自動套用始日不計、在途期間與例假日順延規則</p>
             </div>
           </div>
 
@@ -435,7 +435,7 @@ ${reasonDeadlineDate ? `補提上訴理由書最晚期限：${formatROCDate(reas
             <button
               type="button"
               onClick={handleCopyText}
-              className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
+              className="text-xs bg-[var(--color-surface-overlay)] hover:bg-[var(--color-border-strong)] text-[var(--color-text-secondary)] font-semibold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
             >
               {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
               {copied ? '已複製試算結果' : '複製結果'}
@@ -443,7 +443,7 @@ ${reasonDeadlineDate ? `補提上訴理由書最晚期限：${formatROCDate(reas
             <button
               type="button"
               onClick={handleDownload}
-              className="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
+              className="text-xs bg-[var(--color-status-info-bg)] hover:bg-indigo-100 text-indigo-700 font-semibold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
             >
               <Download className="w-3.5 h-3.5" />
               下載圖卡
@@ -455,14 +455,14 @@ ${reasonDeadlineDate ? `補提上訴理由書最晚期限：${formatROCDate(reas
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* 1. 救濟程序類型 */}
           <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
+            <label className="text-xs font-bold text-[var(--color-text-secondary)] flex items-center gap-1">
               <CheckCircle2 className="w-4 h-4 text-indigo-600" />
               1. 選擇擬進行之救濟程序
             </label>
             <select
               value={remedyType}
               onChange={(e) => setRemedyType(e.target.value as RemedyType)}
-              className="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-bold text-slate-800 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500"
+              className="w-full p-2.5 border border-[var(--color-border-strong)] rounded-xl text-xs font-bold text-[var(--color-text-primary)] bg-[var(--color-surface-raised)] focus:bg-[var(--color-surface-overlay)] focus:ring-2 focus:ring-indigo-500"
             >
               <option value="appeal12">第一審判決上訴第二審 (法定 20 日)</option>
               <option value="appeal23">第二審判決上訴第三審 (法定 20 日)</option>
@@ -473,7 +473,7 @@ ${reasonDeadlineDate ? `補提上訴理由書最晚期限：${formatROCDate(reas
 
           {/* 2. 收到裁判日期 (送達日) */}
           <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
+            <label className="text-xs font-bold text-[var(--color-text-secondary)] flex items-center gap-1">
               <Calendar className="w-4 h-4 text-indigo-600" />
               2. 收到裁判正本日期 (送達日)
             </label>
@@ -481,7 +481,7 @@ ${reasonDeadlineDate ? `補提上訴理由書最晚期限：${formatROCDate(reas
               <select
                 value={recvYear}
                 onChange={(e) => setRecvYear(Number(e.target.value))}
-                className="border border-slate-300 rounded-lg p-2 text-xs font-bold bg-slate-50"
+                className="border border-[var(--color-border-strong)] rounded-lg p-2 text-xs font-bold bg-[var(--color-surface-raised)]"
               >
                 {years.map((y) => (
                   <option key={y} value={y}>民國 {y} 年</option>
@@ -490,7 +490,7 @@ ${reasonDeadlineDate ? `補提上訴理由書最晚期限：${formatROCDate(reas
               <select
                 value={recvMonth}
                 onChange={(e) => setRecvMonth(Number(e.target.value))}
-                className="border border-slate-300 rounded-lg p-2 text-xs font-bold bg-slate-50"
+                className="border border-[var(--color-border-strong)] rounded-lg p-2 text-xs font-bold bg-[var(--color-surface-raised)]"
               >
                 {months.map((m) => (
                   <option key={m} value={m}>{m} 月</option>
@@ -499,28 +499,28 @@ ${reasonDeadlineDate ? `補提上訴理由書最晚期限：${formatROCDate(reas
               <select
                 value={recvDay}
                 onChange={(e) => setRecvDay(Number(e.target.value))}
-                className="border border-slate-300 rounded-lg p-2 text-xs font-bold bg-slate-50"
+                className="border border-[var(--color-border-strong)] rounded-lg p-2 text-xs font-bold bg-[var(--color-surface-raised)]"
               >
                 {days.map((d) => (
                   <option key={d} value={d}>{d} 日</option>
                 ))}
               </select>
             </div>
-            <div className="text-3xs text-slate-500">
+            <div className="text-3xs text-[var(--color-text-muted)]">
               例如：法院掛號信件蓋印簽收當日、或寄達郵局寄存之日期
             </div>
           </div>
 
           {/* 3. 在途期間扣除 */}
           <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
+            <label className="text-xs font-bold text-[var(--color-text-secondary)] flex items-center gap-1">
               <Clock className="w-4 h-4 text-indigo-600" />
               3. 在途期間天數 (依司法院標準)
             </label>
             <select
               value={travelDays}
               onChange={(e) => setTravelDays(Number(e.target.value))}
-              className="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-bold text-slate-800 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500"
+              className="w-full p-2.5 border border-[var(--color-border-strong)] rounded-xl text-xs font-bold text-[var(--color-text-primary)] bg-[var(--color-surface-raised)] focus:bg-[var(--color-surface-overlay)] focus:ring-2 focus:ring-indigo-500"
             >
               {TRAVEL_DAYS_OPTIONS.map((opt) => (
                 <option key={opt.days} value={opt.days}>
@@ -528,7 +528,7 @@ ${reasonDeadlineDate ? `補提上訴理由書最晚期限：${formatROCDate(reas
                 </option>
               ))}
             </select>
-            <div className="text-3xs text-slate-500">
+            <div className="text-3xs text-[var(--color-text-muted)]">
               若住居所非在受理上訴之法院同一行政區，可加計在途天數
             </div>
           </div>
@@ -536,8 +536,8 @@ ${reasonDeadlineDate ? `補提上訴理由書最晚期限：${formatROCDate(reas
 
         {/* 選填：聲明上訴日期（用於二審上訴三審/刑事一審上訴二審推算理由書） */}
         {(remedyType === 'appeal23' || (litigationType === 'criminal' && remedyType === 'appeal12')) && (
-          <div className="p-4 bg-indigo-50/50 rounded-xl border border-indigo-200 space-y-2">
-            <div className="text-xs font-bold text-indigo-900 flex items-center gap-1.5">
+          <div className="p-4 bg-[var(--color-status-info-bg)] rounded-xl border border-[var(--color-status-info)]/30 space-y-2">
+            <div className="text-xs font-bold text-[var(--color-status-info)] flex items-center gap-1.5">
               <HelpCircle className="w-4 h-4 text-indigo-600" />
               選填：已提出「聲明上訴狀」日期（用於精準推算補提上訴理由書期限）
             </div>
@@ -545,7 +545,7 @@ ${reasonDeadlineDate ? `補提上訴理由書最晚期限：${formatROCDate(reas
               <select
                 value={appealNoticeYear}
                 onChange={(e) => setAppealNoticeYear(e.target.value === '' ? '' : Number(e.target.value))}
-                className="border border-slate-300 rounded-lg p-1.5 text-xs font-bold bg-white"
+                className="border border-[var(--color-border-strong)] rounded-lg p-1.5 text-xs font-bold bg-[var(--color-surface-overlay)]"
               >
                 <option value="">-- 未聲明 / 尚未遞狀 --</option>
                 {years.map((y) => (
@@ -557,7 +557,7 @@ ${reasonDeadlineDate ? `補提上訴理由書最晚期限：${formatROCDate(reas
                   <select
                     value={appealNoticeMonth}
                     onChange={(e) => setAppealNoticeMonth(e.target.value === '' ? 1 : Number(e.target.value))}
-                    className="border border-slate-300 rounded-lg p-1.5 text-xs font-bold bg-white"
+                    className="border border-[var(--color-border-strong)] rounded-lg p-1.5 text-xs font-bold bg-[var(--color-surface-overlay)]"
                   >
                     {months.map((m) => (
                       <option key={m} value={m}>{m} 月</option>
@@ -566,7 +566,7 @@ ${reasonDeadlineDate ? `補提上訴理由書最晚期限：${formatROCDate(reas
                   <select
                     value={appealNoticeDay}
                     onChange={(e) => setAppealNoticeDay(e.target.value === '' ? 1 : Number(e.target.value))}
-                    className="border border-slate-300 rounded-lg p-1.5 text-xs font-bold bg-white"
+                    className="border border-[var(--color-border-strong)] rounded-lg p-1.5 text-xs font-bold bg-[var(--color-surface-overlay)]"
                   >
                     {days.map((d) => (
                       <option key={d} value={d}>{d} 日</option>
@@ -614,18 +614,18 @@ ${reasonDeadlineDate ? `補提上訴理由書最晚期限：${formatROCDate(reas
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* 送達日 */}
             <div className="bg-slate-800/80 p-4 rounded-xl border border-slate-700 space-y-1">
-              <div className="text-3xs text-slate-400 font-bold">裁判送達日期</div>
+              <div className="text-3xs text-[var(--color-text-muted)] font-bold">裁判送達日期</div>
               <div className="text-sm font-bold text-white font-mono">{formatROCDate(recvDate)}</div>
-              <div className="text-3xs text-slate-400">初日不算（始日不計規則）</div>
+              <div className="text-3xs text-[var(--color-text-muted)]">初日不算（始日不計規則）</div>
             </div>
 
             {/* 計算依據天數 */}
             <div className="bg-slate-800/80 p-4 rounded-xl border border-slate-700 space-y-1">
-              <div className="text-3xs text-slate-400 font-bold">合計可用期間</div>
+              <div className="text-3xs text-[var(--color-text-muted)] font-bold">合計可用期間</div>
               <div className="text-sm font-bold text-amber-400 font-mono">
                 {statutoryDays} 日 (法定) + {travelDays} 日 (在途) = {totalDays} 天
               </div>
-              <div className="text-3xs text-slate-400">基本救濟天數加計扣除在途</div>
+              <div className="text-3xs text-[var(--color-text-muted)]">基本救濟天數加計扣除在途</div>
             </div>
 
             {/* 順延後最終期限 */}
@@ -672,7 +672,7 @@ ${reasonDeadlineDate ? `補提上訴理由書最晚期限：${formatROCDate(reas
                       👉 依您輸入之聲明上訴日推算，補提上訴理由書最晚期限：{formatROCDate(reasonDeadlineDate)}
                     </span>
                   ) : (
-                    <span className="block mt-1 text-slate-400 italic">
+                    <span className="block mt-1 text-[var(--color-text-muted)] italic">
                       （請於上方選擇「已聲明上訴日期」，即可精準計算理由書最晚補提期限）
                     </span>
                   )}
@@ -695,11 +695,11 @@ ${reasonDeadlineDate ? `補提上訴理由書最晚期限：${formatROCDate(reas
         </div>
 
         {/* 免責與遞狀溫馨提醒 */}
-        <div className="bg-amber-50/80 p-4 rounded-xl border border-amber-200/80 text-xs text-amber-950 flex items-start gap-2.5">
+        <div className="bg-[var(--color-status-warning-bg)]/80 p-4 rounded-xl border border-[var(--color-status-warning)]/80 text-xs text-[var(--color-status-warning)] flex items-start gap-2.5">
           <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
           <div className="space-y-1 leading-relaxed">
             <strong>⚠️ 遞狀實務溫馨提醒與聲明：</strong>
-            <p className="text-2xs text-amber-900">
+            <p className="text-2xs text-[var(--color-status-warning)]">
               1. 遞交上訴狀或抗告狀，以<strong>「訴狀實際送達法院」</strong>之時間為準（郵寄者以法院簽收日為準，非以郵戳為準，請務必預留 2~3 天郵遞時間）。<br />
               2. 本系統計算邏輯依據民法第 120 條、第 122 條及各訴訟法，僅供訴訟時程規劃參考。如逢特定國定連續假期（如農曆春節、中秋連假等），請以法院實際上班日為準，強烈建議提早 2~3 天完成遞狀！
             </p>

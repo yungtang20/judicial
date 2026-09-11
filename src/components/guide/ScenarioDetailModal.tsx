@@ -56,7 +56,7 @@ export const ScenarioDetailModal: React.FC<ScenarioDetailModalProps> = ({
         </div>
         <button
           onClick={onClose}
-          className="text-slate-400 hover:text-white p-2 rounded-xl bg-slate-800 hover:bg-slate-700 transition-colors"
+          className="text-[var(--color-text-muted)] hover:text-white p-2 rounded-xl bg-slate-800 hover:bg-slate-700 transition-colors"
         >
           ✕
         </button>

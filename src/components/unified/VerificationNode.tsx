@@ -18,7 +18,7 @@ export const VerificationNode: React.FC<VerificationNodeProps> = (props) => {
   const isPass = verification.passGate;
 
   return (
-    <div className={`rounded-xl border transition-colors overflow-hidden ${isPass ? 'bg-[#0e1424] border-emerald-500/40' : 'bg-[#180f14] border-rose-500/40'}`}>
+    <div className={`rounded-xl border transition-colors overflow-hidden ${isPass ? 'bg-[var(--color-surface-raised)] border-emerald-500/40' : 'bg-[#180f14] border-rose-500/40'}`}>
       {/* 節點 6 標頭：極簡條列化 */}
       <div
         className="px-5 py-3.5 flex items-center justify-between cursor-pointer select-none bg-slate-900/50 hover:bg-slate-900/80 transition-colors"
@@ -30,7 +30,7 @@ export const VerificationNode: React.FC<VerificationNodeProps> = (props) => {
           </span>
           <div>
             <h2 className="text-sm font-bold text-white">真確性檢核結果</h2>
-            <p className="text-[11px] text-slate-400 mt-0.5">
+            <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">
               檢核 {verification.totalChecked} 處 · 異常 {verification.ghostCount} 處 · {formatVerificationStatus(verification.verificationStatus)}
             </p>
           </div>
@@ -39,7 +39,7 @@ export const VerificationNode: React.FC<VerificationNodeProps> = (props) => {
         <button
           type="button"
           onClick={() => setIsNode6Open((prev: boolean) => !prev)}
-          className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors"
+          className="p-1 rounded-lg hover:bg-slate-800 text-[var(--color-text-muted)] hover:text-slate-200 transition-colors"
         >
           {isNode6Open ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </button>
@@ -56,18 +56,18 @@ export const VerificationNode: React.FC<VerificationNodeProps> = (props) => {
 
           {verification.officialEvidence && verification.officialEvidence.length > 0 ? (
             <div>
-              <span className="text-[11px] font-bold text-slate-400 block mb-1.5 uppercase tracking-wider">實質檢核明細清單</span>
+              <span className="text-[11px] font-bold text-[var(--color-text-muted)] block mb-1.5 uppercase tracking-wider">實質檢核明細清單</span>
               <div className="divide-y divide-slate-800">
                 {verification.officialEvidence.map((item: any, i: number) => (
                   <div key={i} className="py-2 flex flex-wrap items-center justify-between gap-2 text-[11px]">
                     <div className="flex items-center gap-2 font-mono">
                       <span className="font-bold text-slate-200">{item.citation}</span>
-                      <span className="text-slate-600">·</span>
+                      <span className="text-[var(--color-text-secondary)]">·</span>
                       <span className={item.status === 'VALID' ? 'text-emerald-400 font-semibold' : 'text-amber-400 font-semibold'}>
                         {item.status}
                       </span>
                       {item.claimSupportStatus && (
-                        <span className="text-slate-500">({item.claimSupportStatus})</span>
+                        <span className="text-[var(--color-text-muted)]">({item.claimSupportStatus})</span>
                       )}
                     </div>
                     {item.sourceUrl && (

@@ -59,7 +59,7 @@ export const AntiGhostBadge: React.FC<AntiGhostBadgeProps> = ({
                 本機比對
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 mt-0.5">
+            <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">
               顯示本機規則比對結果；未索引或 heuristic 項目仍需人工查證，不代表官方核實。
             </p>
           </div>
@@ -85,9 +85,9 @@ export const AntiGhostBadge: React.FC<AntiGhostBadgeProps> = ({
       {/* Verified Citations List */}
       {citations.length > 0 && (
         <div className="space-y-2 pt-1 border-t border-slate-800/80">
-          <div className="text-[11px] text-slate-400 font-medium flex items-center justify-between">
+          <div className="text-[11px] text-[var(--color-text-muted)] font-medium flex items-center justify-between">
             <span>比對到的法條與實務判例標籤：</span>
-            <span className="text-[10px] text-slate-500">點擊可查看官方要旨與來源</span>
+            <span className="text-[10px] text-[var(--color-text-muted)]">點擊可查看官方要旨與來源</span>
           </div>
 
           <div className="flex flex-wrap gap-1.5">
@@ -107,7 +107,7 @@ export const AntiGhostBadge: React.FC<AntiGhostBadgeProps> = ({
                   <CheckCircle2 className="w-3 h-3 text-emerald-400" />
                 )}
                 <span>{c.officialTitle || c.citationText}</span>
-                <span className="text-[9px] px-1 py-0.2 rounded bg-slate-800 text-slate-400 uppercase font-mono">
+                <span className="text-[9px] px-1 py-0.2 rounded bg-slate-800 text-[var(--color-text-muted)] uppercase font-mono">
                   {c.type === 'PRECEDENT' ? '判例/裁判' : '實體法規'}
                 </span>
               </span>

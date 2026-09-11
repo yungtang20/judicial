@@ -8,7 +8,7 @@ export interface SafetyNodeProps {
 }
 
 export const SafetyNode: React.FC<SafetyNodeProps> = (props) => {
-  const { workflowState, supplementInput, setSupplementInput, acknowledgeSafetyInSession, isSubmitting, handleSupplementFact, handleProceedFromSafety, handleResetWorkflow, handleSelectSuggestedOption } = props;
+  const { workflowState, supplementInput, setSupplementInput, isSubmitting, handleSupplementFact, handleSelectSuggestedOption, showSafety = true, showQuestioning = true } = props;
 
   const isSexualAutonomy = workflowState?.router?.chapter?.includes('性自主') ||
     Boolean(workflowState?.router?.cause?.includes('性自主')) ||
@@ -17,7 +17,7 @@ export const SafetyNode: React.FC<SafetyNodeProps> = (props) => {
   return (
     <>
         {/* Safety Protection Node - 敏感案件保護提示（直接顯示保護指引與援助資源，無須阻擋點擊確認） */}
-        {workflowState?.safety && (
+        {showSafety && workflowState?.safety && (
           <div className="p-4 rounded-xl bg-rose-950/20 border border-rose-500/20 space-y-2.5 text-xs text-rose-200">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 font-bold text-rose-300">
@@ -36,11 +36,21 @@ export const SafetyNode: React.FC<SafetyNodeProps> = (props) => {
               <span className="flex items-center gap-1"><PhoneCall className="w-3.5 h-3.5 text-rose-400" /> 緊急報案：110</span>
               <span className="flex items-center gap-1"><PhoneCall className="w-3.5 h-3.5 text-rose-400" /> 衛福部安心專線：1925</span>
             </div>
+            <div className="grid gap-2 pt-2 md:grid-cols-2">
+              <div>
+                <div className="font-bold text-rose-300 mb-1">立即行動</div>
+                {workflowState.safety.immediateSteps.map((step: string) => <div key={step}>• {step}</div>)}
+              </div>
+              <div>
+                <div className="font-bold text-rose-300 mb-1">證據保全</div>
+                {workflowState.safety.preservationTips.map((tip: string) => <div key={tip}>• {tip}</div>)}
+              </div>
+            </div>
           </div>
         )}
 
         {/* Questioning Node */}
-        {workflowState?.questioning && !workflowState?.router?.is_complete && (
+        {showQuestioning && workflowState?.questioning && workflowState.currentStep === 'QUESTIONING' && (
           <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 space-y-3">
             <div className="flex items-center gap-2.5">
               <HelpCircle className="w-5 h-5 text-amber-400" />
@@ -63,6 +73,16 @@ export const SafetyNode: React.FC<SafetyNodeProps> = (props) => {
                   {opt}
                 </button>
               ))}
+              {!workflowState.questioning.suggestedOptions?.some((opt: string) => /無|沒有/.test(opt)) && (
+                <button
+                  type="button"
+                  onClick={() => handleSelectSuggestedOption('目前沒有其他資料')}
+                  disabled={isSubmitting}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 hover:border-amber-500/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  目前沒有其他資料
+                </button>
+              )}
             </div>
 
             <div className="flex gap-3">

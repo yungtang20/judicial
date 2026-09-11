@@ -1,90 +1,68 @@
-
 import React from 'react';
-import {
-  Compass,
-  Scale, BookOpen, ShieldAlert, Sparkles, Phone, ArrowRight,
-  Search, ShieldCheck, FileText, ChevronRight, CheckCircle2,
-  AlertTriangle, EyeOff, Lock, LifeBuoy, Zap, Camera, Mic, MapPin, X
-} from 'lucide-react';
+import { Search, Sparkles } from 'lucide-react';
 
 export interface HeroSectionProps {
   [key: string]: any;
 }
 
-export const HeroSection: React.FC<HeroSectionProps> = (props) => {
-  const {
-    searchQuery, setSearchQuery, selectedCategory, setSelectedCategory,
-    selectedScenario, setSelectedScenario, showAiTriageModal, setShowAiTriageModal,
-    aiTriageLoading, setAiTriageLoading, aiTriageResult, setAiTriageResult,
-    copiedDraft, setCopiedDraft, syllogismAnswers, setSyllogismAnswers,
-    sourceTab, setSourceTab, isSafetyQuery, filteredScenarios, categories,
-    QUICK_TAGS, handleRunAiTriage, handleLaunchScenario, handleSelectTool
-  } = props;
+export const HeroSection: React.FC<HeroSectionProps> = ({
+  searchQuery,
+  setSearchQuery,
+  aiTriageLoading,
+  handleRunAiTriage,
+}) => {
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (searchQuery.trim()) handleRunAiTriage(searchQuery);
+  };
 
   return (
-    <>
-        {/* Hero Banner: 非法律人友善引導 */}
-        <div className="relative overflow-hidden rounded-xl bg-slate-900 border border-slate-800 p-6">
-          <div className="relative z-10 max-w-3xl space-y-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 text-xs font-semibold tracking-wide">
-              <Compass className="w-3.5 h-3.5" />
-              非法律專業專用 · 生活情境智能導診
-            </div>
-            <h1 className="text-2xl md:text-4xl font-bold text-white tracking-tight">
-              您遇到什麼法律問題？<br />
-              <span className="text-indigo-400">
-                點選生活情境，3 秒找到解答與標準書狀
-              </span>
-            </h1>
-            <p className="text-slate-300 text-sm md:text-base leading-relaxed">
-              不用背艱澀法條！直接選擇您發生的狀況，系統以白話文引導您了解
-              <span className="text-amber-300 font-semibold">「何時提告、要花多少錢、該準備哪些證物」</span>，並依循司法實務規則一鍵產製具法律效力的合規書狀。
-            </p>
+    <section className="rounded-xl border border-slate-800 bg-slate-900 p-5 md:p-6" aria-labelledby="guide-heading">
+      <div className="max-w-3xl">
+        <p className="text-xs font-semibold text-indigo-300">生活法律導診</p>
+        <h1 id="guide-heading" className="mt-2 text-2xl font-bold tracking-tight text-white md:text-3xl">
+          描述你遇到的狀況
+        </h1>
+        <p className="mt-2 text-sm leading-6 text-slate-300">
+          系統會先追問必要事實，再整理可能涉及的法律、證據與可採取的步驟。
+        </p>
 
-            {/* 即時智慧搜尋欄 */}
-            <div className="pt-2">
-              <div className="relative flex items-center">
-                <Search className="w-5 h-5 absolute left-4 text-slate-400" />
-                <textarea rows={4}
-                  
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey && searchQuery.trim()) {
-                      e.preventDefault();
-                      handleRunAiTriage(searchQuery);
-                    }
-                  }}
-                  placeholder="輸入任何法律問題或狀況，例如：被女友竊盜了、車禍受傷、房客欠租、朋友借錢、收到判決..."
-                  className="w-full pl-12 pr-4 md:pr-44 pb-14 md:pb-3.5 py-3.5 min-h-[120px] resize-y rounded-xl bg-slate-950/80 border border-indigo-500/30 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                />
-                <div className="absolute right-2.5 bottom-2.5 md:bottom-auto md:top-1/2 md:-translate-y-1/2 flex items-center gap-1.5">
-                  {searchQuery && (
-                    <button
-                      onClick={() => setSearchQuery('')}
-                      className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1.5 rounded-lg transition-colors"
-                    >
-                      清除
-                    </button>
-                  )}
-                  <button
-                    onClick={() => handleRunAiTriage(searchQuery)}
-                    disabled={!searchQuery.trim() || aiTriageLoading}
-                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold transition-all cursor-pointer"
-                  >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>AI 診斷與產狀</span>
-                  </button>
-                </div>
-              </div>
-            </div>
+        <form className="mt-5" onSubmit={submit}>
+          <label htmlFor="legal-situation" className="mb-2 block text-sm font-semibold text-slate-200">
+            發生了什麼事？
+          </label>
+          <div className="relative">
+            <Search className="absolute left-3.5 top-3.5 h-5 w-5 text-slate-500" aria-hidden="true" />
+            <textarea
+              id="legal-situation"
+              rows={3}
+              value={searchQuery}
+              onChange={event => setSearchQuery(event.target.value)}
+              placeholder="例如：房客積欠三個月租金，我想終止租約並請他搬離"
+              className="min-h-28 w-full resize-y rounded-xl border border-slate-700 bg-slate-950 py-3 pl-11 pr-4 text-sm leading-6 text-white outline-none placeholder:text-slate-500 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
+            />
           </div>
-
-          <div className="absolute right-0 bottom-0 translate-x-12 translate-y-12 opacity-10 pointer-events-none">
-            <Scale className="w-96 h-96 text-indigo-400" />
+          <div className="mt-3 flex flex-wrap justify-end gap-2">
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="min-h-11 rounded-lg px-4 py-2 text-sm font-semibold text-slate-300 transition-colors hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+              >
+                清除
+              </button>
+            )}
+            <button
+              type="submit"
+              disabled={!searchQuery.trim() || aiTriageLoading}
+              className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-indigo-600 px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-indigo-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Sparkles className="h-4 w-4" aria-hidden="true" />
+              {aiTriageLoading ? '分析中…' : '開始分析'}
+            </button>
           </div>
-        </div>
-
-    </>
+        </form>
+      </div>
+    </section>
   );
 };

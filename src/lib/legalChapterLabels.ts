@@ -58,10 +58,10 @@ export function formatLegalChapter(chapter?: string | null): string {
 export function formatVerificationStatus(status?: string | null): string {
   if (!status) return '未檢核';
   const map: Record<string, string> = {
-    PASS: '檢核通過（真實法規實務佐證）',
+    PASS: '可以使用（已完成來源查驗）',
     PASSED: '檢核通過',
-    NEEDS_REVIEW: '待法學審核（需人工確認）',
-    FAIL: '檢核未通過（存在幽靈條文風險）',
+    NEEDS_REVIEW: '僅供參考（尚未確認適用）',
+    FAIL: '不可使用（引用存在疑義）',
     FAILED: '檢核未通過',
     WARNING: '警示待查',
     BLOCKED: '安全封鎖',

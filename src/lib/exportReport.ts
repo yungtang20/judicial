@@ -21,13 +21,13 @@ function buildHtmlReport(state: LegalWorkflowState): string {
 <meta charset="UTF-8">
 <title>智慧法律分析報告 — ${escapeHtml(router?.cause || '未分類')}</title>
 <style>
-  body { font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; color: #1a1a2e; line-height: 1.8; }
-  h1 { color: #16213e; border-bottom: 3px solid #0f3460; padding-bottom: 8px; }
-  h2 { color: #0f3460; margin-top: 28px; }
+  body { font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; color: #292219; line-height: 1.8; }
+  h1 { color: #352d22; border-bottom: 3px solid #956018; padding-bottom: 8px; }
+  h2 { color: #704714; margin-top: 28px; }
   .meta { color: #666; font-size: 13px; margin-bottom: 24px; }
-  .section { background: #f8f9fa; border-left: 4px solid #0f3460; padding: 16px 20px; margin: 16px 0; border-radius: 0 8px 8px 0; }
+  .section { background: #faf7f0; border-left: 4px solid #956018; padding: 16px 20px; margin: 16px 0; border-radius: 0 8px 8px 0; }
   .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; margin-right: 8px; }
-  .badge-blue { background: #e8f0fe; color: #1a73e8; }
+  .badge-blue { background: #fef3c7; color: #704714; }
   .badge-amber { background: #fef3cd; color: #856404; }
   .badge-green { background: #d4edda; color: #155724; }
   .full-analysis { white-space: pre-wrap; background: #fff; border: 1px solid #dee2e6; padding: 16px; border-radius: 8px; font-size: 14px; }

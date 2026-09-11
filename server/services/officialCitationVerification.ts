@@ -35,6 +35,7 @@ export interface OfficialVerificationOptions {
   fetchImpl?: typeof fetch;
   timeoutMs?: number;
   maxResults?: number;
+  targetStatuteCitations?: string[];
 }
 
 export interface OfficialJudgmentSearchResult {
@@ -44,6 +45,7 @@ export interface OfficialJudgmentSearchResult {
   sourceUrl: string;
   checkedAt: string;
   contentHash: string;
+  citedStatutes?: string[];
 }
 
 export interface OfficialJudgmentSearchSummary {
@@ -81,6 +83,11 @@ const normalize = (value: string) => value
   .replace(/臺/g, "台");
 
 const textFromHtml = (html: string) => cheerio.load(html)("body").text().replace(/\s+/g, " ").trim();
+
+export function findCitedTargetStatutes(officialText: string, citations: string[]): string[] {
+  const normalizedText = normalize(officialText).replace(/[、，。,.;；：:（）()]/g, "");
+  return citations.filter(citation => normalizedText.includes(normalize(citation).replace(/[、，。,.;；：:（）()]/g, "")));
+}
 
 function assessClaimSupport(claim: string | undefined, officialText: string): "SUPPORTED" | "NEEDS_REVIEW" | "UNVERIFIABLE" {
   const normalizedClaim = normalize(claim || "").replace(/[^一-龥a-zA-Z0-9]/g, "");
@@ -405,7 +412,8 @@ export async function searchOfficialJudgments(
         summary: officialText.slice(0, 500),
         sourceUrl: candidate.url.toString(),
         checkedAt,
-        contentHash
+        contentHash,
+        citedStatutes: findCitedTargetStatutes(officialText, options.targetStatuteCitations || [])
       });
     }
 

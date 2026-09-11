@@ -23,7 +23,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = (props) => {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
             <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 w-[380px] space-y-4">
               <h3 className="text-base font-bold text-white">選擇文書類型</h3>
-              <p className="text-xs text-slate-400">根據您的案件類型，推薦以下文書：</p>
+              <p className="text-xs text-[var(--color-text-muted)]">根據您的案件類型，推薦以下文書：</p>
               <div className="space-y-2">
                 <button
                   onClick={() => {
@@ -36,12 +36,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = (props) => {
                       cause: workflowState?.router?.cause,
                       sourceTool: 'unified'
                     });
-                    handleSelectTool('litigation', undefined, { initialTab: 'appeal' });
+                    handleSelectTool('appeal', 'appeal', { initialTab: 'appeal' });
                   }}
                   className="w-full text-left p-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors"
                 >
                   <div className="font-bold text-sm text-white">上訴狀</div>
-                  <div className="text-xs text-slate-400 mt-1">不服地方法院判決，向上級法院提起上訴</div>
+                  <div className="text-xs text-[var(--color-text-muted)] mt-1">不服地方法院判決，向上級法院提起上訴</div>
                 </button>
                 <button
                   onClick={() => {
@@ -59,12 +59,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = (props) => {
                   className="w-full text-left p-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors"
                 >
                   <div className="font-bold text-sm text-white">存證信函</div>
-                  <div className="text-xs text-slate-400 mt-1">以正式書面通知對方，留存法律證據</div>
+                  <div className="text-xs text-[var(--color-text-muted)] mt-1">以正式書面通知對方，留存法律證據</div>
                 </button>
               </div>
               <button
                 onClick={() => setShowDocTypeModal(false)}
-                className="w-full text-xs text-slate-500 hover:text-slate-300 py-1 transition-colors"
+                className="w-full text-xs text-[var(--color-text-muted)] hover:text-slate-300 py-1 transition-colors"
               >
                 取消
               </button>
@@ -83,12 +83,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = (props) => {
                   </div>
                   <div>
                     <h3 className="text-base font-bold text-white">自訂預設案例設定</h3>
-                    <p className="text-xs text-slate-400">設定您的專屬自訂案例，點擊按鈕即可一鍵填入（非系統預置）</p>
+                    <p className="text-xs text-[var(--color-text-muted)]">設定您的專屬自訂案例，點擊按鈕即可一鍵填入（非系統預置）</p>
                   </div>
                 </div>
                 <button
                   onClick={() => setShowCustomPresetModal(false)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                  className="p-1 rounded-lg text-[var(--color-text-muted)] hover:text-white hover:bg-slate-800 transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -117,9 +117,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = (props) => {
                     value={editPresetNarrative}
                     onChange={(e) => setEditPresetNarrative(e.target.value)}
                     placeholder="請輸入欲測試的具體口語事實或案情敘述..."
-                    className="w-full p-3.5 rounded-xl bg-slate-950 border border-slate-700 text-slate-100 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 leading-relaxed placeholder:text-slate-600"
+                    className="w-full p-3.5 rounded-xl bg-slate-950 border border-slate-700 text-slate-100 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 leading-relaxed placeholder:text-[var(--color-text-secondary)]"
                   />
-                  <p className="text-[11px] text-slate-500 mt-1">
+                  <p className="text-[11px] text-[var(--color-text-muted)] mt-1">
                     字數：{editPresetNarrative.length} 字 · 資料保存在您的本機瀏覽器，重新整理頁面依然保留。
                   </p>
                 </div>

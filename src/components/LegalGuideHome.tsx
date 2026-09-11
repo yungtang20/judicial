@@ -1,12 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { HeroSection } from './guide/HeroSection';
-import { DynamicBanner } from './guide/DynamicBanner';
 import { EmergencyBanner } from './guide/EmergencyBanner';
-import { QuickEntrySection } from './guide/QuickEntrySection';
 import { ScenarioList } from './guide/ScenarioList';
-import { GoldenRules } from './guide/GoldenRules';
 import { GuideModals } from './guide/GuideModals';
-import { QUICK_TAGS, SCENARIOS, SCENARIO_CATEGORIES } from './guide/guideData';
+import { SCENARIOS, SCENARIO_CATEGORIES } from './guide/guideData';
 import type { ScenarioItem } from './guide/ScenarioDetailModal';
 import { filterScenarios, matchesSafetyQuery } from './guide/scenarioSearch';
 import { LegalSourcesDisplay } from './LegalSourcesDisplay';
@@ -352,18 +349,17 @@ export const LegalGuideHome: React.FC = () => {
     selectedScenario, setSelectedScenario, showAiTriageModal, setShowAiTriageModal,
     aiTriageLoading, setAiTriageLoading, aiTriageResult, setAiTriageResult,
     copiedDraft, setCopiedDraft, syllogismAnswers, setSyllogismAnswers,
-    sourceTab, setSourceTab, isSafetyQuery, filteredScenarios, SCENARIO_CATEGORIES,
-    QUICK_TAGS, handleRunAiTriage, handleLaunchScenario, handleSelectTool
+    sourceTab, setSourceTab, isSafetyQuery, filteredScenarios, categories: SCENARIO_CATEGORIES,
+    handleRunAiTriage, handleLaunchScenario, handleSelectTool
   };
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-50 text-slate-900 pb-24">
-      <HeroSection {...sharedProps} />
-      <DynamicBanner {...sharedProps} />
-      <EmergencyBanner {...sharedProps} />
-      <QuickEntrySection {...sharedProps} />
-      <ScenarioList {...sharedProps} />
-      <GoldenRules {...sharedProps} />
+    <div className="flex-1 overflow-y-auto bg-[var(--color-surface-raised)] text-[var(--color-text-primary)] pb-24">
+      <div className="mx-auto w-full max-w-6xl space-y-4 p-4 md:p-6">
+        <HeroSection {...sharedProps} />
+        <EmergencyBanner {...sharedProps} />
+        <ScenarioList {...sharedProps} />
+      </div>
       <GuideModals {...sharedProps} />
     </div>
   );

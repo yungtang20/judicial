@@ -124,61 +124,61 @@ export default function IssueTableGenerator() {
   };
 
   return (
-    <div className="w-full flex flex-col md:flex-row h-full overflow-hidden bg-karoshi-bg">
+    <div className="w-full flex flex-col md:flex-row h-full overflow-hidden bg-[var(--color-surface-base)]">
       {/* 左側編輯區 */}
-      <div className="w-full md:w-1/2 lg:w-5/12 p-6 overflow-y-auto border-r border-karoshi-border bg-white space-y-6">
+      <div className="w-full md:w-1/2 lg:w-5/12 p-6 overflow-y-auto border-r border-[var(--color-border-subtle)] bg-[var(--color-surface-overlay)] space-y-6">
         <div>
           <h2 className="text-xl font-bold text-[#2C7873] flex items-center gap-2">
             <span>爭點整理表格小工具</span>
           </h2>
-          <p className="text-xs text-gray-500 mt-1">產生司法院標準【爭點整理對照表】（7欄標準格式），釐清原審認定與我方攻擊防禦，方便法官審理。</p>
+          <p className="text-xs text-[var(--color-text-muted)] mt-1">產生司法院標準【爭點整理對照表】（7欄標準格式），釐清原審認定與我方攻擊防禦，方便法官審理。</p>
         </div>
 
         {/* 0. 案件基本資料 */}
-        <div className="space-y-3 bg-amber-50/50 p-4 rounded-xl border border-amber-200">
-          <div className="font-bold text-sm text-amber-950 border-b pb-1.5 border-amber-300">
+        <div className="space-y-3 bg-[var(--color-status-warning-bg)] p-4 rounded-xl border border-[var(--color-status-warning)]/30">
+          <div className="font-bold text-sm text-[var(--color-status-warning)] border-b pb-1.5 border-amber-300">
             0. 案件基本資料（ Karoshibox 標頭設定 ）
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">附件文字</label>
+            <label className="block text-xs font-bold text-[var(--color-text-secondary)] mb-1">附件文字</label>
             <input 
               type="text" 
               value={attachmentText} 
               onChange={e => setAttachmentText(e.target.value)}
-              className="w-full border border-gray-300 rounded p-1.5 text-xs bg-white font-bold"
+              className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)] font-bold"
               placeholder="附表一"
             />
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
             <div className="col-span-2">
-              <label className="block font-bold text-gray-700 mb-1">法院名稱</label>
+              <label className="block font-bold text-[var(--color-text-secondary)] mb-1">法院名稱</label>
               <input 
                 type="text" 
                 value={courtName} 
                 onChange={e => setCourtName(e.target.value)}
-                className="w-full border border-gray-300 rounded p-1.5 text-xs bg-white"
+                className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)]"
                 placeholder="臺灣高等法院"
               />
             </div>
             <div>
-              <label className="block font-bold text-gray-700 mb-1">年度</label>
+              <label className="block font-bold text-[var(--color-text-secondary)] mb-1">年度</label>
               <input 
                 type="text" 
                 value={year} 
                 onChange={e => setYear(e.target.value)}
-                className="w-full border border-gray-300 rounded p-1.5 text-xs bg-white text-center font-mono"
+                className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)] text-center font-mono"
                 placeholder="112"
               />
             </div>
             <div>
-              <label className="block font-bold text-gray-700 mb-1">字別</label>
+              <label className="block font-bold text-[var(--color-text-secondary)] mb-1">字別</label>
               <input 
                 type="text" 
                 value={word} 
                 onChange={e => setWord(e.target.value)}
-                className="w-full border border-gray-300 rounded p-1.5 text-xs bg-white text-center"
+                className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)] text-center"
                 placeholder="重上"
               />
             </div>
@@ -186,22 +186,22 @@ export default function IssueTableGenerator() {
 
           <div className="grid grid-cols-2 gap-2 text-xs">
             <div>
-              <label className="block font-bold text-gray-700 mb-1">案號</label>
+              <label className="block font-bold text-[var(--color-text-secondary)] mb-1">案號</label>
               <input 
                 type="text" 
                 value={caseNo} 
                 onChange={e => setCaseNo(e.target.value)}
-                className="w-full border border-gray-300 rounded p-1.5 text-xs bg-white font-mono"
+                className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)] font-mono"
                 placeholder="123"
               />
             </div>
             <div>
-              <label className="block font-bold text-gray-700 mb-1">具狀/提出人</label>
+              <label className="block font-bold text-[var(--color-text-secondary)] mb-1">具狀/提出人</label>
               <input 
                 type="text" 
                 value={submitter} 
                 onChange={e => setSubmitter(e.target.value)}
-                className="w-full border border-gray-300 rounded p-1.5 text-xs bg-white"
+                className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)]"
                 placeholder="上訴人 王小明"
               />
             </div>
@@ -209,22 +209,22 @@ export default function IssueTableGenerator() {
 
           <div className="grid grid-cols-2 gap-2 text-xs">
             <div>
-              <label className="block font-bold text-gray-700 mb-1">上訴人/原告</label>
+              <label className="block font-bold text-[var(--color-text-secondary)] mb-1">上訴人/原告</label>
               <input 
                 type="text" 
                 value={appellantName} 
                 onChange={e => setAppellantName(e.target.value)}
-                className="w-full border border-gray-300 rounded p-1.5 text-xs bg-white"
+                className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)]"
                 placeholder="王小明"
               />
             </div>
             <div>
-              <label className="block font-bold text-gray-700 mb-1">被上訴人/被告</label>
+              <label className="block font-bold text-[var(--color-text-secondary)] mb-1">被上訴人/被告</label>
               <input 
                 type="text" 
                 value={appelleeName} 
                 onChange={e => setAppelleeName(e.target.value)}
-                className="w-full border border-gray-300 rounded p-1.5 text-xs bg-white"
+                className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)]"
                 placeholder="陳大華"
               />
             </div>
@@ -233,78 +233,78 @@ export default function IssueTableGenerator() {
 
         {/* 1. 爭點列表編輯 */}
         <div className="space-y-3">
-          <div className="flex justify-between items-center border-b pb-2 border-gray-200">
-            <label className="font-bold text-sm text-gray-800">1. 爭點對照資料</label>
-            <span className="text-3xs bg-amber-100 text-amber-900 px-2 py-0.5 rounded font-mono font-bold">共 {issues.length} 爭點</span>
+          <div className="flex justify-between items-center border-b pb-2 border-[var(--color-border-subtle)]">
+            <label className="font-bold text-sm text-[var(--color-text-primary)]">1. 爭點對照資料</label>
+            <span className="text-3xs bg-amber-100 text-[var(--color-status-warning)] px-2 py-0.5 rounded font-mono font-bold">共 {issues.length} 爭點</span>
           </div>
 
           <div className="space-y-4">
             {issues.map((issue, idx) => (
-              <div key={issue.id} className="p-3.5 bg-amber-50/30 rounded-xl border border-amber-200 relative space-y-3">
-                <div className="flex justify-between items-center border-b border-amber-200 pb-2">
+              <div key={issue.id} className="p-3.5 bg-[var(--color-status-warning-bg)]/30 rounded-xl border border-[var(--color-status-warning)]/30 relative space-y-3">
+                <div className="flex justify-between items-center border-b border-[var(--color-status-warning)]/30 pb-2">
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-xs text-amber-950">項次 {idx + 1}</span>
+                    <span className="font-bold text-xs text-[var(--color-status-warning)]">項次 {idx + 1}</span>
                   </div>
 
                   <button 
                     onClick={() => removeIssue(issue.id)}
-                    className="text-red-500 hover:text-red-700 font-bold text-3xs border border-red-200 px-2 py-0.5 rounded bg-red-50"
+                    className="text-red-500 hover:text-red-700 font-bold text-3xs border border-[var(--color-status-danger)]/30 px-2 py-0.5 rounded bg-[var(--color-status-danger-bg)]"
                   >
                     ✖ 刪除
                   </button>
                 </div>
 
                 <div>
-                  <label className="block text-3xs font-bold text-gray-700 mb-0.5">爭點名稱與主題</label>
+                  <label className="block text-3xs font-bold text-[var(--color-text-secondary)] mb-0.5">爭點名稱與主題</label>
                   <input 
                     type="text" 
                     value={issue.title} 
                     onChange={e => updateIssue(issue.id, 'title', e.target.value)}
-                    className="w-full border border-gray-300 rounded p-1.5 text-xs bg-white font-bold"
+                    className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)] font-bold"
                     placeholder="例：爭點一：消費借貸契約之成立與舉證責任"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-3xs font-bold text-gray-700 mb-0.5">原審判決/原決定認定內容與理由</label>
+                  <label className="block text-3xs font-bold text-[var(--color-text-secondary)] mb-0.5">原審判決/原決定認定內容與理由</label>
                   <textarea 
                     value={issue.originalHolding} 
                     onChange={e => updateIssue(issue.id, 'originalHolding', e.target.value)}
                     rows={5}
-                    className="w-full border border-gray-300 rounded p-1.5 text-xs bg-white text-gray-800"
+                    className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)] text-[var(--color-text-primary)]"
                     placeholder="說明原審如何認定與其判決理由..."
                   />
                 </div>
 
                 <div>
-                  <label className="block text-3xs font-bold text-gray-700 mb-0.5">我方上訴/覆審攻擊與指摘理由</label>
+                  <label className="block text-3xs font-bold text-[var(--color-text-secondary)] mb-0.5">我方上訴/覆審攻擊與指摘理由</label>
                   <textarea 
                     value={issue.appealArgument} 
                     onChange={e => updateIssue(issue.id, 'appealArgument', e.target.value)}
                     rows={5}
-                    className="w-full border border-gray-300 rounded p-1.5 text-xs bg-white font-medium text-blue-950"
+                    className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)] font-medium text-[var(--color-status-info)]"
                     placeholder="說明我方指摘原審之違誤與經驗法則/論理法則瑕疵..."
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div>
-                    <label className="block text-3xs font-bold text-gray-700 mb-0.5">對應證據編號</label>
+                    <label className="block text-3xs font-bold text-[var(--color-text-secondary)] mb-0.5">對應證據編號</label>
                     <input 
                       type="text" 
                       value={issue.relatedEvidences} 
                       onChange={e => updateIssue(issue.id, 'relatedEvidences', e.target.value)}
-                      className="w-full border border-gray-300 rounded p-1.5 text-xs bg-white font-mono"
+                      className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)] font-mono"
                       placeholder="例：1, 上證一"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-3xs font-bold text-gray-700 mb-0.5">爭點定位提示</label>
+                    <label className="block text-3xs font-bold text-[var(--color-text-secondary)] mb-0.5">爭點定位提示</label>
                     <select
                       value={issue.legalStrength === 'NEED_SUPPLEMENT' ? 'NEED_SUPPLEMENT' : 'HIGH'}
                       onChange={e => updateIssue(issue.id, 'legalStrength', e.target.value)}
-                      className="w-full border border-gray-300 rounded p-1.5 text-xs bg-white font-bold"
+                      className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)] font-bold"
                     >
                       <option value="HIGH">🎯 重點攻擊 (具充足理由/實務見解)</option>
                       <option value="NEED_SUPPLEMENT">⚠️ 需補充證據 (建議聲請調查/補提物證)</option>
@@ -313,12 +313,12 @@ export default function IssueTableGenerator() {
                 </div>
 
                 <div>
-                  <label className="block text-3xs font-bold text-gray-700 mb-0.5">引用法條與實務見解/判例</label>
+                  <label className="block text-3xs font-bold text-[var(--color-text-secondary)] mb-0.5">引用法條與實務見解/判例</label>
                   <input 
                     type="text" 
                     value={issue.legalBasis} 
                     onChange={e => updateIssue(issue.id, 'legalBasis', e.target.value)}
-                    className="w-full border border-gray-300 rounded p-1.5 text-xs bg-white"
+                    className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)]"
                     placeholder="例：民訴§277、最高法院109年台上字第1820號判決"
                   />
                 </div>
@@ -328,7 +328,7 @@ export default function IssueTableGenerator() {
 
           <button 
             onClick={addIssue}
-            className="w-full py-2 border-2 border-dashed border-amber-600 text-amber-800 font-bold text-xs rounded-xl hover:bg-amber-50 transition-all flex justify-center items-center gap-1 mt-3"
+            className="w-full py-2 border-2 border-dashed border-amber-600 text-[var(--color-status-warning)] font-bold text-xs rounded-xl hover:bg-[var(--color-status-warning-bg)] transition-all flex justify-center items-center gap-1 mt-3"
           >
             ⊕ 新增爭點對照列
           </button>
@@ -363,16 +363,16 @@ export default function IssueTableGenerator() {
       </div>
 
       {/* 右側：A4 列印模擬預覽區 */}
-      <div className="w-full md:w-1/2 lg:w-7/12 p-8 overflow-y-auto bg-gray-200/80 flex flex-col items-center">
+      <div className="w-full md:w-1/2 lg:w-7/12 p-8 overflow-y-auto bg-[var(--color-border-strong)]/80 flex flex-col items-center">
         {verifyNotice && (
-          <div className="w-full max-w-[210mm] mb-3 p-3 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs flex items-center justify-between animate-fadeIn">
+          <div className="w-full max-w-[210mm] mb-3 p-3 rounded-xl bg-[var(--color-status-success-bg)] border border-emerald-300 text-[var(--color-status-success)] text-xs flex items-center justify-between animate-fadeIn">
             <span className="flex items-center gap-2 font-medium">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
               {verifyNotice}
             </span>
             <button 
               onClick={() => setVerifyNotice(null)} 
-              className="text-emerald-700 hover:text-emerald-900 text-xs ml-2 font-bold"
+              className="text-emerald-700 hover:text-[var(--color-status-success)] text-xs ml-2 font-bold"
             >
               ✕
             </button>
@@ -383,16 +383,16 @@ export default function IssueTableGenerator() {
           <AntiGhostBadge verification={verification} />
         </div>
 
-        <div className="bg-white p-10 rounded-xl w-full max-w-[210mm] min-h-[297mm] text-black text-xs leading-relaxed border border-gray-300 font-serif space-y-4">
+        <div className="bg-[var(--color-surface-overlay)] p-10 rounded-xl w-full max-w-[210mm] min-h-[297mm] text-black text-xs leading-relaxed border border-[var(--color-border-strong)] font-serif space-y-4">
           <div className="text-left font-bold text-sm text-black">
             {attachmentText || '附表一'}
           </div>
 
-          <div className="border-2 border-black p-3 text-center font-bold text-base text-black tracking-wider bg-gray-50/30">
+          <div className="border-2 border-black p-3 text-center font-bold text-base text-black tracking-wider bg-[var(--color-surface-raised)]/30">
             {courtName || '臺灣高等法院'}{year || '112'}年度{word || '重上'}字第{caseNo || '123'}號爭點整理對照表
           </div>
 
-          <div className="grid grid-cols-2 border border-black p-2 font-bold text-xs bg-gray-50/20">
+          <div className="grid grid-cols-2 border border-black p-2 font-bold text-xs bg-[var(--color-surface-raised)]/20">
             <div>具狀人：{submitter || `上訴人 ${appellantName}`}</div>
             <div className="text-right">當事人：{appellantName} vs {appelleeName}</div>
           </div>
@@ -400,7 +400,7 @@ export default function IssueTableGenerator() {
           {/* 7 欄位標準對照表 */}
           <table className="w-full border-collapse border border-black text-xs">
             <thead>
-              <tr className="bg-gray-100 text-black font-bold">
+              <tr className="bg-[var(--color-surface-overlay)] text-black font-bold">
                 <th className="border border-black p-2 w-[6%] text-center">項次</th>
                 <th className="border border-black p-2 w-[20%] text-left">爭點名稱與主題</th>
                 <th className="border border-black p-2 w-[27%] text-left">原審判決/原決定認定內容</th>
@@ -416,10 +416,10 @@ export default function IssueTableGenerator() {
                   <td className="border border-black p-2 align-top">
                     <div className="font-bold text-black">{issue.title}</div>
                   </td>
-                  <td className="border border-black p-2 whitespace-pre-wrap align-top text-gray-800">{issue.originalHolding}</td>
+                  <td className="border border-black p-2 whitespace-pre-wrap align-top text-[var(--color-text-primary)]">{issue.originalHolding}</td>
                   <td className="border border-black p-2 whitespace-pre-wrap align-top font-medium text-black">{issue.appealArgument}</td>
                   <td className="border border-black p-2 text-center font-mono font-bold align-top">{issue.relatedEvidences}</td>
-                  <td className="border border-black p-2 align-top text-gray-800">{issue.legalBasis}</td>
+                  <td className="border border-black p-2 align-top text-[var(--color-text-primary)]">{issue.legalBasis}</td>
                 </tr>
               ))}
             </tbody>

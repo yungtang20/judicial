@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, FolderLock, ShieldCheck, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { LEGAL_TOOLS } from '../../lib/legalToolRegistry';
 
 export interface ToolboxHeaderProps {
@@ -7,94 +7,79 @@ export interface ToolboxHeaderProps {
   onSelectGroup: (groupId: string) => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
-  onNavigateUnified: () => void;
-  onNavigateGuide: () => void;
 }
+
+export const TOOLBOX_GROUPS = [
+  { id: 'ALL', label: '全部文件' },
+  { id: 'GENERAL', label: '其他書狀需求' },
+  { id: 'SAFETY', label: '安全與犯罪被害' },
+  { id: 'DAMAGES', label: '車禍與損害賠償' },
+  { id: 'FAMILY', label: '家庭、婚姻與繼承' },
+  { id: 'ELDERLY', label: '長輩照護與監護' },
+  { id: 'DEBT_EXECUTION', label: '借款、欠款與執行' },
+  { id: 'HOUSING_WORK', label: '租屋、房產與職場' },
+] as const;
 
 export const ToolboxHeader: React.FC<ToolboxHeaderProps> = ({
   selectedGroup,
   onSelectGroup,
   searchQuery,
   onSearchChange,
-  onNavigateUnified,
-  onNavigateGuide
 }) => {
-  const countToolsInGroup = (group: string) => LEGAL_TOOLS.filter(t => t.categoryGroup === group).length;
+  const countToolsInGroup = (group: string) =>
+    group === 'ALL' ? LEGAL_TOOLS.length : LEGAL_TOOLS.filter(tool => tool.categoryGroup === group).length;
 
   return (
-    <div className="bg-[#0e1424] border border-slate-800 rounded-xl p-6 text-white relative">
-      <div className="space-y-3">
-        <div className="flex items-center gap-2 mb-2">
-          <button
-            onClick={onNavigateGuide}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition-colors"
-          >
-            <ArrowRight className="w-3.5 h-3.5 rotate-180" />
-            返回生活情境導診
-          </button>
-          <button
-            onClick={onNavigateUnified}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition-colors"
-          >
-            <ArrowRight className="w-3.5 h-3.5 rotate-180" />
-            返回判決分析
-          </button>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="px-2.5 py-1 rounded-md text-xs font-semibold bg-blue-500/20 text-blue-300 border border-blue-500/30 flex items-center gap-1.5">
-            <FolderLock className="w-3.5 h-3.5" /> {LEGAL_TOOLS.length} 合 1 全方位實用法務工具總匯
-          </span>
-          <span className="px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> 引用掃描結果（不等同官方核實）
-          </span>
-          <span className="px-2 py-0.5 rounded text-[11px] bg-slate-800 text-slate-300 border border-slate-700">
-            收錄刑事 / 家事繼承 / 高齡監護 / 票據借貸 / 存證信函 / 強制執行 / 租賃侵權
-          </span>
-        </div>
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white flex items-center gap-3">
-          全方位實用法務工具箱（Complete Legal Tools Hub）
+    <section className="border-b border-slate-800 pb-5 text-white" aria-labelledby="toolbox-heading">
+      <div className="max-w-3xl">
+        <h1 id="toolbox-heading" className="text-2xl font-bold tracking-tight text-white md:text-3xl">
+          選擇要製作的書狀或法律文件
         </h1>
-        <p className="text-slate-300 text-sm max-w-4xl leading-relaxed">
-          完整收錄臺灣司法實務 <strong>{LEGAL_TOOLS.length} 項必備非訟、訴狀、保護令、存證信函與試算工具</strong>。每項工具均內建法定要件防呆機制，並提供法律引用格式與本機索引比對；結果不等同官方核實，重要內容仍需人工查證。
+        <p className="mt-2 text-sm leading-6 text-slate-300">
+          依照遇到的情況選擇文件，填寫資料後即可產製；完成前會檢查法律引用。
         </p>
       </div>
 
-      <div className="mt-6 pt-5 border-t border-slate-800 flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar">
-          {[
-            { id: 'ALL', label: `全部工具 (${LEGAL_TOOLS.length})` },
-            { id: 'CRIMINAL', label: `刑事告訴/保護令 (${countToolsInGroup('CRIMINAL')})` },
-            { id: 'FAMILY', label: `家事繼承 (${countToolsInGroup('FAMILY')})` },
-            { id: 'ELDERLY', label: `高齡監護 (${countToolsInGroup('ELDERLY')})` },
-            { id: 'DEBT_NOTE', label: `債權票據 (${countToolsInGroup('DEBT_NOTE')})` },
-            { id: 'DEMAND_LETTER', label: `存證信函 (${countToolsInGroup('DEMAND_LETTER')})` },
-            { id: 'EXECUTION', label: `強制執行 (${countToolsInGroup('EXECUTION')})` },
-            { id: 'CONTRACT_REALESTATE', label: `租賃侵權 (${countToolsInGroup('CONTRACT_REALESTATE')})` }
-          ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => onSelectGroup(tab.id)}
-              className={`px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-all text-xs ${
-                selectedGroup === tab.id
-                  ? 'bg-blue-600 text-white font-bold shadow-sm'
-                  : 'bg-slate-800/80 text-slate-300 hover:bg-slate-800'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+      <div className="mt-5">
+        <h2 className="text-xs font-semibold text-slate-400">文件用途</h2>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {TOOLBOX_GROUPS.map(group => {
+            const active = selectedGroup === group.id;
+            return (
+              <button
+                key={group.id}
+                type="button"
+                aria-pressed={active}
+                onClick={() => onSelectGroup(group.id)}
+                className={`min-h-11 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
+                  active
+                    ? 'border-blue-400 bg-blue-600 text-white'
+                    : 'border-slate-700 bg-slate-900 text-slate-200 hover:border-slate-600 hover:bg-slate-800'
+                }`}
+              >
+                {group.label} <span className={active ? 'text-blue-100' : 'text-slate-500'}>{countToolsInGroup(group.id)}</span>
+              </button>
+            );
+          })}
         </div>
-        <div className="relative w-full md:w-64">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            placeholder={`搜尋 ${LEGAL_TOOLS.length} 項工具或法條...`}
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-slate-700 bg-slate-950 text-slate-200 focus:border-blue-500 outline-none"
-          />
+
+        <div className="mt-4">
+          <label htmlFor="legal-tool-search" className="mb-1.5 block text-xs font-semibold text-slate-300">
+            找特定書狀或文件
+          </label>
+          <div className="relative max-w-xl">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" aria-hidden="true" />
+            <input
+              id="legal-tool-search"
+              type="search"
+              placeholder="輸入問題、文件名稱或法條，例如：欠錢、離婚、存證信函"
+              value={searchQuery}
+              onChange={event => onSearchChange(event.target.value)}
+              className="min-h-11 w-full rounded-lg border border-slate-700 bg-slate-950 py-2 pl-9 pr-3 text-sm text-slate-200 outline-none placeholder:text-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+            />
+          </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 };

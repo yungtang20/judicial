@@ -332,6 +332,7 @@ export const DefenseWorkflowTool: React.FC = () => {
         mineScanResult={mineScanResult}
         lawyerPleading={lawyerPleading}
         personalPleading={personalPleading}
+        isProcessing={isLoadingTriage || isLoadingMineScan || isLoadingPleading}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
@@ -361,7 +362,7 @@ export const DefenseWorkflowTool: React.FC = () => {
 
         <div className="lg:col-span-8 space-y-6">
           {workflowError && (
-            <div className="bg-rose-50 border border-rose-200 text-rose-800 p-4 rounded-xl flex items-start gap-3">
+            <div className="bg-[var(--color-status-danger-bg)] border border-[var(--color-status-danger)]/30 text-[var(--color-status-danger)] p-4 rounded-xl flex items-start gap-3">
               <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
               <div>
                 <h4 className="font-bold text-sm">工作流執行錯誤</h4>

@@ -1,20 +1,20 @@
-import * as pdfjsLib from 'pdfjs-dist';
-
-const ensurePdfWorker = () => {
+const loadPdfJs = async () => {
+  const pdfjsLib = await import('pdfjs-dist');
   if (typeof window !== 'undefined') {
     try {
       const g = (pdfjsLib as any)?.GlobalWorkerOptions;
       if (g && !g.workerSrc) {
-        g.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.worker.mjs';
+        g.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.mjs`;
       }
     } catch {
       // ignore
     }
   }
+  return pdfjsLib;
 };
 
 export const extractPdfText = async (file: File): Promise<string> => {
-  ensurePdfWorker();
+  const pdfjsLib = await loadPdfJs();
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await (pdfjsLib as any).getDocument({ data: arrayBuffer }).promise;
   
@@ -29,7 +29,7 @@ export const extractPdfText = async (file: File): Promise<string> => {
 };
 
 export const parsePdfFile = async (file: File): Promise<{ text: string; images: string[] }> => {
-  ensurePdfWorker();
+  const pdfjsLib = await loadPdfJs();
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
   

@@ -7,11 +7,10 @@ import { LEGAL_TOOLS } from '../lib/legalToolRegistry';
 // NOTE: This file utilizes LEGAL_TOOLS.length indirectly via ToolboxHeader
 import { LegalToolboxResult } from '../types';
 import { useCaseStore, getActiveCase } from '../store/useCaseStore';
-import { useToolContext } from '../contexts/ToolContext';
 import { apiClient } from '../lib/apiClient';
 import { DocumentProgressTracker } from './DocumentProgressTracker';
 import { DEFAULT_FORM_INPUTS } from '../lib/toolFormDefaults';
-import { ToolboxHeader } from './toolbox/ToolboxHeader';
+import { ToolboxHeader, TOOLBOX_GROUPS } from './toolbox/ToolboxHeader';
 import { ToolSelectorGrid } from './toolbox/ToolSelectorGrid';
 import { DynamicToolForm } from './toolbox/DynamicToolForm';
 import { ToolResultPanel } from './toolbox/ToolResultPanel';
@@ -23,7 +22,6 @@ type DocumentGenerationStage = 'input' | 'analyzing' | 'formatting' | 'ready' | 
 export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialToolId }) => {
   const { startLoading, stopLoading } = useGlobalUI();
   const activeCase = useCaseStore(getActiveCase);
-  const { handleSelectTool } = useToolContext();
   const addDocument = useCaseStore(state => state.addDocument);
   const presetToolId = initialToolId;
 
@@ -52,7 +50,7 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
 
   const filteredTools = useMemo(() => {
     return LEGAL_TOOLS.filter(tool => {
-      const matchGroup = selectedGroup === 'ALL' || tool.categoryGroup === selectedGroup;
+      const matchGroup = Boolean(searchQuery.trim()) || selectedGroup === 'ALL' || tool.categoryGroup === selectedGroup;
       const matchQuery = !searchQuery.trim() || 
         tool.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         tool.shortDesc.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -70,6 +68,22 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<LegalToolboxResult | null>(null);
   const [generateError, setGenerateError] = useState<string | null>(null);
+
+  const handleGroupSelect = (groupId: string) => {
+    setSelectedGroup(groupId);
+    if (groupId === 'ALL' || currentTool.categoryGroup === groupId) return;
+    const firstTool = LEGAL_TOOLS.find(tool => tool.categoryGroup === groupId);
+    if (!firstTool) return;
+    setActiveToolId(firstTool.id);
+    setResult(null);
+    setGenerationStage('input');
+  };
+
+  const selectedGroupLabel = searchQuery.trim()
+      ? '搜尋結果'
+    : selectedGroup === 'ALL'
+      ? '全部書狀與文件'
+      : TOOLBOX_GROUPS.find(group => group.id === selectedGroup)?.label || '書狀與文件';
 
   const handleGenerate = async () => {
     setIsLoading(true);
@@ -149,22 +163,28 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
     <div className="space-y-6 pb-20 max-w-7xl mx-auto" id="legal-toolbox-root" data-tools-count={LEGAL_TOOLS.length}>
       <ToolboxHeader 
         selectedGroup={selectedGroup}
-        onSelectGroup={setSelectedGroup}
+        onSelectGroup={handleGroupSelect}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        onNavigateGuide={() => handleSelectTool('guide')}
-        onNavigateUnified={() => handleSelectTool('unified')}
       />
-
-      <ToolSelectorGrid 
-        tools={filteredTools}
-        activeToolId={activeToolId}
-        onSelect={(id) => {
-          setActiveToolId(id);
-          setResult(null); 
-          document.getElementById('tool-form-section')?.scrollIntoView({ behavior: 'smooth' });
-        }}
-      />
+      <section aria-labelledby="tool-list-heading">
+        <div className="mb-3 flex items-end justify-between gap-3">
+          <div>
+            <h2 id="tool-list-heading" className="text-lg font-bold text-white">{selectedGroupLabel}</h2>
+            <p className="mt-1 text-xs text-slate-400">找到 {filteredTools.length} 項；選擇後再到下方填寫文件資料。</p>
+          </div>
+        </div>
+        <ToolSelectorGrid
+          tools={filteredTools}
+          activeToolId={activeToolId}
+          onSelect={(id) => {
+            setActiveToolId(id);
+            setResult(null);
+            setGenerationStage('input');
+            document.getElementById('tool-form-section')?.scrollIntoView({ behavior: 'smooth' });
+          }}
+        />
+      </section>
 
       <DocumentProgressTracker 
          currentStage={generationStage} 
@@ -188,7 +208,7 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
                   <span className={UIConstants.badgePrimary}>
                     {currentTool.badge}
                   </span>
-                  <span className="text-[10px] text-slate-400">{currentTool.legalBasis}</span>
+                  <span className="text-[10px] text-[var(--color-text-muted)]">{currentTool.legalBasis}</span>
                 </div>
               </div>
             </div>

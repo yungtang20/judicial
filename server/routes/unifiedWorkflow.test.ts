@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import http from "http";
 import express from "express";
-import unifiedWorkflowRouter, { buildOfficialJudgmentQueries, buildOfficialSearchEvidence, buildRuleBasedQuestioning } from "./unifiedWorkflow.js";
+import unifiedWorkflowRouter, { buildOfficialJudgmentQueries, buildOfficialSearchEvidence, buildRuleBasedQuestioning, keepVerifiedPrecedents, keepStatuteRelatedReferences } from "./unifiedWorkflow.js";
 
 describe("Unified StateGraph Workflow API", { timeout: 30000 }, () => {
   let server: http.Server;
@@ -58,6 +58,26 @@ describe("Unified StateGraph Workflow API", { timeout: 30000 }, () => {
     expect(evidence).toMatchObject({ status: "VERIFIED", claimSupportStatus: "NEEDS_REVIEW" });
   });
 
+  it("相關判例只保留司法院全文與 AI 防幽靈檢核皆通過的字號", () => {
+    const precedents = [{ caseNumber: "最高法院112年度台上字第9號" }, { caseNumber: "最高法院111年度台上字第8號" }];
+    const result = keepVerifiedPrecedents(precedents, [
+      { citation: precedents[0].caseNumber, status: "verified", exactMatch: true, source: "dr-lawbot", message: "ok", searchUrl: "https://example.com" },
+      { citation: precedents[1].caseNumber, status: "not_found", exactMatch: false, source: "dr-lawbot", message: "missing", searchUrl: "https://example.com" },
+    ], [
+      { citation: precedents[0].caseNumber, type: "PRECEDENT", status: "VERIFIED", contentHash: "a".repeat(64) },
+      { citation: precedents[1].caseNumber, type: "PRECEDENT", status: "VERIFIED", contentHash: "b".repeat(64) },
+    ]);
+
+    expect(result).toEqual([precedents[0]]);
+  });
+
+  it("相關函釋只保留命中本案法條的資料", () => {
+    const relevant = { citation: "法務部法律字第1號函", title: "侵權責任函釋", excerpt: "民法第184條之適用" };
+    const unrelated = { citation: "勞動部勞動字第2號函", title: "工資給付函釋", excerpt: "勞動基準法第22條之適用" };
+
+    expect(keepStatuteRelatedReferences([relevant, unrelated], ["民法第184條（侵權行為損害賠償）"])).toEqual([relevant]);
+  });
+
   it("1. 邊界條件：資訊不完整時 (is_complete == false) 應導向 QuestioningNode 生成動態追問與快捷選項", async () => {
     const res = await fetch(`${baseUrl}/api/workflow/execute`, {
       method: "POST",
@@ -74,15 +94,33 @@ describe("Unified StateGraph Workflow API", { timeout: 30000 }, () => {
 
     expect(state.router).toBeDefined();
     expect(state.router.is_complete).toBe(false);
-    expect(state.currentStep).toBe("COMPLETED");
+    expect(state.currentStep).toBe("QUESTIONING");
     expect(state.questioning).toBeDefined();
     expect(state.questioning.rawMessage).toBeDefined();
     expect(Array.isArray(state.questioning.suggestedOptions)).toBe(true);
     expect(state.questioning.generationMode).toBe("AI");
     expect(state.questioning.suggestedOptions.length).toBeGreaterThanOrEqual(2);
+    expect(state.syllogism).toBeUndefined();
   });
 
-  it("2. 邊界條件：涉敏感案件時 (is_sensitive == true) 應導向保護路徑 (SAFETY_PROTECTION)", async () => {
+  it("上傳裁判書直接完成文件分析，不套用一般案情動態追問", async () => {
+    const res = await fetch(`${baseUrl}/api/workflow/execute`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        inputType: "judgment_document",
+        userInput: "臺灣臺北地方法院113年度訴字第999號民事判決。主文：被告應依民法第184條給付原告新臺幣五十萬元。事實及理由詳如附件。"
+      })
+    });
+
+    const state = (await res.json()).data;
+    expect(res.status).toBe(200);
+    expect(state.currentStep).toBe("COMPLETED");
+    expect(state.questioning).toBeUndefined();
+    expect(state.syllogism).toBeDefined();
+  });
+
+  it("2. 涉敏感案件先顯示動態追問，保護資料延後供結果的行動指引使用", async () => {
     const res = await fetch(`${baseUrl}/api/workflow/execute`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -98,13 +136,14 @@ describe("Unified StateGraph Workflow API", { timeout: 30000 }, () => {
 
     expect(state.router).toBeDefined();
     expect(state.router.is_sensitive).toBe(true);
-    expect(state.currentStep).toBe("SAFETY_PROTECTION");
+    expect(state.currentStep).toBe("QUESTIONING");
+    expect(state.questioning).toBeDefined();
     expect(state.safety).toBeDefined();
     expect(state.safety.emergencyHotlines.length).toBeGreaterThan(0);
     expect(state.safety.preservationTips.length).toBeGreaterThan(0);
   });
 
-  it("3. 完整案情：一次性走完 Router ➔ RAG ➔ Syllogism ➔ VerificationGate (含外部檢核閘門)", async () => {
+  it("3. 完整案情也先追問，補充後才走完分析與外部檢核閘門", async () => {
     const completeCase = `民國112年11月10日上午10點，在台北市大安區和平東路租屋處。被告房東李大同拒絕退還原告新台幣6萬元押金。原告持有雙方房屋租賃合約書、歷次匯款紀錄與11月11日LINE對話截圖作為證據，依民法第184條與第179條請求返還。`;
 
     const res = await fetch(`${baseUrl}/api/workflow/execute`, {
@@ -116,14 +155,24 @@ describe("Unified StateGraph Workflow API", { timeout: 30000 }, () => {
     });
 
     expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.success).toBe(true);
-    const state = body.data;
+    const firstBody = await res.json();
+    expect(firstBody.success).toBe(true);
+    expect(firstBody.data.currentStep).toBe("QUESTIONING");
+    expect(firstBody.data.syllogism).toBeUndefined();
+
+    const supplementRes = await fetch(`${baseUrl}/api/workflow/supplement`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ existingNarrative: completeCase, supplementText: "目前沒有其他資料" })
+    });
+    const state = (await supplementRes.json()).data;
 
     // 驗證狀態傳遞完整
     expect(state.router.domain).toBeDefined();
     expect(state.router.cause).toBeDefined();
     expect(state.router.is_complete).toBe(true);
+    expect(state.router.statuteOfLimitations).toContain("年");
+    expect(state.router.suggestedActions.length).toBeGreaterThan(0);
 
     // 驗證 RAGNode 要件
     expect(state.rag).toBeDefined();
@@ -164,6 +213,18 @@ describe("Unified StateGraph Workflow API", { timeout: 30000 }, () => {
     expect(state.syllogism).toBeDefined();
     expect(state.verification).toBeDefined();
     expect(state.currentStep).toBe("COMPLETED");
+  });
+
+  it("4.1 追問補充：明確回答無其他資料後仍可進入結果", async () => {
+    const res = await fetch(`${baseUrl}/api/workflow/supplement`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ existingNarrative: "我好像被騙錢了", supplementText: "無" })
+    });
+
+    const state = (await res.json()).data;
+    expect(state.currentStep).toBe("COMPLETED");
+    expect(state.syllogism).toBeDefined();
   });
 
   it("5. 時間矛盾檢查：當用戶同時陳述「民國112年11月15日」與「最近3天內」時，必須中斷並返回追問請求", async () => {

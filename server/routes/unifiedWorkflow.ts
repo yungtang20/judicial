@@ -11,6 +11,7 @@ import { defaultLegalRetrievalService } from "../services/legalGenerationPipelin
 import { retrieve } from "../services/legalRetrieval.js";
 import { verifyLegalCitations } from "../../src/lib/citationVerifier.js";
 import { verifyExternalPrecedents } from "../../src/lib/externalCitationVerifier.js";
+import type { ExternalCitationResult } from "../../src/lib/externalCitationVerifier.js";
 import { 
   LegalWorkflowState, 
   createInitialWorkflowState 
@@ -25,6 +26,23 @@ import { searchOfficialJudgments, verifyOfficialCitations } from "../services/of
 import { isBasicSafeUrl, verifyDnsSafe } from "./fetchUrl.js";
 
 const router = Router();
+
+export function keepVerifiedPrecedents<T extends { caseNumber: string }>(
+  precedents: T[],
+  checks: ExternalCitationResult[] = [],
+  officialEvidence: Array<{ citation: string; type: string; status: string; contentHash?: string }> = []
+): T[] {
+  const externallyVerified = new Set(checks.filter(item => item.status === 'verified' && item.exactMatch).map(item => item.citation));
+  const officiallyVerified = new Set(officialEvidence
+    .filter(item => item.type === 'PRECEDENT' && item.status === 'VERIFIED' && item.contentHash)
+    .map(item => item.citation));
+  return precedents.filter(precedent => externallyVerified.has(precedent.caseNumber) && officiallyVerified.has(precedent.caseNumber));
+}
+
+export function keepStatuteRelatedReferences<T extends { citation: string; title: string; excerpt?: string }>(references: T[], statuteCitations: string[]): T[] {
+  const targets = statuteCitations.map(citation => citation.split("（")[0].trim()).filter(Boolean);
+  return references.filter(item => targets.some(target => `${item.citation} ${item.title} ${item.excerpt || ""}`.includes(target))).slice(0, 3);
+}
 
 export interface CustomAIProviderInput {
   providerType?: "custom";
@@ -88,6 +106,8 @@ async function runRouterNode(userInput: string): Promise<RouterEvaluationResult 
   caseType?: string;
   legalBasis?: string[];
   protectionNotice?: string;
+  statuteOfLimitations?: string;
+  suggestedActions?: string[];
   temporalConflict?: ReturnType<typeof detectTemporalConflict>;
 }> {
   const trimmed = userInput.trim();
@@ -129,6 +149,8 @@ async function runRouterNode(userInput: string): Promise<RouterEvaluationResult 
     legalBasis: triage.legalBasis || [],
     is_sensitive: Boolean(triage.isSensitive),
     protectionNotice: triage.protectionNotice || "",
+    statuteOfLimitations: triage.statuteOfLimitations,
+    suggestedActions: triage.suggestedActions,
     is_complete: isComplete,
     missing_elements: missingElements,
     temporalConflict: temporal
@@ -271,7 +293,8 @@ async function runRagNode(
   searchQuery: string;
   legalElements: string;
   statuteCitations: string[];
-  precedents: Array<{ caseNumber: string; courtName: string; summary: string; sourceUrl?: string }>;
+  precedents: Array<{ caseNumber: string; courtName: string; summary: string; sourceUrl?: string; citedStatutes?: string[] }>;
+  interpretations: Array<{ citation: string; title: string; excerpt?: string; sourceUrl?: string }>;
   officialEvidence: Array<{ citation: string; type: string; status: string; source: string; sourceUrl: string; checkedAt: string; snippet?: string; contentHash?: string; claimSupportStatus?: "SUPPORTED" | "NEEDS_REVIEW" | "UNVERIFIABLE"; error?: string }>;
   officialSearch?: { query: string; status: string; attempted: boolean; source: string; sourceUrl: string; checkedAt: string; error?: string };
 }> {
@@ -282,7 +305,8 @@ async function runRagNode(
     .trim();
   const localSearchQuery = `${searchQuery} ${userFacts.slice(0, 80)}`.trim();
   let legalElements = "【法定構成要件】相關法律條文之客觀構成要件（行為主體、客體、侵害行為與因果關係）及主觀構成要件（故意或過失）。";
-  const precedents: Array<{ caseNumber: string; courtName: string; summary: string; sourceUrl?: string }> = [];
+  const precedents: Array<{ caseNumber: string; courtName: string; summary: string; sourceUrl?: string; citedStatutes?: string[] }> = [];
+  let interpretations: Array<{ citation: string; title: string; excerpt?: string; sourceUrl?: string }> = [];
 
   // 動態法規檢索：結合領域過濾
   const dynamicStatuteSet = new Set<string>();
@@ -321,22 +345,29 @@ async function runRagNode(
     console.warn("[UnifiedWorkflow] 動態條文檢索降級:", ragErr);
   }
 
+  const statuteCitations = Array.from(dynamicStatuteSet).filter(Boolean);
+
   try {
     const retrieval = await defaultLegalRetrievalService.retrieveContext(searchQuery);
     if (retrieval.promptBlock && retrieval.promptBlock.trim().length > 0) {
       legalElements = retrieval.promptBlock;
     }
+    interpretations = keepStatuteRelatedReferences(retrieval.sources.references, statuteCitations).map(item => ({
+      citation: item.citation,
+      title: item.title,
+      excerpt: item.excerpt,
+      sourceUrl: item.sourceUrl,
+    }));
   } catch (err) {
     console.warn("[UnifiedWorkflow] RAGNode 檢索失敗:", err);
   }
 
-  const statuteCitations = Array.from(dynamicStatuteSet).filter(Boolean);
   let officialSearch: Awaited<ReturnType<typeof searchOfficialJudgments>> | undefined;
 
   // 本機沒有具官方證據的裁判時，直接查詢司法院公開裁判書系統。
   if (precedents.length === 0) {
     for (const officialQuery of buildOfficialJudgmentQueries(queryTopic, statuteCitations)) {
-      officialSearch = await searchOfficialJudgments(officialQuery, { timeoutMs: 8000, maxResults: 3 });
+      officialSearch = await searchOfficialJudgments(officialQuery, { timeoutMs: 8000, maxResults: 3, targetStatuteCitations: statuteCitations });
       if (officialSearch.status !== "NOT_FOUND") break;
     }
     for (const result of officialSearch?.results || []) {
@@ -344,7 +375,8 @@ async function runRagNode(
         caseNumber: result.caseNumber,
         courtName: result.courtName,
         summary: result.summary,
-        sourceUrl: result.sourceUrl
+        sourceUrl: result.sourceUrl,
+        citedStatutes: result.citedStatutes
       });
     }
   }
@@ -363,6 +395,7 @@ async function runRagNode(
     legalElements,
     statuteCitations: statuteCitations.length > 0 ? statuteCitations : (triageMeta.legalBasis || ["現行相關實體法規"]),
     precedents,
+    interpretations,
     officialEvidence: [...official.evidence, ...discoveredEvidence],
     officialSearch
   };
@@ -432,7 +465,8 @@ async function runSyllogismNode(
 async function runVerificationGateNode(
   analysisText: string,
   userFacts: string,
-  legalBasis: string[]
+  legalBasis: string[],
+  precedentCitations: string[] = []
 ): Promise<{
   totalChecked: number;
   ghostCount: number;
@@ -442,27 +476,29 @@ async function runVerificationGateNode(
   passGate: boolean;
   verificationStatus: "PASS" | "NEEDS_REVIEW" | "FAIL";
   warningNotice?: string;
-  officialEvidence?: Array<{ citation: string; type: string; status: string; source: string; sourceUrl: string; checkedAt: string; snippet?: string; error?: string }>;
+  officialEvidence?: Array<{ citation: string; type: string; status: string; source: string; sourceUrl: string; checkedAt: string; snippet?: string; contentHash?: string; error?: string }>;
 }> {
   const combinedText = `${analysisText}\n\n${userFacts}\n\n${legalBasis.join(" ")}`;
   const verification = verifyLegalCitations(combinedText);
-  const official = await verifyOfficialCitations(verification.results.map(r => ({
+  const officialInputs = verification.results.map(r => ({
     citation: r.citationText,
     type: r.type === "PRECEDENT" ? "PRECEDENT" as const : "STATUTE" as const,
     claim: r.legalClaim
-  })));
+  }));
 
   // 萃取裁判字號進行外部查驗（若有）
-  let externalCitations: any[] = [];
   const citationMatches = combinedText.match(/\d+\s*年(?:度)?\s*[^\d\s]+?\s*字?\s*第\s*\d+\s*號/g) || [];
-  if (citationMatches.length > 0) {
-    const uniqueCitations = Array.from(new Set(citationMatches)).slice(0, 5);
-    try {
-      externalCitations = await verifyExternalPrecedents(uniqueCitations);
-    } catch (extErr) {
-      console.warn("[UnifiedWorkflow] 外部裁判檢核降級:", extErr);
-    }
-  }
+  const uniqueCitations = Array.from(new Set([...precedentCitations, ...citationMatches])).slice(0, 5);
+  const [official, precedentOfficial, externalCitations] = await Promise.all([
+    verifyOfficialCitations(officialInputs),
+    verifyOfficialCitations(uniqueCitations.map(citation => ({ citation, type: "PRECEDENT" as const }))),
+    uniqueCitations.length > 0
+      ? verifyExternalPrecedents(uniqueCitations).catch(extErr => {
+          console.warn("[UnifiedWorkflow] 外部裁判檢核降級:", extErr);
+          return [];
+        })
+      : Promise.resolve([])
+  ]);
 
   // 指令 3 核心防假通過校驗：
   // 1. 若法律分析結果中沒有具體法條引用（legalBasis 為空或未包含任何法條），必須判定為 NEEDS_REVIEW，不得判定為 PASS
@@ -482,10 +518,10 @@ async function runVerificationGateNode(
     passGate = false;
     verificationStatus = "NEEDS_REVIEW";
     warningNotice = !official.attempted && official.reason === "NO_CITATIONS"
-      ? "沒有可查證引用，已 fail-closed 並標註待人工審查。"
+      ? "目前沒有可供系統查驗的引用，因此結論僅供參考，請補充法條或交由專業人士確認。"
       : official.evidence.some(e => e.status === "UNAVAILABLE")
-      ? "官方查證服務無法取得，已 fail-closed 並標註待人工審查。"
-      : "官方資料庫未能逐筆確認所有引用，已 fail-closed 並標註待人工審查。";
+      ? "暫時無法連線至官方資料庫，因此結論僅供參考，請稍後重新分析或交由專業人士確認。"
+      : "部分引用尚未經官方資料庫確認，因此目前只能參考，不能直接用於書狀或法律主張。";
   } else {
     passGate = true;
     verificationStatus = "PASS";
@@ -501,8 +537,49 @@ async function runVerificationGateNode(
     passGate,
     verificationStatus,
     warningNotice,
-    officialEvidence: official.evidence
+    officialEvidence: [...official.evidence, ...precedentOfficial.evidence]
   };
+}
+
+async function completeWorkflow(
+  state: LegalWorkflowState,
+  routerResult: Awaited<ReturnType<typeof runRouterNode>>,
+  narrative: string,
+  requestAIProvider: AIProvider
+): Promise<void> {
+  state.currentStep = 'RAG_RETRIEVAL';
+  const ragData = await runRagNode(routerResult.cause, narrative, {
+    caseType: routerResult.caseType,
+    category: routerResult.category,
+    isSensitive: routerResult.is_sensitive,
+    legalBasis: routerResult.legalBasis,
+    missing_elements: routerResult.missing_elements
+  });
+  state.rag = ragData;
+
+  state.currentStep = 'SYLLOGISM';
+  state.syllogism = await runSyllogismNode(ragData.legalElements, narrative, {
+    is_sensitive: routerResult.is_sensitive,
+    category: routerResult.category,
+    protectionNotice: routerResult.protectionNotice,
+    legalBasis: routerResult.legalBasis,
+    missing_elements: routerResult.missing_elements
+  }, requestAIProvider);
+
+  state.currentStep = 'VERIFICATION_GATE';
+  state.verification = await runVerificationGateNode(
+    state.syllogism.fullAnalysis,
+    narrative,
+    routerResult.legalBasis || [],
+    ragData.precedents.map(precedent => precedent.caseNumber)
+  );
+  state.rag.precedents = keepVerifiedPrecedents(
+    ragData.precedents,
+    state.verification.externalCitations,
+    state.verification.officialEvidence
+  );
+  state.currentStep = 'COMPLETED';
+  state.updatedAt = Date.now();
 }
 
 /**
@@ -511,8 +588,9 @@ async function runVerificationGateNode(
  */
 router.post("/api/workflow/execute", async (req: Request, res: Response) => {
   try {
-    const { userInput, stateId, acknowledgeSafety, aiConfig } = req.body as {
+    const { userInput, inputType = "facts", stateId, acknowledgeSafety, aiConfig } = req.body as {
       userInput?: string;
+      inputType?: "facts" | "judgment_document";
       stateId?: string;
       acknowledgeSafety?: boolean;
       aiConfig?: unknown;
@@ -520,6 +598,9 @@ router.post("/api/workflow/execute", async (req: Request, res: Response) => {
 
     if (!userInput || !userInput.trim()) {
       return res.status(400).json({ error: "請提供案情描述或輸入文本" });
+    }
+    if (inputType !== "facts" && inputType !== "judgment_document") {
+      return res.status(400).json({ error: "輸入資料類型無效" });
     }
 
     let requestAIProvider: AIProvider;
@@ -537,8 +618,7 @@ router.post("/api/workflow/execute", async (req: Request, res: Response) => {
     const routerResult = await runRouterNode(state.userNarrative);
     state.router = routerResult;
 
-    // 條件邊界 1: 敏感案件保護分流 (is_sensitive == true)
-    // 依使用者指示：性自主案件取消手動按同意再繼續的環節，直接附帶保護指引並順暢執行分析
+    // 敏感案件的保護資料保留到最終「行動指引」顯示，不在追問前打斷流程。
     const isSexualAutonomy = routerResult.category === 'CRIMINAL_COMPLAINT_SEXUAL_ASSAULT' ||
       Boolean(routerResult.chapter?.includes("性自主")) ||
       Boolean(routerResult.cause?.includes("性自主")) ||
@@ -565,64 +645,21 @@ router.post("/api/workflow/execute", async (req: Request, res: Response) => {
         acknowledged: Boolean(acknowledgeSafety || isSexualAutonomy)
       };
 
-      if (!acknowledgeSafety && !isSexualAutonomy) {
-        state.currentStep = 'SAFETY_PROTECTION';
-        return res.json({ success: true, data: state });
-      }
     }
 
-    // 條件邊界 2: 事實要素不完整或有時間矛盾 (is_complete == false) ➔ 必須中斷工作流，返回追問請求
-    if (!routerResult.is_complete) {
-      state.currentStep = 'QUESTIONING';
-      const questionData = await runQuestioningNode(
-        routerResult.missing_elements,
-        state.userNarrative,
-        routerResult.temporalConflict,
-        requestAIProvider
-      );
-      state.questioning = questionData;
-      // 時間矛盾屬於重大邏輯錯誤，無法生成草稿，必須嚴格中斷
-      if (routerResult.temporalConflict?.hasConflict) {
-        return res.json({ success: true, data: state });
-      }
-      // 彈性驗證：改為標記缺失並生成草稿
-      // 移除中斷，繼續往下執行
+    // 裁判書本身已是完整法律文件，直接分析；只有一般案情首次輸入需要動態追問。
+    if (inputType === "judgment_document") {
+      await completeWorkflow(state, routerResult, state.userNarrative, requestAIProvider);
+      return res.json({ success: true, data: state });
     }
 
-    // 條件邊界通過：推進至 RAGNode
-    state.currentStep = 'RAG_RETRIEVAL';
-    const ragData = await runRagNode(routerResult.cause, state.userNarrative, {
-      caseType: routerResult.caseType,
-      category: routerResult.category,
-      isSensitive: routerResult.is_sensitive,
-      legalBasis: routerResult.legalBasis,
-      missing_elements: routerResult.missing_elements
-    });
-    state.rag = ragData;
-
-    // 推進至 SyllogismNode
-    state.currentStep = 'SYLLOGISM';
-    const syllogismData = await runSyllogismNode(ragData.legalElements, state.userNarrative, {
-      is_sensitive: routerResult.is_sensitive,
-      category: routerResult.category,
-      protectionNotice: routerResult.protectionNotice,
-      legalBasis: routerResult.legalBasis,
-      missing_elements: routerResult.missing_elements
-    });
-    state.syllogism = syllogismData;
-
-    // 推進至 VerificationGateNode (防假通過驗證)
-    state.currentStep = 'VERIFICATION_GATE';
-    const verificationData = await runVerificationGateNode(
-      syllogismData.fullAnalysis,
+    state.currentStep = 'QUESTIONING';
+    state.questioning = await runQuestioningNode(
+      routerResult.missing_elements,
       state.userNarrative,
-      routerResult.legalBasis || []
+      routerResult.temporalConflict,
+      requestAIProvider
     );
-    state.verification = verificationData;
-
-    state.currentStep = 'COMPLETED';
-    state.updatedAt = Date.now();
-
     return res.json({ success: true, data: state });
   } catch (error: any) {
     console.error("[UnifiedWorkflow] 執行工作流失敗:", error);
@@ -668,8 +705,7 @@ router.post("/api/workflow/supplement", async (req: Request, res: Response) => {
     state.router = routerResult;
     state.factHistory = [existingNarrative || "", supplementText.trim()];
 
-    if (routerResult.is_sensitive && !acknowledgeSafety) {
-      state.currentStep = 'SAFETY_PROTECTION';
+    if (routerResult.is_sensitive) {
       state.safety = {
         emergencyHotlines: [
           { label: "全國婦幼保護專線", number: "113", desc: "24 小時免付費，提供家暴、性侵、兒少保護諮詢與通報" },
@@ -681,61 +717,28 @@ router.post("/api/workflow/supplement", async (req: Request, res: Response) => {
           "備份所有通訊紀錄與相關照片、證物。"
         ],
         immediateSteps: ["驗傷保全", "警察局筆錄", "法院聲請保護令"],
-        acknowledged: false
+        acknowledged: Boolean(acknowledgeSafety)
       };
-      return res.json({ success: true, data: state });
     }
 
     // 若仍不完整或仍存在時間矛盾，繼續中斷工作流
     if (!routerResult.is_complete) {
-      state.currentStep = 'QUESTIONING';
-      const questionData = await runQuestioningNode(
-        routerResult.missing_elements,
-        merged,
-        routerResult.temporalConflict,
-        requestAIProvider
-      );
-      state.questioning = questionData;
-      
       // 時間矛盾屬於重大邏輯錯誤，無法生成草稿，必須嚴格中斷
       if (routerResult.temporalConflict?.hasConflict) {
+        state.currentStep = 'QUESTIONING';
+        state.questioning = await runQuestioningNode(
+          routerResult.missing_elements,
+          merged,
+          routerResult.temporalConflict,
+          requestAIProvider
+        );
         return res.json({ success: true, data: state });
       }
       
       // 彈性驗證：不中斷，繼續往下生成初步草稿
     }
 
-    // 完整流程推進
-    state.currentStep = 'RAG_RETRIEVAL';
-    const ragData = await runRagNode(routerResult.cause, merged, {
-      caseType: routerResult.caseType,
-      category: routerResult.category,
-      isSensitive: routerResult.is_sensitive,
-      legalBasis: routerResult.legalBasis,
-      missing_elements: routerResult.missing_elements
-    });
-    state.rag = ragData;
-
-    state.currentStep = 'SYLLOGISM';
-    const syllogismData = await runSyllogismNode(ragData.legalElements, merged, {
-      is_sensitive: routerResult.is_sensitive,
-      category: routerResult.category,
-      protectionNotice: routerResult.protectionNotice,
-      legalBasis: routerResult.legalBasis,
-      missing_elements: routerResult.missing_elements
-    }, requestAIProvider);
-    state.syllogism = syllogismData;
-
-    state.currentStep = 'VERIFICATION_GATE';
-    const verificationData = await runVerificationGateNode(
-      syllogismData.fullAnalysis,
-      merged,
-      routerResult.legalBasis || []
-    );
-    state.verification = verificationData;
-
-    state.currentStep = 'COMPLETED';
-    state.updatedAt = Date.now();
+    await completeWorkflow(state, routerResult, merged, requestAIProvider);
 
     return res.json({ success: true, data: state });
   } catch (error: any) {

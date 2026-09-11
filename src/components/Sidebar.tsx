@@ -2,15 +2,10 @@ import React, { useState } from 'react';
 import {
   Scale,
   Compass,
-  ChevronDown,
-  FileText,
   FileCheck2,
-  ShieldAlert,
-  Sparkles,
   Menu,
   X,
   Gavel,
-  Clock,
 } from 'lucide-react';
 import { useToolContext } from '../contexts/ToolContext';
 
@@ -19,91 +14,77 @@ interface NavItem {
   label: string;
   sublabel: string;
   icon: any;
+  children?: Array<{ label: string; badge: string; tab: string }>;
 }
 
-// 核心入口
+// 四個任務導向入口；其餘工具收進對應工作台，避免左側重複。
 const coreEntries: NavItem[] = [
   {
     id: 'unified',
-    label: '案件分析',
-    sublabel: '判決分析 · 情境導診 · 案件分類',
+    label: '智慧案件分析工作台',
+    sublabel: '案件事實 → 法律爭點與證據',
     icon: Compass,
   },
   {
-    id: 'litigation',
-    label: '訴訟工作台',
-    sublabel: '全生命週期法務 · 20+ 書狀工具 · 攻防爭點',
-    icon: Gavel,
+    id: 'appeal',
+    label: '智慧判決分析工作台',
+    sublabel: '期限試算 · 判決剖析 · 訴訟防禦 · 爭點證據',
+    icon: Scale,
+    children: [
+      { label: '上訴法定期間試算', badge: '期限', tab: 'deadline' },
+      { label: '判決分析與上訴狀', badge: '上訴', tab: 'appeal' },
+      { label: '雙軌訴訟防禦', badge: '防禦', tab: 'defense' },
+      { label: '爭點與證據清單', badge: '附表', tab: 'issues' },
+    ],
   },
   {
-    id: 'appeal',
-    label: '判決分析與上訴',
-    sublabel: '原審判決剖析 · 上訴理由書 · 期間試算',
-    icon: Scale,
+    id: 'litigation',
+    label: '全方位實用法務工具箱',
+    sublabel: '依情境選書狀 · 填資料 · 產製檢核',
+    icon: Gavel,
+    children: [
+      { label: '書狀與法律文件製作', badge: '製作', tab: 'toolbox' },
+    ],
+  },
+  {
+    id: 'checker',
+    label: '法律工具台',
+    sublabel: '幽靈法條與假判決精準攔截 · 支援 PDF',
+    icon: FileCheck2,
   },
 ];
 
-// 判決分析與上訴子項目
-const appealSubItems: NavItem[] = [
-  { id: 'appeal', label: '判決剖析與上訴理由', sublabel: '原審違誤論理與撤銷改判主張', icon: Scale },
-  { id: 'appealDeadline', label: '上訴法定期間試算', sublabel: '20 天在途期間與末日扣除計算', icon: Clock },
-];
-
-// 訴訟工作台子項目
-const litigationSubItems: NavItem[] = [
-  { id: 'litigation', label: '訴訟工作台主頁', sublabel: '實用法務 · 攻防 · 爭點 · 上訴', icon: Gavel },
-  { id: 'sdlc', label: 'SDLC 工作台', sublabel: 'Plan → Design → Build → Test', icon: Sparkles },
-  { id: 'agent-chat', label: '智慧助理', sublabel: '對話式法律談詢', icon: FileText },
-  { id: 'checker', label: '判決檢索', sublabel: '司法院 API / 防假法條', icon: FileCheck2 },
-  { id: 'docAiChecker', label: '文件合規', sublabel: 'AI 文件審查', icon: ShieldAlert },
-];
-
-// 案件分析子項目
-const analysisSubItems: NavItem[] = [
-  { id: 'unified', label: '判決分析', sublabel: 'StateGraph 自動化工作流', icon: Scale },
-  { id: 'guide', label: '情境導診', sublabel: '生活問答 → 自動推薦', icon: Compass },
-];
+const moduleColors: Record<string, string> = {
+  unified: 'var(--color-module-analysis)',
+  litigation: 'var(--color-module-litigation)',
+  appeal: 'var(--color-module-appeal)',
+  checker: '#059669',
+};
 
 export default function Sidebar() {
-  const { activeTool, setActiveTool } = useToolContext();
+  const { activeTool, initialData, handleSelectTool } = useToolContext();
   const [isOpen, setIsOpen] = useState(false);
-  const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
 
   const isActive = (id: string) =>
     activeTool === id ||
     (id === 'appeal' && ['appeal', 'smartAppeal', 'appealDeadline'].includes(activeTool)) ||
     (id === 'litigation' &&
-      ['legalToolbox', 'sdlc', 'agent-chat', 'checker', 'docAiChecker', 'judgmentSearch', 'defenseWorkflow', 'issueTableGenerator', 'evidenceListGenerator'].includes(activeTool)) ||
-    (id === 'unified' && ['guide', 'processGuide'].includes(activeTool)) ||
+      ['guide', 'processGuide', 'legalToolbox', 'sdlc', 'agent-chat', 'defenseWorkflow', 'issueTableGenerator', 'evidenceListGenerator'].includes(activeTool)) ||
     (id === 'checker' && ['docAiChecker', 'judicialOpenData', 'judgmentSearch'].includes(activeTool));
+  const selectedTab = initialData?.initialTab ||
+    (activeTool === 'smartAppeal' ? 'appeal' :
+      (['appeal', 'appealDeadline'].includes(activeTool) ? 'deadline' :
+        (activeTool === 'guide' ? 'guide' : (activeTool === 'litigation' ? 'toolbox' : undefined))));
 
-  const isSubActive = (id: string) => activeTool === id;
-
-  const handleNav = (id: string) => {
-    setActiveTool(id);
+  const handleNav = (id: string, tab?: string) => {
+    handleSelectTool(id, tab);
     setIsOpen(false);
-    setExpandedGroup(null);
-  };
-
-  const toggleGroup = (id: string) => {
-    setExpandedGroup(expandedGroup === id ? null : id);
-    // If clicking the main item, also navigate to it
-    if (id === 'unified' || id === 'litigation' || id === 'appeal') {
-      setActiveTool(id);
-    }
-  };
-
-  const getSubItems = (id: string) => {
-    if (id === 'unified') return analysisSubItems;
-    if (id === 'litigation') return litigationSubItems;
-    if (id === 'appeal') return appealSubItems;
-    return [];
   };
 
   return (
     <>
       {/* Mobile Header */}
-      <div className="md:hidden flex items-center justify-between p-4 bg-slate-900 border-b border-slate-800 shrink-0 sticky top-0 z-40">
+      <div className="lg:hidden flex items-center justify-between p-4 bg-slate-900 border-b border-slate-800 shrink-0 sticky top-0 z-40">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center text-white">
             <Scale className="w-4 h-4" />
@@ -113,6 +94,8 @@ export default function Sidebar() {
         <button
           onClick={() => setIsOpen(!isOpen)}
           className="p-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white transition-colors"
+          aria-label={isOpen ? '關閉功能選單' : '開啟功能選單'}
+          aria-expanded={isOpen}
         >
           {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
@@ -121,19 +104,19 @@ export default function Sidebar() {
       {/* Mobile Overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-slate-950/80 z-40 md:hidden backdrop-blur-sm"
+          className="fixed inset-0 bg-slate-950/80 z-40 lg:hidden backdrop-blur-sm"
           onClick={() => setIsOpen(false)}
         />
       )}
 
       {/* Sidebar */}
       <nav
-        className={`fixed md:relative top-[65px] md:top-0 left-0 w-3/4 max-w-[300px] md:w-[290px] h-[calc(100vh-65px)] md:h-screen bg-[#090d16] flex flex-col border-r border-slate-800/90 select-none transition-transform duration-300 ease-in-out z-50 ${
-          isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+        className={`fixed lg:relative top-[65px] lg:top-0 left-0 w-3/4 max-w-[300px] lg:w-[240px] h-[calc(100vh-65px)] lg:h-screen bg-[var(--color-surface-base)] flex flex-col border-r border-slate-800/90 select-none transition-transform duration-300 ease-in-out z-50 ${
+          isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
         {/* Desktop Header */}
-        <header className="hidden md:block p-5 border-b border-slate-800 bg-[#0c1220]">
+        <header className="hidden lg:block p-4 border-b border-slate-800 bg-[var(--color-surface-raised)]">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-black">
               <Scale className="w-5 h-5" />
@@ -142,7 +125,7 @@ export default function Sidebar() {
               <h2 className="m-0 text-base font-extrabold text-white tracking-tight leading-tight">
                 智慧法律書狀系統
               </h2>
-              <div className="text-[11px] text-slate-400 font-medium mt-0.5">
+              <div className="text-[11px] text-[var(--color-text-muted)] font-medium mt-0.5">
                 專業司法實務 · 智慧法務工作台
               </div>
             </div>
@@ -150,71 +133,57 @@ export default function Sidebar() {
         </header>
 
         {/* Section Label */}
-        <div className="p-3">
-          <div className="text-[10px] font-bold tracking-wider text-slate-400 uppercase px-3 py-1.5">
+        <div className="px-3 pt-3 pb-1">
+          <div className="text-[10px] font-bold tracking-wider text-[var(--color-text-muted)] uppercase px-3 py-1.5">
             核心功能
           </div>
         </div>
 
-        {/* 3 Core Entry Points */}
-        <ul className="list-none px-3 pb-2 m-0 space-y-2">
+        {/* Core Entry Points */}
+        <ul className="list-none px-3 pb-2 m-0 space-y-1 flex-1 overflow-y-auto">
           {coreEntries.map((entry) => {
             const Icon = entry.icon;
             const active = isActive(entry.id);
-            const expanded = expandedGroup === entry.id;
-            const hasSubItems = entry.id === 'unified' || entry.id === 'litigation' || entry.id === 'appeal';
 
             return (
               <li key={entry.id}>
                 <button
-                  onClick={() => hasSubItems ? toggleGroup(entry.id) : handleNav(entry.id)}
-                  className={`w-full text-left p-3 rounded-xl transition-colors border ${
+                  onClick={() => handleNav(entry.id)}
+                  className={`w-full text-left p-2.5 rounded-lg transition-colors ${
                     active
-                      ? 'bg-slate-800 text-white border-slate-700'
-                      : 'text-slate-400 hover:bg-slate-900/60 hover:text-slate-200 border-slate-800/60 hover:border-slate-700'
+                      ? 'bg-slate-800 text-white'
+                      : 'text-[var(--color-text-muted)] hover:bg-slate-900/60 hover:text-slate-200'
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
                     <div
-                      className={`p-2 rounded-xl ${
-                        active ? 'bg-indigo-500/20 text-indigo-400' : 'bg-slate-800/80 text-slate-400'
-                      }`}
+                      className="p-1.5 rounded-lg text-white"
+                      style={{ backgroundColor: moduleColors[entry.id] }}
                     >
                       <Icon className="w-4 h-4" />
                     </div>
                     <div className="flex-1">
                       <div className="text-sm font-bold leading-tight">{entry.label}</div>
-                      <div className="text-[11px] text-slate-400 mt-0.5 leading-tight">
-                        {entry.sublabel}
-                      </div>
+                      <div className="mt-1 text-[10px] leading-4 text-[var(--color-text-muted)]">{entry.sublabel}</div>
                     </div>
-                    {hasSubItems && (
-                      <ChevronDown className={`w-4 h-4 transition-transform ${expanded ? 'rotate-180' : ''}`} />
-                    )}
                   </div>
                 </button>
-
-                {/* Sub-items */}
-                {hasSubItems && expanded && (
-                  <ul className="list-none pl-3 mt-1 space-y-1">
-                    {getSubItems(entry.id).map((item) => {
-                      const ItemIcon = item.icon;
-                      const subActive = isSubActive(item.id);
+                {entry.children && (
+                  <ul className="list-none m-0 ml-5 mt-1 space-y-1 border-l border-slate-800 pl-2">
+                    {entry.children.map((child) => {
+                      const childActive = active && selectedTab === child.tab;
                       return (
-                        <li key={item.id}>
+                        <li key={child.tab}>
                           <button
-                            onClick={() => handleNav(item.id)}
-                            className={`w-full text-left p-2.5 rounded-xl transition-all duration-200 border flex items-center gap-2.5 ${
-                              subActive
-                                ? 'bg-slate-800 text-white border-slate-600'
-                                : 'text-slate-400 hover:bg-slate-900/50 hover:text-slate-200 border-transparent'
+                            onClick={() => handleNav(entry.id, child.tab)}
+                            className={`flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-xs transition-colors ${
+                              childActive
+                                ? 'bg-slate-800 text-white'
+                                : 'text-[var(--color-text-muted)] hover:bg-slate-900/60 hover:text-slate-200'
                             }`}
                           >
-                            <ItemIcon className="w-3.5 h-3.5 shrink-0" />
-                            <div className="text-left">
-                              <div className="text-xs font-medium leading-tight">{item.label}</div>
-                              <div className="text-[10px] text-slate-500 leading-tight mt-0.5">{item.sublabel}</div>
-                            </div>
+                            <span className="font-semibold">{child.label}</span>
+                            <span className="shrink-0 rounded-md bg-slate-900 px-1.5 py-0.5 text-[9px] text-slate-400">{child.badge}</span>
                           </button>
                         </li>
                       );
@@ -227,22 +196,13 @@ export default function Sidebar() {
         </ul>
 
         {/* Bottom Status */}
-        <div className="p-4 border-t border-slate-800 bg-[#0c1220] space-y-3 mt-auto">
-          <div className="p-3 rounded-xl bg-[#090d16] border border-slate-800 space-y-1.5 hidden md:block">
-            <div className="flex items-center gap-2 text-xs font-bold text-slate-300">
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              <span>不知道該用哪一個？</span>
-            </div>
-            <p className="text-[11px] text-slate-400 leading-relaxed">
-              點擊 <strong className="text-sky-400">案件分析 → 情境導診</strong>，輸入遇到的狀況，系統將自動為您推薦最適書狀與步驟。
-            </p>
-          </div>
-          <div className="flex items-center justify-between text-[11px] text-slate-400 px-1">
+        <div className="p-4 border-t border-slate-800 bg-[var(--color-surface-raised)] mt-auto">
+          <div className="flex items-center justify-between text-[11px] text-[var(--color-text-muted)] px-1">
             <span className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
               司法院資料庫連線中
             </span>
-            <span className="text-slate-400 font-mono">v2.6</span>
+            <span className="text-[var(--color-text-muted)] font-mono">v2.6</span>
           </div>
         </div>
       </nav>

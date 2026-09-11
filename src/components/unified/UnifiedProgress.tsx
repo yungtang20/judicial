@@ -1,67 +1,46 @@
-
 import React from 'react';
-import { ChevronRight } from 'lucide-react';
-import { UIConstants } from '../../constants/ui';
+import type { LegalWorkflowState } from '../../lib/workflow/unifiedStateGraph';
+import { ProcessingIndicator, type ProcessingIndicatorProps } from '../ui/ProcessingIndicator';
 
 export interface UnifiedProgressProps {
-  [key: string]: any;
+  workflowState: LegalWorkflowState | null;
+  isSubmitting: boolean;
 }
 
-export const UnifiedProgress: React.FC<UnifiedProgressProps> = (props) => {
-  const { workflowState } = props;
+export const UnifiedProgress: React.FC<UnifiedProgressProps> = ({ workflowState, isSubmitting }) => {
+  let status: ProcessingIndicatorProps['status'] = 'idle';
+  let label = '尚未開始分析';
 
-  const steps = [
-    { num: '1', label: '輸入文本', active: !!workflowState },
-    { num: '2', label: '智慧分流', active: !!workflowState?.router },
-    { 
-      num: '3', 
-      label: '要件比對', 
-      active: !!workflowState?.router?.is_complete || workflowState?.currentStep === 'QUESTIONING',
-      highlight: workflowState?.currentStep === 'QUESTIONING'
-    },
-    { num: '4', label: '法規要件', active: !!workflowState?.rag },
-    { num: '5', label: '三段論涵攝', active: !!workflowState?.syllogism },
-    { 
-      num: '6', 
-      label: '真確性檢核', 
-      active: !!workflowState?.verification,
-      success: workflowState?.verification?.passGate
-    }
-  ];
+  if (workflowState?.error) {
+    status = 'error';
+    label = workflowState.error;
+  } else if (workflowState?.verification?.passGate) {
+    status = 'done';
+    label = '分析完成';
+  } else if (workflowState?.currentStep === 'COMPLETED') {
+    status = 'error';
+    label = workflowState.verification?.warningNotice || '分析結果未通過真確性檢核，請人工確認';
+  } else if (workflowState?.currentStep === 'QUESTIONING' && !isSubmitting) {
+    label = '等待補充關鍵案情';
+  } else if (isSubmitting || workflowState) {
+    status = 'processing';
+    label = !workflowState?.router
+      ? '正在分析案情內容…'
+      : !workflowState.rag
+        ? '正在檢索相關法條…'
+        : !workflowState.syllogism
+          ? '正在核對法定要件…'
+          : '正在執行真確性檢核…';
+  }
 
-  return (
-    <div className={UIConstants.cardSubtleCompact}>
-      <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-        {steps.map((step, idx) => (
-          <React.Fragment key={step.num}>
-            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold transition-colors ${
-              step.highlight
-                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                : step.success
-                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                : step.active
-                ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
-                : 'bg-slate-950 text-slate-500 border border-slate-800'
-            }`}>
-              <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] ${
-                step.highlight
-                  ? 'bg-amber-600 text-white'
-                  : step.success
-                  ? 'bg-emerald-600 text-white'
-                  : step.active
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-slate-800 text-slate-400'
-              }`}>
-                {step.num}
-              </span>
-              <span>{step.label}</span>
-            </div>
-            {idx < steps.length - 1 && (
-              <ChevronRight className="w-3.5 h-3.5 text-slate-700 hidden sm:block shrink-0" />
-            )}
-          </React.Fragment>
-        ))}
-      </div>
-    </div>
-  );
+  const detail = [
+    `輸入文本：${workflowState ? '完成' : '等待'}`,
+    `智慧分流：${workflowState?.router ? '完成' : '等待'}`,
+    `要件比對：${workflowState?.router?.is_complete ? '完成' : workflowState?.currentStep === 'QUESTIONING' ? '等待補充' : '等待'}`,
+    `法規要件：${workflowState?.rag ? '完成' : '等待'}`,
+    `三段論涵攝：${workflowState?.syllogism ? '完成' : '等待'}`,
+    `真確性檢核：${workflowState?.verification ? (workflowState.verification.passGate ? '通過' : '需人工確認') : '等待'}`,
+  ].join('\n');
+
+  return <ProcessingIndicator status={status} label={label} detail={detail} />;
 };

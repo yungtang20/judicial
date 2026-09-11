@@ -16,9 +16,9 @@ export const UIConstants = {
   // 容器與卡片 (統一 rounded-xl 與 p-6，無任何 shadow)
   card: 'bg-slate-900 border border-slate-800 rounded-xl p-6 text-slate-100',
   cardCompact: 'bg-slate-900 border border-slate-800 rounded-xl p-4 text-slate-100',
-  cardSubtle: 'bg-[#0e1424] border border-slate-800 rounded-xl p-6 text-slate-100',
-  cardSubtleCompact: 'bg-[#0e1424] border border-slate-800 rounded-xl p-4 text-slate-100',
-  paper: 'bg-white border border-slate-200 rounded-xl p-6 text-slate-900',
+  cardSubtle: 'bg-[var(--color-surface-raised)] border border-slate-800 rounded-xl p-6 text-slate-100',
+  cardSubtleCompact: 'bg-[var(--color-surface-raised)] border border-slate-800 rounded-xl p-4 text-slate-100',
+  paper: 'bg-[var(--color-surface-overlay)] border border-[var(--color-border-subtle)] rounded-xl p-6 text-[var(--color-text-primary)]',
 
   // 輸入框樣式 (統一 rounded-xl，無 shadow，聚焦邊框強化)
   input: 'w-full px-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-950 text-slate-200 text-sm focus:border-sky-500 focus:outline-none transition-colors',

@@ -48,6 +48,9 @@ export interface WorkflowRouterData {
   is_sensitive: boolean; // 是否涉及性侵害、家暴、跟蹤騷擾或隱私安全
   is_complete: boolean; // 人、事、時、地、證據要素是否充足
   missing_elements: string[]; // 缺少的要素清單
+  legalBasis?: string[]; // 分流引擎判定的法條與罪名／請求權名稱
+  statuteOfLimitations?: string;
+  suggestedActions?: string[];
 }
 
 export interface WorkflowQuestioningData {
@@ -73,7 +76,9 @@ export interface WorkflowRagData {
     courtName: string;
     summary: string;
     sourceUrl?: string;
+    citedStatutes?: string[];
   }>;
+  interpretations?: Array<{ citation: string; title: string; excerpt?: string; sourceUrl?: string }>;
   officialEvidence?: Array<{ citation: string; type: string; status: string; source: string; sourceUrl: string; checkedAt: string; snippet?: string; contentHash?: string; claimSupportStatus?: 'SUPPORTED' | 'NEEDS_REVIEW' | 'UNVERIFIABLE'; error?: string }>;
   officialSearch?: { query: string; status: string; attempted: boolean; source: string; sourceUrl: string; checkedAt: string; error?: string };
 }
@@ -93,8 +98,9 @@ export interface WorkflowVerificationData {
   sanitizedText: string;
   externalCitations?: ExternalCitationResult[];
   passGate: boolean;
+  verificationStatus?: 'PASS' | 'NEEDS_REVIEW' | 'FAIL';
   warningNotice?: string;
-  officialEvidence?: Array<{ citation: string; type: string; status: string; source: string; sourceUrl: string; checkedAt: string; snippet?: string; claimSupportStatus?: 'SUPPORTED' | 'NEEDS_REVIEW' | 'UNVERIFIABLE'; error?: string }>;
+  officialEvidence?: Array<{ citation: string; type: string; status: string; source: string; sourceUrl: string; checkedAt: string; snippet?: string; contentHash?: string; claimSupportStatus?: 'SUPPORTED' | 'NEEDS_REVIEW' | 'UNVERIFIABLE'; error?: string }>;
 }
 
 export interface LegalWorkflowState {

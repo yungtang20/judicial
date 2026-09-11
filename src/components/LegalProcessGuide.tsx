@@ -31,6 +31,7 @@ import {
   ProcessGuideResult 
 } from '../lib/legalProcessClassifier';
 import { RouterEvaluationResult } from '../prompts/legalProcessPrompts';
+import { fetchWithAuth } from '../lib/apiClient';
 
 interface LegalProcessGuideProps {
   onNavigateToTool?: (toolId: string, subTab?: string, initialData?: any) => void;
@@ -64,6 +65,7 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
   } | null>(null);
   const [isLoadingSyllogism, setIsLoadingSyllogism] = useState<boolean>(false);
   const [isCopied, setIsCopied] = useState<boolean>(false);
+  const [processError, setProcessError] = useState<string | null>(null);
 
   // 即時關鍵詞過濾檢測
   const liveKeywordResult = useMemo(() => {
@@ -111,19 +113,22 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
     setRouterResult(null);
     setQuestioningResult(null);
     setSyllogismResult(null);
+    setProcessError(null);
   };
 
   // 節點 1：執行智能路由與完整度檢查
   const handleRunRouter = async () => {
     if (!narrative.trim()) return;
     setIsEvaluatingRouter(true);
+    setProcessError(null);
     setQuestioningResult(null);
     try {
-      const res = await fetch('/api/process/router', {
+      const res = await fetchWithAuth('/api/process/router', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userInput: narrative.trim() })
       });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (data.success && data.data) {
         setRouterResult(data.data);
@@ -131,9 +136,12 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
         if (!data.data.is_complete) {
           handleRunQuestioning(data.data.missing_elements);
         }
+      } else {
+        throw new Error('Invalid router response');
       }
     } catch (err) {
       console.error('呼叫 /api/process/router 失敗:', err);
+      setProcessError('案情分析暫時無法完成，請稍後重試；若有人身安全危險，請立即撥打 110 或 113。');
     } finally {
       setIsEvaluatingRouter(false);
     }
@@ -143,8 +151,9 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
   const handleRunQuestioning = async (missingElements?: string[]) => {
     if (!narrative.trim()) return;
     setIsLoadingQuestion(true);
+    setProcessError(null);
     try {
-      const res = await fetch('/api/process/question', {
+      const res = await fetchWithAuth('/api/process/question', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -152,12 +161,16 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
           userInput: narrative.trim()
         })
       });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (data.success && data.data) {
         setQuestioningResult(data.data);
+      } else {
+        throw new Error('Invalid questioning response');
       }
     } catch (err) {
       console.error('呼叫 /api/process/question 失敗:', err);
+      setProcessError('補充問題暫時無法載入，請稍後重試；既有安全指引仍可繼續查看。');
     } finally {
       setIsLoadingQuestion(false);
     }
@@ -173,8 +186,9 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
   const handleRunSyllogism = async () => {
     if (!narrative.trim()) return;
     setIsLoadingSyllogism(true);
+    setProcessError(null);
     try {
-      const res = await fetch('/api/process/syllogism', {
+      const res = await fetchWithAuth('/api/process/syllogism', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -182,12 +196,16 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
           queryTopic: routerResult?.cause || guideResult.title || '法律要件涵攝'
         })
       });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (data.success && data.data) {
         setSyllogismResult(data.data);
+      } else {
+        throw new Error('Invalid syllogism response');
       }
     } catch (err) {
       console.error('呼叫 /api/process/syllogism 失敗:', err);
+      setProcessError('法律分析暫時無法完成，請稍後重試，且勿將未完成結果視為法律意見。');
     } finally {
       setIsLoadingSyllogism(false);
     }
@@ -215,7 +233,7 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
               互動引導式
             </span>
           </h1>
-          <p className="text-sm text-slate-400 mt-1.5 leading-relaxed max-w-2xl">
+          <p className="text-sm text-[var(--color-text-muted)] mt-1.5 leading-relaxed max-w-2xl">
             透過結構化問答與即時關鍵詞篩查，第一時間辨識是否為性侵害、家暴或親屬相盜案件，提供緊急安全處置指引並導向最適法律途徑。
           </p>
         </div>
@@ -234,6 +252,12 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
         </div>
       </div>
 
+      {processError && (
+        <div role="alert" className="rounded-xl border border-[var(--color-status-danger)]/30 bg-[var(--color-status-danger-bg)] p-[var(--space-4)] text-sm text-[var(--color-status-danger)]">
+          {processError}
+        </div>
+      )}
+
       {/* 步驟指示器 */}
       <div className="grid grid-cols-4 gap-2 bg-slate-900/60 p-2 rounded-xl border border-slate-800">
         {[
@@ -250,15 +274,15 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
                 ? 'bg-indigo-600 text-white'
                 : currentStep > step.num
                 ? 'bg-slate-800/80 text-indigo-300 hover:bg-slate-800'
-                : 'text-slate-500 hover:text-slate-400'
+                : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-muted)]'
             }`}
           >
             <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
               currentStep === step.num 
-                ? 'bg-white text-indigo-600 font-black' 
+                ? 'bg-[var(--color-surface-overlay)] text-indigo-600 font-black'
                 : currentStep > step.num 
                 ? 'bg-indigo-500/20 text-indigo-300' 
-                : 'bg-slate-800 text-slate-500'
+                : 'bg-slate-800 text-[var(--color-text-muted)]'
             }`}>
               {currentStep > step.num ? '✓' : step.num}
             </span>
@@ -272,7 +296,7 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
         <div className="space-y-6 bg-slate-900/40 p-6 rounded-xl border border-slate-800/80">
           <div>
             <h2 className="text-lg font-bold text-white mb-1">步驟 1：請問您遇到的是哪一類生活爭議或侵害？</h2>
-            <p className="text-xs text-slate-400">請選取最接近的情境，系統將為您建立針對性的問答框架：</p>
+            <p className="text-xs text-[var(--color-text-muted)]">請選取最接近的情境，系統將為您建立針對性的問答框架：</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -335,7 +359,7 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
                       {cat.badge}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-400 leading-relaxed pl-10">
+                  <p className="text-xs text-[var(--color-text-muted)] leading-relaxed pl-10">
                     {cat.desc}
                   </p>
                 </button>
@@ -406,7 +430,7 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
         <div className="space-y-6 bg-slate-900/40 p-6 rounded-xl border border-slate-800/80">
           <div>
             <h2 className="text-lg font-bold text-white mb-1">步驟 2：請描述事情發生的經過</h2>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-[var(--color-text-muted)]">
               系統會在您輸入時進行「即時敏感關鍵詞檢驗」，自動判斷是否具備高風險人身威脅：
             </p>
           </div>
@@ -433,7 +457,7 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
                   偵測到 {liveKeywordResult.detectedKeywords.length} 個關鍵特徵
                 </span>
               ) : (
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-medium">
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-[var(--color-text-muted)] font-medium">
                   尚無特定風險關鍵詞
                 </span>
               )}
@@ -475,7 +499,7 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
                   <h3 className="text-sm font-bold text-white flex items-center gap-2">
                     節點 1：智能路由與完整度檢查 (Router Prompt)
                   </h3>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-[11px] text-[var(--color-text-muted)]">
                     分析案情描述並輸出標準結構化分流、敏感案件旗標及事實完整度。
                   </p>
                 </div>
@@ -504,28 +528,28 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
             {/* 節點 1 評估結果呈現：極簡清單排列 */}
             {routerResult && (
               <div className="pt-2 border-t border-slate-800 text-xs">
-                <span className="text-[11px] font-bold text-slate-400 block mb-1.5 uppercase tracking-wider">分流屬性清單</span>
+                <span className="text-[11px] font-bold text-[var(--color-text-muted)] block mb-1.5 uppercase tracking-wider">分流屬性清單</span>
                 <div className="divide-y divide-slate-800">
                   <div className="py-2 flex items-center justify-between">
-                    <span className="text-slate-400">法律領域</span>
+                    <span className="text-[var(--color-text-muted)]">法律領域</span>
                     <span className="font-bold text-indigo-300">{routerResult.domain}</span>
                   </div>
                   <div className="py-2 flex items-center justify-between">
-                    <span className="text-slate-400">罪章/領域</span>
+                    <span className="text-[var(--color-text-muted)]">罪章/領域</span>
                     <span className="font-semibold text-white truncate max-w-xs">{routerResult.chapter}</span>
                   </div>
                   <div className="py-2 flex items-center justify-between">
-                    <span className="text-slate-400">案由罪名</span>
+                    <span className="text-[var(--color-text-muted)]">案由罪名</span>
                     <span className="font-semibold text-amber-300 truncate max-w-xs">{routerResult.cause}</span>
                   </div>
                   <div className="py-2 flex items-center justify-between">
-                    <span className="text-slate-400">敏感案件保護</span>
+                    <span className="text-[var(--color-text-muted)]">敏感案件保護</span>
                     <span className={`font-bold ${routerResult.is_sensitive ? 'text-rose-400' : 'text-emerald-400'}`}>
                       {routerResult.is_sensitive ? '敏感人身安全案件' : '一般訴訟爭端'}
                     </span>
                   </div>
                   <div className="py-2 flex items-center justify-between">
-                    <span className="text-slate-400">事實要素完整度</span>
+                    <span className="text-[var(--color-text-muted)]">事實要素完整度</span>
                     <span className={`font-bold ${routerResult.is_complete ? 'text-emerald-400' : 'text-amber-400'}`}>
                       {routerResult.is_complete ? '要件完整' : '缺少關鍵事實（已啟動追問）'}
                     </span>
@@ -617,7 +641,7 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
         <div className="space-y-6 bg-slate-900/40 p-6 rounded-xl border border-slate-800/80">
           <div>
             <h2 className="text-lg font-bold text-white mb-1">步驟 3：雙方身分關係與即時處境確認</h2>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-[var(--color-text-muted)]">
               在台灣法律中，身分關係（如配偶、同居人、親屬）會直接影響保護令管轄、告訴乃論與否及特定刑責減免：
             </p>
           </div>
@@ -642,7 +666,7 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
                   className={`p-2.5 rounded-xl border text-xs font-bold transition-all text-left ${
                     relationship === rel.id
                       ? 'border-indigo-500 bg-indigo-950/60 text-indigo-200'
-                      : 'border-slate-800 bg-slate-950/60 text-slate-400 hover:border-slate-700'
+                      : 'border-slate-800 bg-slate-950/60 text-[var(--color-text-muted)] hover:border-slate-700'
                   }`}
                 >
                   {rel.label}
@@ -672,12 +696,12 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
                     className={`flex items-center justify-between p-3 rounded-xl border text-xs transition-all ${
                       checked
                         ? 'border-indigo-500 bg-indigo-950/40 text-white font-bold'
-                        : 'border-slate-800 bg-slate-950/60 text-slate-400 hover:border-slate-700 font-medium'
+                        : 'border-slate-800 bg-slate-950/60 text-[var(--color-text-muted)] hover:border-slate-700 font-medium'
                     }`}
                   >
                     <span>{char.label}</span>
                     <span className={`text-[10px] px-2 py-0.5 rounded-full ${
-                      checked ? 'bg-indigo-500 text-white' : 'bg-slate-800 text-slate-400'
+                      checked ? 'bg-indigo-500 text-white' : 'bg-slate-800 text-[var(--color-text-muted)]'
                     }`}>
                       {char.badge}
                     </span>
@@ -756,7 +780,7 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
                   <Scale className="w-6 h-6" />
                 </div>
                 <div>
-                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                  <span className="text-[11px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
                     案件法律屬性判定報告
                   </span>
                   <h2 className="text-xl md:text-2xl font-black text-white">
@@ -827,7 +851,7 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
                     <h4 className="text-base font-bold text-white leading-tight">
                       {path.name}
                     </h4>
-                    <p className="text-xs text-slate-400 leading-relaxed">
+                    <p className="text-xs text-[var(--color-text-muted)] leading-relaxed">
                       {path.description}
                     </p>
                   </div>
@@ -869,7 +893,7 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
                       RAG 構成要件注入
                     </span>
                   </div>
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
                     結合知識庫動態抓取之法定構成要件，嚴格執行大前提、小前提、要件比對涵攝與法律結論。
                   </p>
                 </div>
@@ -942,7 +966,7 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
                 </div>
               </div>
             ) : (
-              <div className="p-4 rounded-xl bg-slate-950/40 border border-dashed border-slate-800 text-center text-xs text-slate-500">
+              <div className="p-4 rounded-xl bg-slate-950/40 border border-dashed border-slate-800 text-center text-xs text-[var(--color-text-muted)]">
                 點擊上方按鈕，AI 將自動從實務知識庫中抓取「大前提（法定要件）」並與您填寫的「小前提（案件事實）」進行嚴謹涵攝比對。
               </div>
             )}
@@ -959,7 +983,7 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
                 {guideResult.statuteCitations.map((cit, i) => (
                   <div key={i} className="py-2 flex items-center justify-between">
                     <span className="font-mono text-indigo-200">{cit}</span>
-                    <span className="text-[11px] text-slate-500">法定規範</span>
+                    <span className="text-[11px] text-[var(--color-text-muted)]">法定規範</span>
                   </div>
                 ))}
               </div>
