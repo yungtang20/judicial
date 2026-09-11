@@ -102,6 +102,8 @@ async function runRouterNode(userInput: string): Promise<RouterEvaluationResult 
   caseType?: string;
   legalBasis?: string[];
   protectionNotice?: string;
+  statuteOfLimitations?: string;
+  suggestedActions?: string[];
   temporalConflict?: ReturnType<typeof detectTemporalConflict>;
 }> {
   const trimmed = userInput.trim();
@@ -143,6 +145,8 @@ async function runRouterNode(userInput: string): Promise<RouterEvaluationResult 
     legalBasis: triage.legalBasis || [],
     is_sensitive: Boolean(triage.isSensitive),
     protectionNotice: triage.protectionNotice || "",
+    statuteOfLimitations: triage.statuteOfLimitations,
+    suggestedActions: triage.suggestedActions,
     is_complete: isComplete,
     missing_elements: missingElements,
     temporalConflict: temporal

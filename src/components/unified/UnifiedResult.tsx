@@ -1,5 +1,5 @@
-import React from 'react';
-import { AlertTriangle, Check, Copy, ExternalLink, FileCheck2, Printer } from 'lucide-react';
+import React, { useState } from 'react';
+import { AlertTriangle, Calculator, Check, Copy, ExternalLink, FileCheck2, Printer } from 'lucide-react';
 import type { LegalWorkflowState } from '../../lib/workflow/unifiedStateGraph';
 import { formatLegalChapter } from '../../lib/legalChapterLabels';
 import { VERIFIED_REAL_STATUTES } from '../../lib/citationVerifier';
@@ -11,6 +11,7 @@ interface UnifiedResultProps {
   exportAsHtml: (state: LegalWorkflowState) => void;
   exportAsText: (state: LegalWorkflowState) => void;
   printReport: (state: LegalWorkflowState) => void;
+  handleSelectTool?: (toolId: string, subTab?: string) => void;
 }
 
 export function canUseWorkflowResult(state: LegalWorkflowState): boolean {
@@ -44,6 +45,30 @@ export function buildProcedureSteps(domain?: string): string[] {
   return ['先行催告或評估調解；依法須強制調解者先完成調解程序', '向管轄法院提出起訴狀、證據並繳納裁判費', '法院送達後進行書狀交換、爭點整理、調查證據及言詞辯論', '收到判決後確認上訴期間；判決確定且對方不履行時可聲請強制執行'];
 }
 
+export function calculateLegalPeriodEstimates(basis: string, startDate: string): Array<{ period: string; deadline: string }> {
+  const parts = startDate.split('-').map(Number);
+  if (parts.length !== 3 || parts.some(Number.isNaN)) return [];
+  const matches = Array.from(basis.matchAll(/(\d+)\s*(個月|月|年|日|天)/g));
+  const periods = matches.filter(match => !/(?:無|不受)\s*$/.test(basis.slice(Math.max(0, match.index! - 3), match.index)));
+
+  return periods.filter((match, index) => periods.findIndex(item => item[1] === match[1] && item[2] === match[2]) === index).map(match => {
+    const amount = Number(match[1]);
+    const unit = match[2];
+    const start = new Date(parts[0], parts[1] - 1, parts[2], 12);
+    const deadline = new Date(start);
+    if (unit === '年' || unit === '月' || unit === '個月') {
+      const targetMonth = start.getMonth() + (unit === '年' ? amount * 12 : amount);
+      deadline.setDate(1);
+      deadline.setMonth(targetMonth);
+      const lastDay = new Date(deadline.getFullYear(), deadline.getMonth() + 1, 0).getDate();
+      deadline.setDate(Math.min(start.getDate(), lastDay));
+    } else {
+      deadline.setDate(deadline.getDate() + amount);
+    }
+    return { period: `${amount}${unit}`, deadline: `${deadline.getFullYear()}-${String(deadline.getMonth() + 1).padStart(2, '0')}-${String(deadline.getDate()).padStart(2, '0')}` };
+  });
+}
+
 export function countMatchingPrecedents(state: LegalWorkflowState, citation: string): number {
   const target = normalizeCitation(citation);
   const externallyVerified = new Set(
@@ -59,8 +84,9 @@ export function countMatchingPrecedents(state: LegalWorkflowState, citation: str
 }
 
 export const UnifiedResult: React.FC<UnifiedResultProps> = ({
-  workflowState, isCopied, handleCopyAnalysis, exportAsHtml, exportAsText, printReport,
+  workflowState, isCopied, handleCopyAnalysis, exportAsHtml, exportAsText, printReport, handleSelectTool,
 }) => {
+  const [periodStartDate, setPeriodStartDate] = useState('');
   const { router, rag, syllogism, verification } = workflowState;
   if (!syllogism) return null;
 
@@ -97,6 +123,7 @@ export const UnifiedResult: React.FC<UnifiedResultProps> = ({
         '涉及期限或重大權益時，儘速向律師或法律扶助確認。',
       ];
   const procedureSteps = buildProcedureSteps(router?.domain);
+  const periodEstimates = router?.statuteOfLimitations ? calculateLegalPeriodEstimates(router.statuteOfLimitations, periodStartDate) : [];
   const faqs = statuteEvidence.slice(0, 2).map(item => ({
     question: `${formatStatuteCitation(item.citation, router?.legalBasis || [])}主要規範什麼？`,
     answer: findStatuteRecord(item.citation)?.officialSummary || syllogism.majorPremise,
@@ -200,7 +227,20 @@ export const UnifiedResult: React.FC<UnifiedResultProps> = ({
           <ul className="space-y-1 text-xs leading-6 text-slate-300">
             {actionTips.map(tip => <li key={tip}>• {tip}</li>)}
           </ul>
-          {router?.statuteOfLimitations && <p className="rounded-lg bg-amber-500/10 px-3 py-2 text-xs leading-5 text-amber-200">期限／試算基準：{router.statuteOfLimitations}</p>}
+          {router?.statuteOfLimitations && (
+            <div className="space-y-2 rounded-lg bg-amber-500/10 px-3 py-3 text-xs leading-5 text-amber-100">
+              <p>期限／試算基準：{router.statuteOfLimitations}</p>
+              <label className="flex flex-wrap items-center gap-2 font-semibold">
+                法定期間起算日
+                <input type="date" value={periodStartDate} onChange={event => setPeriodStartDate(event.target.value)} className="rounded border border-amber-400/30 bg-slate-950 px-2 py-1 text-slate-100" />
+              </label>
+              {periodStartDate && (periodEstimates.length > 0
+                ? <ul>{periodEstimates.map(item => <li key={item.period}>• {item.period}初估截止日：{item.deadline}</li>)}</ul>
+                : <p>目前無法從文字基準辨識可試算期間，請改用完整法定期間工具。</p>)}
+              <p className="text-amber-200/80">起算事件、假日順延及在途期間可能改變結果，送件前仍須核對送達證明與適用法條。</p>
+              {handleSelectTool && <button type="button" onClick={() => handleSelectTool('appealDeadline', 'deadline')} className="inline-flex items-center gap-1 font-semibold text-sky-300 hover:underline"><Calculator className="h-3.5 w-3.5" />開啟上訴與救濟法定期間工具</button>}
+            </div>
+          )}
           <ol className="space-y-2 border-t border-slate-800 pt-3 text-xs leading-5 text-slate-300">
             {procedureSteps.map((step, index) => <li key={step}><span className="mr-2 font-bold text-violet-300">{index + 1}</span>{step}</li>)}
           </ol>

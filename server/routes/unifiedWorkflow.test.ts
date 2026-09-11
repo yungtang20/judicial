@@ -151,6 +151,8 @@ describe("Unified StateGraph Workflow API", { timeout: 30000 }, () => {
     expect(state.router.domain).toBeDefined();
     expect(state.router.cause).toBeDefined();
     expect(state.router.is_complete).toBe(true);
+    expect(state.router.statuteOfLimitations).toContain("年");
+    expect(state.router.suggestedActions.length).toBeGreaterThan(0);
 
     // 驗證 RAGNode 要件
     expect(state.rag).toBeDefined();

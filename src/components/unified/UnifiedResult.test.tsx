@@ -2,11 +2,11 @@ import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { LegalWorkflowState } from '../../lib/workflow/unifiedStateGraph';
-import { UnifiedResult, buildProcedureSteps, canUseWorkflowResult, countMatchingPrecedents, formatStatuteCitation } from './UnifiedResult';
+import { UnifiedResult, buildProcedureSteps, calculateLegalPeriodEstimates, canUseWorkflowResult, countMatchingPrecedents, formatStatuteCitation } from './UnifiedResult';
 
 const baseState: LegalWorkflowState = {
   id: 'test', createdAt: 1, updatedAt: 1, currentStep: 'COMPLETED', factHistory: [], userNarrative: '測試案情',
-  router: { domain: '民事', chapter: 'CIVIL_TORT_GENERAL', cause: '侵權行為', is_sensitive: false, is_complete: true, missing_elements: [], legalBasis: ['民法第184條（侵權行為損害賠償）'], statuteOfLimitations: '知悉損害及賠償義務人起二年', suggestedActions: ['寄發催告函'] },
+  router: { domain: '民事', chapter: 'CIVIL_TORT_GENERAL', cause: '侵權行為', is_sensitive: false, is_complete: true, missing_elements: [], legalBasis: ['民法第184條（侵權行為損害賠償）'], statuteOfLimitations: '知悉損害及賠償義務人起2年', suggestedActions: ['寄發催告函'] },
   rag: { searchQuery: '民法第184條', legalElements: '侵權要件', statuteCitations: ['民法第184條', '民法第195條'], interpretations: [{ citation: '法務部法律字第1號函', title: '侵權責任函釋', excerpt: '應核對損害及因果關係', sourceUrl: 'https://mojlaw.moj.gov.tw/' }], precedents: [{ caseNumber: '最高法院112年度台上字第9號', courtName: '最高法院', summary: '本件依民法第184條判決', citedStatutes: ['民法第184條'], sourceUrl: 'https://judgment.judicial.gov.tw/' }] },
   syllogism: { majorPremise: '法律規則', minorPremise: '案件事實', subsumption: '要件比對', conclusion: '得請求損害賠償。', fullAnalysis: '完整分析內容' },
   verification: {
@@ -26,12 +26,14 @@ const handlers = {
   exportAsHtml: vi.fn(),
   exportAsText: vi.fn(),
   printReport: vi.fn(),
+  handleSelectTool: vi.fn(),
 };
 
 describe('UnifiedResult', () => {
   it('adds the existing legal name to a statute citation', () => {
     expect(formatStatuteCitation('刑法第221條')).toBe('刑法第221條（強制性交罪）');
     expect(buildProcedureSteps('刑事')).toContain('檢察官決定起訴或不起訴；起訴後由刑事法院審理');
+    expect(calculateLegalPeriodEstimates('公訴罪無6個月限制；民事請求權為2年', '2024-09-11')).toEqual([{ period: '2年', deadline: '2026-09-11' }]);
   });
 
   it('shows a verified result first, deduplicates evidence, and keeps reasoning collapsed', () => {
@@ -55,6 +57,10 @@ describe('UnifiedResult', () => {
     expect(screen.getByText(/立即離開危險現場/)).toBeInTheDocument();
     expect(screen.getByText(/緊急報案：110/)).toBeInTheDocument();
     expect(screen.getByText(/期限／試算基準/)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('法定期間起算日'), { target: { value: '2024-09-11' } });
+    expect(screen.getByText('• 2年初估截止日：2026-09-11')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '開啟上訴與救濟法定期間工具' }));
+    expect(handlers.handleSelectTool).toHaveBeenCalledWith('appealDeadline', 'deadline');
     expect(screen.getByText('待核對原文')).toBeInTheDocument();
     expect(screen.getByText('侵權責任函釋：應核對損害及因果關係')).toBeInTheDocument();
     const details = screen.getByText('深入了解分析依據').closest('details') as HTMLDetailsElement;
