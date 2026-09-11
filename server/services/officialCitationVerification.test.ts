@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { searchOfficialJudgments, verifyOfficialCitations } from "./officialCitationVerification.js";
+import { findCitedTargetStatutes, searchOfficialJudgments, verifyOfficialCitations } from "./officialCitationVerification.js";
 
 const html = (body: string, init?: ResponseInit) => new Response(body, {
   status: 200,
@@ -105,18 +105,24 @@ describe("official citation verification", () => {
       .mockResolvedValueOnce(html('<input type="hidden" name="__VIEWSTATE" value="state" />'))
       .mockResolvedValueOnce(html('<a href="qryresultlst.aspx?ty=JUDBOOK&q=query-id">查詢結果</a>'))
       .mockResolvedValueOnce(html('<a href="data.aspx?ty=JD&id=case-id">最高法院 112 年度台上字第 9 號民事判決</a>'))
-      .mockResolvedValueOnce(html('<main id="jud">最高法院 112 年度台上字第 9 號民事判決 主文 上訴駁回。理由 本件爭點為設計專利權。</main>'));
+      .mockResolvedValueOnce(html('<main id="jud">最高法院 112 年度台上字第 9 號民事判決 主文 上訴駁回。理由 本件依民法第184條判斷設計專利權爭議。</main>'));
 
-    const result = await searchOfficialJudgments("設計專利權", { fetchImpl: fetchImpl as typeof fetch });
+    const result = await searchOfficialJudgments("設計專利權", { fetchImpl: fetchImpl as typeof fetch, targetStatuteCitations: ["民法第184條", "刑法第221條"] });
 
     expect(result).toMatchObject({ status: "VERIFIED", attempted: true, source: "司法院裁判書系統" });
     expect(result.results).toHaveLength(1);
     expect(result.results[0]).toMatchObject({
       caseNumber: "最高法院 112 年度台上字第 9 號民事判決",
-      sourceUrl: "https://judgment.judicial.gov.tw/FJUD/data.aspx?ty=JD&id=case-id"
+      sourceUrl: "https://judgment.judicial.gov.tw/FJUD/data.aspx?ty=JD&id=case-id",
+      citedStatutes: ["民法第184條"]
     });
     expect(result.results[0].checkedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     expect(result.results[0].contentHash).toMatch(/^[a-f0-9]{64}$/);
+  });
+
+  it("只把官方裁判全文實際出現的目標法條列為交叉比對命中", () => {
+    expect(findCitedTargetStatutes("本件依刑法第 221 條及第225條論處", ["刑法第221條", "刑法第225條"]))
+      .toEqual(["刑法第221條"]);
   });
 
   it("官方裁判關鍵字查無資料時明確回傳 NOT_FOUND", async () => {

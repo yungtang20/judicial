@@ -73,6 +73,7 @@ export interface WorkflowRagData {
     courtName: string;
     summary: string;
     sourceUrl?: string;
+    citedStatutes?: string[];
   }>;
   officialEvidence?: Array<{ citation: string; type: string; status: string; source: string; sourceUrl: string; checkedAt: string; snippet?: string; contentHash?: string; claimSupportStatus?: 'SUPPORTED' | 'NEEDS_REVIEW' | 'UNVERIFIABLE'; error?: string }>;
   officialSearch?: { query: string; status: string; attempted: boolean; source: string; sourceUrl: string; checkedAt: string; error?: string };

@@ -472,6 +472,11 @@ export const UnifiedEntry: React.FC = () => {
     setShowHistory(false);
   };
 
+  useEffect(() => {
+    if (!workflowState?.syllogism) return;
+    document.getElementById('analysis-result-title')?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+  }, [workflowState?.syllogism]);
+
 
   const sharedProps = { inputNarrative, setInputNarrative, isSubmitting, setIsSubmitting, workflowState, setWorkflowState, supplementInput, setSupplementInput, isCopied, setIsCopied, acknowledgeSafetyInSession, setAcknowledgeSafetyInSession, aiConfig, setAiConfig, isNode2Open, setIsNode2Open, isNode4Open, setIsNode4Open, isNode5Open, setIsNode5Open, isNode6Open, setIsNode6Open, customPreset, setCustomPreset, showCustomPresetModal, setShowCustomPresetModal, editPresetTitle, setEditPresetTitle, editPresetNarrative, setEditPresetNarrative, fileInputRef, isDragOver, setIsDragOver, isParsingFiles, setIsParsingFiles, parsingStatus, setParsingStatus, batchQueue, setBatchQueue, batchIndex, setBatchIndex, isBatchRunning, setIsBatchRunning, showHistory, setShowHistory, historyList, setHistoryList, handleFiles, handleDrop, handleExecuteWorkflow, handleSupplementFact, handleProceedFromSafety, handleResetWorkflow, handleCopyAnalysis, loadFromHistory, handleBatchNext, handleBatchPrev, handleSaveCurrentAsCustomPreset, handleSelectSuggestedOption, handleSaveCustomPreset, handleToggleAllNodes, defaultSample, handleSelectTool, saveCrossFeatureContext, exportAsHtml, exportAsText, printReport, deleteFromHistory, clearHistory, loadHistory, showDocTypeModal, setShowDocTypeModal };
   const hasResult = Boolean(workflowState?.syllogism);
@@ -484,7 +489,12 @@ export const UnifiedEntry: React.FC = () => {
         {!hasResult && <InputNode {...sharedProps} />}
         {!hasResult && <AIProviderSettings value={aiConfig} onChange={setAiConfig} />}
         {(isSubmitting || workflowState?.error) && <UnifiedProgress {...sharedProps} />}
-        <SafetyNode {...sharedProps} />
+        {hasResult && workflowState?.safety && (
+          <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-2 text-xs font-semibold text-rose-200">
+            若有人身危險，請先撥打 110 或 113；完整保護指引列於結果下方。
+          </div>
+        )}
+        <SafetyNode {...sharedProps} showSafety={!hasResult} />
         {workflowState && <UnifiedResult {...sharedProps} workflowState={workflowState} />}
         {hasResult && <UnifiedNav {...sharedProps} />}
         {hasResult && (
@@ -496,6 +506,7 @@ export const UnifiedEntry: React.FC = () => {
             </div>
           </details>
         )}
+        {hasResult && workflowState?.safety && <SafetyNode {...sharedProps} showQuestioning={false} />}
         <SettingsModal {...sharedProps} />
       </div>
     </div>

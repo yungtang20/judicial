@@ -2,12 +2,12 @@ import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { LegalWorkflowState } from '../../lib/workflow/unifiedStateGraph';
-import { UnifiedResult, canUseWorkflowResult } from './UnifiedResult';
+import { UnifiedResult, canUseWorkflowResult, countMatchingPrecedents } from './UnifiedResult';
 
 const baseState: LegalWorkflowState = {
   id: 'test', createdAt: 1, updatedAt: 1, currentStep: 'COMPLETED', factHistory: [], userNarrative: '測試案情',
   router: { domain: '民事', chapter: 'CIVIL_TORT_GENERAL', cause: '侵權行為', is_sensitive: false, is_complete: true, missing_elements: [] },
-  rag: { searchQuery: '民法第184條', legalElements: '侵權要件', statuteCitations: ['民法第184條', '民法第195條'], precedents: [] },
+  rag: { searchQuery: '民法第184條', legalElements: '侵權要件', statuteCitations: ['民法第184條', '民法第195條'], precedents: [{ caseNumber: '最高法院112年度台上字第9號', courtName: '最高法院', summary: '本件依民法第184條判決', citedStatutes: ['民法第184條'], sourceUrl: 'https://judgment.judicial.gov.tw/' }] },
   syllogism: { majorPremise: '法律規則', minorPremise: '案件事實', subsumption: '要件比對', conclusion: '得請求損害賠償。', fullAnalysis: '完整分析內容' },
   verification: {
     totalChecked: 1, ghostCount: 0, results: [], sanitizedText: '完整分析內容', passGate: true, verificationStatus: 'PASS',
@@ -29,7 +29,13 @@ describe('UnifiedResult', () => {
 
     expect(screen.getByText('分析結論')).toBeInTheDocument();
     expect(screen.getByText('可以使用｜已確認支持目前結論')).toBeInTheDocument();
-    expect(screen.getByText(/民法第195條/)).toBeInTheDocument();
+    expect(countMatchingPrecedents(baseState, '民法第184條')).toBe(1);
+    expect(screen.getByText('對應案件事實')).toBeInTheDocument();
+    expect(screen.getByText('需備證據')).toBeInTheDocument();
+    expect(screen.getByText('相關判例')).toBeInTheDocument();
+    const sectionOrder = ['可能涉及的法條', '對應案件事實', '需備證據', '相關判例']
+      .map(label => screen.getByText(label));
+    expect(sectionOrder.every((node, index) => index === 0 || Boolean(sectionOrder[index - 1].compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
     expect(screen.getAllByText('民法第184條')).toHaveLength(1);
     const details = screen.getByText('深入了解分析依據').closest('details') as HTMLDetailsElement;
     expect(details.open).toBe(false);
@@ -52,7 +58,7 @@ describe('UnifiedResult', () => {
     render(<UnifiedResult workflowState={failed} {...handlers} />);
     expect(screen.getByText('需先修正的引用')).toBeInTheDocument();
     expect(screen.getByText(/民法第9999條/)).toBeInTheDocument();
-    expect(screen.getByText('僅供參考｜尚未確認適用於您的案件')).toBeInTheDocument();
+    expect(screen.getByText('參考可信度較高｜1 件官方裁判引用同一法條')).toBeInTheDocument();
     expect(screen.queryByText(/fail-closed/)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '複製' })).toBeDisabled();
   });

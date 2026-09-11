@@ -271,7 +271,7 @@ async function runRagNode(
   searchQuery: string;
   legalElements: string;
   statuteCitations: string[];
-  precedents: Array<{ caseNumber: string; courtName: string; summary: string; sourceUrl?: string }>;
+  precedents: Array<{ caseNumber: string; courtName: string; summary: string; sourceUrl?: string; citedStatutes?: string[] }>;
   officialEvidence: Array<{ citation: string; type: string; status: string; source: string; sourceUrl: string; checkedAt: string; snippet?: string; contentHash?: string; claimSupportStatus?: "SUPPORTED" | "NEEDS_REVIEW" | "UNVERIFIABLE"; error?: string }>;
   officialSearch?: { query: string; status: string; attempted: boolean; source: string; sourceUrl: string; checkedAt: string; error?: string };
 }> {
@@ -282,7 +282,7 @@ async function runRagNode(
     .trim();
   const localSearchQuery = `${searchQuery} ${userFacts.slice(0, 80)}`.trim();
   let legalElements = "【法定構成要件】相關法律條文之客觀構成要件（行為主體、客體、侵害行為與因果關係）及主觀構成要件（故意或過失）。";
-  const precedents: Array<{ caseNumber: string; courtName: string; summary: string; sourceUrl?: string }> = [];
+  const precedents: Array<{ caseNumber: string; courtName: string; summary: string; sourceUrl?: string; citedStatutes?: string[] }> = [];
 
   // 動態法規檢索：結合領域過濾
   const dynamicStatuteSet = new Set<string>();
@@ -336,7 +336,7 @@ async function runRagNode(
   // 本機沒有具官方證據的裁判時，直接查詢司法院公開裁判書系統。
   if (precedents.length === 0) {
     for (const officialQuery of buildOfficialJudgmentQueries(queryTopic, statuteCitations)) {
-      officialSearch = await searchOfficialJudgments(officialQuery, { timeoutMs: 8000, maxResults: 3 });
+      officialSearch = await searchOfficialJudgments(officialQuery, { timeoutMs: 8000, maxResults: 3, targetStatuteCitations: statuteCitations });
       if (officialSearch.status !== "NOT_FOUND") break;
     }
     for (const result of officialSearch?.results || []) {
@@ -344,7 +344,8 @@ async function runRagNode(
         caseNumber: result.caseNumber,
         courtName: result.courtName,
         summary: result.summary,
-        sourceUrl: result.sourceUrl
+        sourceUrl: result.sourceUrl,
+        citedStatutes: result.citedStatutes
       });
     }
   }
@@ -581,12 +582,7 @@ router.post("/api/workflow/execute", async (req: Request, res: Response) => {
         requestAIProvider
       );
       state.questioning = questionData;
-      // 時間矛盾屬於重大邏輯錯誤，無法生成草稿，必須嚴格中斷
-      if (routerResult.temporalConflict?.hasConflict) {
-        return res.json({ success: true, data: state });
-      }
-      // 彈性驗證：改為標記缺失並生成草稿
-      // 移除中斷，繼續往下執行
+      return res.json({ success: true, data: state });
     }
 
     // 條件邊界通過：推進至 RAGNode
@@ -688,17 +684,15 @@ router.post("/api/workflow/supplement", async (req: Request, res: Response) => {
 
     // 若仍不完整或仍存在時間矛盾，繼續中斷工作流
     if (!routerResult.is_complete) {
-      state.currentStep = 'QUESTIONING';
-      const questionData = await runQuestioningNode(
-        routerResult.missing_elements,
-        merged,
-        routerResult.temporalConflict,
-        requestAIProvider
-      );
-      state.questioning = questionData;
-      
       // 時間矛盾屬於重大邏輯錯誤，無法生成草稿，必須嚴格中斷
       if (routerResult.temporalConflict?.hasConflict) {
+        state.currentStep = 'QUESTIONING';
+        state.questioning = await runQuestioningNode(
+          routerResult.missing_elements,
+          merged,
+          routerResult.temporalConflict,
+          requestAIProvider
+        );
         return res.json({ success: true, data: state });
       }
       

@@ -74,12 +74,13 @@ describe("Unified StateGraph Workflow API", { timeout: 30000 }, () => {
 
     expect(state.router).toBeDefined();
     expect(state.router.is_complete).toBe(false);
-    expect(state.currentStep).toBe("COMPLETED");
+    expect(state.currentStep).toBe("QUESTIONING");
     expect(state.questioning).toBeDefined();
     expect(state.questioning.rawMessage).toBeDefined();
     expect(Array.isArray(state.questioning.suggestedOptions)).toBe(true);
     expect(state.questioning.generationMode).toBe("AI");
     expect(state.questioning.suggestedOptions.length).toBeGreaterThanOrEqual(2);
+    expect(state.syllogism).toBeUndefined();
   });
 
   it("2. 邊界條件：涉敏感案件時 (is_sensitive == true) 應導向保護路徑 (SAFETY_PROTECTION)", async () => {
@@ -164,6 +165,18 @@ describe("Unified StateGraph Workflow API", { timeout: 30000 }, () => {
     expect(state.syllogism).toBeDefined();
     expect(state.verification).toBeDefined();
     expect(state.currentStep).toBe("COMPLETED");
+  });
+
+  it("4.1 追問補充：明確回答無其他資料後仍可進入結果", async () => {
+    const res = await fetch(`${baseUrl}/api/workflow/supplement`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ existingNarrative: "我好像被騙錢了", supplementText: "無" })
+    });
+
+    const state = (await res.json()).data;
+    expect(state.currentStep).toBe("COMPLETED");
+    expect(state.syllogism).toBeDefined();
   });
 
   it("5. 時間矛盾檢查：當用戶同時陳述「民國112年11月15日」與「最近3天內」時，必須中斷並返回追問請求", async () => {
