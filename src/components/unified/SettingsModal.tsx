@@ -36,7 +36,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = (props) => {
                       cause: workflowState?.router?.cause,
                       sourceTool: 'unified'
                     });
-                    handleSelectTool('litigation', undefined, { initialTab: 'appeal' });
+                    handleSelectTool('appeal', 'appeal', { initialTab: 'appeal' });
                   }}
                   className="w-full text-left p-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors"
                 >

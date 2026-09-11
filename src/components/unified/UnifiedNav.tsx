@@ -26,7 +26,7 @@ export const UnifiedNav: React.FC<UnifiedNavProps> = (props) => {
       sourceTool: 'unified',
       timestamp: Date.now()
     });
-    handleSelectTool('litigation', tab, {
+    handleSelectTool(tab === 'appeal' ? 'appeal' : 'litigation', tab, {
       initialTab: tab,
       facts: workflowState?.userNarrative
     });

@@ -6,16 +6,6 @@ import { AppealStep2 } from './appeal/AppealStep2';
 import { AppealStep3 } from './appeal/AppealStep3';
 import { AppealStep4 } from './appeal/AppealStep4';
 
-import * as pdfjsLib from 'pdfjs-dist';
-
-if (typeof window !== 'undefined' && pdfjsLib && pdfjsLib.GlobalWorkerOptions) {
-  try {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version || '4.0.379'}/build/pdf.worker.mjs`;
-  } catch (err) {
-    console.warn('pdfjs GlobalWorkerOptions setup exception:', err);
-  }
-}
-
 export default function SmartAppealAssistant() {
   const {
     ctx,

@@ -57,9 +57,9 @@ export default function Sidebar() {
 
   const isActive = (id: string) =>
     activeTool === id ||
-    (id === 'appeal' && ['appeal', 'smartAppeal'].includes(activeTool)) ||
+    (id === 'appeal' && ['appeal', 'smartAppeal', 'appealDeadline'].includes(activeTool)) ||
     (id === 'litigation' &&
-      ['guide', 'processGuide', 'legalToolbox', 'appealDeadline', 'sdlc', 'agent-chat', 'defenseWorkflow', 'issueTableGenerator', 'evidenceListGenerator'].includes(activeTool)) ||
+      ['guide', 'processGuide', 'legalToolbox', 'sdlc', 'agent-chat', 'defenseWorkflow', 'issueTableGenerator', 'evidenceListGenerator'].includes(activeTool)) ||
     (id === 'checker' && ['docAiChecker', 'judicialOpenData', 'judgmentSearch'].includes(activeTool));
 
   const handleNav = (id: string) => {

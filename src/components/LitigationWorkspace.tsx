@@ -9,21 +9,23 @@ import {
   Briefcase,
   Compass
 } from 'lucide-react';
-import SmartAppealAssistant from './SmartAppealAssistant';
-import { DefenseWorkflowTool } from './DefenseWorkflowTool';
-import IssueTableGenerator from './IssueTableGenerator';
-import EvidenceListGenerator from './EvidenceListGenerator';
-import AppealDeadlineTool from './AppealDeadlineTool';
-import { LegalToolbox } from './LegalToolbox';
-import { LegalGuideHome } from './LegalGuideHome';
 import { loadCrossFeatureContext } from '../lib/crossFeatureContext';
+
+const SmartAppealAssistant = React.lazy(() => import('./SmartAppealAssistant'));
+const DefenseWorkflowTool = React.lazy(() => import('./DefenseWorkflowTool').then(module => ({ default: module.DefenseWorkflowTool })));
+const IssueTableGenerator = React.lazy(() => import('./IssueTableGenerator'));
+const EvidenceListGenerator = React.lazy(() => import('./EvidenceListGenerator'));
+const AppealDeadlineTool = React.lazy(() => import('./AppealDeadlineTool'));
+const LegalToolbox = React.lazy(() => import('./LegalToolbox').then(module => ({ default: module.LegalToolbox })));
+const LegalGuideHome = React.lazy(() => import('./LegalGuideHome').then(module => ({ default: module.LegalGuideHome })));
 
 interface LitigationWorkspaceProps {
   initialTab?: 'guide' | 'toolbox' | 'defense' | 'issues' | 'evidence' | 'appeal' | 'deadline';
   initialToolId?: string;
+  appealOnly?: boolean;
 }
 
-export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initialTab = 'guide', initialToolId }) => {
+export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initialTab = 'guide', initialToolId, appealOnly = false }) => {
   // Check cross-feature context if available
   const crossCtx = loadCrossFeatureContext();
   const effectiveInitialTab = initialTab || crossCtx?.initialTab || 'guide';
@@ -88,13 +90,6 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initia
       icon: Table,
       desc: '法庭爭點對照表與調查證據聲請清單'
     },
-    {
-      id: 'appeal_deadline',
-      label: '判決分析與上訴',
-      badge: '救濟',
-      icon: Scale,
-      desc: '上訴理由書生成與 20 天期間試算'
-    }
   ];
 
   return (
@@ -112,19 +107,19 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initia
                   className={`h-2 w-2 rounded-full ${activeMainTab === 'appeal_deadline' ? 'bg-[var(--color-module-appeal)]' : 'bg-[var(--color-module-litigation)]'}`}
                   aria-hidden="true"
                 />
-                <h1 className="text-sm font-bold text-white tracking-tight">全方位實用法務工具箱</h1>
+                <h1 className="text-sm font-bold text-white tracking-tight">{appealOnly ? '判決分析與上訴狀' : '全方位實用法務工具箱'}</h1>
                 <span className="hidden md:inline-block text-[11px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-medium border border-slate-700">
-                  一站式法務
+                  {appealOnly ? '上訴救濟' : '一站式法務'}
                 </span>
               </div>
               <p className="text-xs text-[var(--color-text-muted)]">
-                整合生活導診、日常法務、訴訟攻防、爭點證據與救濟期間
+                {appealOnly ? '匯入裁判書分析原審違誤，並試算上訴法定期間' : '整合生活導診、日常法務、訴訟攻防與爭點證據'}
               </p>
             </div>
           </div>
 
           {/* 橫向切換主分頁：12px 圓角 (rounded-xl) 平緩極簡風格 */}
-          <div className="flex items-center gap-1 overflow-x-auto pb-1 lg:pb-0 scrollbar-none bg-[#090d16] p-1 rounded-xl border border-slate-800">
+          {!appealOnly && <div className="flex items-center gap-1 overflow-x-auto pb-1 lg:pb-0 scrollbar-none bg-[#090d16] p-1 rounded-xl border border-slate-800">
             {mainTabs.map((tab) => {
               const IconComp = tab.icon;
               const isActive = activeMainTab === tab.id;
@@ -149,7 +144,7 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initia
                 </button>
               );
             })}
-          </div>
+          </div>}
         </div>
       </div>
 
@@ -198,49 +193,51 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initia
 
       {/* 內容區塊：統一平緩的 p-6 內邊距與自適應高度 */}
       <div className="flex-1 overflow-y-auto">
-        {activeMainTab === 'guide' && <LegalGuideHome />}
+        <React.Suspense fallback={<div className="p-8 text-center text-sm text-slate-400">工具載入中…</div>}>
+          {activeMainTab === 'guide' && <LegalGuideHome />}
 
-        {activeMainTab === 'toolbox' && (
-          <div className="p-6 max-w-7xl mx-auto h-full">
-            <LegalToolbox initialToolId={effectiveToolId} />
-          </div>
-        )}
-        
-        {activeMainTab === 'defense' && (
-          <div className="p-6 max-w-7xl mx-auto">
-            <DefenseWorkflowTool />
-          </div>
-        )}
-        
-        {activeMainTab === 'issues_evidence' && issuesSubTab === 'issues' && (
-          <div className="p-6 max-w-7xl mx-auto">
-            <div className="rounded-xl border border-slate-800 overflow-hidden bg-[var(--color-surface-overlay)]">
-              <IssueTableGenerator />
+          {activeMainTab === 'toolbox' && (
+            <div className="p-6 max-w-7xl mx-auto h-full">
+              <LegalToolbox initialToolId={effectiveToolId} />
             </div>
-          </div>
-        )}
+          )}
         
-        {activeMainTab === 'issues_evidence' && issuesSubTab === 'evidence' && (
-          <div className="p-6 max-w-7xl mx-auto">
-            <div className="rounded-xl border border-slate-800 overflow-hidden bg-[var(--color-surface-overlay)]">
-              <EvidenceListGenerator />
+          {activeMainTab === 'defense' && (
+            <div className="p-6 max-w-7xl mx-auto">
+              <DefenseWorkflowTool />
             </div>
-          </div>
-        )}
+          )}
         
-        {activeMainTab === 'appeal_deadline' && appealSubTab === 'appeal' && (
-          <div className="p-6 max-w-7xl mx-auto">
-            <div className="rounded-xl border border-slate-800 overflow-hidden bg-slate-900/40">
-              <SmartAppealAssistant />
+          {activeMainTab === 'issues_evidence' && issuesSubTab === 'issues' && (
+            <div className="p-6 max-w-7xl mx-auto">
+              <div className="rounded-xl border border-slate-800 overflow-hidden bg-[var(--color-surface-overlay)]">
+                <IssueTableGenerator />
+              </div>
             </div>
-          </div>
-        )}
+          )}
         
-        {activeMainTab === 'appeal_deadline' && appealSubTab === 'deadline' && (
-          <div className="p-6 max-w-7xl mx-auto">
-            <AppealDeadlineTool />
-          </div>
-        )}
+          {activeMainTab === 'issues_evidence' && issuesSubTab === 'evidence' && (
+            <div className="p-6 max-w-7xl mx-auto">
+              <div className="rounded-xl border border-slate-800 overflow-hidden bg-[var(--color-surface-overlay)]">
+                <EvidenceListGenerator />
+              </div>
+            </div>
+          )}
+        
+          {activeMainTab === 'appeal_deadline' && appealSubTab === 'appeal' && (
+            <div className="p-6 max-w-7xl mx-auto">
+              <div className="rounded-xl border border-slate-800 overflow-hidden bg-slate-900/40">
+                <SmartAppealAssistant />
+              </div>
+            </div>
+          )}
+        
+          {activeMainTab === 'appeal_deadline' && appealSubTab === 'deadline' && (
+            <div className="p-6 max-w-7xl mx-auto">
+              <AppealDeadlineTool />
+            </div>
+          )}
+        </React.Suspense>
       </div>
     </div>
   );

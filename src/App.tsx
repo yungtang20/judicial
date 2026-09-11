@@ -49,7 +49,7 @@ function AppContent() {
           <LitigationWorkspace
             initialTab={activeTool === 'appealDeadline' ? 'deadline' : 'appeal'}
             initialToolId={initialData?.preselectedToolId}
-           
+            appealOnly
           />
         );
       case 'agent-chat':

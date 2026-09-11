@@ -1,13 +1,5 @@
 import React, { useState, useRef } from 'react';
-import * as pdfjsLib from 'pdfjs-dist';
-
-if (typeof window !== 'undefined' && pdfjsLib && pdfjsLib.GlobalWorkerOptions) {
-  try {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version || '4.0.379'}/build/pdf.worker.mjs`;
-  } catch (err) {
-    console.warn('pdfjs GlobalWorkerOptions setup exception:', err);
-  }
-}
+import { extractPdfText } from '../lib/pdfUtils';
 
 interface JudgmentData {
   id: string;
@@ -35,15 +27,7 @@ export default function JudgmentSearchTool() {
   // Parse PDF file
   const parsePdfFile = async (file: File): Promise<JudgmentData | null> => {
     try {
-      const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-      let fullText = '';
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const textContent = await page.getTextContent();
-        const pageText = textContent.items.map((item: any) => item.str).join(' ');
-        fullText += pageText + '\n';
-      }
+      const fullText = await extractPdfText(file);
 
       // Try extracting title / case number
       const caseNoMatch = fullText.match(/\d+年度[\u4e00-\u9fa5]+字第\d+號/);
