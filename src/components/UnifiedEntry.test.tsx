@@ -5,6 +5,7 @@ import { UnifiedEntry } from './UnifiedEntry';
 import * as pdfUtils from '../lib/pdfUtils';
 import { ToolProvider } from '../contexts/ToolContext';
 import { GlobalUIProvider } from '../contexts/GlobalUIContext';
+import { fetchWithAuth } from '../lib/apiClient';
 
 // Mock pdfUtils
 vi.mock('../lib/pdfUtils', () => ({
@@ -82,6 +83,11 @@ describe('UnifiedEntry component', () => {
     await waitFor(() => {
       expect(textarea.value).toContain('臺灣臺北地方法院 113 年度訴字第 999 號民事判決');
     });
+
+    fireEvent.click(screen.getByRole('button', { name: '分析裁判書' }));
+    await waitFor(() => expect(fetchWithAuth).toHaveBeenCalledWith('/api/workflow/execute', expect.objectContaining({
+      body: expect.stringContaining('"inputType":"judgment_document"'),
+    })));
   });
 
   it('handles batch uploading multiple Judicial Yuan PDF documents and enables queue navigation', async () => {

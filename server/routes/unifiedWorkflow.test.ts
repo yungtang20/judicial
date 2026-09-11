@@ -100,6 +100,23 @@ describe("Unified StateGraph Workflow API", { timeout: 30000 }, () => {
     expect(state.syllogism).toBeUndefined();
   });
 
+  it("上傳裁判書直接完成文件分析，不套用一般案情動態追問", async () => {
+    const res = await fetch(`${baseUrl}/api/workflow/execute`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        inputType: "judgment_document",
+        userInput: "臺灣臺北地方法院113年度訴字第999號民事判決。主文：被告應依民法第184條給付原告新臺幣五十萬元。事實及理由詳如附件。"
+      })
+    });
+
+    const state = (await res.json()).data;
+    expect(res.status).toBe(200);
+    expect(state.currentStep).toBe("COMPLETED");
+    expect(state.questioning).toBeUndefined();
+    expect(state.syllogism).toBeDefined();
+  });
+
   it("2. 涉敏感案件先顯示動態追問，保護資料延後供結果的行動指引使用", async () => {
     const res = await fetch(`${baseUrl}/api/workflow/execute`, {
       method: "POST",

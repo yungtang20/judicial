@@ -535,14 +535,52 @@ async function runVerificationGateNode(
   };
 }
 
+async function completeWorkflow(
+  state: LegalWorkflowState,
+  routerResult: Awaited<ReturnType<typeof runRouterNode>>,
+  narrative: string,
+  requestAIProvider: AIProvider
+): Promise<void> {
+  state.currentStep = 'RAG_RETRIEVAL';
+  const ragData = await runRagNode(routerResult.cause, narrative, {
+    caseType: routerResult.caseType,
+    category: routerResult.category,
+    isSensitive: routerResult.is_sensitive,
+    legalBasis: routerResult.legalBasis,
+    missing_elements: routerResult.missing_elements
+  });
+  state.rag = ragData;
+
+  state.currentStep = 'SYLLOGISM';
+  state.syllogism = await runSyllogismNode(ragData.legalElements, narrative, {
+    is_sensitive: routerResult.is_sensitive,
+    category: routerResult.category,
+    protectionNotice: routerResult.protectionNotice,
+    legalBasis: routerResult.legalBasis,
+    missing_elements: routerResult.missing_elements
+  }, requestAIProvider);
+
+  state.currentStep = 'VERIFICATION_GATE';
+  state.verification = await runVerificationGateNode(
+    state.syllogism.fullAnalysis,
+    narrative,
+    routerResult.legalBasis || [],
+    ragData.precedents.map(precedent => precedent.caseNumber)
+  );
+  state.rag.precedents = keepExternallyVerifiedPrecedents(ragData.precedents, state.verification.externalCitations);
+  state.currentStep = 'COMPLETED';
+  state.updatedAt = Date.now();
+}
+
 /**
  * POST /api/workflow/execute
  * 統一入口自動化工作流主端點
  */
 router.post("/api/workflow/execute", async (req: Request, res: Response) => {
   try {
-    const { userInput, stateId, acknowledgeSafety, aiConfig } = req.body as {
+    const { userInput, inputType = "facts", stateId, acknowledgeSafety, aiConfig } = req.body as {
       userInput?: string;
+      inputType?: "facts" | "judgment_document";
       stateId?: string;
       acknowledgeSafety?: boolean;
       aiConfig?: unknown;
@@ -550,6 +588,9 @@ router.post("/api/workflow/execute", async (req: Request, res: Response) => {
 
     if (!userInput || !userInput.trim()) {
       return res.status(400).json({ error: "請提供案情描述或輸入文本" });
+    }
+    if (inputType !== "facts" && inputType !== "judgment_document") {
+      return res.status(400).json({ error: "輸入資料類型無效" });
     }
 
     let requestAIProvider: AIProvider;
@@ -596,7 +637,12 @@ router.post("/api/workflow/execute", async (req: Request, res: Response) => {
 
     }
 
-    // 首次輸入一律停在動態追問；使用者選擇、填寫或回答「無」後才由 supplement 產出結果。
+    // 裁判書本身已是完整法律文件，直接分析；只有一般案情首次輸入需要動態追問。
+    if (inputType === "judgment_document") {
+      await completeWorkflow(state, routerResult, state.userNarrative, requestAIProvider);
+      return res.json({ success: true, data: state });
+    }
+
     state.currentStep = 'QUESTIONING';
     state.questioning = await runQuestioningNode(
       routerResult.missing_elements,
@@ -682,39 +728,7 @@ router.post("/api/workflow/supplement", async (req: Request, res: Response) => {
       // 彈性驗證：不中斷，繼續往下生成初步草稿
     }
 
-    // 完整流程推進
-    state.currentStep = 'RAG_RETRIEVAL';
-    const ragData = await runRagNode(routerResult.cause, merged, {
-      caseType: routerResult.caseType,
-      category: routerResult.category,
-      isSensitive: routerResult.is_sensitive,
-      legalBasis: routerResult.legalBasis,
-      missing_elements: routerResult.missing_elements
-    });
-    state.rag = ragData;
-
-    state.currentStep = 'SYLLOGISM';
-    const syllogismData = await runSyllogismNode(ragData.legalElements, merged, {
-      is_sensitive: routerResult.is_sensitive,
-      category: routerResult.category,
-      protectionNotice: routerResult.protectionNotice,
-      legalBasis: routerResult.legalBasis,
-      missing_elements: routerResult.missing_elements
-    }, requestAIProvider);
-    state.syllogism = syllogismData;
-
-    state.currentStep = 'VERIFICATION_GATE';
-    const verificationData = await runVerificationGateNode(
-      syllogismData.fullAnalysis,
-      merged,
-      routerResult.legalBasis || [],
-      ragData.precedents.map(precedent => precedent.caseNumber)
-    );
-    state.verification = verificationData;
-    state.rag.precedents = keepExternallyVerifiedPrecedents(ragData.precedents, verificationData.externalCitations);
-
-    state.currentStep = 'COMPLETED';
-    state.updatedAt = Date.now();
+    await completeWorkflow(state, routerResult, merged, requestAIProvider);
 
     return res.json({ success: true, data: state });
   } catch (error: any) {

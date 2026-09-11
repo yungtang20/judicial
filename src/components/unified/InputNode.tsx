@@ -10,7 +10,7 @@ export interface InputNodeProps {
 }
 
 export const InputNode: React.FC<InputNodeProps> = (props) => {
-  const { inputNarrative, setInputNarrative, isSubmitting, setIsSubmitting, workflowState, setWorkflowState, supplementInput, setSupplementInput, isCopied, setIsCopied, acknowledgeSafetyInSession, setAcknowledgeSafetyInSession, isNode2Open, setIsNode2Open, isNode4Open, setIsNode4Open, isNode5Open, setIsNode5Open, isNode6Open, setIsNode6Open, customPreset, setCustomPreset, showCustomPresetModal, setShowCustomPresetModal, editPresetTitle, setEditPresetTitle, editPresetNarrative, setEditPresetNarrative, fileInputRef, isDragOver, setIsDragOver, isParsingFiles, setIsParsingFiles, parsingStatus, setParsingStatus, batchQueue, setBatchQueue, batchIndex, setBatchIndex, isBatchRunning, setIsBatchRunning, showHistory, setShowHistory, historyList, setHistoryList, handleFiles, handleDrop, handleExecuteWorkflow, handleSupplementFact, handleProceedFromSafety, handleResetWorkflow, handleCopyAnalysis, loadFromHistory, handleBatchNext, handleBatchPrev, handleSaveCurrentAsCustomPreset, handleSelectSuggestedOption, handleSaveCustomPreset, handleToggleAllNodes, defaultSample, handleSelectTool, saveCrossFeatureContext, exportAsHtml, exportAsText, printReport, deleteFromHistory, clearHistory, loadHistory, showDocTypeModal, setShowDocTypeModal } = props;
+  const { inputNarrative, setInputNarrative, inputSource, setInputSource, isSubmitting, setIsSubmitting, workflowState, setWorkflowState, supplementInput, setSupplementInput, isCopied, setIsCopied, acknowledgeSafetyInSession, setAcknowledgeSafetyInSession, isNode2Open, setIsNode2Open, isNode4Open, setIsNode4Open, isNode5Open, setIsNode5Open, isNode6Open, setIsNode6Open, customPreset, setCustomPreset, showCustomPresetModal, setShowCustomPresetModal, editPresetTitle, setEditPresetTitle, editPresetNarrative, setEditPresetNarrative, fileInputRef, isDragOver, setIsDragOver, isParsingFiles, setIsParsingFiles, parsingStatus, setParsingStatus, batchQueue, setBatchQueue, batchIndex, setBatchIndex, isBatchRunning, setIsBatchRunning, showHistory, setShowHistory, historyList, setHistoryList, handleFiles, handleDrop, handleExecuteWorkflow, handleSupplementFact, handleProceedFromSafety, handleResetWorkflow, handleCopyAnalysis, loadFromHistory, handleBatchNext, handleBatchPrev, handleSaveCurrentAsCustomPreset, handleSelectSuggestedOption, handleSaveCustomPreset, handleToggleAllNodes, defaultSample, handleSelectTool, saveCrossFeatureContext, exportAsHtml, exportAsText, printReport, deleteFromHistory, clearHistory, loadHistory, showDocTypeModal, setShowDocTypeModal } = props;
 
   const sampleCases = [
     { label: '租賃押金', narrative: defaultSample },
@@ -65,7 +65,7 @@ export const InputNode: React.FC<InputNodeProps> = (props) => {
           <div className="flex items-center justify-between">
             <label className="text-sm font-bold text-white flex items-center gap-2">
               <FileText className="w-4 h-4 text-indigo-400" />
-              <span>案件事實描述 / 法律書狀初稿</span>
+              <span>{inputSource === 'judgment_document' ? '已上傳裁判書' : '案件事實描述 / 法律書狀初稿'}</span>
             </label>
             <div className="flex items-center gap-3">
               <input
@@ -113,7 +113,7 @@ export const InputNode: React.FC<InputNodeProps> = (props) => {
               defaultValue=""
               onChange={(event) => {
                 const sample = sampleCases[Number(event.target.value)];
-                if (sample) setInputNarrative(sample.narrative);
+                if (sample) { setInputNarrative(sample.narrative); setInputSource('facts'); }
                 event.target.value = '';
               }}
               className="rounded-lg bg-slate-900 border border-slate-700 px-3 py-1.5 text-xs text-slate-300"
@@ -179,7 +179,7 @@ export const InputNode: React.FC<InputNodeProps> = (props) => {
               ) : (
                 <>
                   <Send className="w-4 h-4" />
-                  <span>開始分析</span>
+                  <span>{inputSource === 'judgment_document' ? '分析裁判書' : '開始分析'}</span>
                 </>
               )}
             </button>

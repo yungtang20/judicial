@@ -69,6 +69,7 @@ export const UnifiedEntry: React.FC = () => {
   const defaultSample = `事發於民國112年11月15日晚上約11點，在台北市信義區租屋處。我與房東因退租押金發生爭執，房東以無合理依據之清潔費為由拒絕退還新台幣5萬元押金，並威脅若再爭執將把我的私人物品丟到走廊。我有雙方簽署之房屋租賃契約書、歷次匯款房租水電之銀行明細，以及當日 LINE 對話紀錄截圖。請問我的法律權利為何？`;
 
   const [inputNarrative, setInputNarrative] = useState<string>('');
+  const [inputSource, setInputSource] = useState<'facts' | 'judgment_document'>('facts');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [workflowState, setWorkflowState] = useState<LegalWorkflowState | null>(null);
   const [supplementInput, setSupplementInput] = useState<string>('');
@@ -192,6 +193,7 @@ export const UnifiedEntry: React.FC = () => {
         setBatchIndex(0);
         setInputNarrative(parsedTexts[0]);
       }
+      setInputSource('judgment_document');
       stopLoading({ message: '檔案解析完成', type: 'success' });
     } catch (err) {
       console.error('[UnifiedEntry] 裁判書解析異常:', err);
@@ -350,6 +352,7 @@ export const UnifiedEntry: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userInput: text,
+          inputType: inputSource,
           stateId: workflowState?.id,
           acknowledgeSafety: effectiveSafetyAck,
           aiConfig
@@ -453,6 +456,7 @@ export const UnifiedEntry: React.FC = () => {
   const handleResetWorkflow = () => {
     setWorkflowState(null);
     setInputNarrative('');
+    setInputSource('facts');
     setSupplementInput('');
     setAcknowledgeSafetyInSession(false);
     setBatchQueue([]);
@@ -478,7 +482,7 @@ export const UnifiedEntry: React.FC = () => {
   }, [workflowState?.syllogism]);
 
 
-  const sharedProps = { inputNarrative, setInputNarrative, isSubmitting, setIsSubmitting, workflowState, setWorkflowState, supplementInput, setSupplementInput, isCopied, setIsCopied, acknowledgeSafetyInSession, setAcknowledgeSafetyInSession, aiConfig, setAiConfig, isNode2Open, setIsNode2Open, isNode4Open, setIsNode4Open, isNode5Open, setIsNode5Open, isNode6Open, setIsNode6Open, customPreset, setCustomPreset, showCustomPresetModal, setShowCustomPresetModal, editPresetTitle, setEditPresetTitle, editPresetNarrative, setEditPresetNarrative, fileInputRef, isDragOver, setIsDragOver, isParsingFiles, setIsParsingFiles, parsingStatus, setParsingStatus, batchQueue, setBatchQueue, batchIndex, setBatchIndex, isBatchRunning, setIsBatchRunning, showHistory, setShowHistory, historyList, setHistoryList, handleFiles, handleDrop, handleExecuteWorkflow, handleSupplementFact, handleProceedFromSafety, handleResetWorkflow, handleCopyAnalysis, loadFromHistory, handleBatchNext, handleBatchPrev, handleSaveCurrentAsCustomPreset, handleSelectSuggestedOption, handleSaveCustomPreset, handleToggleAllNodes, defaultSample, handleSelectTool, saveCrossFeatureContext, exportAsHtml, exportAsText, printReport, deleteFromHistory, clearHistory, loadHistory, showDocTypeModal, setShowDocTypeModal };
+  const sharedProps = { inputNarrative, setInputNarrative, inputSource, setInputSource, isSubmitting, setIsSubmitting, workflowState, setWorkflowState, supplementInput, setSupplementInput, isCopied, setIsCopied, acknowledgeSafetyInSession, setAcknowledgeSafetyInSession, aiConfig, setAiConfig, isNode2Open, setIsNode2Open, isNode4Open, setIsNode4Open, isNode5Open, setIsNode5Open, isNode6Open, setIsNode6Open, customPreset, setCustomPreset, showCustomPresetModal, setShowCustomPresetModal, editPresetTitle, setEditPresetTitle, editPresetNarrative, setEditPresetNarrative, fileInputRef, isDragOver, setIsDragOver, isParsingFiles, setIsParsingFiles, parsingStatus, setParsingStatus, batchQueue, setBatchQueue, batchIndex, setBatchIndex, isBatchRunning, setIsBatchRunning, showHistory, setShowHistory, historyList, setHistoryList, handleFiles, handleDrop, handleExecuteWorkflow, handleSupplementFact, handleProceedFromSafety, handleResetWorkflow, handleCopyAnalysis, loadFromHistory, handleBatchNext, handleBatchPrev, handleSaveCurrentAsCustomPreset, handleSelectSuggestedOption, handleSaveCustomPreset, handleToggleAllNodes, defaultSample, handleSelectTool, saveCrossFeatureContext, exportAsHtml, exportAsText, printReport, deleteFromHistory, clearHistory, loadHistory, showDocTypeModal, setShowDocTypeModal };
   const hasResult = Boolean(workflowState?.syllogism);
 
   return (
