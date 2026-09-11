@@ -47,7 +47,7 @@ function AppContent() {
       case 'appealDeadline':
         return (
           <LitigationWorkspace
-            initialTab={activeTool === 'appealDeadline' ? 'deadline' : 'appeal'}
+            initialTab={initialData?.initialTab || (activeTool === 'smartAppeal' ? 'appeal' : 'deadline')}
             initialToolId={initialData?.preselectedToolId}
             appealOnly
           />

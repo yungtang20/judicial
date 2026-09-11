@@ -19,14 +19,25 @@ describe('LitigationWorkspace', () => {
     expect(await screen.findByText('非法律專業專用 · 生活法律導診')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /實用法務與書狀/ }));
     expect(await screen.findByText('法律工具箱')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /雙軌訴訟防禦/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /爭點與證據清單/ })).not.toBeInTheDocument();
   });
 
-  it('renders appeal analysis as a separate workspace', async () => {
+  it('groups the four judgment-analysis tools in the requested order', async () => {
     render(<ToolProvider><LitigationWorkspace initialTab="appeal" appealOnly /></ToolProvider>);
 
-    expect(screen.getAllByText('判決分析與上訴狀').length).toBeGreaterThan(0);
-    expect(screen.getByText('匯入裁判書分析原審違誤，並試算上訴法定期間')).toBeInTheDocument();
+    expect(screen.getByText('智慧判決分析工作台')).toBeInTheDocument();
+    expect(screen.getByText('整合期限試算、判決剖析、訴訟防禦與爭點證據')).toBeInTheDocument();
     expect(await screen.findByText('判決分析工具')).toBeInTheDocument();
+    const labels = ['上訴法定期間試算', '判決分析與上訴狀', '雙軌訴訟防禦', '爭點與證據清單'];
+    const tabs = labels.map(label => screen.getByRole('button', { name: new RegExp(label) }));
+    expect(tabs.every((tab, index) => index === 0 || Boolean(tabs[index - 1].compareDocumentPosition(tab) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
+    fireEvent.click(tabs[0]);
+    expect(await screen.findByText('期限工具')).toBeInTheDocument();
+    fireEvent.click(tabs[2]);
+    expect(await screen.findByText('訴訟防禦工具')).toBeInTheDocument();
+    fireEvent.click(tabs[3]);
+    expect(await screen.findByText('爭點工具')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /生活法律導診/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /實用法務與書狀/ })).not.toBeInTheDocument();
   });

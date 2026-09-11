@@ -7,7 +7,7 @@ import Sidebar from './Sidebar';
 describe('Sidebar', () => {
   it('shows four task-oriented entries in the requested order', () => {
     render(<ToolProvider><Sidebar /></ToolProvider>);
-    const labels = ['智慧案件分析工作台', '判決分析與上訴狀', '全方位實用法務工具箱', '法律工具台'];
+    const labels = ['智慧案件分析工作台', '智慧判決分析工作台', '全方位實用法務工具箱', '法律工具台'];
     const entries = labels.map(label => screen.getByText(label));
 
     expect(entries.every((entry, index) => index === 0 || Boolean(entries[index - 1].compareDocumentPosition(entry) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);

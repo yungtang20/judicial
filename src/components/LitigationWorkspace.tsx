@@ -37,44 +37,38 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initia
     if (tab === 'toolbox') return 'toolbox';
     if (tab === 'defense') return 'defense';
     if (['issues', 'evidence'].includes(tab)) return 'issues_evidence';
-    if (['appeal', 'deadline'].includes(tab)) return 'appeal_deadline';
+    if (tab === 'appeal') return 'appeal';
+    if (tab === 'deadline') return 'deadline';
     return 'guide';
   };
 
-  const [activeMainTab, setActiveMainTab] = useState<'guide' | 'toolbox' | 'defense' | 'issues_evidence' | 'appeal_deadline'>(getInitialMainTab(effectiveInitialTab));
+  const [activeMainTab, setActiveMainTab] = useState<'guide' | 'toolbox' | 'defense' | 'issues_evidence' | 'appeal' | 'deadline'>(getInitialMainTab(effectiveInitialTab));
   
   // Keep track of subtabs
   const [issuesSubTab, setIssuesSubTab] = useState<'issues' | 'evidence'>(
     effectiveInitialTab === 'evidence' ? 'evidence' : 'issues'
   );
-  const [appealSubTab, setAppealSubTab] = useState<'appeal' | 'deadline'>(
-    effectiveInitialTab === 'deadline' ? 'deadline' : 'appeal'
-  );
-
   useEffect(() => {
     setActiveMainTab(getInitialMainTab(effectiveInitialTab));
     if (effectiveInitialTab === 'evidence' || effectiveInitialTab === 'issues') {
       setIssuesSubTab(effectiveInitialTab);
     }
-    if (effectiveInitialTab === 'appeal' || effectiveInitialTab === 'deadline') {
-      setAppealSubTab(effectiveInitialTab);
-    }
   }, [effectiveInitialTab]);
 
-  const mainTabs = [
+  const mainTabs = appealOnly ? [
     {
-      id: 'guide',
-      label: '生活法律導診',
-      badge: '起點',
-      icon: Compass,
-      desc: '先辨識法律問題，再前往適合的工具與程序'
+      id: 'deadline',
+      label: '上訴法定期間試算',
+      badge: '期限',
+      icon: Clock,
+      desc: '依裁判送達日期試算上訴法定期間'
     },
     {
-      id: 'toolbox',
-      label: '實用法務與書狀',
-      badge: '工具箱',
-      icon: Briefcase,
-      desc: '日常合約、存證信函與起訴狀產生器'
+      id: 'appeal',
+      label: '判決分析與上訴狀',
+      badge: '上訴',
+      icon: Scale,
+      desc: '匯入裁判書分析原審違誤並製作上訴狀'
     },
     {
       id: 'defense',
@@ -90,6 +84,21 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initia
       icon: Table,
       desc: '法庭爭點對照表與調查證據聲請清單'
     },
+  ] : [
+    {
+      id: 'guide',
+      label: '生活法律導診',
+      badge: '起點',
+      icon: Compass,
+      desc: '先辨識法律問題，再前往適合的工具與程序'
+    },
+    {
+      id: 'toolbox',
+      label: '實用法務與書狀',
+      badge: '工具箱',
+      icon: Briefcase,
+      desc: '日常合約、存證信函與起訴狀產生器'
+    },
   ];
 
   return (
@@ -104,22 +113,22 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initia
             <div>
               <div className="flex items-center gap-2">
                 <span
-                  className={`h-2 w-2 rounded-full ${activeMainTab === 'appeal_deadline' ? 'bg-[var(--color-module-appeal)]' : 'bg-[var(--color-module-litigation)]'}`}
+                  className={`h-2 w-2 rounded-full ${appealOnly ? 'bg-[var(--color-module-appeal)]' : 'bg-[var(--color-module-litigation)]'}`}
                   aria-hidden="true"
                 />
-                <h1 className="text-sm font-bold text-white tracking-tight">{appealOnly ? '判決分析與上訴狀' : '全方位實用法務工具箱'}</h1>
+                <h1 className="text-sm font-bold text-white tracking-tight">{appealOnly ? '智慧判決分析工作台' : '全方位實用法務工具箱'}</h1>
                 <span className="hidden md:inline-block text-[11px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-medium border border-slate-700">
                   {appealOnly ? '上訴救濟' : '一站式法務'}
                 </span>
               </div>
               <p className="text-xs text-[var(--color-text-muted)]">
-                {appealOnly ? '匯入裁判書分析原審違誤，並試算上訴法定期間' : '整合生活導診、日常法務、訴訟攻防與爭點證據'}
+                {appealOnly ? '整合期限試算、判決剖析、訴訟防禦與爭點證據' : '整合生活法律導診、日常法務與書狀工具'}
               </p>
             </div>
           </div>
 
           {/* 橫向切換主分頁：12px 圓角 (rounded-xl) 平緩極簡風格 */}
-          {!appealOnly && <div className="flex items-center gap-1 overflow-x-auto pb-1 lg:pb-0 scrollbar-none bg-[#090d16] p-1 rounded-xl border border-slate-800">
+          <div className="flex items-center gap-1 overflow-x-auto pb-1 lg:pb-0 scrollbar-none bg-[#090d16] p-1 rounded-xl border border-slate-800">
             {mainTabs.map((tab) => {
               const IconComp = tab.icon;
               const isActive = activeMainTab === tab.id;
@@ -144,7 +153,7 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initia
                 </button>
               );
             })}
-          </div>}
+          </div>
         </div>
       </div>
 
@@ -165,27 +174,6 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initia
             >
               <FileSpreadsheet className="w-3.5 h-3.5" />
               調查證據聲請清單
-            </button>
-          </div>
-        </div>
-      )}
-
-      {activeMainTab === 'appeal_deadline' && (
-        <div className="bg-[#0b101d] border-b border-slate-800 px-6 py-2 flex justify-center">
-          <div className="flex bg-[#090d16] p-1 rounded-xl border border-slate-800 text-xs font-medium gap-1">
-            <button
-              onClick={() => setAppealSubTab('appeal')}
-              className={`px-4 py-1.5 rounded-xl flex items-center gap-2 transition-colors ${appealSubTab === 'appeal' ? 'bg-slate-800 text-amber-400 font-semibold' : 'text-[var(--color-text-muted)] hover:text-slate-200'}`}
-            >
-              <Scale className="w-3.5 h-3.5" />
-              判決分析與上訴狀
-            </button>
-            <button
-              onClick={() => setAppealSubTab('deadline')}
-              className={`px-4 py-1.5 rounded-xl flex items-center gap-2 transition-colors ${appealSubTab === 'deadline' ? 'bg-slate-800 text-amber-400 font-semibold' : 'text-[var(--color-text-muted)] hover:text-slate-200'}`}
-            >
-              <Clock className="w-3.5 h-3.5" />
-              上訴法定期間試算
             </button>
           </div>
         </div>
@@ -224,7 +212,7 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initia
             </div>
           )}
         
-          {activeMainTab === 'appeal_deadline' && appealSubTab === 'appeal' && (
+          {activeMainTab === 'appeal' && (
             <div className="p-6 max-w-7xl mx-auto">
               <div className="rounded-xl border border-slate-800 overflow-hidden bg-slate-900/40">
                 <SmartAppealAssistant />
@@ -232,7 +220,7 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initia
             </div>
           )}
         
-          {activeMainTab === 'appeal_deadline' && appealSubTab === 'deadline' && (
+          {activeMainTab === 'deadline' && (
             <div className="p-6 max-w-7xl mx-auto">
               <AppealDeadlineTool />
             </div>

@@ -26,14 +26,14 @@ const coreEntries: NavItem[] = [
   },
   {
     id: 'appeal',
-    label: '判決分析與上訴狀',
-    sublabel: '裁判 PDF 剖析 · 上訴理由書',
+    label: '智慧判決分析工作台',
+    sublabel: '期限試算 · 判決剖析 · 訴訟防禦 · 爭點證據',
     icon: Scale,
   },
   {
     id: 'litigation',
     label: '全方位實用法務工具箱',
-    sublabel: '生活導診 · 書狀 · 攻防 · 證據 · 期限',
+    sublabel: '生活導診 · 日常法務 · 實用書狀',
     icon: Gavel,
   },
   {
