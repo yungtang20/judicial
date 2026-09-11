@@ -3,8 +3,7 @@ import {
   FileText, Check, Copy, Download, Search, AlertTriangle, 
   FolderLock, ArrowRight, BookOpen, Clock, Printer, LayoutTemplate, Sparkles, Scale, SearchCheck, CheckCircle2, ShieldCheck, HandHeart
 } from 'lucide-react';
-import { LEGAL_TOOLS } from '../lib/legalToolRegistry';
-// NOTE: This file utilizes LEGAL_TOOLS.length indirectly via ToolboxHeader
+import { LEGAL_TOOLS, TOOLBOX_TOOLS } from '../lib/legalToolRegistry';
 import { LegalToolboxResult } from '../types';
 import { useCaseStore, getActiveCase } from '../store/useCaseStore';
 import { apiClient } from '../lib/apiClient';
@@ -25,7 +24,7 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
   const addDocument = useCaseStore(state => state.addDocument);
   const presetToolId = initialToolId;
 
-  const [activeToolId, setActiveToolId] = useState<string>(presetToolId || 'CRIMINAL_COMPLAINT_TRAFFIC');
+  const [activeToolId, setActiveToolId] = useState<string>(presetToolId || TOOLBOX_TOOLS[0].id);
   const [selectedGroup, setSelectedGroup] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -49,7 +48,7 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
   };
 
   const filteredTools = useMemo(() => {
-    return LEGAL_TOOLS.filter(tool => {
+    return TOOLBOX_TOOLS.filter(tool => {
       const matchGroup = Boolean(searchQuery.trim()) || selectedGroup === 'ALL' || tool.categoryGroup === selectedGroup;
       const matchQuery = !searchQuery.trim() || 
         tool.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -72,7 +71,7 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
   const handleGroupSelect = (groupId: string) => {
     setSelectedGroup(groupId);
     if (groupId === 'ALL' || currentTool.categoryGroup === groupId) return;
-    const firstTool = LEGAL_TOOLS.find(tool => tool.categoryGroup === groupId);
+    const firstTool = TOOLBOX_TOOLS.find(tool => tool.categoryGroup === groupId);
     if (!firstTool) return;
     setActiveToolId(firstTool.id);
     setResult(null);
@@ -160,7 +159,12 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
   };
 
   return (
-    <div className="space-y-6 pb-20 max-w-7xl mx-auto" id="legal-toolbox-root" data-tools-count={LEGAL_TOOLS.length}>
+    <div
+      className="space-y-6 pb-20 max-w-7xl mx-auto"
+      id="legal-toolbox-root"
+      data-tools-count={TOOLBOX_TOOLS.length}
+      data-system-tools-count={LEGAL_TOOLS.length}
+    >
       <ToolboxHeader 
         selectedGroup={selectedGroup}
         onSelectGroup={handleGroupSelect}

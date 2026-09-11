@@ -1,6 +1,6 @@
 import React from 'react';
 import { Search } from 'lucide-react';
-import { LEGAL_TOOLS } from '../../lib/legalToolRegistry';
+import { TOOLBOX_TOOLS } from '../../lib/legalToolRegistry';
 
 export interface ToolboxHeaderProps {
   selectedGroup: string;
@@ -11,13 +11,9 @@ export interface ToolboxHeaderProps {
 
 export const TOOLBOX_GROUPS = [
   { id: 'ALL', label: '全部文件' },
-  { id: 'GENERAL', label: '其他書狀需求' },
-  { id: 'SAFETY', label: '安全與犯罪被害' },
-  { id: 'DAMAGES', label: '車禍與損害賠償' },
-  { id: 'FAMILY', label: '家庭、婚姻與繼承' },
-  { id: 'ELDERLY', label: '長輩照護與監護' },
-  { id: 'DEBT_EXECUTION', label: '借款、欠款與執行' },
-  { id: 'HOUSING_WORK', label: '租屋、房產與職場' },
+  { id: 'FAMILY', label: '家庭與繼承' },
+  { id: 'DEBT_EXECUTION', label: '借款與欠款' },
+  { id: 'HOUSING_WORK', label: '住宅租賃' },
 ] as const;
 
 export const ToolboxHeader: React.FC<ToolboxHeaderProps> = ({
@@ -27,7 +23,7 @@ export const ToolboxHeader: React.FC<ToolboxHeaderProps> = ({
   onSearchChange,
 }) => {
   const countToolsInGroup = (group: string) =>
-    group === 'ALL' ? LEGAL_TOOLS.length : LEGAL_TOOLS.filter(tool => tool.categoryGroup === group).length;
+    group === 'ALL' ? TOOLBOX_TOOLS.length : TOOLBOX_TOOLS.filter(tool => tool.categoryGroup === group).length;
 
   return (
     <section className="border-b border-slate-800 pb-5 text-white" aria-labelledby="toolbox-heading">
@@ -72,7 +68,7 @@ export const ToolboxHeader: React.FC<ToolboxHeaderProps> = ({
             <input
               id="legal-tool-search"
               type="search"
-              placeholder="輸入問題、文件名稱或法條，例如：欠錢、離婚、存證信函"
+              placeholder="輸入文件名稱或法條，例如：借據、遺囑、租賃契約"
               value={searchQuery}
               onChange={event => onSearchChange(event.target.value)}
               className="min-h-11 w-full rounded-lg border border-slate-700 bg-slate-950 py-2 pl-9 pr-3 text-sm text-slate-200 outline-none placeholder:text-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"

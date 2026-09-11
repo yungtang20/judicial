@@ -390,3 +390,15 @@ export const LEGAL_TOOLS: ToolDefinition[] = [
     legalBasis: '民法第184條、第185條、第195條'
   }
 ];
+
+const TOOLBOX_VISIBLE_IDS = new Set([
+  'INHERITANCE_CALCULATOR',
+  'FORCED_SHARE_CALCULATOR',
+  'SELF_WRITTEN_WILL',
+  'DIVORCE_AGREEMENT',
+  'PAYMENT_ORDER_PETITION',
+  'LOAN_AGREEMENT',
+  'RESIDENTIAL_LEASE_CONTRACT',
+]);
+
+export const TOOLBOX_TOOLS = LEGAL_TOOLS.filter(tool => TOOLBOX_VISIBLE_IDS.has(tool.id));
