@@ -6,7 +6,6 @@ import {
   FileSpreadsheet, 
   Clock, 
   Gavel,
-  Briefcase,
   Compass
 } from 'lucide-react';
 import { loadCrossFeatureContext } from '../lib/crossFeatureContext';
@@ -87,17 +86,10 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initia
   ] : [
     {
       id: 'guide',
-      label: '生活法律導診',
+      label: '生活法律導診與實用法務',
       badge: '起點',
       icon: Compass,
-      desc: '先辨識法律問題，再前往適合的工具與程序'
-    },
-    {
-      id: 'toolbox',
-      label: '實用法務與書狀',
-      badge: '工具箱',
-      icon: Briefcase,
-      desc: '日常合約、存證信函與起訴狀產生器'
+      desc: '先辨識法律問題，再選擇適合的法務工具與書狀'
     },
   ];
 
@@ -131,7 +123,7 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initia
           <div className="flex items-center gap-1 overflow-x-auto pb-1 lg:pb-0 scrollbar-none bg-[#090d16] p-1 rounded-xl border border-slate-800">
             {mainTabs.map((tab) => {
               const IconComp = tab.icon;
-              const isActive = activeMainTab === tab.id;
+              const isActive = activeMainTab === tab.id || (!appealOnly && tab.id === 'guide' && activeMainTab === 'toolbox');
               return (
                 <button
                   key={tab.id}

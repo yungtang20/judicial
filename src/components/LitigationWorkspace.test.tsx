@@ -17,10 +17,17 @@ describe('LitigationWorkspace', () => {
     render(<ToolProvider><LitigationWorkspace /></ToolProvider>);
 
     expect(await screen.findByText('非法律專業專用 · 生活法律導診')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /實用法務與書狀/ }));
-    expect(await screen.findByText('法律工具箱')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /生活法律導診與實用法務/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^實用法務與書狀/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /雙軌訴訟防禦/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /爭點與證據清單/ })).not.toBeInTheDocument();
+  });
+
+  it('keeps direct access to a selected document tool inside the combined entry', async () => {
+    render(<ToolProvider><LitigationWorkspace initialTab="toolbox" /></ToolProvider>);
+
+    expect(await screen.findByText('法律工具箱')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /生活法律導診與實用法務/ })).toBeInTheDocument();
   });
 
   it('groups the four judgment-analysis tools in the requested order', async () => {
