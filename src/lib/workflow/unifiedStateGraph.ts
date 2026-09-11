@@ -48,6 +48,7 @@ export interface WorkflowRouterData {
   is_sensitive: boolean; // 是否涉及性侵害、家暴、跟蹤騷擾或隱私安全
   is_complete: boolean; // 人、事、時、地、證據要素是否充足
   missing_elements: string[]; // 缺少的要素清單
+  legalBasis?: string[]; // 分流引擎判定的法條與罪名／請求權名稱
 }
 
 export interface WorkflowQuestioningData {

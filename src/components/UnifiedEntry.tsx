@@ -489,12 +489,7 @@ export const UnifiedEntry: React.FC = () => {
         {!hasResult && <InputNode {...sharedProps} />}
         {!hasResult && <AIProviderSettings value={aiConfig} onChange={setAiConfig} />}
         {(isSubmitting || workflowState?.error) && <UnifiedProgress {...sharedProps} />}
-        {hasResult && workflowState?.safety && (
-          <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-2 text-xs font-semibold text-rose-200">
-            若有人身危險，請先撥打 110 或 113；完整保護指引列於結果下方。
-          </div>
-        )}
-        <SafetyNode {...sharedProps} showSafety={!hasResult} />
+        <SafetyNode {...sharedProps} showSafety={false} />
         {workflowState && <UnifiedResult {...sharedProps} workflowState={workflowState} />}
         {hasResult && <UnifiedNav {...sharedProps} />}
         {hasResult && (
@@ -506,7 +501,6 @@ export const UnifiedEntry: React.FC = () => {
             </div>
           </details>
         )}
-        {hasResult && workflowState?.safety && <SafetyNode {...sharedProps} showQuestioning={false} />}
         <SettingsModal {...sharedProps} />
       </div>
     </div>

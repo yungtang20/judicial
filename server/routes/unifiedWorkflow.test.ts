@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import http from "http";
 import express from "express";
-import unifiedWorkflowRouter, { buildOfficialJudgmentQueries, buildOfficialSearchEvidence, buildRuleBasedQuestioning } from "./unifiedWorkflow.js";
+import unifiedWorkflowRouter, { buildOfficialJudgmentQueries, buildOfficialSearchEvidence, buildRuleBasedQuestioning, keepExternallyVerifiedPrecedents } from "./unifiedWorkflow.js";
 
 describe("Unified StateGraph Workflow API", { timeout: 30000 }, () => {
   let server: http.Server;
@@ -58,6 +58,16 @@ describe("Unified StateGraph Workflow API", { timeout: 30000 }, () => {
     expect(evidence).toMatchObject({ status: "VERIFIED", claimSupportStatus: "NEEDS_REVIEW" });
   });
 
+  it("相關判例只保留 External Legal Document Checker 完全吻合的字號", () => {
+    const precedents = [{ caseNumber: "最高法院112年度台上字第9號" }, { caseNumber: "最高法院111年度台上字第8號" }];
+    const result = keepExternallyVerifiedPrecedents(precedents, [
+      { citation: precedents[0].caseNumber, status: "verified", exactMatch: true, source: "dr-lawbot", message: "ok", searchUrl: "https://example.com" },
+      { citation: precedents[1].caseNumber, status: "not_found", exactMatch: false, source: "dr-lawbot", message: "missing", searchUrl: "https://example.com" },
+    ]);
+
+    expect(result).toEqual([precedents[0]]);
+  });
+
   it("1. 邊界條件：資訊不完整時 (is_complete == false) 應導向 QuestioningNode 生成動態追問與快捷選項", async () => {
     const res = await fetch(`${baseUrl}/api/workflow/execute`, {
       method: "POST",
@@ -83,7 +93,7 @@ describe("Unified StateGraph Workflow API", { timeout: 30000 }, () => {
     expect(state.syllogism).toBeUndefined();
   });
 
-  it("2. 邊界條件：涉敏感案件時 (is_sensitive == true) 應導向保護路徑 (SAFETY_PROTECTION)", async () => {
+  it("2. 涉敏感案件先顯示動態追問，保護資料延後供結果的行動指引使用", async () => {
     const res = await fetch(`${baseUrl}/api/workflow/execute`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -99,13 +109,14 @@ describe("Unified StateGraph Workflow API", { timeout: 30000 }, () => {
 
     expect(state.router).toBeDefined();
     expect(state.router.is_sensitive).toBe(true);
-    expect(state.currentStep).toBe("SAFETY_PROTECTION");
+    expect(state.currentStep).toBe("QUESTIONING");
+    expect(state.questioning).toBeDefined();
     expect(state.safety).toBeDefined();
     expect(state.safety.emergencyHotlines.length).toBeGreaterThan(0);
     expect(state.safety.preservationTips.length).toBeGreaterThan(0);
   });
 
-  it("3. 完整案情：一次性走完 Router ➔ RAG ➔ Syllogism ➔ VerificationGate (含外部檢核閘門)", async () => {
+  it("3. 完整案情也先追問，補充後才走完分析與外部檢核閘門", async () => {
     const completeCase = `民國112年11月10日上午10點，在台北市大安區和平東路租屋處。被告房東李大同拒絕退還原告新台幣6萬元押金。原告持有雙方房屋租賃合約書、歷次匯款紀錄與11月11日LINE對話截圖作為證據，依民法第184條與第179條請求返還。`;
 
     const res = await fetch(`${baseUrl}/api/workflow/execute`, {
@@ -117,9 +128,17 @@ describe("Unified StateGraph Workflow API", { timeout: 30000 }, () => {
     });
 
     expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.success).toBe(true);
-    const state = body.data;
+    const firstBody = await res.json();
+    expect(firstBody.success).toBe(true);
+    expect(firstBody.data.currentStep).toBe("QUESTIONING");
+    expect(firstBody.data.syllogism).toBeUndefined();
+
+    const supplementRes = await fetch(`${baseUrl}/api/workflow/supplement`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ existingNarrative: completeCase, supplementText: "目前沒有其他資料" })
+    });
+    const state = (await supplementRes.json()).data;
 
     // 驗證狀態傳遞完整
     expect(state.router.domain).toBeDefined();

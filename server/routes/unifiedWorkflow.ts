@@ -11,6 +11,7 @@ import { defaultLegalRetrievalService } from "../services/legalGenerationPipelin
 import { retrieve } from "../services/legalRetrieval.js";
 import { verifyLegalCitations } from "../../src/lib/citationVerifier.js";
 import { verifyExternalPrecedents } from "../../src/lib/externalCitationVerifier.js";
+import type { ExternalCitationResult } from "../../src/lib/externalCitationVerifier.js";
 import { 
   LegalWorkflowState, 
   createInitialWorkflowState 
@@ -25,6 +26,14 @@ import { searchOfficialJudgments, verifyOfficialCitations } from "../services/of
 import { isBasicSafeUrl, verifyDnsSafe } from "./fetchUrl.js";
 
 const router = Router();
+
+export function keepExternallyVerifiedPrecedents<T extends { caseNumber: string }>(
+  precedents: T[],
+  checks: ExternalCitationResult[] = []
+): T[] {
+  const verified = new Set(checks.filter(item => item.status === 'verified' && item.exactMatch).map(item => item.citation));
+  return precedents.filter(precedent => verified.has(precedent.caseNumber));
+}
 
 export interface CustomAIProviderInput {
   providerType?: "custom";
@@ -433,7 +442,8 @@ async function runSyllogismNode(
 async function runVerificationGateNode(
   analysisText: string,
   userFacts: string,
-  legalBasis: string[]
+  legalBasis: string[],
+  precedentCitations: string[] = []
 ): Promise<{
   totalChecked: number;
   ghostCount: number;
@@ -456,8 +466,8 @@ async function runVerificationGateNode(
   // 萃取裁判字號進行外部查驗（若有）
   let externalCitations: any[] = [];
   const citationMatches = combinedText.match(/\d+\s*年(?:度)?\s*[^\d\s]+?\s*字?\s*第\s*\d+\s*號/g) || [];
-  if (citationMatches.length > 0) {
-    const uniqueCitations = Array.from(new Set(citationMatches)).slice(0, 5);
+  const uniqueCitations = Array.from(new Set([...precedentCitations, ...citationMatches])).slice(0, 5);
+  if (uniqueCitations.length > 0) {
     try {
       externalCitations = await verifyExternalPrecedents(uniqueCitations);
     } catch (extErr) {
@@ -538,8 +548,7 @@ router.post("/api/workflow/execute", async (req: Request, res: Response) => {
     const routerResult = await runRouterNode(state.userNarrative);
     state.router = routerResult;
 
-    // 條件邊界 1: 敏感案件保護分流 (is_sensitive == true)
-    // 依使用者指示：性自主案件取消手動按同意再繼續的環節，直接附帶保護指引並順暢執行分析
+    // 敏感案件的保護資料保留到最終「行動指引」顯示，不在追問前打斷流程。
     const isSexualAutonomy = routerResult.category === 'CRIMINAL_COMPLAINT_SEXUAL_ASSAULT' ||
       Boolean(routerResult.chapter?.includes("性自主")) ||
       Boolean(routerResult.cause?.includes("性自主")) ||
@@ -566,59 +575,16 @@ router.post("/api/workflow/execute", async (req: Request, res: Response) => {
         acknowledged: Boolean(acknowledgeSafety || isSexualAutonomy)
       };
 
-      if (!acknowledgeSafety && !isSexualAutonomy) {
-        state.currentStep = 'SAFETY_PROTECTION';
-        return res.json({ success: true, data: state });
-      }
     }
 
-    // 條件邊界 2: 事實要素不完整或有時間矛盾 (is_complete == false) ➔ 必須中斷工作流，返回追問請求
-    if (!routerResult.is_complete) {
-      state.currentStep = 'QUESTIONING';
-      const questionData = await runQuestioningNode(
-        routerResult.missing_elements,
-        state.userNarrative,
-        routerResult.temporalConflict,
-        requestAIProvider
-      );
-      state.questioning = questionData;
-      return res.json({ success: true, data: state });
-    }
-
-    // 條件邊界通過：推進至 RAGNode
-    state.currentStep = 'RAG_RETRIEVAL';
-    const ragData = await runRagNode(routerResult.cause, state.userNarrative, {
-      caseType: routerResult.caseType,
-      category: routerResult.category,
-      isSensitive: routerResult.is_sensitive,
-      legalBasis: routerResult.legalBasis,
-      missing_elements: routerResult.missing_elements
-    });
-    state.rag = ragData;
-
-    // 推進至 SyllogismNode
-    state.currentStep = 'SYLLOGISM';
-    const syllogismData = await runSyllogismNode(ragData.legalElements, state.userNarrative, {
-      is_sensitive: routerResult.is_sensitive,
-      category: routerResult.category,
-      protectionNotice: routerResult.protectionNotice,
-      legalBasis: routerResult.legalBasis,
-      missing_elements: routerResult.missing_elements
-    });
-    state.syllogism = syllogismData;
-
-    // 推進至 VerificationGateNode (防假通過驗證)
-    state.currentStep = 'VERIFICATION_GATE';
-    const verificationData = await runVerificationGateNode(
-      syllogismData.fullAnalysis,
+    // 首次輸入一律停在動態追問；使用者選擇、填寫或回答「無」後才由 supplement 產出結果。
+    state.currentStep = 'QUESTIONING';
+    state.questioning = await runQuestioningNode(
+      routerResult.missing_elements,
       state.userNarrative,
-      routerResult.legalBasis || []
+      routerResult.temporalConflict,
+      requestAIProvider
     );
-    state.verification = verificationData;
-
-    state.currentStep = 'COMPLETED';
-    state.updatedAt = Date.now();
-
     return res.json({ success: true, data: state });
   } catch (error: any) {
     console.error("[UnifiedWorkflow] 執行工作流失敗:", error);
@@ -664,8 +630,7 @@ router.post("/api/workflow/supplement", async (req: Request, res: Response) => {
     state.router = routerResult;
     state.factHistory = [existingNarrative || "", supplementText.trim()];
 
-    if (routerResult.is_sensitive && !acknowledgeSafety) {
-      state.currentStep = 'SAFETY_PROTECTION';
+    if (routerResult.is_sensitive) {
       state.safety = {
         emergencyHotlines: [
           { label: "全國婦幼保護專線", number: "113", desc: "24 小時免付費，提供家暴、性侵、兒少保護諮詢與通報" },
@@ -677,9 +642,8 @@ router.post("/api/workflow/supplement", async (req: Request, res: Response) => {
           "備份所有通訊紀錄與相關照片、證物。"
         ],
         immediateSteps: ["驗傷保全", "警察局筆錄", "法院聲請保護令"],
-        acknowledged: false
+        acknowledged: Boolean(acknowledgeSafety)
       };
-      return res.json({ success: true, data: state });
     }
 
     // 若仍不完整或仍存在時間矛盾，繼續中斷工作流
@@ -724,9 +688,11 @@ router.post("/api/workflow/supplement", async (req: Request, res: Response) => {
     const verificationData = await runVerificationGateNode(
       syllogismData.fullAnalysis,
       merged,
-      routerResult.legalBasis || []
+      routerResult.legalBasis || [],
+      ragData.precedents.map(precedent => precedent.caseNumber)
     );
     state.verification = verificationData;
+    state.rag.precedents = keepExternallyVerifiedPrecedents(ragData.precedents, verificationData.externalCitations);
 
     state.currentStep = 'COMPLETED';
     state.updatedAt = Date.now();

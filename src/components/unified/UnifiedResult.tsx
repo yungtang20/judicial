@@ -2,6 +2,7 @@ import React from 'react';
 import { AlertTriangle, Check, Copy, ExternalLink, FileCheck2, Printer } from 'lucide-react';
 import type { LegalWorkflowState } from '../../lib/workflow/unifiedStateGraph';
 import { formatLegalChapter } from '../../lib/legalChapterLabels';
+import { VERIFIED_REAL_STATUTES } from '../../lib/citationVerifier';
 
 interface UnifiedResultProps {
   workflowState: LegalWorkflowState;
@@ -18,12 +19,33 @@ export function canUseWorkflowResult(state: LegalWorkflowState): boolean {
 }
 
 const normalizeCitation = (value: string) => value.replace(/[\s　、，。,.;；：:（）()]/g, '').replace(/臺/g, '台');
+const citationsMatch = (left: string, right: string) => {
+  const normalizedLeft = normalizeCitation(left);
+  const normalizedRight = normalizeCitation(right);
+  return normalizedLeft.includes(normalizedRight) || normalizedRight.includes(normalizedLeft);
+};
+
+export function formatStatuteCitation(citation: string, preferred: string[] = []): string {
+  if (/[（(].+[）)]/.test(citation)) return citation;
+  const namedCitation = preferred.find(candidate => /[（(].+[）)]/.test(candidate) && citationsMatch(candidate, citation));
+  if (namedCitation) return namedCitation;
+  const statute = Object.entries(VERIFIED_REAL_STATUTES)
+    .filter(([key]) => citationsMatch(key, citation))
+    .sort(([left], [right]) => normalizeCitation(right).length - normalizeCitation(left).length)[0]?.[1];
+  return statute?.keywords[0] ? `${citation}（${statute.keywords[0]}）` : citation;
+}
 
 export function countMatchingPrecedents(state: LegalWorkflowState, citation: string): number {
   const target = normalizeCitation(citation);
+  const externallyVerified = new Set(
+    (state.verification?.externalCitations || [])
+      .filter(item => item.status === 'verified' && item.exactMatch)
+      .map(item => item.citation)
+  );
   return state.rag?.precedents?.filter(precedent =>
+    externallyVerified.has(precedent.caseNumber) &&
     (precedent.citedStatutes || []).some(item => normalizeCitation(item) === target) ||
-    normalizeCitation(precedent.summary).includes(target)
+    externallyVerified.has(precedent.caseNumber) && normalizeCitation(precedent.summary).includes(target)
   ).length || 0;
 }
 
@@ -50,11 +72,24 @@ export const UnifiedResult: React.FC<UnifiedResultProps> = ({
     ? '部分引用尚未經官方資料庫確認，因此目前只能參考，不能直接用於書狀或法律主張。'
     : verification?.warningNotice;
   const statuteEvidence = officialEvidence.filter(item => item.type === 'STATUTE');
+  const verifiedPrecedents = (rag?.precedents || []).filter(precedent =>
+    verification?.externalCitations?.some(item => item.citation === precedent.caseNumber && item.status === 'verified' && item.exactMatch)
+  );
   const evidenceTips = workflowState.safety?.preservationTips?.slice(0, 4) || [
     '保留可證明事件時間、地點及關係人的原始資料。',
     '備份通訊、錄音、照片、影片或監視器原始檔。',
     '整理契約、金流、醫療、報案或其他第三方紀錄。',
   ];
+  const actionTips = workflowState.safety
+    ? [
+        ...workflowState.safety.immediateSteps.slice(0, 3),
+        ...workflowState.safety.emergencyHotlines.slice(0, 3).map(item => `${item.label}：${item.number}（${item.desc}）`),
+      ]
+    : [
+        '先保存上述證據原始檔，不要只留截圖。',
+        '依官方法條及裁判內容核對適用要件。',
+        '涉及期限或重大權益時，儘速向律師或法律扶助確認。',
+      ];
 
   const actionClass = 'px-3 py-2 rounded-lg border border-slate-700 text-xs font-semibold text-slate-300 hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed';
 
@@ -95,16 +130,23 @@ export const UnifiedResult: React.FC<UnifiedResultProps> = ({
           )}
         </div>
 
+        <div className="space-y-2">
+          <h2 className="text-sm font-bold text-white">對應案件事實</h2>
+          <p className="text-xs leading-6 text-slate-300">{syllogism.minorPremise}</p>
+          <p className="text-xs leading-6 text-[var(--color-text-secondary)]">判斷方向：{syllogism.subsumption}</p>
+        </div>
+
         <div className="space-y-3">
-          <h2 className="text-sm font-bold text-white">可能涉及的法條</h2>
+          <h2 className="text-sm font-bold text-white">可能涉及的法條與名稱</h2>
           {statuteEvidence.length > 0 ? statuteEvidence.map((item, index) => {
             const isValidSource = ['VALID', 'VERIFIED', 'AUTHORITATIVE'].includes(item.status);
             const supportsClaim = isValidSource && item.claimSupportStatus === 'SUPPORTED';
             const matchingPrecedents = item.type === 'STATUTE' ? countMatchingPrecedents(workflowState, item.citation) : 0;
+            const displayCitation = formatStatuteCitation(item.citation, [...(router?.legalBasis || []), ...(rag?.statuteCitations || [])]);
             return (
               <div key={`${item.type}-${item.citation}-${index}`} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 py-2 border-t border-slate-800 text-xs">
                 <div>
-                  <span className="font-semibold text-slate-200">{item.citation}</span>
+                  <span className="font-semibold text-slate-200">{displayCitation}</span>
                   <span className={`ml-2 ${supportsClaim ? 'text-emerald-400' : isValidSource ? 'text-amber-300' : 'text-rose-300'}`}>
                     {supportsClaim
                       ? '可以使用｜已確認支持目前結論'
@@ -124,22 +166,22 @@ export const UnifiedResult: React.FC<UnifiedResultProps> = ({
         </div>
 
         <div className="space-y-2">
-          <h2 className="text-sm font-bold text-white">對應案件事實</h2>
-          <p className="text-xs leading-6 text-slate-300">{syllogism.minorPremise}</p>
-          <p className="text-xs leading-6 text-[var(--color-text-secondary)]">判斷方向：{syllogism.subsumption}</p>
-        </div>
-
-        <div className="space-y-2">
           <h2 className="text-sm font-bold text-white">需備證據</h2>
           <ul className="space-y-1 text-xs leading-6 text-slate-300">
             {evidenceTips.map(tip => <li key={tip}>• {tip}</li>)}
           </ul>
         </div>
 
-        {rag?.precedents && rag.precedents.length > 0 && (
-          <div className="space-y-2">
-            <h2 className="text-sm font-bold text-white">相關判例</h2>
-            {rag.precedents.map((precedent, index) => {
+        <div className="space-y-2">
+          <h2 className="text-sm font-bold text-white">行動指引</h2>
+          <ul className="space-y-1 text-xs leading-6 text-slate-300">
+            {actionTips.map(tip => <li key={tip}>• {tip}</li>)}
+          </ul>
+        </div>
+
+        <div className="space-y-2">
+          <h2 className="text-sm font-bold text-white">相關判例</h2>
+          {verifiedPrecedents.length > 0 ? verifiedPrecedents.map((precedent, index) => {
               const citedStatutes = precedent.citedStatutes?.length
                 ? precedent.citedStatutes
                 : (rag.statuteCitations || []).filter(citation => normalizeCitation(precedent.summary).includes(normalizeCitation(citation)));
@@ -147,14 +189,13 @@ export const UnifiedResult: React.FC<UnifiedResultProps> = ({
                 <div key={`${precedent.caseNumber}-${index}`} className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 py-2 border-t border-slate-800 text-xs text-slate-300">
                   <div>
                     <div className="font-semibold text-slate-200">{precedent.caseNumber}</div>
-                    <div className="mt-1 text-[var(--color-text-muted)]">{precedent.courtName}{citedStatutes.length ? ` · 同案引用：${citedStatutes.join('、')}` : ' · 尚未比對出相同法條'}</div>
+                    <div className="mt-1 text-[var(--color-text-muted)]">{precedent.courtName}{citedStatutes.length ? ` · 同案引用：${citedStatutes.join('、')}` : ' · 尚未比對出相同法條'} · 外部文件檢核通過</div>
                   </div>
                   {precedent.sourceUrl && <a href={precedent.sourceUrl} target="_blank" rel="noreferrer" className="shrink-0 text-sky-400 hover:underline">官方來源</a>}
                 </div>
               );
-            })}
-          </div>
-        )}
+            }) : <p className="text-xs leading-6 text-slate-400">目前沒有通過外部法律文件檢核的相關判例。</p>}
+        </div>
 
         <details className="border-t border-slate-800 pt-4 group">
           <summary className="cursor-pointer text-sm font-semibold text-slate-300 hover:text-white">深入了解分析依據</summary>

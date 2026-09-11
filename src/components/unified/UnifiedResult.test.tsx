@@ -2,16 +2,21 @@ import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { LegalWorkflowState } from '../../lib/workflow/unifiedStateGraph';
-import { UnifiedResult, canUseWorkflowResult, countMatchingPrecedents } from './UnifiedResult';
+import { UnifiedResult, canUseWorkflowResult, countMatchingPrecedents, formatStatuteCitation } from './UnifiedResult';
 
 const baseState: LegalWorkflowState = {
   id: 'test', createdAt: 1, updatedAt: 1, currentStep: 'COMPLETED', factHistory: [], userNarrative: '測試案情',
-  router: { domain: '民事', chapter: 'CIVIL_TORT_GENERAL', cause: '侵權行為', is_sensitive: false, is_complete: true, missing_elements: [] },
+  router: { domain: '民事', chapter: 'CIVIL_TORT_GENERAL', cause: '侵權行為', is_sensitive: false, is_complete: true, missing_elements: [], legalBasis: ['民法第184條（侵權行為損害賠償）'] },
   rag: { searchQuery: '民法第184條', legalElements: '侵權要件', statuteCitations: ['民法第184條', '民法第195條'], precedents: [{ caseNumber: '最高法院112年度台上字第9號', courtName: '最高法院', summary: '本件依民法第184條判決', citedStatutes: ['民法第184條'], sourceUrl: 'https://judgment.judicial.gov.tw/' }] },
   syllogism: { majorPremise: '法律規則', minorPremise: '案件事實', subsumption: '要件比對', conclusion: '得請求損害賠償。', fullAnalysis: '完整分析內容' },
   verification: {
     totalChecked: 1, ghostCount: 0, results: [], sanitizedText: '完整分析內容', passGate: true, verificationStatus: 'PASS',
+    externalCitations: [{ citation: '最高法院112年度台上字第9號', status: 'verified', exactMatch: true, source: 'dr-lawbot', message: '字號吻合', searchUrl: 'https://api.dr-lawbot.com/' }],
     officialEvidence: [{ citation: '民法第184條', type: 'STATUTE', status: 'VALID', source: '全國法規資料庫', sourceUrl: 'https://law.moj.gov.tw/', checkedAt: '2026-09-11', claimSupportStatus: 'SUPPORTED' }],
+  },
+  safety: {
+    emergencyHotlines: [{ label: '緊急報案', number: '110', desc: '有人身危險時' }],
+    preservationTips: ['保存原始對話'], immediateSteps: ['立即離開危險現場'], acknowledged: true,
   },
 };
 
@@ -24,6 +29,10 @@ const handlers = {
 };
 
 describe('UnifiedResult', () => {
+  it('adds the existing legal name to a statute citation', () => {
+    expect(formatStatuteCitation('刑法第221條')).toBe('刑法第221條（強制性交罪）');
+  });
+
   it('shows a verified result first, deduplicates evidence, and keeps reasoning collapsed', () => {
     render(<UnifiedResult workflowState={baseState} {...handlers} />);
 
@@ -31,12 +40,17 @@ describe('UnifiedResult', () => {
     expect(screen.getByText('可以使用｜已確認支持目前結論')).toBeInTheDocument();
     expect(countMatchingPrecedents(baseState, '民法第184條')).toBe(1);
     expect(screen.getByText('對應案件事實')).toBeInTheDocument();
+    expect(screen.getByText('可能涉及的法條與名稱')).toBeInTheDocument();
     expect(screen.getByText('需備證據')).toBeInTheDocument();
+    expect(screen.getByText('行動指引')).toBeInTheDocument();
     expect(screen.getByText('相關判例')).toBeInTheDocument();
-    const sectionOrder = ['可能涉及的法條', '對應案件事實', '需備證據', '相關判例']
+    const sectionOrder = ['對應案件事實', '可能涉及的法條與名稱', '需備證據', '行動指引', '相關判例']
       .map(label => screen.getByText(label));
     expect(sectionOrder.every((node, index) => index === 0 || Boolean(sectionOrder[index - 1].compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
-    expect(screen.getAllByText('民法第184條')).toHaveLength(1);
+    expect(screen.getByText('民法第184條（侵權行為損害賠償）')).toBeInTheDocument();
+    expect(screen.getByText(/外部文件檢核通過/)).toBeInTheDocument();
+    expect(screen.getByText(/立即離開危險現場/)).toBeInTheDocument();
+    expect(screen.getByText(/緊急報案：110/)).toBeInTheDocument();
     const details = screen.getByText('深入了解分析依據').closest('details') as HTMLDetailsElement;
     expect(details.open).toBe(false);
     fireEvent.click(screen.getByText('深入了解分析依據'));

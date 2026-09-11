@@ -50,7 +50,7 @@ export const SafetyNode: React.FC<SafetyNodeProps> = (props) => {
         )}
 
         {/* Questioning Node */}
-        {showQuestioning && workflowState?.questioning && !workflowState?.router?.is_complete && (
+        {showQuestioning && workflowState?.questioning && workflowState.currentStep === 'QUESTIONING' && (
           <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 space-y-3">
             <div className="flex items-center gap-2.5">
               <HelpCircle className="w-5 h-5 text-amber-400" />
