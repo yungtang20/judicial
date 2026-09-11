@@ -1,7 +1,7 @@
 
 import React from 'react';
 import {
-  Send, Sparkles, FileText, Upload, Loader2, Edit3, FilePlus
+  Send, Sparkles, FileText, Loader2, Edit3
 } from 'lucide-react';
 import { UIConstants } from '../../constants/ui';
 
@@ -10,7 +10,7 @@ export interface InputNodeProps {
 }
 
 export const InputNode: React.FC<InputNodeProps> = (props) => {
-  const { inputNarrative, setInputNarrative, inputSource, setInputSource, isSubmitting, setIsSubmitting, workflowState, setWorkflowState, supplementInput, setSupplementInput, isCopied, setIsCopied, acknowledgeSafetyInSession, setAcknowledgeSafetyInSession, isNode2Open, setIsNode2Open, isNode4Open, setIsNode4Open, isNode5Open, setIsNode5Open, isNode6Open, setIsNode6Open, customPreset, setCustomPreset, showCustomPresetModal, setShowCustomPresetModal, editPresetTitle, setEditPresetTitle, editPresetNarrative, setEditPresetNarrative, fileInputRef, isDragOver, setIsDragOver, isParsingFiles, setIsParsingFiles, parsingStatus, setParsingStatus, batchQueue, setBatchQueue, batchIndex, setBatchIndex, isBatchRunning, setIsBatchRunning, showHistory, setShowHistory, historyList, setHistoryList, handleFiles, handleDrop, handleExecuteWorkflow, handleSupplementFact, handleProceedFromSafety, handleResetWorkflow, handleCopyAnalysis, loadFromHistory, handleBatchNext, handleBatchPrev, handleSaveCurrentAsCustomPreset, handleSelectSuggestedOption, handleSaveCustomPreset, handleToggleAllNodes, defaultSample, handleSelectTool, saveCrossFeatureContext, exportAsHtml, exportAsText, printReport, deleteFromHistory, clearHistory, loadHistory, showDocTypeModal, setShowDocTypeModal } = props;
+  const { inputNarrative, setInputNarrative, isSubmitting, customPreset, setShowCustomPresetModal, setEditPresetTitle, setEditPresetNarrative, handleExecuteWorkflow, handleSaveCurrentAsCustomPreset, defaultSample } = props;
 
   const sampleCases = [
     { label: '租賃押金', narrative: defaultSample },
@@ -23,97 +23,26 @@ export const InputNode: React.FC<InputNodeProps> = (props) => {
 
   return (
     <>
-        {/* Batch upload bar */}
-        {batchQueue.length > 1 && (
-          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3 text-xs text-amber-300">
-              <FilePlus className="w-4 h-4" />
-              <span className="font-bold">批量模式：第 {batchIndex + 1} / {batchQueue.length} 份</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleBatchPrev}
-                disabled={batchIndex === 0}
-                className="px-3 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-slate-300 text-xs font-bold border border-slate-700"
-              >
-                上一份
-              </button>
-              <button
-                onClick={handleBatchNext}
-                disabled={batchIndex === batchQueue.length - 1}
-                className="px-3 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-slate-300 text-xs font-bold border border-slate-700"
-              >
-                下一份
-              </button>
-              <button
-                onClick={() => { setBatchQueue([]); setBatchIndex(0); }}
-                className="px-3 py-1 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs font-bold border border-rose-500/30"
-              >
-                結束批量
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* 節點 1：單一入口文本輸入 + 拖曳上傳 */}
-        <div
-          className={`p-6 rounded-xl bg-[#0e1424] border transition-colors space-y-4 ${isDragOver ? 'border-indigo-400 bg-indigo-500/5' : 'border-slate-800'}`}
-          onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
-          onDragLeave={() => setIsDragOver(false)}
-          onDrop={handleDrop}
-        >
+        {/* 節點 1：案件事實輸入 */}
+        <div className="p-6 rounded-xl bg-[#0e1424] border border-slate-800 space-y-4">
           <div className="flex items-center justify-between">
             <label className="text-sm font-bold text-white flex items-center gap-2">
               <FileText className="w-4 h-4 text-indigo-400" />
-              <span>{inputSource === 'judgment_document' ? '已上傳裁判書' : '案件事實描述 / 法律書狀初稿'}</span>
+              <span>案件事實描述</span>
             </label>
             <div className="flex items-center gap-3">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".pdf,.txt,application/pdf,text/plain"
-                multiple
-                className="hidden"
-                onChange={(e) => { if (e.target.files) handleFiles(e.target.files); e.target.value = ''; }}
-              />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isParsingFiles || isSubmitting}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-300 text-xs font-bold border border-slate-700 transition-colors cursor-pointer"
-              >
-                {isParsingFiles ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-400" />
-                    <span>解析 PDF 中...</span>
-                  </>
-                ) : (
-                  <>
-                    <Upload className="w-3.5 h-3.5 text-indigo-400" />
-                    <span>上傳裁判書 (PDF/TXT)</span>
-                  </>
-                )}
-              </button>
               <span className="text-xs text-[var(--color-text-muted)]">
                 字數：{inputNarrative.length} 字
               </span>
             </div>
           </div>
 
-          {/* PDF / File Parsing Indicator */}
-          {isParsingFiles && (
-            <div className="p-3.5 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center gap-3 text-xs text-indigo-300">
-              <Loader2 className="w-4 h-4 animate-spin text-indigo-400 shrink-0" />
-              <span>{parsingStatus || '正在解析司法院裁判書 PDF 內容，請稍候...'}</span>
-            </div>
-          )}
-
           <div className="flex flex-wrap items-center gap-2 pt-1">
             <select
               defaultValue=""
               onChange={(event) => {
                 const sample = sampleCases[Number(event.target.value)];
-                if (sample) { setInputNarrative(sample.narrative); setInputSource('facts'); }
+                if (sample) setInputNarrative(sample.narrative);
                 event.target.value = '';
               }}
               className="rounded-lg bg-slate-900 border border-slate-700 px-3 py-1.5 text-xs text-slate-300"
@@ -153,8 +82,8 @@ export const InputNode: React.FC<InputNodeProps> = (props) => {
           <textarea
             value={inputNarrative}
             onChange={(e) => setInputNarrative(e.target.value)}
-            disabled={isSubmitting || isParsingFiles}
-            placeholder="請直接輸入口語事實或案發經過（例如：我上個月在租屋處退租時房東扣住五萬元押金不還，說要收清潔費但沒收據...）&#10;&#10;亦可點選右上角按鈕或直接拖曳上傳司法院裁判書 PDF 檔（.pdf）或文字檔（.txt）。"
+            disabled={isSubmitting}
+            placeholder="請直接輸入口語事實或案發經過（例如：我上個月在租屋處退租時房東扣住五萬元押金不還，說要收清潔費但沒收據...）"
             rows={5}
             className="w-full p-4 rounded-xl bg-slate-950 border border-slate-700 text-slate-100 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 transition-colors leading-relaxed placeholder:text-[var(--color-text-secondary)] disabled:opacity-50"
           />
@@ -162,7 +91,7 @@ export const InputNode: React.FC<InputNodeProps> = (props) => {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
             <div className="text-xs text-[var(--color-text-muted)] flex items-center gap-1.5">
               <Sparkles className="w-4 h-4 text-indigo-400 shrink-0" />
-              <span>支援口語輸入自動提煉爭點，或拖曳上傳裁判書（.pdf / .txt）</span>
+              <span>輸入口語案情，系統會先追問關鍵事實，再整理法律爭點。</span>
             </div>
 
             <button
@@ -179,7 +108,7 @@ export const InputNode: React.FC<InputNodeProps> = (props) => {
               ) : (
                 <>
                   <Send className="w-4 h-4" />
-                  <span>{inputSource === 'judgment_document' ? '分析裁判書' : '開始分析'}</span>
+                  <span>開始分析</span>
                 </>
               )}
             </button>

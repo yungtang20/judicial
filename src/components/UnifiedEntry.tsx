@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UnifiedHeader } from './unified/UnifiedHeader';
 import { HistoryModal } from './unified/HistoryModal';
 import { UnifiedProgress } from './unified/UnifiedProgress';
@@ -12,7 +12,7 @@ import {
   Send, Sparkles, ShieldAlert, ShieldCheck, AlertTriangle, CheckCircle2,
   Cpu, Layers, FileCheck2, FileText, RotateCcw, Copy, Check, Loader2,
   ChevronRight, ArrowRight, HelpCircle, Clock, BookOpen, Scale,
-  Upload, History, Download, Printer, Trash2, X, FilePlus, ChevronDown,
+  History, Download, Printer, Trash2, X, ChevronDown,
   ChevronUp, Star, Edit3, Plus, Bookmark
 } from 'lucide-react';
 import {
@@ -33,7 +33,6 @@ import { saveCrossFeatureContext } from '../lib/crossFeatureContext';
 import { useToolContext } from '../contexts/ToolContext';
 import { useGlobalUI } from '../contexts/GlobalUIContext';
 import { fetchWithAuth } from '../lib/apiClient';
-import { extractPdfText } from '../lib/pdfUtils';
 import { buildIntelligentRuleBasedTriage, enforceTriageConsistency, detectTemporalConflict } from '../lib/universalTriage';
 import { verifyLegalCitations } from '../lib/citationVerifier';
 
@@ -69,7 +68,6 @@ export const UnifiedEntry: React.FC = () => {
   const defaultSample = `事發於民國112年11月15日晚上約11點，在台北市信義區租屋處。我與房東因退租押金發生爭執，房東以無合理依據之清潔費為由拒絕退還新台幣5萬元押金，並威脅若再爭執將把我的私人物品丟到走廊。我有雙方簽署之房屋租賃契約書、歷次匯款房租水電之銀行明細，以及當日 LINE 對話紀錄截圖。請問我的法律權利為何？`;
 
   const [inputNarrative, setInputNarrative] = useState<string>('');
-  const [inputSource, setInputSource] = useState<'facts' | 'judgment_document'>('facts');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [workflowState, setWorkflowState] = useState<LegalWorkflowState | null>(null);
   const [supplementInput, setSupplementInput] = useState<string>('');
@@ -130,106 +128,9 @@ export const UnifiedEntry: React.FC = () => {
     }
   };
 
-  // Batch & file upload
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isDragOver, setIsDragOver] = useState<boolean>(false);
-  const [isParsingFiles, setIsParsingFiles] = useState<boolean>(false);
-  const [parsingStatus, setParsingStatus] = useState<string | null>(null);
-  const [batchQueue, setBatchQueue] = useState<string[]>([]);
-  const [batchIndex, setBatchIndex] = useState<number>(0);
-  const [isBatchRunning, setIsBatchRunning] = useState<boolean>(false);
-
   // History
   const [showHistory, setShowHistory] = useState<boolean>(false);
   const [historyList, setHistoryList] = useState<AnalysisRecord[]>(loadHistory());
-
-  // Handle file upload (single or batch, supporting Judicial Yuan .pdf and .txt)
-  const handleFiles = useCallback(async (files: FileList | File[]) => {
-    const fileArray = Array.from(files);
-    const validFiles = fileArray.filter(f => {
-      const name = f.name.toLowerCase();
-      return name.endsWith('.pdf') || name.endsWith('.txt') || f.type === 'application/pdf' || f.type === 'text/plain';
-    });
-
-    if (validFiles.length === 0) {
-      alert('請上傳司法院裁判書 PDF 檔案（.pdf）或文字檔案（.txt）');
-      return;
-    }
-
-    setIsParsingFiles(true);
-    setParsingStatus(`正在讀取與解析 ${validFiles.length} 份裁判書...`);
-    startLoading();
-
-    try {
-      const parsedTexts: string[] = [];
-      for (let i = 0; i < validFiles.length; i++) {
-        const file = validFiles[i];
-        const isPdf = file.name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf';
-        setParsingStatus(`正在解析裁判書 (${i + 1}/${validFiles.length})：${file.name}`);
-
-        let content = '';
-        if (isPdf) {
-          content = await extractPdfText(file);
-        } else {
-          content = await file.text();
-        }
-
-        const trimmed = content.trim();
-        if (trimmed.length > 10) {
-          parsedTexts.push(trimmed);
-        }
-      }
-
-      if (parsedTexts.length === 0) {
-        alert('上傳的裁判書檔案內容為空或無法提取文字（若為掃描式 PDF 請確認文字圖層）');
-        stopLoading({ message: '解析失敗，內容為空', type: 'error' });
-        return;
-      }
-
-      if (parsedTexts.length === 1) {
-        setInputNarrative(parsedTexts[0]);
-      } else {
-        setBatchQueue(parsedTexts);
-        setBatchIndex(0);
-        setInputNarrative(parsedTexts[0]);
-      }
-      setInputSource('judgment_document');
-      stopLoading({ message: '檔案解析完成', type: 'success' });
-    } catch (err) {
-      console.error('[UnifiedEntry] 裁判書解析異常:', err);
-      alert('解析裁判書檔案時發生錯誤，請確認檔案未損毀或受密碼保護');
-      stopLoading({ message: '檔案解析失敗', type: 'error' });
-    } finally {
-      setIsParsingFiles(false);
-      setParsingStatus(null);
-    }
-  }, []);
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(false);
-    if (e.dataTransfer.files.length > 0) {
-      handleFiles(e.dataTransfer.files);
-    }
-  }, [handleFiles]);
-
-  const handleBatchNext = () => {
-    if (batchIndex < batchQueue.length - 1) {
-      const next = batchIndex + 1;
-      setBatchIndex(next);
-      setInputNarrative(batchQueue[next]);
-      setWorkflowState(null);
-    }
-  };
-
-  const handleBatchPrev = () => {
-    if (batchIndex > 0) {
-      const prev = batchIndex - 1;
-      setBatchIndex(prev);
-      setInputNarrative(batchQueue[prev]);
-      setWorkflowState(null);
-    }
-  };
 
   // Save to history after analysis completes
   const saveCurrentToHistory = () => {
@@ -352,7 +253,6 @@ export const UnifiedEntry: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userInput: text,
-          inputType: inputSource,
           stateId: workflowState?.id,
           acknowledgeSafety: effectiveSafetyAck,
           aiConfig
@@ -456,11 +356,8 @@ export const UnifiedEntry: React.FC = () => {
   const handleResetWorkflow = () => {
     setWorkflowState(null);
     setInputNarrative('');
-    setInputSource('facts');
     setSupplementInput('');
     setAcknowledgeSafetyInSession(false);
-    setBatchQueue([]);
-    setBatchIndex(0);
   };
 
   const handleCopyAnalysis = () => {
@@ -482,7 +379,7 @@ export const UnifiedEntry: React.FC = () => {
   }, [workflowState?.syllogism]);
 
 
-  const sharedProps = { inputNarrative, setInputNarrative, inputSource, setInputSource, isSubmitting, setIsSubmitting, workflowState, setWorkflowState, supplementInput, setSupplementInput, isCopied, setIsCopied, acknowledgeSafetyInSession, setAcknowledgeSafetyInSession, aiConfig, setAiConfig, isNode2Open, setIsNode2Open, isNode4Open, setIsNode4Open, isNode5Open, setIsNode5Open, isNode6Open, setIsNode6Open, customPreset, setCustomPreset, showCustomPresetModal, setShowCustomPresetModal, editPresetTitle, setEditPresetTitle, editPresetNarrative, setEditPresetNarrative, fileInputRef, isDragOver, setIsDragOver, isParsingFiles, setIsParsingFiles, parsingStatus, setParsingStatus, batchQueue, setBatchQueue, batchIndex, setBatchIndex, isBatchRunning, setIsBatchRunning, showHistory, setShowHistory, historyList, setHistoryList, handleFiles, handleDrop, handleExecuteWorkflow, handleSupplementFact, handleProceedFromSafety, handleResetWorkflow, handleCopyAnalysis, loadFromHistory, handleBatchNext, handleBatchPrev, handleSaveCurrentAsCustomPreset, handleSelectSuggestedOption, handleSaveCustomPreset, handleToggleAllNodes, defaultSample, handleSelectTool, saveCrossFeatureContext, exportAsHtml, exportAsText, printReport, deleteFromHistory, clearHistory, loadHistory, showDocTypeModal, setShowDocTypeModal };
+  const sharedProps = { inputNarrative, setInputNarrative, isSubmitting, setIsSubmitting, workflowState, setWorkflowState, supplementInput, setSupplementInput, isCopied, setIsCopied, acknowledgeSafetyInSession, setAcknowledgeSafetyInSession, aiConfig, setAiConfig, isNode2Open, setIsNode2Open, isNode4Open, setIsNode4Open, isNode5Open, setIsNode5Open, isNode6Open, setIsNode6Open, customPreset, setCustomPreset, showCustomPresetModal, setShowCustomPresetModal, editPresetTitle, setEditPresetTitle, editPresetNarrative, setEditPresetNarrative, showHistory, setShowHistory, historyList, setHistoryList, handleExecuteWorkflow, handleSupplementFact, handleProceedFromSafety, handleResetWorkflow, handleCopyAnalysis, loadFromHistory, handleSaveCurrentAsCustomPreset, handleSelectSuggestedOption, handleSaveCustomPreset, handleToggleAllNodes, defaultSample, handleSelectTool, saveCrossFeatureContext, exportAsHtml, exportAsText, printReport, deleteFromHistory, clearHistory, loadHistory, showDocTypeModal, setShowDocTypeModal };
   const hasResult = Boolean(workflowState?.syllogism);
 
   return (
