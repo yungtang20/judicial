@@ -5,7 +5,6 @@ import { ToolProvider, useToolContext } from './contexts/ToolContext';
 import { GlobalUIProvider } from './contexts/GlobalUIContext';
 
 const UnifiedEntry = React.lazy(() => import('./components/UnifiedEntry').then(m => ({ default: m.default || m.UnifiedEntry })));
-const LegalGuideHome = React.lazy(() => import('./components/LegalGuideHome').then(m => ({ default: m.default || m.LegalGuideHome })));
 const LegalSdlcWorkbench = React.lazy(() => import('./components/LegalSdlcWorkbench').then(m => ({ default: m.default || m.LegalSdlcWorkbench })));
 const LitigationWorkspace = React.lazy(() => import('./components/LitigationWorkspace').then(m => ({ default: m.default || m.LitigationWorkspace })));
 const AgentChat = React.lazy(() => import('./components/AgentChat').then(m => ({ default: m.default || m.AgentChat })));
@@ -35,12 +34,12 @@ function AppContent() {
       case 'unified':
         return <UnifiedEntry />;
       case 'guide':
-        return <LegalGuideHome />;
+      case 'litigation':
+        return <LitigationWorkspace initialTab={initialData?.initialTab || 'guide'} initialToolId={initialData?.preselectedToolId} />;
       case 'processGuide':
         return <LegalProcessGuide onNavigateToTool={handleSelectTool} />;
       case 'sdlc':
         return <LegalSdlcWorkbench />;
-      case 'litigation':
       case 'legalToolbox':
         return <LitigationWorkspace initialTab={initialData?.initialTab || 'toolbox'} initialToolId={initialData?.preselectedToolId} />;
       case 'appeal':

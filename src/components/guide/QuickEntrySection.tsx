@@ -82,7 +82,7 @@ export const QuickEntrySection: React.FC<QuickEntrySectionProps> = (props) => {
           </div>
 
           <div 
-            onClick={() => handleSelectTool('litigation')}
+            onClick={() => handleSelectTool('litigation', 'defense')}
             className="group cursor-pointer rounded-xl p-6 bg-slate-900/80 border border-slate-800 hover:border-amber-500/50 hover:bg-slate-900 transition-all relative overflow-hidden"
           >
             <div className="flex items-start justify-between">

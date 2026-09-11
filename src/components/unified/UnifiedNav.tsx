@@ -41,7 +41,7 @@ export const UnifiedNav: React.FC<UnifiedNavProps> = (props) => {
       sourceTool: 'unified',
       timestamp: Date.now()
     });
-    handleSelectTool('guide');
+    handleSelectTool('litigation', 'guide');
   };
 
   return (
@@ -120,7 +120,7 @@ export const UnifiedNav: React.FC<UnifiedNavProps> = (props) => {
           className="text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1 transition-colors"
         >
           <Compass className="w-3.5 h-3.5" />
-          前往生活情境導診
+          前往生活法律導診
         </button>
       </div>
     </div>

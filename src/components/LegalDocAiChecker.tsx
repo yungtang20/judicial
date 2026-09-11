@@ -18,11 +18,13 @@ import {
   HelpCircle,
   FileSearch,
   Filter,
-  FileCode
+  FileCode,
+  Upload
 } from 'lucide-react';
 import { verifyLegalCitations } from '../lib/services/citationCheck';
 import { CitationVerificationResult } from '../types';
 import { ExternalCitationResult } from '../lib/services/citationCheck';
+import { extractPdfText } from '../lib/pdfUtils';
 
 export const LegalDocAiChecker: React.FC = () => {
   const defaultSampleDoc = `民事準備書狀（範例）
@@ -52,6 +54,30 @@ export const LegalDocAiChecker: React.FC = () => {
   const [externalResults, setExternalResults] = useState<ExternalCitationResult[] | null>(null);
   const [isExternalChecking, setIsExternalChecking] = useState(false);
   const [externalConsent, setExternalConsent] = useState(false);
+  const [importStatus, setImportStatus] = useState('');
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    if (file.size > 20 * 1024 * 1024) {
+      setImportStatus('檔案超過 20 MB，請縮小後再上傳。');
+      return;
+    }
+    setImportStatus('正在擷取文件文字…');
+    try {
+      const text = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
+        ? await extractPdfText(file)
+        : await file.text();
+      if (!text.trim()) throw new Error('EMPTY_DOCUMENT');
+      setDocumentInput(text);
+      setScanResult(null);
+      setExternalResults(null);
+      setImportStatus(`已匯入 ${file.name}，可開始掃描。`);
+    } catch {
+      setImportStatus('無法讀取文件；掃描版 PDF 請先完成 OCR，或改貼上文字。');
+    }
+  };
 
   const handleScan = () => {
     setIsScanning(true);
@@ -141,6 +167,13 @@ export const LegalDocAiChecker: React.FC = () => {
                 載入幽靈判決測試範例
               </button>
             </div>
+
+            <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-sky-700/70 bg-sky-950/20 px-4 py-3 text-xs font-semibold text-sky-300 hover:border-sky-500">
+              <Upload className="h-4 w-4" />
+              上傳 PDF 或 TXT 文件
+              <input type="file" accept=".pdf,.txt,application/pdf,text/plain" onChange={handleFileUpload} className="sr-only" />
+            </label>
+            {importStatus && <p className="text-[11px] leading-5 text-slate-400" role="status">{importStatus}</p>}
 
             <textarea
               value={documentInput}

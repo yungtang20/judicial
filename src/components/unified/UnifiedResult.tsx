@@ -76,10 +76,16 @@ export function countMatchingPrecedents(state: LegalWorkflowState, citation: str
       .filter(item => item.status === 'verified' && item.exactMatch)
       .map(item => item.citation)
   );
+  const officiallyVerified = new Set(
+    (state.verification?.officialEvidence || [])
+      .filter(item => item.type === 'PRECEDENT' && item.status === 'VERIFIED' && item.contentHash)
+      .map(item => item.citation)
+  );
   return state.rag?.precedents?.filter(precedent =>
-    externallyVerified.has(precedent.caseNumber) &&
-    (precedent.citedStatutes || []).some(item => normalizeCitation(item) === target) ||
-    externallyVerified.has(precedent.caseNumber) && normalizeCitation(precedent.summary).includes(target)
+    externallyVerified.has(precedent.caseNumber) && officiallyVerified.has(precedent.caseNumber) && (
+      (precedent.citedStatutes || []).some(item => normalizeCitation(item) === target) ||
+      normalizeCitation(precedent.summary).includes(target)
+    )
   ).length || 0;
 }
 
@@ -108,7 +114,8 @@ export const UnifiedResult: React.FC<UnifiedResultProps> = ({
     : verification?.warningNotice;
   const statuteEvidence = officialEvidence.filter(item => item.type === 'STATUTE');
   const verifiedPrecedents = (rag?.precedents || []).filter(precedent =>
-    verification?.externalCitations?.some(item => item.citation === precedent.caseNumber && item.status === 'verified' && item.exactMatch)
+    verification?.externalCitations?.some(item => item.citation === precedent.caseNumber && item.status === 'verified' && item.exactMatch) &&
+    officialEvidence.some(item => item.citation === precedent.caseNumber && item.type === 'PRECEDENT' && item.status === 'VERIFIED' && item.contentHash)
   );
   const evidenceTips = workflowState.safety?.preservationTips?.slice(0, 4) || [
     '保留可證明事件時間、地點及關係人的原始資料。',
@@ -266,12 +273,12 @@ export const UnifiedResult: React.FC<UnifiedResultProps> = ({
                 <div key={`${precedent.caseNumber}-${index}`} className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 py-2 border-t border-slate-800 text-xs text-slate-300">
                   <div>
                     <div className="font-semibold text-slate-200">{precedent.caseNumber}</div>
-                    <div className="mt-1 text-[var(--color-text-muted)]">{precedent.courtName}{citedStatutes.length ? ` · 同案引用：${citedStatutes.join('、')}` : ' · 尚未比對出相同法條'} · 外部文件檢核通過</div>
+                    <div className="mt-1 text-[var(--color-text-muted)]">{precedent.courtName}{citedStatutes.length ? ` · 同案引用：${citedStatutes.join('、')}` : ' · 尚未比對出相同法條'} · 司法院全文與 AI 防幽靈檢核通過</div>
                   </div>
                   {precedent.sourceUrl && <a href={precedent.sourceUrl} target="_blank" rel="noreferrer" className="shrink-0 text-sky-400 hover:underline">官方來源</a>}
                 </div>
               );
-            }) : <p className="text-xs leading-6 text-slate-400">目前沒有通過外部法律文件檢核的相關判例。</p>}
+            }) : <p className="text-xs leading-6 text-slate-400">目前沒有同時通過司法院全文與 AI 防幽靈檢核的相關判例。</p>}
         </div>
 
         <details className="border-t border-slate-800 pt-4 group">

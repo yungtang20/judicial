@@ -6,7 +6,8 @@ import {
   FileSpreadsheet, 
   Clock, 
   Gavel,
-  Briefcase
+  Briefcase,
+  Compass
 } from 'lucide-react';
 import SmartAppealAssistant from './SmartAppealAssistant';
 import { DefenseWorkflowTool } from './DefenseWorkflowTool';
@@ -14,29 +15,31 @@ import IssueTableGenerator from './IssueTableGenerator';
 import EvidenceListGenerator from './EvidenceListGenerator';
 import AppealDeadlineTool from './AppealDeadlineTool';
 import { LegalToolbox } from './LegalToolbox';
+import { LegalGuideHome } from './LegalGuideHome';
 import { loadCrossFeatureContext } from '../lib/crossFeatureContext';
 
 interface LitigationWorkspaceProps {
-  initialTab?: 'toolbox' | 'defense' | 'issues' | 'evidence' | 'appeal' | 'deadline';
+  initialTab?: 'guide' | 'toolbox' | 'defense' | 'issues' | 'evidence' | 'appeal' | 'deadline';
   initialToolId?: string;
 }
 
-export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initialTab = 'toolbox', initialToolId }) => {
+export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initialTab = 'guide', initialToolId }) => {
   // Check cross-feature context if available
   const crossCtx = loadCrossFeatureContext();
-  const effectiveInitialTab = initialTab || crossCtx?.initialTab || 'toolbox';
+  const effectiveInitialTab = initialTab || crossCtx?.initialTab || 'guide';
   const effectiveToolId = initialToolId || crossCtx?.preselectedToolId;
 
   // Determine main tab from initial tab
   const getInitialMainTab = (tab: string) => {
+    if (tab === 'guide') return 'guide';
     if (tab === 'toolbox') return 'toolbox';
     if (tab === 'defense') return 'defense';
     if (['issues', 'evidence'].includes(tab)) return 'issues_evidence';
     if (['appeal', 'deadline'].includes(tab)) return 'appeal_deadline';
-    return 'toolbox';
+    return 'guide';
   };
 
-  const [activeMainTab, setActiveMainTab] = useState<'toolbox' | 'defense' | 'issues_evidence' | 'appeal_deadline'>(getInitialMainTab(effectiveInitialTab));
+  const [activeMainTab, setActiveMainTab] = useState<'guide' | 'toolbox' | 'defense' | 'issues_evidence' | 'appeal_deadline'>(getInitialMainTab(effectiveInitialTab));
   
   // Keep track of subtabs
   const [issuesSubTab, setIssuesSubTab] = useState<'issues' | 'evidence'>(
@@ -57,6 +60,13 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initia
   }, [effectiveInitialTab]);
 
   const mainTabs = [
+    {
+      id: 'guide',
+      label: '生活法律導診',
+      badge: '起點',
+      icon: Compass,
+      desc: '先辨識法律問題，再前往適合的工具與程序'
+    },
     {
       id: 'toolbox',
       label: '實用法務與書狀',
@@ -102,13 +112,13 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initia
                   className={`h-2 w-2 rounded-full ${activeMainTab === 'appeal_deadline' ? 'bg-[var(--color-module-appeal)]' : 'bg-[var(--color-module-litigation)]'}`}
                   aria-hidden="true"
                 />
-                <h1 className="text-sm font-bold text-white tracking-tight">全生命週期法務與訴訟工作台</h1>
+                <h1 className="text-sm font-bold text-white tracking-tight">全方位實用法務工具箱</h1>
                 <span className="hidden md:inline-block text-[11px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-medium border border-slate-700">
                   一站式法務
                 </span>
               </div>
               <p className="text-xs text-[var(--color-text-muted)]">
-                整合日常合約、起訴書狀、法庭攻防、爭點證據與上訴救濟
+                整合生活導診、日常法務、訴訟攻防、爭點證據與救濟期間
               </p>
             </div>
           </div>
@@ -188,6 +198,8 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initia
 
       {/* 內容區塊：統一平緩的 p-6 內邊距與自適應高度 */}
       <div className="flex-1 overflow-y-auto">
+        {activeMainTab === 'guide' && <LegalGuideHome />}
+
         {activeMainTab === 'toolbox' && (
           <div className="p-6 max-w-7xl mx-auto h-full">
             <LegalToolbox initialToolId={effectiveToolId} />
@@ -235,4 +247,3 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initia
 };
 
 export default LitigationWorkspace;
-

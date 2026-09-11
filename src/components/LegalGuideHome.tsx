@@ -352,7 +352,7 @@ export const LegalGuideHome: React.FC = () => {
     selectedScenario, setSelectedScenario, showAiTriageModal, setShowAiTriageModal,
     aiTriageLoading, setAiTriageLoading, aiTriageResult, setAiTriageResult,
     copiedDraft, setCopiedDraft, syllogismAnswers, setSyllogismAnswers,
-    sourceTab, setSourceTab, isSafetyQuery, filteredScenarios, SCENARIO_CATEGORIES,
+    sourceTab, setSourceTab, isSafetyQuery, filteredScenarios, categories: SCENARIO_CATEGORIES,
     QUICK_TAGS, handleRunAiTriage, handleLaunchScenario, handleSelectTool
   };
 

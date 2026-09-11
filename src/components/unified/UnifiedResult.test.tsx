@@ -12,7 +12,10 @@ const baseState: LegalWorkflowState = {
   verification: {
     totalChecked: 1, ghostCount: 0, results: [], sanitizedText: '完整分析內容', passGate: true, verificationStatus: 'PASS',
     externalCitations: [{ citation: '最高法院112年度台上字第9號', status: 'verified', exactMatch: true, source: 'dr-lawbot', message: '字號吻合', searchUrl: 'https://api.dr-lawbot.com/' }],
-    officialEvidence: [{ citation: '民法第184條', type: 'STATUTE', status: 'VALID', source: '全國法規資料庫', sourceUrl: 'https://law.moj.gov.tw/', checkedAt: '2026-09-11', claimSupportStatus: 'SUPPORTED' }],
+    officialEvidence: [
+      { citation: '民法第184條', type: 'STATUTE', status: 'VALID', source: '全國法規資料庫', sourceUrl: 'https://law.moj.gov.tw/', checkedAt: '2026-09-11', claimSupportStatus: 'SUPPORTED' },
+      { citation: '最高法院112年度台上字第9號', type: 'PRECEDENT', status: 'VERIFIED', source: '司法院裁判書系統', sourceUrl: 'https://judgment.judicial.gov.tw/', checkedAt: '2026-09-11', contentHash: 'a'.repeat(64) },
+    ],
   },
   safety: {
     emergencyHotlines: [{ label: '緊急報案', number: '110', desc: '有人身危險時' }],
@@ -53,7 +56,7 @@ describe('UnifiedResult', () => {
       .map(label => screen.getByText(label));
     expect(sectionOrder.every((node, index) => index === 0 || Boolean(sectionOrder[index - 1].compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
     expect(screen.getByText('民法第184條（侵權行為損害賠償）')).toBeInTheDocument();
-    expect(screen.getByText(/外部文件檢核通過/)).toBeInTheDocument();
+    expect(screen.getByText(/司法院全文與 AI 防幽靈檢核通過/)).toBeInTheDocument();
     expect(screen.getByText(/立即離開危險現場/)).toBeInTheDocument();
     expect(screen.getByText(/緊急報案：110/)).toBeInTheDocument();
     expect(screen.getByText(/期限／試算基準/)).toBeInTheDocument();
@@ -84,7 +87,8 @@ describe('UnifiedResult', () => {
     render(<UnifiedResult workflowState={failed} {...handlers} />);
     expect(screen.getByText('需先修正的引用')).toBeInTheDocument();
     expect(screen.getByText(/民法第9999條/)).toBeInTheDocument();
-    expect(screen.getByText('參考可信度較高｜1 件官方裁判引用同一法條')).toBeInTheDocument();
+    expect(screen.getByText('僅供參考｜尚未找到同法條的相關裁判')).toBeInTheDocument();
+    expect(screen.getByText(/目前沒有同時通過司法院全文與 AI 防幽靈檢核/)).toBeInTheDocument();
     expect(screen.queryByText(/fail-closed/)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '複製' })).toBeDisabled();
   });

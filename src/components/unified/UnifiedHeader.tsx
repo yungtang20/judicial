@@ -17,7 +17,7 @@ export const UnifiedHeader: React.FC<UnifiedHeaderProps> = (props) => {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div className="space-y-1.5">
               <h1 className="text-xl md:text-2xl font-black text-white tracking-tight">
-                智慧法律統一分析工作台
+                智慧案件分析工作台
               </h1>
               <div className="h-0.5 w-16 rounded-full bg-[var(--color-module-analysis)]" aria-hidden="true" />
               <p className="text-xs text-[var(--color-text-muted)] max-w-2xl leading-relaxed">

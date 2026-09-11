@@ -100,7 +100,7 @@ export interface WorkflowVerificationData {
   passGate: boolean;
   verificationStatus?: 'PASS' | 'NEEDS_REVIEW' | 'FAIL';
   warningNotice?: string;
-  officialEvidence?: Array<{ citation: string; type: string; status: string; source: string; sourceUrl: string; checkedAt: string; snippet?: string; claimSupportStatus?: 'SUPPORTED' | 'NEEDS_REVIEW' | 'UNVERIFIABLE'; error?: string }>;
+  officialEvidence?: Array<{ citation: string; type: string; status: string; source: string; sourceUrl: string; checkedAt: string; snippet?: string; contentHash?: string; claimSupportStatus?: 'SUPPORTED' | 'NEEDS_REVIEW' | 'UNVERIFIABLE'; error?: string }>;
 }
 
 export interface LegalWorkflowState {

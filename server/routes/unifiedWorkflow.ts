@@ -27,12 +27,16 @@ import { isBasicSafeUrl, verifyDnsSafe } from "./fetchUrl.js";
 
 const router = Router();
 
-export function keepExternallyVerifiedPrecedents<T extends { caseNumber: string }>(
+export function keepVerifiedPrecedents<T extends { caseNumber: string }>(
   precedents: T[],
-  checks: ExternalCitationResult[] = []
+  checks: ExternalCitationResult[] = [],
+  officialEvidence: Array<{ citation: string; type: string; status: string; contentHash?: string }> = []
 ): T[] {
-  const verified = new Set(checks.filter(item => item.status === 'verified' && item.exactMatch).map(item => item.citation));
-  return precedents.filter(precedent => verified.has(precedent.caseNumber));
+  const externallyVerified = new Set(checks.filter(item => item.status === 'verified' && item.exactMatch).map(item => item.citation));
+  const officiallyVerified = new Set(officialEvidence
+    .filter(item => item.type === 'PRECEDENT' && item.status === 'VERIFIED' && item.contentHash)
+    .map(item => item.citation));
+  return precedents.filter(precedent => externallyVerified.has(precedent.caseNumber) && officiallyVerified.has(precedent.caseNumber));
 }
 
 export function keepStatuteRelatedReferences<T extends { citation: string; title: string; excerpt?: string }>(references: T[], statuteCitations: string[]): T[] {
@@ -472,27 +476,29 @@ async function runVerificationGateNode(
   passGate: boolean;
   verificationStatus: "PASS" | "NEEDS_REVIEW" | "FAIL";
   warningNotice?: string;
-  officialEvidence?: Array<{ citation: string; type: string; status: string; source: string; sourceUrl: string; checkedAt: string; snippet?: string; error?: string }>;
+  officialEvidence?: Array<{ citation: string; type: string; status: string; source: string; sourceUrl: string; checkedAt: string; snippet?: string; contentHash?: string; error?: string }>;
 }> {
   const combinedText = `${analysisText}\n\n${userFacts}\n\n${legalBasis.join(" ")}`;
   const verification = verifyLegalCitations(combinedText);
-  const official = await verifyOfficialCitations(verification.results.map(r => ({
+  const officialInputs = verification.results.map(r => ({
     citation: r.citationText,
     type: r.type === "PRECEDENT" ? "PRECEDENT" as const : "STATUTE" as const,
     claim: r.legalClaim
-  })));
+  }));
 
   // 萃取裁判字號進行外部查驗（若有）
-  let externalCitations: any[] = [];
   const citationMatches = combinedText.match(/\d+\s*年(?:度)?\s*[^\d\s]+?\s*字?\s*第\s*\d+\s*號/g) || [];
   const uniqueCitations = Array.from(new Set([...precedentCitations, ...citationMatches])).slice(0, 5);
-  if (uniqueCitations.length > 0) {
-    try {
-      externalCitations = await verifyExternalPrecedents(uniqueCitations);
-    } catch (extErr) {
-      console.warn("[UnifiedWorkflow] 外部裁判檢核降級:", extErr);
-    }
-  }
+  const [official, precedentOfficial, externalCitations] = await Promise.all([
+    verifyOfficialCitations(officialInputs),
+    verifyOfficialCitations(uniqueCitations.map(citation => ({ citation, type: "PRECEDENT" as const }))),
+    uniqueCitations.length > 0
+      ? verifyExternalPrecedents(uniqueCitations).catch(extErr => {
+          console.warn("[UnifiedWorkflow] 外部裁判檢核降級:", extErr);
+          return [];
+        })
+      : Promise.resolve([])
+  ]);
 
   // 指令 3 核心防假通過校驗：
   // 1. 若法律分析結果中沒有具體法條引用（legalBasis 為空或未包含任何法條），必須判定為 NEEDS_REVIEW，不得判定為 PASS
@@ -531,7 +537,7 @@ async function runVerificationGateNode(
     passGate,
     verificationStatus,
     warningNotice,
-    officialEvidence: official.evidence
+    officialEvidence: [...official.evidence, ...precedentOfficial.evidence]
   };
 }
 
@@ -567,7 +573,11 @@ async function completeWorkflow(
     routerResult.legalBasis || [],
     ragData.precedents.map(precedent => precedent.caseNumber)
   );
-  state.rag.precedents = keepExternallyVerifiedPrecedents(ragData.precedents, state.verification.externalCitations);
+  state.rag.precedents = keepVerifiedPrecedents(
+    ragData.precedents,
+    state.verification.externalCitations,
+    state.verification.officialEvidence
+  );
   state.currentStep = 'COMPLETED';
   state.updatedAt = Date.now();
 }

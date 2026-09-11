@@ -28,7 +28,7 @@ export const HeroSection: React.FC<HeroSectionProps> = (props) => {
           <div className="relative z-10 max-w-3xl space-y-4">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 text-xs font-semibold tracking-wide">
               <Compass className="w-3.5 h-3.5" />
-              非法律專業專用 · 生活情境智能導診
+              非法律專業專用 · 生活法律導診
             </div>
             <h1 className="text-2xl md:text-4xl font-bold text-white tracking-tight">
               您遇到什麼法律問題？<br />

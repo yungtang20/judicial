@@ -2,15 +2,10 @@ import React, { useState } from 'react';
 import {
   Scale,
   Compass,
-  ChevronDown,
-  FileText,
   FileCheck2,
-  ShieldAlert,
-  Sparkles,
   Menu,
   X,
   Gavel,
-  Clock,
 } from 'lucide-react';
 import { useToolContext } from '../contexts/ToolContext';
 
@@ -21,25 +16,31 @@ interface NavItem {
   icon: any;
 }
 
-// 核心入口
+// 四個任務導向入口；其餘工具收進對應工作台，避免左側重複。
 const coreEntries: NavItem[] = [
   {
     id: 'unified',
-    label: '案件分析',
-    sublabel: '判決分析 · 情境導診 · 案件分類',
+    label: '智慧案件分析工作台',
+    sublabel: '案件事實 → 法律爭點與證據',
     icon: Compass,
   },
   {
+    id: 'appeal',
+    label: '判決分析與上訴狀',
+    sublabel: '裁判 PDF 剖析 · 上訴理由書',
+    icon: Scale,
+  },
+  {
     id: 'litigation',
-    label: '訴訟工作台',
-    sublabel: '全生命週期法務 · 書狀攻防 · 救濟期間',
+    label: '全方位實用法務工具箱',
+    sublabel: '生活導診 · 書狀 · 攻防 · 證據 · 期限',
     icon: Gavel,
   },
   {
-    id: 'appeal',
-    label: '判決分析與上訴',
-    sublabel: '原審判決剖析 · 上訴理由書',
-    icon: Scale,
+    id: 'checker',
+    label: '法律工具台',
+    sublabel: '幽靈法條與假判決精準攔截 · 支援 PDF',
+    icon: FileCheck2,
   },
 ];
 
@@ -47,63 +48,23 @@ const moduleColors: Record<string, string> = {
   unified: 'var(--color-module-analysis)',
   litigation: 'var(--color-module-litigation)',
   appeal: 'var(--color-module-appeal)',
+  checker: '#059669',
 };
 
-// 判決分析與上訴子項目
-const appealSubItems: NavItem[] = [
-  { id: 'appeal', label: '判決剖析與上訴理由', sublabel: '原審違誤論理與撤銷改判主張', icon: Scale },
-];
-
-// 訴訟工作台子項目
-const litigationSubItems: NavItem[] = [
-  { id: 'litigation', label: '訴訟工作台主頁', sublabel: '實用法務 · 攻防 · 爭點 · 上訴', icon: Gavel },
-  { id: 'appealDeadline', label: '上訴與救濟法定期間', sublabel: '法定期間對照與智慧計算', icon: Clock },
-  { id: 'sdlc', label: 'SDLC 工作台', sublabel: 'Plan → Design → Build → Test', icon: Sparkles },
-  { id: 'agent-chat', label: '智慧助理', sublabel: '對話式法律談詢', icon: FileText },
-  { id: 'checker', label: '判決檢索', sublabel: '司法院 API / 防假法條', icon: FileCheck2 },
-  { id: 'docAiChecker', label: '文件合規', sublabel: 'AI 文件審查', icon: ShieldAlert },
-];
-
-// 案件分析子項目
-const analysisSubItems: NavItem[] = [
-  { id: 'unified', label: '判決分析', sublabel: 'StateGraph 自動化工作流', icon: Scale },
-  { id: 'guide', label: '情境導診', sublabel: '生活問答 → 自動推薦', icon: Compass },
-];
-
 export default function Sidebar() {
-  const { activeTool, setActiveTool } = useToolContext();
+  const { activeTool, handleSelectTool } = useToolContext();
   const [isOpen, setIsOpen] = useState(false);
-  const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
 
   const isActive = (id: string) =>
     activeTool === id ||
     (id === 'appeal' && ['appeal', 'smartAppeal'].includes(activeTool)) ||
     (id === 'litigation' &&
-      ['legalToolbox', 'appealDeadline', 'sdlc', 'agent-chat', 'checker', 'docAiChecker', 'judgmentSearch', 'defenseWorkflow', 'issueTableGenerator', 'evidenceListGenerator'].includes(activeTool)) ||
-    (id === 'unified' && ['guide', 'processGuide'].includes(activeTool)) ||
+      ['guide', 'processGuide', 'legalToolbox', 'appealDeadline', 'sdlc', 'agent-chat', 'defenseWorkflow', 'issueTableGenerator', 'evidenceListGenerator'].includes(activeTool)) ||
     (id === 'checker' && ['docAiChecker', 'judicialOpenData', 'judgmentSearch'].includes(activeTool));
 
-  const isSubActive = (id: string) => activeTool === id;
-
   const handleNav = (id: string) => {
-    setActiveTool(id);
+    handleSelectTool(id);
     setIsOpen(false);
-    setExpandedGroup(null);
-  };
-
-  const toggleGroup = (id: string) => {
-    setExpandedGroup(expandedGroup === id ? null : id);
-    // If clicking the main item, also navigate to it
-    if (id === 'unified' || id === 'litigation' || id === 'appeal') {
-      setActiveTool(id);
-    }
-  };
-
-  const getSubItems = (id: string) => {
-    if (id === 'unified') return analysisSubItems;
-    if (id === 'litigation') return litigationSubItems;
-    if (id === 'appeal') return appealSubItems;
-    return [];
   };
 
   return (
@@ -164,18 +125,16 @@ export default function Sidebar() {
           </div>
         </div>
 
-        {/* 3 Core Entry Points */}
+        {/* Core Entry Points */}
         <ul className="list-none px-3 pb-2 m-0 space-y-1">
           {coreEntries.map((entry) => {
             const Icon = entry.icon;
             const active = isActive(entry.id);
-            const expanded = expandedGroup === entry.id;
-            const hasSubItems = entry.id === 'unified' || entry.id === 'litigation' || entry.id === 'appeal';
 
             return (
               <li key={entry.id}>
                 <button
-                  onClick={() => hasSubItems ? toggleGroup(entry.id) : handleNav(entry.id)}
+                  onClick={() => handleNav(entry.id)}
                   className={`w-full text-left p-2.5 rounded-lg transition-colors ${
                     active
                       ? 'bg-slate-800 text-white'
@@ -191,37 +150,10 @@ export default function Sidebar() {
                     </div>
                     <div className="flex-1">
                       <div className="text-sm font-bold leading-tight">{entry.label}</div>
+                      <div className="mt-1 text-[10px] leading-4 text-[var(--color-text-muted)]">{entry.sublabel}</div>
                     </div>
-                    {hasSubItems && (
-                      <ChevronDown className={`w-4 h-4 transition-transform ${expanded ? 'rotate-180' : ''}`} />
-                    )}
                   </div>
                 </button>
-
-                {/* Sub-items */}
-                {hasSubItems && expanded && (
-                  <ul className="list-none pl-3 mt-1 space-y-1">
-                    {getSubItems(entry.id).map((item) => {
-                      const ItemIcon = item.icon;
-                      const subActive = isSubActive(item.id);
-                      return (
-                        <li key={item.id}>
-                          <button
-                            onClick={() => handleNav(item.id)}
-                            className={`w-full text-left px-2.5 py-2 rounded-lg transition-colors flex items-center gap-2.5 ${
-                              subActive
-                                ? 'bg-slate-800 text-white'
-                                : 'text-[var(--color-text-muted)] hover:bg-slate-900/50 hover:text-slate-200'
-                            }`}
-                          >
-                            <ItemIcon className="w-3.5 h-3.5 shrink-0" />
-                            <div className="text-xs font-medium leading-tight text-left">{item.label}</div>
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
               </li>
             );
           })}

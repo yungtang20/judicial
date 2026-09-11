@@ -29,6 +29,7 @@ describe('UnifiedEntry component', () => {
   it('renders a facts-only analysis input without judgment upload controls', () => {
     renderComponent();
 
+    expect(screen.getByRole('heading', { name: '智慧案件分析工作台' })).toBeInTheDocument();
     expect(screen.getByText('案件事實描述')).toBeInTheDocument();
     expect(screen.getByText(/輸入口語案情，系統會先追問關鍵事實/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '開始分析' })).toBeInTheDocument();

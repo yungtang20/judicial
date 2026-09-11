@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import http from "http";
 import express from "express";
-import unifiedWorkflowRouter, { buildOfficialJudgmentQueries, buildOfficialSearchEvidence, buildRuleBasedQuestioning, keepExternallyVerifiedPrecedents, keepStatuteRelatedReferences } from "./unifiedWorkflow.js";
+import unifiedWorkflowRouter, { buildOfficialJudgmentQueries, buildOfficialSearchEvidence, buildRuleBasedQuestioning, keepVerifiedPrecedents, keepStatuteRelatedReferences } from "./unifiedWorkflow.js";
 
 describe("Unified StateGraph Workflow API", { timeout: 30000 }, () => {
   let server: http.Server;
@@ -58,11 +58,14 @@ describe("Unified StateGraph Workflow API", { timeout: 30000 }, () => {
     expect(evidence).toMatchObject({ status: "VERIFIED", claimSupportStatus: "NEEDS_REVIEW" });
   });
 
-  it("相關判例只保留 External Legal Document Checker 完全吻合的字號", () => {
+  it("相關判例只保留司法院全文與 AI 防幽靈檢核皆通過的字號", () => {
     const precedents = [{ caseNumber: "最高法院112年度台上字第9號" }, { caseNumber: "最高法院111年度台上字第8號" }];
-    const result = keepExternallyVerifiedPrecedents(precedents, [
+    const result = keepVerifiedPrecedents(precedents, [
       { citation: precedents[0].caseNumber, status: "verified", exactMatch: true, source: "dr-lawbot", message: "ok", searchUrl: "https://example.com" },
       { citation: precedents[1].caseNumber, status: "not_found", exactMatch: false, source: "dr-lawbot", message: "missing", searchUrl: "https://example.com" },
+    ], [
+      { citation: precedents[0].caseNumber, type: "PRECEDENT", status: "VERIFIED", contentHash: "a".repeat(64) },
+      { citation: precedents[1].caseNumber, type: "PRECEDENT", status: "VERIFIED", contentHash: "b".repeat(64) },
     ]);
 
     expect(result).toEqual([precedents[0]]);

@@ -382,7 +382,7 @@ export const GuideModals: React.FC<GuideModalsProps> = (props) => {
                 onClick={() => {
                   setSelectedCategory(null);
                   setSelectedCategory('ALL');
-                  handleSelectTool('litigation');
+                  handleSelectTool('legalToolbox');
                 }}
                 className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all flex items-center gap-2"
               >

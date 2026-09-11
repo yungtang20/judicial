@@ -22,7 +22,7 @@ const toolIcons: Record<string, any> = {
 
 const toolLabels: Record<string, string> = {
   unified: '案件分析',
-  guide: '生活情境導診',
+  guide: '生活法律導診',
   litigation: '訴訟工作台',
   appeal: '判決分析與上訴',
   smartAppeal: '判決分析與上訴',
