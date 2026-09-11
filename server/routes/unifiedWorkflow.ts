@@ -35,6 +35,11 @@ export function keepExternallyVerifiedPrecedents<T extends { caseNumber: string 
   return precedents.filter(precedent => verified.has(precedent.caseNumber));
 }
 
+export function keepStatuteRelatedReferences<T extends { citation: string; title: string; excerpt?: string }>(references: T[], statuteCitations: string[]): T[] {
+  const targets = statuteCitations.map(citation => citation.split("（")[0].trim()).filter(Boolean);
+  return references.filter(item => targets.some(target => `${item.citation} ${item.title} ${item.excerpt || ""}`.includes(target))).slice(0, 3);
+}
+
 export interface CustomAIProviderInput {
   providerType?: "custom";
   baseUrl?: string;
@@ -281,6 +286,7 @@ async function runRagNode(
   legalElements: string;
   statuteCitations: string[];
   precedents: Array<{ caseNumber: string; courtName: string; summary: string; sourceUrl?: string; citedStatutes?: string[] }>;
+  interpretations: Array<{ citation: string; title: string; excerpt?: string; sourceUrl?: string }>;
   officialEvidence: Array<{ citation: string; type: string; status: string; source: string; sourceUrl: string; checkedAt: string; snippet?: string; contentHash?: string; claimSupportStatus?: "SUPPORTED" | "NEEDS_REVIEW" | "UNVERIFIABLE"; error?: string }>;
   officialSearch?: { query: string; status: string; attempted: boolean; source: string; sourceUrl: string; checkedAt: string; error?: string };
 }> {
@@ -292,6 +298,7 @@ async function runRagNode(
   const localSearchQuery = `${searchQuery} ${userFacts.slice(0, 80)}`.trim();
   let legalElements = "【法定構成要件】相關法律條文之客觀構成要件（行為主體、客體、侵害行為與因果關係）及主觀構成要件（故意或過失）。";
   const precedents: Array<{ caseNumber: string; courtName: string; summary: string; sourceUrl?: string; citedStatutes?: string[] }> = [];
+  let interpretations: Array<{ citation: string; title: string; excerpt?: string; sourceUrl?: string }> = [];
 
   // 動態法規檢索：結合領域過濾
   const dynamicStatuteSet = new Set<string>();
@@ -330,16 +337,23 @@ async function runRagNode(
     console.warn("[UnifiedWorkflow] 動態條文檢索降級:", ragErr);
   }
 
+  const statuteCitations = Array.from(dynamicStatuteSet).filter(Boolean);
+
   try {
     const retrieval = await defaultLegalRetrievalService.retrieveContext(searchQuery);
     if (retrieval.promptBlock && retrieval.promptBlock.trim().length > 0) {
       legalElements = retrieval.promptBlock;
     }
+    interpretations = keepStatuteRelatedReferences(retrieval.sources.references, statuteCitations).map(item => ({
+      citation: item.citation,
+      title: item.title,
+      excerpt: item.excerpt,
+      sourceUrl: item.sourceUrl,
+    }));
   } catch (err) {
     console.warn("[UnifiedWorkflow] RAGNode 檢索失敗:", err);
   }
 
-  const statuteCitations = Array.from(dynamicStatuteSet).filter(Boolean);
   let officialSearch: Awaited<ReturnType<typeof searchOfficialJudgments>> | undefined;
 
   // 本機沒有具官方證據的裁判時，直接查詢司法院公開裁判書系統。
@@ -373,6 +387,7 @@ async function runRagNode(
     legalElements,
     statuteCitations: statuteCitations.length > 0 ? statuteCitations : (triageMeta.legalBasis || ["現行相關實體法規"]),
     precedents,
+    interpretations,
     officialEvidence: [...official.evidence, ...discoveredEvidence],
     officialSearch
   };

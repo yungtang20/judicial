@@ -25,14 +25,23 @@ const citationsMatch = (left: string, right: string) => {
   return normalizedLeft.includes(normalizedRight) || normalizedRight.includes(normalizedLeft);
 };
 
+const findStatuteRecord = (citation: string) => Object.entries(VERIFIED_REAL_STATUTES)
+  .filter(([key]) => citationsMatch(key, citation))
+  .sort(([left], [right]) => normalizeCitation(right).length - normalizeCitation(left).length)[0]?.[1];
+
 export function formatStatuteCitation(citation: string, preferred: string[] = []): string {
   if (/[（(].+[）)]/.test(citation)) return citation;
   const namedCitation = preferred.find(candidate => /[（(].+[）)]/.test(candidate) && citationsMatch(candidate, citation));
   if (namedCitation) return namedCitation;
-  const statute = Object.entries(VERIFIED_REAL_STATUTES)
-    .filter(([key]) => citationsMatch(key, citation))
-    .sort(([left], [right]) => normalizeCitation(right).length - normalizeCitation(left).length)[0]?.[1];
+  const statute = findStatuteRecord(citation);
   return statute?.keywords[0] ? `${citation}（${statute.keywords[0]}）` : citation;
+}
+
+export function buildProcedureSteps(domain?: string): string[] {
+  if (domain === '刑事') return ['報案或提出告訴，取得受理證明並持續補充證據', '警察詢問後移送地檢署，由檢察官偵查、訊問及調查證據', '檢察官決定起訴或不起訴；起訴後由刑事法院審理', '刑事起訴後可評估附帶民事求償；收到裁判後立即確認救濟期間'];
+  if (domain === '行政') return ['先確認是否須經異議、復查或訴願程序', '於法定期間內提出行政救濟並保存送達證明', '進入行政訴訟後依通知提出書狀及證據', '收到裁判後確認上訴期間及後續執行方式'];
+  if (domain === '家事') return ['向法院提出聲請或先進行家事調解', '依通知到庭，提出關係證明、事實及證據', '法院調查後成立調解或作成裁判', '取得執行名義後，視履行情形聲請履行勸告或強制執行'];
+  return ['先行催告或評估調解；依法須強制調解者先完成調解程序', '向管轄法院提出起訴狀、證據並繳納裁判費', '法院送達後進行書狀交換、爭點整理、調查證據及言詞辯論', '收到判決後確認上訴期間；判決確定且對方不履行時可聲請強制執行'];
 }
 
 export function countMatchingPrecedents(state: LegalWorkflowState, citation: string): number {
@@ -81,15 +90,18 @@ export const UnifiedResult: React.FC<UnifiedResultProps> = ({
     '整理契約、金流、醫療、報案或其他第三方紀錄。',
   ];
   const actionTips = workflowState.safety
-    ? [
-        ...workflowState.safety.immediateSteps.slice(0, 3),
-        ...workflowState.safety.emergencyHotlines.slice(0, 3).map(item => `${item.label}：${item.number}（${item.desc}）`),
-      ]
-    : [
+    ? [...workflowState.safety.immediateSteps.slice(0, 3), ...(router?.suggestedActions || []).slice(0, 2), ...workflowState.safety.emergencyHotlines.slice(0, 3).map(item => `${item.label}：${item.number}（${item.desc}）`)]
+    : router?.suggestedActions?.slice(0, 5) || [
         '先保存上述證據原始檔，不要只留截圖。',
         '依官方法條及裁判內容核對適用要件。',
         '涉及期限或重大權益時，儘速向律師或法律扶助確認。',
       ];
+  const procedureSteps = buildProcedureSteps(router?.domain);
+  const faqs = statuteEvidence.slice(0, 2).map(item => ({
+    question: `${formatStatuteCitation(item.citation, router?.legalBasis || [])}主要規範什麼？`,
+    answer: findStatuteRecord(item.citation)?.officialSummary || syllogism.majorPremise,
+  }));
+  if (router?.statuteOfLimitations) faqs.push({ question: '這件事有期限嗎？', answer: router.statuteOfLimitations });
 
   const actionClass = 'px-3 py-2 rounded-lg border border-slate-700 text-xs font-semibold text-slate-300 hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed';
 
@@ -161,8 +173,19 @@ export const UnifiedResult: React.FC<UnifiedResultProps> = ({
               </div>
             );
           }) : (rag?.statuteCitations || []).map(citation => (
-            <div key={citation} className="py-2 border-t border-slate-800 text-xs text-slate-300">{citation}<span className="ml-2 text-amber-300">尚待官方來源查驗</span></div>
+            <div key={citation} className="py-2 border-t border-slate-800 text-xs text-slate-300">{formatStatuteCitation(citation, router?.legalBasis || [])}<span className="ml-2 text-amber-300">尚待官方來源查驗</span></div>
           ))}
+        </div>
+
+        <div className="space-y-2">
+          <h2 className="text-sm font-bold text-white">相關函釋</h2>
+          {rag?.interpretations?.length ? rag.interpretations.map(item => (
+            <div key={item.citation} className="py-2 border-t border-slate-800 text-xs text-slate-300">
+              <div className="font-semibold text-slate-200">{item.citation}<span className="ml-2 font-normal text-amber-300">待核對原文</span></div>
+              <p className="mt-1 leading-5">{item.title}{item.excerpt ? `：${item.excerpt}` : ''}</p>
+              {item.sourceUrl && <a href={item.sourceUrl} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 text-sky-400 hover:underline">開啟來源核對原文<ExternalLink className="w-3 h-3" /></a>}
+            </div>
+          )) : <p className="text-xs leading-6 text-slate-400">目前沒有檢索到可供核對的相關函釋。</p>}
         </div>
 
         <div className="space-y-2">
@@ -177,6 +200,20 @@ export const UnifiedResult: React.FC<UnifiedResultProps> = ({
           <ul className="space-y-1 text-xs leading-6 text-slate-300">
             {actionTips.map(tip => <li key={tip}>• {tip}</li>)}
           </ul>
+          {router?.statuteOfLimitations && <p className="rounded-lg bg-amber-500/10 px-3 py-2 text-xs leading-5 text-amber-200">期限／試算基準：{router.statuteOfLimitations}</p>}
+          <ol className="space-y-2 border-t border-slate-800 pt-3 text-xs leading-5 text-slate-300">
+            {procedureSteps.map((step, index) => <li key={step}><span className="mr-2 font-bold text-violet-300">{index + 1}</span>{step}</li>)}
+          </ol>
+        </div>
+
+        <div className="space-y-2">
+          <h2 className="text-sm font-bold text-white">大家也在問</h2>
+          {faqs.length ? faqs.map(item => (
+            <details key={item.question} className="border-t border-slate-800 py-2">
+              <summary className="cursor-pointer text-xs font-semibold text-slate-200">{item.question}</summary>
+              <p className="pt-2 text-xs leading-6 text-slate-400">{item.answer}</p>
+            </details>
+          )) : <p className="text-xs leading-6 text-slate-400">目前沒有可安全產出的構成要件問答。</p>}
         </div>
 
         <div className="space-y-2">

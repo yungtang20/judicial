@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import http from "http";
 import express from "express";
-import unifiedWorkflowRouter, { buildOfficialJudgmentQueries, buildOfficialSearchEvidence, buildRuleBasedQuestioning, keepExternallyVerifiedPrecedents } from "./unifiedWorkflow.js";
+import unifiedWorkflowRouter, { buildOfficialJudgmentQueries, buildOfficialSearchEvidence, buildRuleBasedQuestioning, keepExternallyVerifiedPrecedents, keepStatuteRelatedReferences } from "./unifiedWorkflow.js";
 
 describe("Unified StateGraph Workflow API", { timeout: 30000 }, () => {
   let server: http.Server;
@@ -66,6 +66,13 @@ describe("Unified StateGraph Workflow API", { timeout: 30000 }, () => {
     ]);
 
     expect(result).toEqual([precedents[0]]);
+  });
+
+  it("相關函釋只保留命中本案法條的資料", () => {
+    const relevant = { citation: "法務部法律字第1號函", title: "侵權責任函釋", excerpt: "民法第184條之適用" };
+    const unrelated = { citation: "勞動部勞動字第2號函", title: "工資給付函釋", excerpt: "勞動基準法第22條之適用" };
+
+    expect(keepStatuteRelatedReferences([relevant, unrelated], ["民法第184條（侵權行為損害賠償）"])).toEqual([relevant]);
   });
 
   it("1. 邊界條件：資訊不完整時 (is_complete == false) 應導向 QuestioningNode 生成動態追問與快捷選項", async () => {
