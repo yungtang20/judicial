@@ -18,16 +18,11 @@ export function canUseWorkflowResult(state: LegalWorkflowState): boolean {
 }
 
 const normalizeCitation = (value: string) => value.replace(/[\s　、，。,.;；：:（）()]/g, '').replace(/臺/g, '台');
-const citationsMatch = (left: string, right: string) => {
-  const a = normalizeCitation(left);
-  const b = normalizeCitation(right);
-  return a.includes(b) || b.includes(a);
-};
 
 export function countMatchingPrecedents(state: LegalWorkflowState, citation: string): number {
   const target = normalizeCitation(citation);
   return state.rag?.precedents?.filter(precedent =>
-    (precedent.citedStatutes || []).some(item => citationsMatch(item, citation)) ||
+    (precedent.citedStatutes || []).some(item => normalizeCitation(item) === target) ||
     normalizeCitation(precedent.summary).includes(target)
   ).length || 0;
 }
@@ -100,47 +95,6 @@ export const UnifiedResult: React.FC<UnifiedResultProps> = ({
           )}
         </div>
 
-        {syllogism.factMappings?.length ? (
-          <div className="space-y-3">
-            <h2 className="text-sm font-bold text-white">案件事實與法條、證據對照</h2>
-            {syllogism.factMappings.map((mapping, index) => (
-              <article key={`${mapping.fact}-${index}`} className="rounded-lg border border-slate-800 bg-slate-950/40 p-4 space-y-3">
-                <div>
-                  <div className="text-[11px] font-bold text-violet-300">案件事實 {index + 1}</div>
-                  <p className="mt-1 text-sm leading-6 text-slate-200">{mapping.fact}</p>
-                </div>
-                <div>
-                  <div className="text-[11px] font-bold text-sky-300">可能相關法條</div>
-                  {mapping.statutes.length ? mapping.statutes.map(statute => {
-                    const evidence = statuteEvidence.find(item => citationsMatch(item.citation, statute.citation));
-                    const isValidSource = Boolean(evidence && ['VALID', 'VERIFIED', 'AUTHORITATIVE'].includes(evidence.status));
-                    const matchingPrecedents = countMatchingPrecedents(workflowState, statute.citation);
-                    const confidenceLabel = isValidSource && evidence?.claimSupportStatus === 'SUPPORTED'
-                      ? '可以使用｜已確認支持目前結論'
-                      : isValidSource && matchingPrecedents > 0
-                        ? `參考可信度較高｜${matchingPrecedents} 件官方裁判引用同一法條`
-                        : isValidSource ? '僅供參考｜尚未找到同法條的相關裁判' : '尚待官方來源查驗';
-                    return (
-                      <div key={`${statute.citation}-${statute.name}`} className="mt-2 text-xs leading-5 text-slate-300">
-                        <span className="font-semibold text-slate-100">{statute.citation}{statute.name && `｜${statute.name}`}</span>
-                        <span className={`ml-2 ${isValidSource ? 'text-amber-300' : 'text-slate-400'}`}>{confidenceLabel}</span>
-                        <span className="block text-[var(--color-text-secondary)]">{statute.relation}</span>
-                      </div>
-                    );
-                  }) : <p className="mt-1 text-xs text-amber-300">目前事實不足以安全對應特定法條</p>}
-                </div>
-                <div>
-                  <div className="text-[11px] font-bold text-emerald-300">需備證據</div>
-                  {mapping.evidence.length ? (
-                    <ul className="mt-1 space-y-1 text-xs leading-5 text-slate-300">
-                      {mapping.evidence.map(item => <li key={item}>• {item}</li>)}
-                    </ul>
-                  ) : <p className="mt-1 text-xs text-amber-300">尚待確認可取得的直接證據</p>}
-                </div>
-              </article>
-            ))}
-          </div>
-        ) : <>
         <div className="space-y-3">
           <h2 className="text-sm font-bold text-white">可能涉及的法條</h2>
           {statuteEvidence.length > 0 ? statuteEvidence.map((item, index) => {
@@ -181,7 +135,6 @@ export const UnifiedResult: React.FC<UnifiedResultProps> = ({
             {evidenceTips.map(tip => <li key={tip}>• {tip}</li>)}
           </ul>
         </div>
-        </>}
 
         {rag?.precedents && rag.precedents.length > 0 && (
           <div className="space-y-2">
