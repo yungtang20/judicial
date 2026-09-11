@@ -20,7 +20,7 @@ interface LitigationWorkspaceProps {
   appealOnly?: boolean;
 }
 
-export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initialTab = 'guide', initialToolId, appealOnly = false }) => {
+export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initialTab = 'toolbox', initialToolId, appealOnly = false }) => {
   // Check cross-feature context if available
   const crossCtx = loadCrossFeatureContext();
   const effectiveInitialTab = initialTab || crossCtx?.initialTab || 'guide';
@@ -67,11 +67,11 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initia
                 />
                 <h1 className="text-sm font-bold text-white tracking-tight">{appealOnly ? '智慧判決分析工作台' : '全方位實用法務工具箱'}</h1>
                 <span className="hidden md:inline-block text-[11px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-medium border border-slate-700">
-                  {appealOnly ? '上訴救濟' : '一站式法務'}
+                  {appealOnly ? '上訴救濟' : '書狀製作'}
                 </span>
               </div>
               <p className="text-xs text-[var(--color-text-muted)]">
-                {appealOnly ? '整合期限試算、判決剖析、訴訟防禦與爭點證據' : '整合生活法律導診、日常法務與書狀工具'}
+                {appealOnly ? '整合期限試算、判決剖析、訴訟防禦與爭點證據' : '依生活情境選擇文件，填寫資料後產製並檢核'}
               </p>
             </div>
           </div>

@@ -14,12 +14,11 @@ describe('legal toolbox classification', () => {
         onSelectGroup={onSelectGroup}
         searchQuery=""
         onSearchChange={vi.fn()}
-        onNavigateUnified={vi.fn()}
-        onNavigateGuide={vi.fn()}
       />
     );
 
-    expect(screen.getByRole('heading', { name: '你現在想處理哪一類法律問題？' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '選擇要製作的書狀或法律文件' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /其他書狀需求/ })).toBeInTheDocument();
     for (const label of ['安全與犯罪被害', '車禍與損害賠償', '家庭、婚姻與繼承', '長輩照護與監護', '借款、欠款與執行', '租屋、房產與職場']) {
       expect(screen.getByRole('button', { name: new RegExp(label) })).toBeInTheDocument();
     }

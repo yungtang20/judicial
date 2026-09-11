@@ -7,7 +7,6 @@ import { LEGAL_TOOLS } from '../lib/legalToolRegistry';
 // NOTE: This file utilizes LEGAL_TOOLS.length indirectly via ToolboxHeader
 import { LegalToolboxResult } from '../types';
 import { useCaseStore, getActiveCase } from '../store/useCaseStore';
-import { useToolContext } from '../contexts/ToolContext';
 import { apiClient } from '../lib/apiClient';
 import { DocumentProgressTracker } from './DocumentProgressTracker';
 import { DEFAULT_FORM_INPUTS } from '../lib/toolFormDefaults';
@@ -23,7 +22,6 @@ type DocumentGenerationStage = 'input' | 'analyzing' | 'formatting' | 'ready' | 
 export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialToolId }) => {
   const { startLoading, stopLoading } = useGlobalUI();
   const activeCase = useCaseStore(getActiveCase);
-  const { handleSelectTool } = useToolContext();
   const addDocument = useCaseStore(state => state.addDocument);
   const presetToolId = initialToolId;
 
@@ -82,10 +80,10 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
   };
 
   const selectedGroupLabel = searchQuery.trim()
-    ? '搜尋結果'
+      ? '搜尋結果'
     : selectedGroup === 'ALL'
-      ? '全部工具'
-      : TOOLBOX_GROUPS.find(group => group.id === selectedGroup)?.label || '工具';
+      ? '全部書狀與文件'
+      : TOOLBOX_GROUPS.find(group => group.id === selectedGroup)?.label || '書狀與文件';
 
   const handleGenerate = async () => {
     setIsLoading(true);
@@ -168,14 +166,12 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
         onSelectGroup={handleGroupSelect}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        onNavigateGuide={() => handleSelectTool('guide')}
-        onNavigateUnified={() => handleSelectTool('unified')}
       />
       <section aria-labelledby="tool-list-heading">
         <div className="mb-3 flex items-end justify-between gap-3">
           <div>
             <h2 id="tool-list-heading" className="text-lg font-bold text-white">{selectedGroupLabel}</h2>
-            <p className="mt-1 text-xs text-slate-400">找到 {filteredTools.length} 項工具；選擇後再到下方填寫案件資料。</p>
+            <p className="mt-1 text-xs text-slate-400">找到 {filteredTools.length} 項；選擇後再到下方填寫文件資料。</p>
           </div>
         </div>
         <ToolSelectorGrid

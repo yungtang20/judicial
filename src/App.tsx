@@ -34,8 +34,9 @@ function AppContent() {
       case 'unified':
         return <UnifiedEntry />;
       case 'guide':
-      case 'litigation':
         return <LitigationWorkspace initialTab={initialData?.initialTab || 'guide'} initialToolId={initialData?.preselectedToolId} />;
+      case 'litigation':
+        return <LitigationWorkspace initialTab={initialData?.initialTab === 'guide' ? 'toolbox' : initialData?.initialTab || 'toolbox'} initialToolId={initialData?.preselectedToolId} />;
       case 'processGuide':
         return <LegalProcessGuide onNavigateToTool={handleSelectTool} />;
       case 'sdlc':

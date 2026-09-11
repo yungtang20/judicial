@@ -40,10 +40,10 @@ const coreEntries: NavItem[] = [
   {
     id: 'litigation',
     label: '全方位實用法務工具箱',
-    sublabel: '生活導診 · 日常法務 · 實用書狀',
+    sublabel: '依情境選書狀 · 填資料 · 產製檢核',
     icon: Gavel,
     children: [
-      { label: '生活法律導診與實用法務', badge: '起點', tab: 'guide' },
+      { label: '書狀與法律文件製作', badge: '製作', tab: 'toolbox' },
     ],
   },
   {
@@ -74,7 +74,7 @@ export default function Sidebar() {
   const selectedTab = initialData?.initialTab ||
     (activeTool === 'smartAppeal' ? 'appeal' :
       (['appeal', 'appealDeadline'].includes(activeTool) ? 'deadline' :
-        (['litigation', 'guide'].includes(activeTool) ? 'guide' : undefined)));
+        (activeTool === 'guide' ? 'guide' : (activeTool === 'litigation' ? 'toolbox' : undefined))));
 
   const handleNav = (id: string, tab?: string) => {
     handleSelectTool(id, tab);

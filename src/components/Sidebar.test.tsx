@@ -26,7 +26,7 @@ describe('Sidebar', () => {
     expect(entries.every((entry, index) => index === 0 || Boolean(entries[index - 1].compareDocumentPosition(entry) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
     fireEvent.click(entries[2]);
     expect(screen.getByText('appeal:defense')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /生活法律導診與實用法務/ }));
-    expect(screen.getByText('litigation:guide')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /書狀與法律文件製作/ }));
+    expect(screen.getByText('litigation:toolbox')).toBeInTheDocument();
   });
 });

@@ -150,10 +150,10 @@ export const LEGAL_TOOLS: ToolDefinition[] = [
   {
     id: 'UNIVERSAL_AI_PLEADING',
     categoryGroup: 'GENERAL',
-    categoryLabel: '不知道怎麼選',
-    name: '全能 AI 法律爭議即時診斷與專業書狀產製',
-    shortDesc: '自由輸入任意犯罪被害或民事爭議，AI 自動梳理管轄、法條要件、時效防呆並產製專業書狀',
-    badge: 'AI 全能診斷',
+    categoryLabel: '其他書狀需求',
+    name: '其他書狀需求 AI 產製',
+    shortDesc: '自由描述事件與希望製作的文件，系統整理必要欄位、法律依據與書狀內容',
+    badge: '自訂書狀',
     icon: Sparkles,
     legalBasis: '我國實體法與程序法分析'
   },

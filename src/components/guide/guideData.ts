@@ -1,16 +1,5 @@
-import { Car, Coins, FileCheck2, HeartHandshake, Home, Scale, ShieldAlert, UserCheck } from 'lucide-react';
+import { Car, Coins, HeartHandshake, Home, Scale, ShieldAlert, UserCheck } from 'lucide-react';
 import type { ScenarioItem } from './ScenarioDetailModal';
-
-export const QUICK_TAGS = [
-    { label: "車禍", tool: "litigation" as const, tag: "traffic" },
-    { label: "離婚", tool: "litigation" as const, tag: "divorce" },
-    { label: "欠錢", tool: "legalToolbox" as const, tag: "debt" },
-    { label: "租屋糾紛", tool: "litigation" as const, tag: "rent" },
-    { label: "職場霸凌", tool: "legalToolbox" as const, tag: "labor" },
-    { label: "詐騙", tool: "litigation" as const, tag: "fraud" },
-    { label: "遺產繼承", tool: "litigation" as const, tag: "inheritance" },
-    { label: "過失傷害", tool: "litigation" as const, tag: "negligence" },
-  ];
 
 export const SCENARIOS: ScenarioItem[] = [
     // 0. 性侵害 / 妨害性自主 / 伴侶非自願性行為
@@ -279,51 +268,15 @@ export const SCENARIOS: ScenarioItem[] = [
       timeInfo: '瑕疵通知後 6 個月內需行使權利',
       mustPrepare: ['租賃契約書或工程承攬合約書', '欠租金額計算表、催告簡訊紀錄', '瑕疵照片、影片、第三方驗屋報告或修繕估價單'],
       tags: ['租屋', '欠租', '終止租約', '存證信函', '裝潢瑕疵', '押金', '房屋買賣']
-    },
-    // 8. 收到法院判決要上訴
-    {
-      id: 'court-appeal-litigation',
-      category: 'LITIGATION',
-      icon: Scale,
-      color: 'from-amber-500/20 to-yellow-500/20 border-yellow-500/30 text-yellow-400',
-      title: '收到法院判決書不服（想要提上訴 / 算20天上訴期）',
-      plainDesc: '收到地方法院判決後如果對結果不服，必須在「判決送達後 20 日內」提出上訴狀。一站式上訴系統可自動拆解原判決的認定缺失、法條適用錯誤與理由不備，直接生成具體上訴理由書。',
-      situation: '剛收到法院寄來的民事或刑事一審判決書、想在法定期間內聲明上訴。',
-      recommendedAction: '進入「訴訟與上訴一站式中心」，先試算 20 天死線，再匯入判決書自動產製上訴理由狀。',
-      targetToolId: 'litigation',
-      targetSubTab: 'appeal',
-      feeInfo: '上訴民事二審需依訴訟標的繳納裁判費（約本金1.5%），刑事上訴免裁判費',
-      timeInfo: '極度緊急：判決合法送達次日起算「20 日內」必須提出上訴狀！',
-      mustPrepare: ['法院一審判決書全文（PDF或文字）', '判決書送達證書或郵差投遞簽收日期', '原審未被採納之重要證據或有利證人名單'],
-      tags: ['上訴', '判決書', '20天死線', '上訴理由書', '原判決違背法令', '二審']
-    },
-    // 9. 檢查律師或對造書狀有無假法條
-    {
-      id: 'doc-ai-anti-ghost',
-      category: 'CHECKER',
-      icon: FileCheck2,
-      color: 'from-emerald-500/20 to-green-500/20 border-green-500/30 text-green-400',
-      title: '收到對方律師書狀或判決（想查案號真偽 / AI防幽靈檢核）',
-      plainDesc: '對方提告提出的書狀、或自己準備的法律文件，擔心引用了不存在的「假案號」或「過期幽靈法條」。使用司法院真實裁判資料庫比對，1秒抓出虛構判決與法律錯誤。',
-      situation: '準備向法院遞狀前自我檢查，或審閱對造當事人提出之答辯狀與引證判例。',
-      recommendedAction: '使用「司法院判決檢索與 AI 真確性檢核」，貼上文字一鍵掃描。',
-      targetToolId: 'checker',
-      targetSubTab: 'antiGhost',
-      feeInfo: '免費檢核',
-      timeInfo: '即時檢核（約 1~2 秒完成）',
-      mustPrepare: ['欲檢核之書狀、答辯狀或合約文字'],
-      tags: ['檢核', '防幽靈法條', '假判決', '司法院檢索', '案號查證', 'AI查核']
     }
 ];
 export const SCENARIO_CATEGORIES = [
     { id: 'ALL', label: '全部生活情境' },
-    { id: 'SAFETY', label: '🛡️ 性侵/家暴/人身安全' },
-    { id: 'ACCIDENT', label: '🚗 車禍求償' },
-    { id: 'DEBT', label: '💰 借錢欠款' },
-    { id: 'FRAUD', label: '⚠️ 詐騙被騙' },
-    { id: 'FAMILY', label: '👨‍👩‍👧 離婚遺產' },
-    { id: 'ELDERLY', label: '🧓 高齡安養' },
-    { id: 'CONTRACT', label: '🏠 租屋契約' },
-    { id: 'LITIGATION', label: '⚖️ 訴訟上訴' },
-    { id: 'CHECKER', label: '🔍 查假法條' }
+    { id: 'SAFETY', label: '人身安全' },
+    { id: 'ACCIDENT', label: '車禍求償' },
+    { id: 'DEBT', label: '借錢欠款' },
+    { id: 'FRAUD', label: '詐騙被害' },
+    { id: 'FAMILY', label: '婚姻與繼承' },
+    { id: 'ELDERLY', label: '長輩照護' },
+    { id: 'CONTRACT', label: '租屋與契約' }
   ];

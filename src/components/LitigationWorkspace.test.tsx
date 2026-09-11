@@ -13,20 +13,18 @@ vi.mock('./LegalToolbox', () => ({ LegalToolbox: () => <div>法律工具箱</div
 vi.mock('./LegalGuideHome', () => ({ LegalGuideHome: () => <div>非法律專業專用 · 生活法律導診</div> }));
 
 describe('LitigationWorkspace', () => {
-  it('uses the legal guide as the workspace starting point', async () => {
+  it('uses document drafting as the workspace starting point', async () => {
     render(<ToolProvider><LitigationWorkspace /></ToolProvider>);
 
-    expect(await screen.findByText('非法律專業專用 · 生活法律導診')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /生活法律導診與實用法務/ })).not.toBeInTheDocument();
+    expect(await screen.findByText('法律工具箱')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /雙軌訴訟防禦/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /爭點與證據清單/ })).not.toBeInTheDocument();
   });
 
-  it('keeps direct access to a selected document tool inside the combined entry', async () => {
-    render(<ToolProvider><LitigationWorkspace initialTab="toolbox" /></ToolProvider>);
+  it('keeps the legacy guide route separate from document drafting', async () => {
+    render(<ToolProvider><LitigationWorkspace initialTab="guide" /></ToolProvider>);
 
-    expect(await screen.findByText('法律工具箱')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /生活法律導診與實用法務/ })).not.toBeInTheDocument();
+    expect(await screen.findByText('非法律專業專用 · 生活法律導診')).toBeInTheDocument();
   });
 
   it.each([
