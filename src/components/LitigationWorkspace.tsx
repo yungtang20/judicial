@@ -51,9 +51,9 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initia
   }, [effectiveInitialTab]);
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden bg-[#090d16] text-slate-100">
+    <div className="flex-1 flex flex-col h-full overflow-hidden bg-[var(--color-surface-base)] text-slate-100">
       {/* 工作台標題列 */}
-      <div className="bg-[#0e1424] border-b border-slate-800 px-6 py-3.5 flex-shrink-0 z-10">
+      <div className="bg-[var(--color-surface-raised)] border-b border-slate-800 px-6 py-3.5 flex-shrink-0 z-10">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-xl bg-slate-800 text-amber-400 border border-slate-700">
@@ -80,8 +80,8 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initia
 
       {/* 子分頁切換列：極簡細邊線與 12px 圓角 */}
       {activeMainTab === 'issues_evidence' && (
-        <div className="bg-[#0b101d] border-b border-slate-800 px-6 py-2 flex justify-center">
-          <div className="flex bg-[#090d16] p-1 rounded-xl border border-slate-800 text-xs font-medium gap-1">
+        <div className="bg-[var(--color-surface-overlay)] border-b border-slate-800 px-6 py-2 flex justify-center">
+          <div className="flex bg-[var(--color-surface-base)] p-1 rounded-xl border border-slate-800 text-xs font-medium gap-1">
             <button
               onClick={() => setIssuesSubTab('issues')}
               className={`px-4 py-1.5 rounded-xl flex items-center gap-2 transition-colors ${issuesSubTab === 'issues' ? 'bg-slate-800 text-amber-400 font-semibold' : 'text-[var(--color-text-muted)] hover:text-slate-200'}`}

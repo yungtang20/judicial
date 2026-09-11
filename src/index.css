@@ -9,19 +9,32 @@
      DESIGN TOKEN SYSTEM (New)
      ============================================================ */
   
-  /* Neutral Color Scale - Surface (backgrounds) */
-  --color-surface-base: #090d16;           /* Deepest background */
-  --color-surface-raised: #0f172a;         /* Card/panel background */
-  --color-surface-overlay: #111827;        /* Modal/popover background */
+  /* Warm neutral surfaces */
+  --color-surface-base: #0c0b09;           /* Deepest background */
+  --color-surface-raised: #17140f;         /* Card/panel background */
+  --color-surface-overlay: #201b14;        /* Modal/popover background */
   
   /* Neutral Color Scale - Border */
-  --color-border-subtle: #1e293b;          /* Subtle dividers */
-  --color-border-strong: #334155;          /* Prominent dividers */
+  --color-border-subtle: #352d22;          /* Subtle dividers */
+  --color-border-strong: #554633;          /* Prominent dividers */
   
   /* Neutral Color Scale - Text */
-  --color-text-primary: #f8fafc;           /* Primary text */
-  --color-text-secondary: #e2e8f0;         /* Secondary text */
-  --color-text-muted: #94a3b8;             /* Muted/tertiary text */
+  --color-text-primary: #faf7f0;           /* Primary text */
+  --color-text-secondary: #e8dfd0;         /* Secondary text */
+  --color-text-muted: #ad9f8b;             /* Muted/tertiary text */
+
+  /* Tailwind slate utilities follow the same warm-neutral foundation. */
+  --color-slate-50: #faf7f0;
+  --color-slate-100: #f3eee5;
+  --color-slate-200: #e2d7c7;
+  --color-slate-300: #cbbca5;
+  --color-slate-400: #ad9f8b;
+  --color-slate-500: #8e7f6b;
+  --color-slate-600: #6d604f;
+  --color-slate-700: #554633;
+  --color-slate-800: #352d22;
+  --color-slate-900: #201b14;
+  --color-slate-950: #0c0b09;
   
   /* Semantic Status Colors */
   --color-status-success: #6ee7b7;         /* Success foreground */
@@ -30,16 +43,62 @@
   --color-status-warning-bg: rgba(120, 53, 15, 0.28);  /* Warning background */
   --color-status-danger: #fca5a5;          /* Danger foreground */
   --color-status-danger-bg: rgba(136, 19, 55, 0.28);   /* Danger background */
-  --color-status-info: #93c5fd;            /* Info foreground */
-  --color-status-info-bg: rgba(30, 58, 138, 0.28);     /* Info background */
+  --color-status-info: #e5c07b;            /* Info foreground */
+  --color-status-info-bg: rgba(93, 64, 29, 0.28);      /* Info background */
 
   /* Brand and focus */
-  --color-brand-primary: #38bdf8;
+  --color-brand-primary: #b7791f;
 
   /* Module identity colors (small accents only) */
-  --color-module-analysis: #5f7da7;
-  --color-module-litigation: #a9825a;
-  --color-module-appeal: #7e6f9e;
+  --color-module-analysis: #9c835f;
+  --color-module-litigation: #b7791f;
+  --color-module-appeal: #8f6f61;
+
+  /* Legacy utility aliases keep existing components on the warm palette. */
+  --color-blue-50: #fffaf0;
+  --color-blue-100: #fef3c7;
+  --color-blue-200: #fde68a;
+  --color-blue-300: #f5cf76;
+  --color-blue-400: #e5b95f;
+  --color-blue-500: #b7791f;
+  --color-blue-600: #956018;
+  --color-blue-700: #704714;
+  --color-blue-800: #4b3014;
+  --color-blue-900: #2f2115;
+  --color-blue-950: #1b140d;
+  --color-indigo-50: var(--color-blue-50);
+  --color-indigo-100: var(--color-blue-100);
+  --color-indigo-200: var(--color-blue-200);
+  --color-indigo-300: var(--color-blue-300);
+  --color-indigo-400: var(--color-blue-400);
+  --color-indigo-500: var(--color-blue-500);
+  --color-indigo-600: var(--color-blue-600);
+  --color-indigo-700: var(--color-blue-700);
+  --color-indigo-800: var(--color-blue-800);
+  --color-indigo-900: var(--color-blue-900);
+  --color-indigo-950: var(--color-blue-950);
+  --color-sky-50: var(--color-blue-50);
+  --color-sky-100: var(--color-blue-100);
+  --color-sky-200: var(--color-blue-200);
+  --color-sky-300: var(--color-blue-300);
+  --color-sky-400: var(--color-blue-400);
+  --color-sky-500: var(--color-blue-500);
+  --color-sky-600: var(--color-blue-600);
+  --color-sky-700: var(--color-blue-700);
+  --color-sky-800: var(--color-blue-800);
+  --color-sky-900: var(--color-blue-900);
+  --color-sky-950: var(--color-blue-950);
+  --color-cyan-50: var(--color-blue-50);
+  --color-cyan-100: var(--color-blue-100);
+  --color-cyan-200: var(--color-blue-200);
+  --color-cyan-300: var(--color-blue-300);
+  --color-cyan-400: var(--color-blue-400);
+  --color-cyan-500: var(--color-blue-500);
+  --color-cyan-600: var(--color-blue-600);
+  --color-cyan-700: var(--color-blue-700);
+  --color-cyan-800: var(--color-blue-800);
+  --color-cyan-900: var(--color-blue-900);
+  --color-cyan-950: var(--color-blue-950);
   
   /* Typography Scale (7-step) */
   --text-xs: 0.75rem;      /* 12px */

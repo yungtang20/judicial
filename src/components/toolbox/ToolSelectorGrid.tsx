@@ -30,19 +30,22 @@ export const ToolSelectorGrid: React.FC<ToolSelectorGridProps> = ({ tools, activ
             onClick={() => onSelect(tool.id)}
             className={`min-h-36 rounded-xl border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
               isSelected
-                ? 'border-blue-400 bg-blue-600/90 text-white ring-2 ring-blue-400/30'
+                ? 'border-blue-400 bg-slate-900 text-slate-100 ring-1 ring-blue-400/40'
                 : 'border-slate-800 bg-slate-900 text-slate-200 hover:border-slate-700 hover:bg-slate-800/90'
             }`}
           >
             <div className="flex items-center justify-between gap-3">
-              <span className={`rounded-md px-2 py-1 text-[11px] font-semibold ${isSelected ? 'bg-blue-950/30 text-blue-50' : 'bg-slate-800 text-blue-300'}`}>
+              <span className={`rounded-md px-2 py-1 text-[11px] font-semibold ${isSelected ? 'bg-blue-950/30 text-blue-300' : 'bg-slate-800 text-blue-300'}`}>
                 {tool.badge}
               </span>
-              <Icon className={`h-5 w-5 shrink-0 ${isSelected ? 'text-white' : 'text-blue-400'}`} aria-hidden="true" />
+              <div className="flex items-center gap-2">
+                {isSelected && <span className="text-[11px] font-semibold text-blue-300">目前選擇</span>}
+                <Icon className="h-5 w-5 shrink-0 text-blue-400" aria-hidden="true" />
+              </div>
             </div>
             <h3 className="mt-3 text-sm font-bold leading-5">{tool.name}</h3>
-            <p className={`mt-1.5 line-clamp-2 text-xs leading-5 ${isSelected ? 'text-blue-100' : 'text-slate-400'}`}>{tool.shortDesc}</p>
-            <p className={`mt-3 text-[11px] leading-4 ${isSelected ? 'text-blue-100' : 'text-slate-500'}`}>依據：{tool.legalBasis}</p>
+            <p className="mt-1.5 line-clamp-2 text-xs leading-5 text-slate-400">{tool.shortDesc}</p>
+            <p className="mt-3 text-[11px] leading-4 text-slate-500">依據：{tool.legalBasis}</p>
           </button>
         );
       })}

@@ -13,7 +13,7 @@ const LegalProcessGuide = React.lazy(() => import('./components/LegalProcessGuid
 
 function LoadingFallback() {
   return (
-    <div className="flex-1 flex items-center justify-center bg-[#090d16]">
+    <div className="flex-1 flex items-center justify-center bg-[var(--color-surface-base)]">
       <div className="text-center space-y-4">
         <div className="w-12 h-12 mx-auto border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
         <p className="text-[var(--color-text-muted)] text-sm">載入中...</p>
@@ -67,7 +67,7 @@ function AppContent() {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row h-screen bg-[#090d16] text-white overflow-hidden font-sans">
+    <div className="flex flex-col lg:flex-row h-screen bg-[var(--color-surface-base)] text-white overflow-hidden font-sans">
       <Sidebar />
       <main className="flex-1 overflow-y-auto">
         <Suspense fallback={<LoadingFallback />}>

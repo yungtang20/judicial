@@ -40,5 +40,6 @@ describe('legal toolbox classification', () => {
     expect(screen.getByText(tool.name)).toBeInTheDocument();
     expect(screen.getByText(tool.shortDesc)).toBeInTheDocument();
     expect(screen.getByText(`依據：${tool.legalBasis}`)).toBeInTheDocument();
+    expect(screen.getByText('目前選擇')).toBeInTheDocument();
   });
 });

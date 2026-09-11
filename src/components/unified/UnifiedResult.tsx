@@ -140,7 +140,7 @@ export const UnifiedResult: React.FC<UnifiedResultProps> = ({
   const actionClass = 'px-3 py-2 rounded-lg border border-slate-700 text-xs font-semibold text-slate-300 hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed';
 
   return (
-    <section aria-labelledby="analysis-result-title" className="rounded-xl border border-slate-800 bg-[#0e1424] overflow-hidden">
+    <section aria-labelledby="analysis-result-title" className="rounded-xl border border-slate-800 bg-[var(--color-surface-raised)] overflow-hidden">
       <div className={`px-5 py-3 flex items-center gap-2 text-xs font-semibold ${canUseResult ? 'bg-emerald-500/10 text-emerald-300' : 'bg-amber-500/10 text-amber-200'}`} role="status">
         {canUseResult ? <FileCheck2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
         <span>{useLabel}</span>

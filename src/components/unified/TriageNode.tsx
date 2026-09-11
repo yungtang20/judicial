@@ -20,7 +20,7 @@ export const TriageNode: React.FC<TriageNodeProps> = (props) => {
     <>
         {/* 案件分析概要與收合控制列（依用戶指示：預設收起各節點詳細內容，避免雜亂） */}
         {workflowState?.router && (
-          <div className="p-3.5 rounded-xl bg-[#0e1424] border border-slate-800 flex flex-wrap items-center justify-between gap-2.5">
+          <div className="p-3.5 rounded-xl bg-[var(--color-surface-raised)] border border-slate-800 flex flex-wrap items-center justify-between gap-2.5">
             <div className="flex flex-wrap items-center gap-2 text-xs">
               <span className="text-[var(--color-text-muted)] font-bold">分析簡報：</span>
               <span className="px-2 py-0.5 rounded-md bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 font-bold">
@@ -61,7 +61,7 @@ export const TriageNode: React.FC<TriageNodeProps> = (props) => {
 
         {/* 節點 2：智慧分流結構化結果 (預設收起，可點擊展開) */}
         {workflowState?.router && (
-          <div className="p-4 rounded-xl bg-[#0e1424] border border-slate-800 space-y-3 transition-all">
+          <div className="p-4 rounded-xl bg-[var(--color-surface-raised)] border border-slate-800 space-y-3 transition-all">
             <div
               className="flex items-center justify-between cursor-pointer select-none"
               onClick={() => setIsNode2Open(prev => !prev)}

@@ -39,7 +39,7 @@ export const ToolResultPanel: React.FC<ToolResultPanelProps> = ({ result, curren
   if (!result || !result.documentText) {
     return (
       <div className="lg:col-span-7 mt-8 lg:mt-0" id="preview-panel">
-        <div className="bg-[#0e1424] border border-slate-800 rounded-xl flex flex-col h-[400px] items-center justify-center p-8 sticky top-6 text-center space-y-2 text-[var(--color-text-muted)]">
+        <div className="bg-[var(--color-surface-raised)] border border-slate-800 rounded-xl flex flex-col h-[400px] items-center justify-center p-8 sticky top-6 text-center space-y-2 text-[var(--color-text-muted)]">
           <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-[var(--color-text-muted)]">
             <Printer className="w-6 h-6" />
           </div>

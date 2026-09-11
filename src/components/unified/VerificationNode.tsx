@@ -18,7 +18,7 @@ export const VerificationNode: React.FC<VerificationNodeProps> = (props) => {
   const isPass = verification.passGate;
 
   return (
-    <div className={`rounded-xl border transition-colors overflow-hidden ${isPass ? 'bg-[#0e1424] border-emerald-500/40' : 'bg-[#180f14] border-rose-500/40'}`}>
+    <div className={`rounded-xl border transition-colors overflow-hidden ${isPass ? 'bg-[var(--color-surface-raised)] border-emerald-500/40' : 'bg-[#180f14] border-rose-500/40'}`}>
       {/* 節點 6 標頭：極簡條列化 */}
       <div
         className="px-5 py-3.5 flex items-center justify-between cursor-pointer select-none bg-slate-900/50 hover:bg-slate-900/80 transition-colors"

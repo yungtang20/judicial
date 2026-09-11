@@ -20,7 +20,7 @@ export const CitationNode: React.FC<CitationNodeProps> = (props) => {
     <>
         {/* 節點 4：法規與裁判要件檢索庫 (預設收起，可點擊展開) */}
         {workflowState?.rag && (
-          <div className="p-4 rounded-xl bg-[#0e1424] border border-slate-800 space-y-3 transition-all">
+          <div className="p-4 rounded-xl bg-[var(--color-surface-raised)] border border-slate-800 space-y-3 transition-all">
             <div
               className="flex items-center justify-between cursor-pointer select-none"
               onClick={() => setIsNode4Open(prev => !prev)}

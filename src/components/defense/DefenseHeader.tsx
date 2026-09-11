@@ -13,7 +13,7 @@ export const DefenseHeader: React.FC<DefenseHeaderProps> = ({
   onLoadPreset3,
 }) => {
   return (
-    <div className="bg-[#0e1424] border border-slate-800 rounded-xl p-6 text-white relative">
+    <div className="bg-[var(--color-surface-raised)] border border-slate-800 rounded-xl p-6 text-white relative">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-2">
           <div className="flex items-center gap-2">

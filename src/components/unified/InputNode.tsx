@@ -24,7 +24,7 @@ export const InputNode: React.FC<InputNodeProps> = (props) => {
   return (
     <>
         {/* 節點 1：案件事實輸入 */}
-        <div className="p-6 rounded-xl bg-[#0e1424] border border-slate-800 space-y-4">
+        <div className="p-6 rounded-xl bg-[var(--color-surface-raised)] border border-slate-800 space-y-4">
           <div className="flex items-center justify-between">
             <label className="text-sm font-bold text-white flex items-center gap-2">
               <FileText className="w-4 h-4 text-indigo-400" />

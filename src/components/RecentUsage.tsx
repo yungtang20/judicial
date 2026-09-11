@@ -93,7 +93,7 @@ export const RecentUsage: React.FC = () => {
         <span>最近使用</span>
         <ChevronDown className="w-3.5 h-3.5 transition-transform group-open:rotate-180" />
       </summary>
-      <div className="absolute left-0 md:left-auto md:right-0 z-30 mt-2 w-72 rounded-xl border border-slate-700 bg-[#0e1424] p-1.5 shadow-xl">
+      <div className="absolute left-0 md:left-auto md:right-0 z-30 mt-2 w-72 rounded-xl border border-slate-700 bg-[var(--color-surface-raised)] p-1.5 shadow-xl">
         {recent.slice(0, 4).map((item) => {
           const Icon = (typeof item.toolId === 'string' && toolIcons[item.toolId]) || FileText;
           const keyStr = `${String(item.toolId)}-${String(item.timestamp)}`;

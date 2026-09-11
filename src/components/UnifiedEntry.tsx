@@ -383,7 +383,7 @@ export const UnifiedEntry: React.FC = () => {
   const hasResult = Boolean(workflowState?.syllogism);
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-y-auto bg-[#090d16] text-slate-100 p-4 md:p-6">
+    <div className="flex-1 flex flex-col h-full overflow-y-auto bg-[var(--color-surface-base)] text-slate-100 p-4 md:p-6">
       <div className="max-w-5xl mx-auto w-full space-y-4">
         <UnifiedHeader {...sharedProps} />
         <HistoryModal {...sharedProps} />
@@ -394,7 +394,7 @@ export const UnifiedEntry: React.FC = () => {
         {workflowState && <UnifiedResult {...sharedProps} workflowState={workflowState} />}
         {hasResult && <UnifiedNav {...sharedProps} />}
         {hasResult && (
-          <details className="rounded-xl border border-slate-800 bg-[#0e1424]">
+          <details className="rounded-xl border border-slate-800 bg-[var(--color-surface-raised)]">
             <summary className="cursor-pointer px-5 py-3 text-sm font-semibold text-slate-300 hover:text-white">查看或修改案件內容</summary>
             <div className="p-4 border-t border-slate-800 space-y-4">
               <InputNode {...sharedProps} />

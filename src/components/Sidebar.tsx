@@ -111,12 +111,12 @@ export default function Sidebar() {
 
       {/* Sidebar */}
       <nav
-        className={`fixed lg:relative top-[65px] lg:top-0 left-0 w-3/4 max-w-[300px] lg:w-[240px] h-[calc(100vh-65px)] lg:h-screen bg-[#090d16] flex flex-col border-r border-slate-800/90 select-none transition-transform duration-300 ease-in-out z-50 ${
+        className={`fixed lg:relative top-[65px] lg:top-0 left-0 w-3/4 max-w-[300px] lg:w-[240px] h-[calc(100vh-65px)] lg:h-screen bg-[var(--color-surface-base)] flex flex-col border-r border-slate-800/90 select-none transition-transform duration-300 ease-in-out z-50 ${
           isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
         {/* Desktop Header */}
-        <header className="hidden lg:block p-4 border-b border-slate-800 bg-[#0c1220]">
+        <header className="hidden lg:block p-4 border-b border-slate-800 bg-[var(--color-surface-raised)]">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-black">
               <Scale className="w-5 h-5" />
@@ -196,7 +196,7 @@ export default function Sidebar() {
         </ul>
 
         {/* Bottom Status */}
-        <div className="p-4 border-t border-slate-800 bg-[#0c1220] mt-auto">
+        <div className="p-4 border-t border-slate-800 bg-[var(--color-surface-raised)] mt-auto">
           <div className="flex items-center justify-between text-[11px] text-[var(--color-text-muted)] px-1">
             <span className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>

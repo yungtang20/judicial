@@ -25,7 +25,7 @@ export const SyllogismNode: React.FC<SyllogismNodeProps> = (props) => {
   const syllogism = workflowState.syllogism;
 
   return (
-    <div className="rounded-xl bg-[#0e1424] border border-slate-800 text-slate-100 overflow-hidden">
+    <div className="rounded-xl bg-[var(--color-surface-raised)] border border-slate-800 text-slate-100 overflow-hidden">
       {/* 節點 5 標頭列：極簡標題，操作按鈕集合 */}
       <div
         className="px-5 py-3.5 flex items-center justify-between cursor-pointer select-none bg-slate-900/50 hover:bg-slate-900/80 transition-colors"
