@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Copy, Download, Check, Printer } from 'lucide-react';
+import { Copy, Download, Check, Printer, FileText } from 'lucide-react';
 import { ToolDefinition } from '../../lib/legalToolRegistry';
 import type { LegalToolboxResult } from '../../types';
 import { UIConstants } from '../../constants/ui';
+import { FormatCheckerDisplay } from './FormatCheckerDisplay';
 
 export interface ToolResultPanelProps {
   result: LegalToolboxResult | null;
@@ -58,7 +59,7 @@ export const ToolResultPanel: React.FC<ToolResultPanelProps> = ({ result, curren
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleDownload = () => {
+  const handleDownloadTxt = () => {
     const blob = new Blob([result.documentText], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -70,18 +71,97 @@ export const ToolResultPanel: React.FC<ToolResultPanelProps> = ({ result, curren
     URL.revokeObjectURL(url);
   };
 
+  const handleDownloadDoc = () => {
+    // 輸出相容 Microsoft Word 之 HTML 格式（.doc）
+    // 依民事訴訟書狀規則第3條：A4大小、上下左右邊界2.5公分、14號以上字體、固定行高25-30pt、底部頁碼
+    const header = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+      <head><meta charset='utf-8'><title>${result.title || currentTool.name}</title>
+      <!--[if gte mso 9]>
+      <xml>
+        <w:WordDocument>
+          <w:View>Print</w:View>
+          <w:Zoom>100</w:Zoom>
+          <w:DoNotOptimizeForBrowser/>
+        </w:WordDocument>
+      </xml>
+      <![endif]-->
+      <style>
+        @page WordSection1 {
+          size: 595.3pt 841.9pt; /* A4 size */
+          margin: 70.9pt 70.9pt 70.9pt 70.9pt; /* 2.5cm margin = ~70.9pt */
+          mso-header-margin: 35.4pt;
+          mso-footer-margin: 35.4pt;
+          mso-paper-source: 0;
+        }
+        div.WordSection1 { page: WordSection1; }
+        body { font-family: '標楷體', 'DFKai-SB', serif; font-size: 14pt; line-height: 28pt; mso-line-height-rule: exactly; }
+        h1 { text-align: center; font-size: 16pt; margin-bottom: 24pt; font-weight: bold; }
+        p { margin-bottom: 0pt; line-height: 28pt; mso-line-height-rule: exactly; }
+        /* 頁碼設定 */
+        @page {
+          @bottom-center {
+            content: counter(page);
+            font-family: 'Times New Roman', serif;
+            font-size: 12pt;
+          }
+        }
+      </style>
+      </head><body>
+      <div class="WordSection1">
+      <h1>${result.title || currentTool.name}</h1>
+      <div>${result.documentText.split('\n').map(line => `<p>${line.replace(/\s/g, '&nbsp;')}</p>`).join('')}</div>
+      </div>
+      </body></html>`;
+
+    const blob = new Blob(['\ufeff' + header], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${result.title || currentTool.name}.doc`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const handlePrint = () => {
-    const printWindow = window.open('', '', 'height=800,width=800');
+    const printWindow = window.open('', '', 'height=900,width=850');
     if (!printWindow) return;
-    printWindow.document.write('<html><head><title>Print</title>');
-    printWindow.document.write('<style>body{font-family: serif; white-space: pre-wrap; line-height: 1.8; padding: 20px;} h1{text-align: center;}</style>');
+    printWindow.document.write('<!DOCTYPE html><html><head><title>' + (result.title || currentTool.name) + '</title>');
+    // 依民事訴訟書狀規則第3條：A4大小、上下左右邊界2.5公分、14號以上字體、固定行高25-30pt
+    printWindow.document.write(`
+      <style>
+        @page { 
+          size: A4 portrait; 
+          margin: 25mm 25mm 25mm 25mm; /* 2.5公分邊界 */
+        }
+        body { 
+          font-family: "Noto Serif TC", "Songti TC", "PMingLiU", "標楷體", serif; 
+          color: #000; 
+          background: #fff; 
+          line-height: 28pt; /* 25-30點行高 */
+          font-size: 14pt; /* 14號以上字體 */
+          margin: 0; 
+          padding: 0; 
+        }
+        h1 { text-align: center; font-size: 16pt; margin-bottom: 30px; letter-spacing: 2px; }
+        .content { white-space: pre-wrap; word-break: break-word; text-align: justify; }
+        
+        /* 模擬頁腳的頁碼顯示 (列印時瀏覽器預設會接管頁首頁腳，這裡做一個基本樣式) */
+        @media print { 
+          body { width: 100%; } 
+        }
+      </style>
+    `);
     printWindow.document.write('</head><body>');
     printWindow.document.write(`<h1>${result.title || currentTool.name}</h1>`);
-    printWindow.document.write(`<div>${result.documentText.replace(/\n/g, '<br/>')}</div>`);
+    printWindow.document.write(`<div class="content">${result.documentText.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>`);
     printWindow.document.write('</body></html>');
     printWindow.document.close();
     printWindow.focus();
-    printWindow.print();
+    setTimeout(() => {
+      printWindow.print();
+    }, 250);
   };
 
   const hasVerification = !!result.antiGhostVerification;
@@ -90,37 +170,52 @@ export const ToolResultPanel: React.FC<ToolResultPanelProps> = ({ result, curren
   const hasChecklist = result.complianceChecklist && result.complianceChecklist.length > 0;
 
   return (
-    <div className="lg:col-span-7 mt-8 lg:mt-0" id="preview-panel">
-      {/* 執行結果顯示區塊：採高對比紙本白底閱讀區，與深色輸入表單具備鮮明識別區隔 */}
-      <div className="bg-[var(--color-surface-overlay)] border border-[var(--color-border-subtle)] rounded-xl flex flex-col h-[700px] lg:h-[800px] overflow-hidden sticky top-6">
+    <div className="lg:col-span-7 mt-6 lg:mt-0" id="preview-panel">
+      {/* 執行結果顯示區塊：採高對比紙本白底閱讀區，手機版採 min-h-[500px] 自適應高度，桌面版採 h-[800px] 捲動 */}
+      <div className="bg-[var(--color-surface-overlay)] border border-[var(--color-border-subtle)] rounded-xl flex flex-col min-h-[520px] sm:h-[700px] lg:h-[800px] overflow-hidden lg:sticky lg:top-6 shadow-sm">
         {/* 結果頂部列：極簡標題與操作按鈕，無多餘裝飾圖案 */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-[var(--color-surface-raised)] border-b border-[var(--color-border-subtle)] gap-3">
+        <div id="preview-actions-bar" className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3.5 sm:p-4 bg-[var(--color-surface-raised)] border-b border-[var(--color-border-subtle)] gap-3">
           <div className="flex items-center gap-2 text-[var(--color-text-primary)]">
             <span className="text-xs px-2 py-0.5 rounded bg-blue-100 text-[var(--color-status-info)] font-bold">產製結果</span>
-            <h3 className="font-bold text-[15px]">{result.title || currentTool.name}</h3>
+            <h3 className="font-bold text-sm sm:text-[15px] line-clamp-1">{result.title || currentTool.name}</h3>
           </div>
           
-          <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="grid grid-cols-4 sm:flex items-center gap-1.5 w-full sm:w-auto">
             <button
+              id="btn-copy-document"
               onClick={handleCopy}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--color-surface-overlay)] border border-[var(--color-border-strong)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-raised)] text-xs font-semibold flex-1 sm:flex-none justify-center transition-colors cursor-pointer"
+              className="flex items-center gap-1 px-2 py-2 sm:px-2.5 sm:py-1.5 rounded-lg bg-[var(--color-surface-overlay)] border border-[var(--color-border-strong)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-raised)] text-xs font-semibold justify-center transition-colors cursor-pointer min-h-[38px] active:scale-95"
+              title="複製全文至剪貼簿"
             >
               {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
               <span>{copied ? '已複製' : '複製'}</span>
             </button>
             <button
-              onClick={handleDownload}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-600 text-white hover:bg-sky-500 text-xs font-semibold flex-1 sm:flex-none justify-center transition-colors cursor-pointer"
+              id="btn-download-txt"
+              onClick={handleDownloadTxt}
+              className="flex items-center gap-1 px-2 py-2 sm:px-2.5 sm:py-1.5 rounded-lg bg-[var(--color-surface-overlay)] border border-[var(--color-border-strong)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-raised)] text-xs font-semibold justify-center transition-colors cursor-pointer min-h-[38px] active:scale-95"
+              title="下載純文字 TXT 檔"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>下載</span>
+              <span>TXT</span>
             </button>
             <button
+              id="btn-download-doc"
+              onClick={handleDownloadDoc}
+              className="flex items-center gap-1 px-2 py-2 sm:px-2.5 sm:py-1.5 rounded-lg bg-sky-700 text-white hover:bg-sky-600 text-xs font-semibold justify-center transition-colors cursor-pointer shadow-xs min-h-[38px] active:scale-95"
+              title="匯出為標準 Word 格式文件 (.doc)"
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>Word</span>
+            </button>
+            <button
+              id="btn-print-document"
               onClick={handlePrint}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--color-surface-overlay)] border border-[var(--color-border-strong)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-raised)] text-xs font-semibold flex-1 sm:flex-none justify-center transition-colors cursor-pointer"
+              className="flex items-center gap-1 px-2 py-2 sm:px-3 sm:py-1.5 rounded-lg bg-[var(--color-brand-primary)] text-white hover:opacity-90 text-xs font-semibold justify-center transition-opacity cursor-pointer shadow-xs min-h-[38px] active:scale-95"
+              title="以標準 A4 規格列印或存為 PDF"
             >
               <Printer className="w-3.5 h-3.5" />
-              <span>列印</span>
+              <span>A4 列印</span>
             </button>
           </div>
         </div>
@@ -189,9 +284,16 @@ export const ToolResultPanel: React.FC<ToolResultPanelProps> = ({ result, curren
           </div>
         )}
 
-        {/* 書狀內文預覽 */}
-        <div className="flex-1 overflow-y-auto p-6 md:p-8 bg-[var(--color-surface-overlay)] print-container">
-          <pre className="font-serif text-sm md:text-base leading-loose text-[var(--color-text-primary)] whitespace-pre-wrap max-w-3xl mx-auto break-words pb-8">
+        {/* 格式自動校對面板 */}
+        {currentTool.toolType === 'generator' && (
+          <div className="px-4 sm:px-6 md:px-8 pt-4 bg-[var(--color-surface-overlay)]">
+            <FormatCheckerDisplay documentText={result.documentText} />
+          </div>
+        )}
+
+        {/* 書狀內文預覽：手機版 p-4 避免兩側過多留白被擠壓，字體 14px~16px 舒適閱讀 */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 bg-[var(--color-surface-overlay)] print-container">
+          <pre className="font-serif text-xs sm:text-sm md:text-base leading-relaxed sm:leading-loose text-[var(--color-text-primary)] whitespace-pre-wrap max-w-3xl mx-auto break-words pb-8 select-text">
             {result.documentText}
           </pre>
         </div>

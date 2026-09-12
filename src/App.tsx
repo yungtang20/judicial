@@ -4,7 +4,7 @@ import { trackToolUsage } from './components/RecentUsage';
 import { ToolProvider, useToolContext } from './contexts/ToolContext';
 import { GlobalUIProvider } from './contexts/GlobalUIContext';
 
-const UnifiedEntry = React.lazy(() => import('./components/UnifiedEntry').then(m => ({ default: m.default || m.UnifiedEntry })));
+import UnifiedEntry from './components/UnifiedEntry';
 const LegalSdlcWorkbench = React.lazy(() => import('./components/LegalSdlcWorkbench').then(m => ({ default: m.default || m.LegalSdlcWorkbench })));
 const LitigationWorkspace = React.lazy(() => import('./components/LitigationWorkspace').then(m => ({ default: m.default || m.LitigationWorkspace })));
 const AgentChat = React.lazy(() => import('./components/AgentChat').then(m => ({ default: m.default || m.AgentChat })));

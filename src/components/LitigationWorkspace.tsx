@@ -100,25 +100,25 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initia
         </div>
       )}
 
-      {/* 內容區塊：統一平緩的 p-6 內邊距與自適應高度 */}
+      {/* 內容區塊：手機版採 p-3.5 緊湊防擠壓，平板/桌面採 p-6 內邊距與自適應高度 */}
       <div className="flex-1 overflow-y-auto">
         <React.Suspense fallback={<div className="p-8 text-center text-sm text-slate-400">工具載入中…</div>}>
           {activeMainTab === 'guide' && <LegalGuideHome />}
 
           {activeMainTab === 'toolbox' && (
-            <div className="p-6 max-w-7xl mx-auto h-full">
+            <div className="p-3.5 sm:p-6 max-w-7xl mx-auto h-full">
               <LegalToolbox initialToolId={effectiveToolId} />
             </div>
           )}
         
           {activeMainTab === 'defense' && (
-            <div className="p-6 max-w-7xl mx-auto">
+            <div className="p-3.5 sm:p-6 max-w-7xl mx-auto">
               <DefenseWorkflowTool />
             </div>
           )}
         
           {activeMainTab === 'issues_evidence' && issuesSubTab === 'issues' && (
-            <div className="p-6 max-w-7xl mx-auto">
+            <div className="p-3.5 sm:p-6 max-w-7xl mx-auto">
               <div className="rounded-xl border border-slate-800 overflow-hidden bg-[var(--color-surface-overlay)]">
                 <IssueTableGenerator />
               </div>
@@ -126,7 +126,7 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initia
           )}
         
           {activeMainTab === 'issues_evidence' && issuesSubTab === 'evidence' && (
-            <div className="p-6 max-w-7xl mx-auto">
+            <div className="p-3.5 sm:p-6 max-w-7xl mx-auto">
               <div className="rounded-xl border border-slate-800 overflow-hidden bg-[var(--color-surface-overlay)]">
                 <EvidenceListGenerator />
               </div>
@@ -134,7 +134,7 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initia
           )}
         
           {activeMainTab === 'appeal' && (
-            <div className="p-6 max-w-7xl mx-auto">
+            <div className="p-3.5 sm:p-6 max-w-7xl mx-auto">
               <div className="rounded-xl border border-slate-800 overflow-hidden bg-slate-900/40">
                 <SmartAppealAssistant />
               </div>
@@ -142,7 +142,7 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initia
           )}
         
           {activeMainTab === 'deadline' && (
-            <div className="p-6 max-w-7xl mx-auto">
+            <div className="p-3.5 sm:p-6 max-w-7xl mx-auto">
               <AppealDeadlineTool />
             </div>
           )}

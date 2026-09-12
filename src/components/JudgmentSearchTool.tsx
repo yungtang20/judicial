@@ -306,7 +306,7 @@ export default function JudgmentSearchTool() {
           {progress !== null && (
             <div className="w-full bg-[var(--color-border-strong)] rounded-full h-4 mt-4 overflow-hidden">
               <div 
-                className="bg-[#569E78] h-full text-xs text-white text-center leading-4 transition-all duration-200"
+                className="bg-[var(--color-status-success)] text-slate-950 font-bold h-full text-xs text-center leading-4 transition-all duration-200"
                 style={{ width: `${progress}%` }}
               >
                 {progress}%
@@ -344,7 +344,7 @@ export default function JudgmentSearchTool() {
             ) : (
               <button 
                 onClick={stopSearch}
-                className="bg-[#C85A5A] text-white px-6 py-2 rounded font-medium hover:opacity-90 transition-all"
+                className="bg-[var(--color-status-danger)] text-slate-950 font-bold px-6 py-2 rounded font-medium hover:opacity-90 transition-all"
               >
                 ⏹ 停止
               </button>
@@ -372,7 +372,7 @@ export default function JudgmentSearchTool() {
               <div className="flex gap-2">
                 <button 
                   onClick={downloadTXT} 
-                  className="bg-[#569E78] text-white px-3 py-1.5 rounded text-xs font-medium hover:opacity-90 transition-all"
+                  className="bg-[var(--color-brand-primary)] text-white px-3 py-1.5 rounded text-xs font-medium hover:opacity-90 transition-all"
                 >
                   📥 下載 TXT
                 </button>
@@ -396,7 +396,7 @@ export default function JudgmentSearchTool() {
                 <li key={index} className="p-5 hover:bg-[var(--color-surface-base)] transition-colors relative">
                   <button 
                     onClick={() => deleteItem(index)}
-                    className="absolute top-4 right-4 text-[var(--color-text-muted)] hover:bg-[#C85A5A] hover:text-white border border-[var(--color-border-subtle)] rounded w-6 h-6 flex items-center justify-center text-xs transition-colors"
+                    className="absolute top-4 right-4 text-[var(--color-text-muted)] hover:bg-[var(--color-status-danger)] hover:text-slate-950 border border-[var(--color-border-subtle)] rounded w-6 h-6 flex items-center justify-center text-xs transition-colors"
                     title="移除此筆"
                   >
                     ✖

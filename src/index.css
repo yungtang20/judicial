@@ -169,3 +169,72 @@ html, body {
 .animate-loading-bar {
   animation: loading-bar 1.5s ease-in-out infinite;
 }
+
+/* 隱藏原生捲軸但保留平滑滾動（適用於手機分類標籤水平滑動） */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ============================================================
+   A4 專業法律書狀列印優化 (Print Optimization)
+   ============================================================ */
+@media print {
+  /* 隱藏非書狀內容：導覽列、側邊欄、操作按鈕、頁尾 */
+  nav,
+  aside,
+  header,
+  footer,
+  #toolbox-sidebar,
+  #toolbox-form-panel,
+  #preview-actions-bar,
+  #injected-clause-banner,
+  button,
+  .no-print {
+    display: none !important;
+  }
+
+  /* 強制紙張設定為標準 A4，依民事訴訟書狀規則第3條：上下左右邊界均為 2.5 公分 */
+  @page {
+    size: A4 portrait;
+    margin: 25mm 25mm 25mm 25mm;
+  }
+
+  /* 書狀列印容器：以黑字純白紙本高解析度呈現 */
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 14pt !important;
+    line-height: 28pt !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* 消除陰影與非必要外框 */
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  .print-container {
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    overflow: visible !important;
+  }
+
+  /* 依民事訴訟書狀規則第3條：字型 14~20號，行高 25~30點 */
+  .print-container pre {
+    color: #000000 !important;
+    font-family: "Noto Serif TC", "Songti TC", "PMingLiU", serif !important;
+    font-size: 14pt !important;
+    line-height: 28pt !important;
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
+  }
+}
+

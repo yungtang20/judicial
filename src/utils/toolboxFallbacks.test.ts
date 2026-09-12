@@ -48,8 +48,6 @@ describe('Toolbox Fallbacks Verification', () => {
       }
     }
 
-    console.log('Failed tools count:', failedTools.length);
-    console.log('Failed tools details:', JSON.stringify(failedTools, null, 2));
     expect(failedTools).toEqual([]);
   });
 });

@@ -85,7 +85,7 @@ export default function EvidenceListGenerator() {
       {/* 左側編輯區 */}
       <div className="w-full md:w-1/2 lg:w-5/12 p-6 overflow-y-auto border-r border-[var(--color-border-subtle)] bg-[var(--color-surface-overlay)] space-y-6">
         <div>
-          <h2 className="text-xl font-bold text-[#2C7873] flex items-center gap-2">
+          <h2 className="text-xl font-bold text-[var(--color-brand-primary)] flex items-center gap-2">
             <span>調查證據聲請表小工具</span>
           </h2>
           <p className="text-xs text-[var(--color-text-muted)] mt-1">產生符合司法院及 Karoshibox 標準格式之【調查證據聲請表】，支援即時編輯與列印 PDF。</p>
@@ -263,14 +263,14 @@ export default function EvidenceListGenerator() {
 
           <button 
             onClick={addItem}
-            className="w-full py-2 border-2 border-dashed border-[#2C7873] text-[#2C7873] font-bold text-xs rounded-xl hover:bg-[var(--color-status-success-bg)] transition-all flex justify-center items-center gap-1 mt-3"
+            className="w-full py-2 border-2 border-dashed border-[var(--color-brand-primary)] text-[var(--color-brand-primary)] font-bold text-xs rounded-xl hover:bg-[var(--color-status-success-bg)] transition-all flex justify-center items-center gap-1 mt-3"
           >
             ⊕ 增加一列
           </button>
 
           <button 
             onClick={handlePrint}
-            className="w-full bg-[#185A56] text-white py-2.5 rounded-xl font-bold text-sm hover:bg-[#124542] transition-colors flex justify-center items-center gap-2 mt-4"
+            className="w-full bg-[var(--color-brand-primary)] text-white py-2.5 rounded-xl font-bold text-sm hover:opacity-90 transition-opacity flex justify-center items-center gap-2 mt-4"
           >
             下載 PDF
           </button>

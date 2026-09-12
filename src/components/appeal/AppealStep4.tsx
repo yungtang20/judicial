@@ -167,7 +167,7 @@ export function AppealStep4({ ctx }: { ctx: any }) {
                   }
                   handlePrint();
                 }}
-                className={`${isFallbackMode ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#2C7873] hover:opacity-90'} text-white px-4 py-2 rounded text-xs font-bold shadow-xs`}
+                className={`${isFallbackMode ? 'bg-gray-400 cursor-not-allowed' : 'bg-[var(--color-brand-primary)] hover:opacity-90'} text-white px-4 py-2 rounded text-xs font-bold shadow-xs`}
                 title={isFallbackMode ? '示範模式下禁用' : ''}
               >
                 🖨 列印 / 存為 A4 PDF

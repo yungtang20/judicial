@@ -3,7 +3,8 @@ import {
   FileText, Check, Copy, Download, Search, AlertTriangle, 
   FolderLock, ArrowRight, BookOpen, Clock, Printer, LayoutTemplate, Sparkles, Scale, SearchCheck, CheckCircle2, ShieldCheck, HandHeart
 } from 'lucide-react';
-import { LEGAL_TOOLS, TOOLBOX_TOOLS } from '../lib/legalToolRegistry';
+import { LEGAL_TOOLS } from '../lib/legalToolRegistry';
+// NOTE: This file utilizes LEGAL_TOOLS.length indirectly via ToolboxHeader
 import { LegalToolboxResult } from '../types';
 import { useCaseStore, getActiveCase } from '../store/useCaseStore';
 import { apiClient } from '../lib/apiClient';
@@ -15,6 +16,8 @@ import { DynamicToolForm } from './toolbox/DynamicToolForm';
 import { ToolResultPanel } from './toolbox/ToolResultPanel';
 import { UIConstants } from '../constants/ui';
 import { useGlobalUI } from '../contexts/GlobalUIContext';
+import { getCalculatorConfig } from '../lib/calculatorEngines';
+import { InteractiveCalculatorView } from './toolbox/InteractiveCalculatorView';
 
 type DocumentGenerationStage = 'input' | 'analyzing' | 'formatting' | 'ready' | 'error';
 
@@ -24,7 +27,7 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
   const addDocument = useCaseStore(state => state.addDocument);
   const presetToolId = initialToolId;
 
-  const [activeToolId, setActiveToolId] = useState<string>(presetToolId || TOOLBOX_TOOLS[0].id);
+  const [activeToolId, setActiveToolId] = useState<string>(presetToolId || 'CRIMINAL_COMPLAINT_TRAFFIC');
   const [selectedGroup, setSelectedGroup] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -48,7 +51,7 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
   };
 
   const filteredTools = useMemo(() => {
-    return TOOLBOX_TOOLS.filter(tool => {
+    return LEGAL_TOOLS.filter(tool => {
       const matchGroup = Boolean(searchQuery.trim()) || selectedGroup === 'ALL' || tool.categoryGroup === selectedGroup;
       const matchQuery = !searchQuery.trim() || 
         tool.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -71,7 +74,7 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
   const handleGroupSelect = (groupId: string) => {
     setSelectedGroup(groupId);
     if (groupId === 'ALL' || currentTool.categoryGroup === groupId) return;
-    const firstTool = TOOLBOX_TOOLS.find(tool => tool.categoryGroup === groupId);
+    const firstTool = LEGAL_TOOLS.find(tool => tool.categoryGroup === groupId);
     if (!firstTool) return;
     setActiveToolId(firstTool.id);
     setResult(null);
@@ -133,6 +136,7 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
 
   const [isVerifyingAi, setIsVerifyingAi] = useState(false);
   const [verifyNotice, setVerifyNotice] = useState<string | null>(null);
+  const [injectedNotice, setInjectedNotice] = useState<string | null>(null);
 
   const handleFullVerify = async (textToVerify?: string) => {
     const text = textToVerify || result?.documentText;
@@ -158,101 +162,185 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
     }
   };
 
+  const activeCalculatorConfig = useMemo(() => {
+    return getCalculatorConfig(activeToolId);
+  }, [activeToolId]);
+
+  const handleSendClauseToDocument = (clauseText: string) => {
+    // 依據目前特定試算器尋找最精準對應的書狀產生器
+    let targetDocTool = 'DIVORCE_AGREEMENT';
+    let targetDocName = '離婚協議書起草';
+
+    switch (activeToolId) {
+      case 'CHILD_SUPPORT_CALCULATOR':
+      case 'CHILD_CUSTODY_ASSESSMENT':
+      case 'RESIDUAL_PROPERTY_CALCULATOR':
+      case 'DIVORCE_PROCEDURE_ASSESSMENT':
+        targetDocTool = 'DIVORCE_AGREEMENT';
+        targetDocName = '離婚協議書起草';
+        break;
+      case 'INHERITANCE_PORTION_CALCULATOR':
+      case 'INHERITANCE_CALCULATOR':
+      case 'FORCED_SHARE_CALCULATOR':
+        targetDocTool = 'SELF_WRITTEN_WILL';
+        targetDocName = '自書遺囑起草';
+        break;
+      case 'PROPERTY_VALUATION_ESTIMATOR':
+        targetDocTool = 'RESIDENTIAL_LEASE_CONTRACT';
+        targetDocName = '房屋租賃契約書';
+        break;
+      case 'TRAFFIC_COMPENSATION_CALCULATOR':
+      case 'VEHICLE_VALUATION_ESTIMATOR':
+      case 'TRAFFIC_PROCEDURE_ASSESSMENT':
+        targetDocTool = 'TRAFFIC_SETTLEMENT_GENERATOR';
+        targetDocName = '車禍和解書產生器';
+        break;
+      case 'COURT_FEE_CALCULATOR':
+      case 'DEBT_COLLECTION_SELECTOR':
+      case 'STATUTE_LIMITATIONS_CALCULATOR':
+        targetDocTool = 'CIVIL_COMPLAINT_GENERAL';
+        targetDocName = '民事起訴狀產生器';
+        break;
+      case 'SEVERANCE_PAY_CALCULATOR':
+        targetDocTool = 'DEMAND_LETTER_LABOR';
+        targetDocName = '工資與資遣費催告存證信函';
+        break;
+      default:
+        if (currentTool.categoryGroup === 'TRAFFIC') {
+          targetDocTool = 'TRAFFIC_SETTLEMENT_GENERATOR';
+          targetDocName = '車禍和解書產生器';
+        } else if (currentTool.categoryGroup === 'DEBT') {
+          targetDocTool = 'CIVIL_COMPLAINT_GENERAL';
+          targetDocName = '民事起訴狀產生器';
+        } else if (currentTool.categoryGroup === 'LABOR_CRIMINAL_CONTRACT') {
+          targetDocTool = 'DEMAND_LETTER_GENERAL';
+          targetDocName = '存證信函產生器';
+        }
+    }
+
+    setActiveToolId(targetDocTool);
+    setFormInputs(prev => ({
+      ...prev,
+      incidentDetails: `${prev.incidentDetails || ''}\n\n【試算約定條款】\n${clauseText}`.trim()
+    }));
+    
+    setInjectedNotice(`已成功將「${currentTool.name}」的試算條款帶入【${targetDocName}】！`);
+    stopLoading({ message: `已帶入【${targetDocName}】`, type: 'success' });
+
+    setTimeout(() => {
+      document.getElementById('tool-workspace-section')?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  };
+
   return (
-    <div
-      className="space-y-6 pb-20 max-w-7xl mx-auto"
-      id="legal-toolbox-root"
-      data-tools-count={TOOLBOX_TOOLS.length}
-      data-system-tools-count={LEGAL_TOOLS.length}
-    >
-      <ToolboxHeader 
-        selectedGroup={selectedGroup}
-        onSelectGroup={handleGroupSelect}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-      />
-      <section aria-labelledby="tool-list-heading">
-        <div className="mb-3 flex items-end justify-between gap-3">
-          <div>
-            <h2 id="tool-list-heading" className="text-lg font-bold text-white">{selectedGroupLabel}</h2>
-            <p className="mt-1 text-xs text-slate-400">找到 {filteredTools.length} 項；選擇後再到下方填寫文件資料。</p>
-          </div>
-        </div>
-        <ToolSelectorGrid
-          tools={filteredTools}
-          activeToolId={activeToolId}
-          onSelect={(id) => {
-            setActiveToolId(id);
-            setResult(null);
-            setGenerationStage('input');
-            document.getElementById('tool-form-section')?.scrollIntoView({ behavior: 'smooth' });
-          }}
+    <div className="space-y-6 pb-20 max-w-7xl mx-auto" id="legal-toolbox-root" data-tools-count={LEGAL_TOOLS.length}>
+      <div className="no-print space-y-6">
+        <ToolboxHeader 
+          selectedGroup={selectedGroup}
+          onSelectGroup={handleGroupSelect}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
         />
-      </section>
+        <section aria-labelledby="tool-list-heading">
+          <div className="mb-3 flex items-end justify-between gap-3">
+            <div>
+              <h2 id="tool-list-heading" className="text-lg font-bold text-white">{selectedGroupLabel}</h2>
+              <p className="mt-1 text-xs text-slate-400">找到 {filteredTools.length} 項；選擇後再到下方填寫文件資料或進行即時試算。</p>
+            </div>
+          </div>
+          <ToolSelectorGrid
+            tools={filteredTools}
+            activeToolId={activeToolId}
+            onSelect={(id) => {
+              setActiveToolId(id);
+              setResult(null);
+              setGenerationStage('input');
+              document.getElementById('tool-workspace-section')?.scrollIntoView({ behavior: 'smooth' });
+            }}
+          />
+        </section>
+      </div>
 
-      <DocumentProgressTracker 
-         currentStage={generationStage} 
-         errorMessage={generateError}
-         onResetToInput={() => {
-           setGenerationStage('input');
-           setGenerateError(null);
-         }}
-      />
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div id="tool-form-section" className="lg:col-span-5 space-y-4">
-          <div className={`${UIConstants.card} sticky top-6`}>
-            <div className="flex items-center gap-3 mb-5 pb-4 border-b border-slate-800">
-              <div className="p-2 rounded-xl bg-sky-500/20 text-sky-400">
-                <currentTool.icon className="w-5 h-5" />
-              </div>
-              <div>
-                <h2 className="text-base font-bold text-white leading-tight">{currentTool.name}</h2>
-                <div className="flex items-center gap-1.5 mt-1">
-                  <span className={UIConstants.badgePrimary}>
-                    {currentTool.badge}
-                  </span>
-                  <span className="text-[10px] text-[var(--color-text-muted)]">{currentTool.legalBasis}</span>
-                </div>
-              </div>
+      <div id="tool-workspace-section" className="scroll-mt-6">
+        {activeCalculatorConfig ? (
+          <div className="bg-slate-950/70 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl">
+            <InteractiveCalculatorView 
+              config={activeCalculatorConfig} 
+              onSendToDocument={handleSendClauseToDocument}
+            />
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <div className="no-print">
+              <DocumentProgressTracker 
+                currentStage={generationStage} 
+                errorMessage={generateError}
+                onResetToInput={() => {
+                  setGenerationStage('input');
+                  setGenerateError(null);
+                }}
+              />
             </div>
 
-            <DynamicToolForm 
-              toolId={activeToolId} 
-              formInputs={formInputs} 
-              onChange={handleInputChange} 
-              currentToolName={currentTool.name} 
-            />
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              <div id="tool-form-section" className="lg:col-span-5 space-y-4 no-print">
+                <div className={`${UIConstants.card} sticky top-6`}>
+                  <div className="flex items-center gap-3 mb-5 pb-4 border-b border-slate-800">
+                    <div className="p-2 rounded-xl bg-sky-500/20 text-sky-400">
+                      <currentTool.icon className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h2 className="text-base font-bold text-white leading-tight">{currentTool.name}</h2>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className={UIConstants.badgePrimary}>
+                          {currentTool.badge}
+                        </span>
+                        <span className="text-[10px] text-[var(--color-text-muted)]">{currentTool.legalBasis}</span>
+                      </div>
+                    </div>
+                  </div>
 
-            <button
-              onClick={handleGenerate}
-              disabled={isLoading || generationStage === 'analyzing' || generationStage === 'formatting'}
-              className={`mt-6 w-full ${UIConstants.buttonPrimary}`}
-            >
-              {(isLoading || generationStage === 'analyzing' || generationStage === 'formatting') ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  <span>AI 智能起草中...</span>
-                </>
-              ) : (
-                <>
-                  <LayoutTemplate className="w-4 h-4" />
-                  <span>一鍵生成專業法律書狀</span>
-                </>
-              )}
-            </button>
+                  <DynamicToolForm 
+                    toolId={activeToolId} 
+                    formInputs={formInputs} 
+                    onChange={handleInputChange} 
+                    currentToolName={currentTool.name}
+                    injectedClauseNotice={injectedNotice}
+                    onClearInjectedNotice={() => setInjectedNotice(null)}
+                  />
+
+                  <button
+                    onClick={handleGenerate}
+                    disabled={isLoading || generationStage === 'analyzing' || generationStage === 'formatting'}
+                    className={`mt-6 w-full ${UIConstants.buttonPrimary}`}
+                  >
+                    {(isLoading || generationStage === 'analyzing' || generationStage === 'formatting') ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <span>AI 智能起草中...</span>
+                      </>
+                    ) : (
+                      <>
+                        <LayoutTemplate className="w-4 h-4" />
+                        <span>一鍵生成專業法律書狀</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <ToolResultPanel 
+                result={result}
+                currentTool={currentTool}
+                isVerifyingAi={isVerifyingAi}
+                verifyNotice={verifyNotice}
+                onFullVerify={() => handleFullVerify()}
+                isLoading={isLoading || generationStage === 'analyzing' || generationStage === 'formatting'}
+                generationStage={generationStage}
+              />
+            </div>
           </div>
-        </div>
-
-        <ToolResultPanel 
-          result={result}
-          currentTool={currentTool}
-          isVerifyingAi={isVerifyingAi}
-          verifyNotice={verifyNotice}
-          onFullVerify={() => handleFullVerify()}
-          isLoading={isLoading || generationStage === 'analyzing' || generationStage === 'formatting'}
-          generationStage={generationStage}
-        />
+        )}
       </div>
     </div>
   );

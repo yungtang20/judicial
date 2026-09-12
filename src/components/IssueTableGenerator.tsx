@@ -128,7 +128,7 @@ export default function IssueTableGenerator() {
       {/* 左側編輯區 */}
       <div className="w-full md:w-1/2 lg:w-5/12 p-6 overflow-y-auto border-r border-[var(--color-border-subtle)] bg-[var(--color-surface-overlay)] space-y-6">
         <div>
-          <h2 className="text-xl font-bold text-[#2C7873] flex items-center gap-2">
+          <h2 className="text-xl font-bold text-[var(--color-brand-primary)] flex items-center gap-2">
             <span>爭點整理表格小工具</span>
           </h2>
           <p className="text-xs text-[var(--color-text-muted)] mt-1">產生司法院標準【爭點整理對照表】（7欄標準格式），釐清原審認定與我方攻擊防禦，方便法官審理。</p>
@@ -354,7 +354,7 @@ export default function IssueTableGenerator() {
 
             <button 
               onClick={handlePrint}
-              className="w-1/2 bg-[#2C7873] text-white py-2.5 rounded-xl font-bold text-xs hover:opacity-90 transition-colors flex justify-center items-center gap-1.5"
+              className="w-1/2 bg-[var(--color-brand-primary)] text-white py-2.5 rounded-xl font-bold text-xs hover:opacity-90 transition-opacity flex justify-center items-center gap-1.5"
             >
               下載/列印 PDF
             </button>
