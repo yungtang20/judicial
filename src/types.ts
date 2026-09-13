@@ -181,6 +181,8 @@ export interface LegalToolboxResult {
   isExternalRetrievalUsed?: boolean;
   retrievalStatusMessage?: string;
   allowedCitations?: string[];
+  /** Server-issued only after a READY P9 Final Gate; never accepted from request input. */
+  pleadingDeliveryAuthorization?: import('./lib/finalGate/pleadingExportGate').PleadingDeliveryAuthorization;
 }
 
 export interface RealStatuteDatabaseItem {
@@ -201,5 +203,4 @@ export interface RealPrecedentDatabaseItem {
   legalKeywords: string[];
   officialJudicialUrl: string;
 }
-
 

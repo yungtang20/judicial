@@ -1,9 +1,14 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Copy, Download, Check, Printer, FileText } from 'lucide-react';
 import { ToolDefinition } from '../../lib/legalToolRegistry';
 import type { LegalToolboxResult } from '../../types';
 import { UIConstants } from '../../constants/ui';
 import { FormatCheckerDisplay } from './FormatCheckerDisplay';
+import {
+  assertPleadingDocumentDeliveryAllowed,
+  evaluatePleadingDelivery,
+  verifyPleadingDeliveryAuthorization
+} from '../../lib/finalGate/pleadingExportGate';
 
 export interface ToolResultPanelProps {
   result: LegalToolboxResult | null;
@@ -17,6 +22,31 @@ export interface ToolResultPanelProps {
 
 export const ToolResultPanel: React.FC<ToolResultPanelProps> = ({ result, currentTool, isVerifyingAi, verifyNotice, onFullVerify, isLoading, generationStage }) => {
   const [copied, setCopied] = useState(false);
+  const [verifiedResult, setVerifiedResult] = useState<{
+    result: LegalToolboxResult;
+    state: 'ALLOWED' | 'BLOCKED';
+  } | null>(null);
+
+  useEffect(() => {
+    let current = true;
+    if (!result?.documentText) {
+      setVerifiedResult(null);
+      return () => { current = false; };
+    }
+
+    void verifyPleadingDeliveryAuthorization(
+      currentTool.id,
+      result.pleadingDeliveryAuthorization,
+      'RETURN',
+      result.documentText
+    ).then(decision => {
+      if (current) setVerifiedResult({ result, state: decision.allowed ? 'ALLOWED' : 'BLOCKED' });
+    }).catch(() => {
+      if (current) setVerifiedResult({ result, state: 'BLOCKED' });
+    });
+
+    return () => { current = false; };
+  }, [currentTool.id, result]);
 
   if (isLoading) {
     return (
@@ -53,13 +83,66 @@ export const ToolResultPanel: React.FC<ToolResultPanelProps> = ({ result, curren
     );
   }
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(result.documentText);
+  const returnDecision = evaluatePleadingDelivery(
+    currentTool.id,
+    result.pleadingDeliveryAuthorization,
+    'RETURN'
+  );
+  const documentAuthorizationState = verifiedResult?.result === result
+    ? verifiedResult.state
+    : 'PENDING';
+
+  if (!returnDecision.allowed) {
+    return (
+      <div className="lg:col-span-7 mt-8 lg:mt-0" id="preview-panel">
+        <div
+          className="bg-[var(--color-surface-raised)] border border-rose-900 rounded-xl flex flex-col h-[400px] items-center justify-center p-8 sticky top-6 text-center space-y-3"
+          role="alert"
+        >
+          <div className="p-3 rounded-xl bg-rose-950/40 border border-rose-900 text-rose-300">
+            <Printer className="w-6 h-6" />
+          </div>
+          <p className="text-sm font-semibold text-rose-200">法院書狀交付已封鎖</p>
+          <p className="text-xs text-slate-400 max-w-md">
+            此結果未取得 P9 Final Gate 的 READY 授權，正文、複製、下載與列印功能均不提供。
+          </p>
+          <code className="text-[11px] text-rose-300">{returnDecision.code}</code>
+        </div>
+      </div>
+    );
+  }
+
+  if (returnDecision.required && documentAuthorizationState !== 'ALLOWED') {
+    return (
+      <div className="lg:col-span-7 mt-8 lg:mt-0" id="preview-panel">
+        <div
+          className="bg-[var(--color-surface-raised)] border border-rose-900 rounded-xl flex flex-col h-[400px] items-center justify-center p-8 sticky top-6 text-center space-y-3"
+          role="alert"
+        >
+          <p className="text-sm font-semibold text-rose-200">
+            {documentAuthorizationState === 'PENDING' ? '正在核對 P9 文件指紋' : '法院書狀交付已封鎖'}
+          </p>
+          <p className="text-xs text-slate-400 max-w-md">
+            P9 授權與目前文件內容尚未確認完全一致，正文及所有匯出操作均不提供。
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const handleCopy = async () => {
+    await assertPleadingDocumentDeliveryAllowed(
+      currentTool.id, result.pleadingDeliveryAuthorization, 'COPY', result.documentText
+    );
+    await navigator.clipboard.writeText(result.documentText);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleDownloadTxt = () => {
+  const handleDownloadTxt = async () => {
+    await assertPleadingDocumentDeliveryAllowed(
+      currentTool.id, result.pleadingDeliveryAuthorization, 'DOWNLOAD_TEXT', result.documentText
+    );
     const blob = new Blob([result.documentText], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -71,7 +154,10 @@ export const ToolResultPanel: React.FC<ToolResultPanelProps> = ({ result, curren
     URL.revokeObjectURL(url);
   };
 
-  const handleDownloadDoc = () => {
+  const handleDownloadDoc = async () => {
+    await assertPleadingDocumentDeliveryAllowed(
+      currentTool.id, result.pleadingDeliveryAuthorization, 'DOWNLOAD_WORD', result.documentText
+    );
     // 輸出相容 Microsoft Word 之 HTML 格式（.doc）
     // 依民事訴訟書狀規則第3條：A4大小、上下左右邊界2.5公分、14號以上字體、固定行高25-30pt、底部頁碼
     const header = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
@@ -124,7 +210,10 @@ export const ToolResultPanel: React.FC<ToolResultPanelProps> = ({ result, curren
     URL.revokeObjectURL(url);
   };
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
+    await assertPleadingDocumentDeliveryAllowed(
+      currentTool.id, result.pleadingDeliveryAuthorization, 'PRINT', result.documentText
+    );
     const printWindow = window.open('', '', 'height=900,width=850');
     if (!printWindow) return;
     printWindow.document.write('<!DOCTYPE html><html><head><title>' + (result.title || currentTool.name) + '</title>');
@@ -225,11 +314,11 @@ export const ToolResultPanel: React.FC<ToolResultPanelProps> = ({ result, curren
           {hasVerification ? (
             <div className="flex items-center gap-2">
               <span className={`px-2 py-0.5 rounded font-bold text-[11px] ${isVerifiedClean ? 'bg-emerald-100 text-[var(--color-status-success)]' : 'bg-rose-100 text-[var(--color-status-danger)]'}`}>
-                {isVerifiedClean ? '法規檢驗通過' : '疑似無效引用'}
+                {isVerifiedClean ? '引用檢查未發現異常' : '疑似無效引用'}
               </span>
               <span className="text-[var(--color-text-secondary)] text-[11px]">
                 共檢核 {result.antiGhostVerification!.totalCitationsChecked} 處引用
-                {result.antiGhostVerification!.ghostCitationsFound > 0 ? `（${result.antiGhostVerification!.ghostCitationsFound} 處異常）` : '，無幽靈法條'}
+                {result.antiGhostVerification!.ghostCitationsFound > 0 ? `（${result.antiGhostVerification!.ghostCitationsFound} 處異常）` : '；此結果不等同法律合規'}
               </span>
             </div>
           ) : (

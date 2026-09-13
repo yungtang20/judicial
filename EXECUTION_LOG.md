@@ -1,0 +1,446 @@
+DATE: 2026-09-13
+AGENT: Codex (actual model identity UNVERIFIED; SINGLE_EXECUTOR fallback)
+PHASE: P5 Compliance Engine
+START TIME: UNKNOWN
+END TIME: 2026-09-13T00:56:30.9631426+08:00
+
+OBJECTIVE:
+Implement the P5 structured pleading compliance engine, correct the legacy Civil Procedure Act Article 116 clause mapping, separate generated-template verification from external-document verification, and use the canonical six ComplianceFinding statuses without entering P6.
+
+FILES READ:
+- AGENTS.md
+- package.json
+- tsconfig.json
+- legal_references/civil_procedure_116.md
+- legal_references/civil_procedure_117.md
+- legal_references/civil_procedure_244.md
+- src/types/compliance.ts
+- src/lib/rules/civilPleadingRuleProfile.ts
+- src/lib/generator/civilPleadingGenerator.ts
+- src/lib/generator/civilPleadingGenerator.test.ts
+- src/lib/formatChecker.ts
+- src/components/toolbox/FormatCheckerDisplay.tsx
+- src/lib/generatedDocumentPipeline.ts
+- C:/Users/yungtang/.codex/attachments/0ff36128-1b56-40f1-bb5c-84bf0123cfa5/pasted-text.txt
+- C:/Users/yungtang/.codex/attachments/79fdc212-1b70-4a7e-883a-77eec63e50ad/pasted-text.txt
+
+FILES CREATED:
+- src/lib/compliance/pleadingComplianceEngine.ts
+- src/lib/compliance/generationTemplateVerifier.ts
+- src/lib/compliance/externalDocumentVerifier.ts
+- src/lib/compliance/pleadingComplianceEngine.test.ts
+- src/lib/compliance/formatVerification.test.ts
+- src/lib/formatChecker.test.ts
+- EXECUTION_LOG.md
+
+FILES MODIFIED:
+- src/types/compliance.ts
+- src/lib/formatChecker.ts
+
+FILES DELETED:
+- None
+
+COMMANDS RUN:
+- npm run lint
+- npx vitest run src/lib/compliance/pleadingComplianceEngine.test.ts src/lib/compliance/formatVerification.test.ts src/lib/formatChecker.test.ts
+- npm run test:eval
+- npm run test:ssrf
+- npm test
+- rg dependency and symbol searches
+- Get-FileHash -Algorithm SHA256 for the three frozen legal-reference files
+
+TESTS:
+- npm run lint: PASS
+- P5 targeted tests: PASS (3 files, 12 tests)
+- npm run test:eval: PASS (1 file, 15 tests)
+- npm run test:ssrf: PASS (21 high-risk URLs and 4 allowed URLs)
+- npm test: PARTIAL (72 files / 438 tests passed; 1 pre-existing out-of-scope toolbox fallback test failed)
+
+RESULT:
+- P5 implementation completed within the authorized phase scope.
+- P6 was not started.
+
+FINDINGS:
+- verifyPleadingCompliance evaluates each approved profile rule independently against structured CaseInput, StructuredPleadingDraft sections, trace IDs, profile contracts, and supplied frozen-source verification metadata.
+- CIVIL_116_1 through CIVIL_116_8 are separate checks in the legacy adapter.
+- Raw legacy keyword matches produce WARNING rather than COMPLIANT; passed remains only a backward-compatible keyword indicator for the existing UI caller.
+- verifyGenerationTemplate and verifyExternalDocument are separate entry points in separate modules and share no verification function.
+- External DOCX/PDF physical layout parsing remains outside this generated-document scope and therefore returns UNVERIFIED fail-closed.
+- New P5 entry points currently have test callers only; production migration was not performed.
+
+UNKNOWN:
+- Actual runtime model identity could not be independently confirmed.
+- Independent Sol review did not return a result; no Sol recommendation was accepted or rejected.
+- Git diff/status is unavailable because D:/工作用/judicial is not a Git repository.
+
+RISKS:
+- The existing FormatCheckerDisplay still renders the legacy passed boolean; production migration is deferred by phase governance.
+- Supplied LegalReference verification metadata is an input trust boundary; the engine does not read files or recompute Exact Official Text hashes at runtime.
+- Full-suite failure remains in src/utils/toolboxFallbacks.test.ts for five generic template fallback IDs and is outside P5 scope.
+
+DECISIONS:
+- Downgraded REVIEWED_PIPELINE to SINGLE_EXECUTOR / UNVERIFIED after the read-only Sol review produced no response.
+- Did not modify the unrelated toolbox fallback implementation or test.
+- Did not add a DOCX/PDF parser because the SDD explicitly excludes that implementation from the generated-document scope.
+- Did not migrate production UI/API callers and did not enter P6.
+
+HUMAN GATE:
+- YES
+
+NEXT PHASE:
+- P6 Reviewer (BLOCKED)
+
+STOP REASON:
+- P5 completed; explicit human approval is required before P6.
+
+---
+
+DATE: 2026-09-13
+AGENT: Codex executor (actual runtime model identity UNVERIFIED; Sol review timed out)
+PHASE: P6 Reviewer
+START TIME: UNKNOWN (first recorded baseline test started at 04:58:45 +08:00)
+END TIME: 2026-09-13T05:16:11.4729849+08:00
+
+OBJECTIVE:
+Implement an independent, deterministic Reviewer that only identifies issues and covers structural review, legal-content review, citation review, fact consistency, evidence mapping, and generated-format review without entering P7.
+
+FILES READ:
+- AGENTS.md
+- README.md
+- package.json
+- tsconfig.json
+- EXECUTION_LOG.md
+- docs/governance/LEGAL_GOVERNANCE.md
+- docs/workflows/GATE_POLICY.md
+- docs/workflows/PERMISSION_MODEL.md
+- docs/workflows/STATE_MACHINE.md
+- docs/workflows/WORKFLOW.md
+- docs/security/SECURITY.md
+- docs/architecture/AUDIT.md
+- legal_references/civil_procedure_116.md
+- legal_references/civil_procedure_117.md
+- legal_references/civil_procedure_244.md
+- src/types.ts
+- src/types/compliance.ts
+- src/lib/generator/civilPleadingGenerator.ts
+- src/lib/compliance/pleadingComplianceEngine.ts
+- src/lib/compliance/generationTemplateVerifier.ts
+- src/lib/generatedDocumentPipeline.ts
+- src/lib/citationVerifier.ts
+- src/lib/rules/civilPleadingRuleProfile.ts
+- C:/Users/yungtang/.codex/agent-governance/dual-model-workflow.md
+- C:/Users/yungtang/.codex/skills/agentic-engineering/SKILL.md
+- C:/Users/yungtang/.codex/attachments/0ff36128-1b56-40f1-bb5c-84bf0123cfa5/pasted-text.txt
+- C:/Users/yungtang/.codex/attachments/79fdc212-1b70-4a7e-883a-77eec63e50ad/pasted-text.txt
+
+FILES CREATED:
+- src/lib/reviewer/pleadingReviewer.ts
+- src/lib/reviewer/pleadingReviewer.test.ts
+
+FILES MODIFIED:
+- src/types/compliance.ts
+- EXECUTION_LOG.md
+- dist/* (generated by npm run build)
+- coverage/* (generated by targeted coverage verification)
+
+FILES DELETED:
+- None
+
+COMMANDS RUN:
+- git status --short (unavailable: workspace is not a Git repository)
+- npm run lint
+- npx vitest run src/lib/reviewer/pleadingReviewer.test.ts src/lib/compliance/pleadingComplianceEngine.test.ts src/lib/compliance/formatVerification.test.ts src/lib/generator/civilPleadingGenerator.test.ts
+- npx vitest run src/lib/reviewer/pleadingReviewer.test.ts --coverage --coverage.include=src/lib/reviewer/pleadingReviewer.ts --coverage.reporter=text
+- npm run test:eval
+- npm run test:ssrf
+- npm run test:e2e
+- npm run build
+- npm test
+- rg dependency, caller, status, category, and responsibility-boundary searches
+- Get-FileHash -Algorithm SHA256 for baseline and final scope checks
+
+TESTS:
+- npm run lint: PASS
+- P4–P6 targeted regression: PASS (4 files, 46 tests)
+- P6 Reviewer tests: PASS (1 file, 14 tests)
+- P6 Reviewer coverage: 95.09% statements, 84.25% branches, 94.44% functions, 94.96% lines
+- npm run test:eval: PASS (15 tests)
+- npm run test:ssrf: PASS (21 high-risk URLs and 4 allowed URLs)
+- npm run test:e2e: PASS (2 tests)
+- npm run build: PASS (Vite 6.4.3 and server esbuild bundle)
+- npm test: PARTIAL (73 files / 452 tests passed; one pre-existing out-of-scope toolbox fallback test failed)
+
+RESULT:
+- P6 Reviewer implementation completed within the authorized phase scope.
+- P7 was not started.
+
+FINDINGS:
+- reviewStructuredPleading produces PleadingReviewReport with deterministic finding IDs, reviewer/profile/draft bindings, six objective-check categories, and canonical ComplianceFinding statuses.
+- Reviewer imports neither the Generator nor the Compliance Engine executable implementation.
+- Structural review independently detects version, pleading type, section, Rule ID, Requirement Level, duplicate, omitted-section, and profile-contract drift.
+- Legal-content review requires exactly one supplied P5 ComplianceFinding per Rule Profile rule and preserves REQUIRED/RECOMMENDED outcomes without inventing rules.
+- Citation review binds verifier evidence to the current draft text and keeps citation existence separate from legal-claim support; NEEDS_REVIEW remains UNVERIFIED.
+- Fact-consistency review detects invented text, stale P5 findings, incorrect section placement, source-ID drift, used/unused negative-proof drift, unused-input insertion, and protected-address disclosure.
+- Evidence review validates Claim–Fact–Evidence links and EVIDENCE_BACKED facts.
+- Format review independently compares the applied FormatProfile with approved FORMAT_PROFILES and rejects forged COMPLIANT findings.
+- Reviewer does not emit ready, approved, delivery, revision, or Human Override decisions and does not mutate inputs.
+
+UNKNOWN:
+- Actual Codex executor model identity could not be independently confirmed.
+- Sol runtime model identity and reasoning output are unavailable because the agent produced no response before two wait windows expired.
+- Git diff/status is unavailable because D:/工作用/judicial is not a Git repository.
+
+RISKS:
+- Reviewer is not connected to a production route or UI; production integration was outside P6 scope.
+- Existing citation verifier commonly sets claimSupportStatus to NEEDS_REVIEW; Reviewer intentionally keeps those citations UNVERIFIED until objective support evidence exists.
+- Full-suite failure remains in src/utils/toolboxFallbacks.test.ts for five generic template fallback IDs and predates P6.
+
+DECISIONS:
+- Used agentic-engineering eval-first execution: captured Reviewer NOT IMPLEMENTED baseline, defined six capability categories, then added adversarial and regression tests.
+- Routing triggers H2, H4, and H5 selected REVIEWED_PIPELINE.
+- Sent a 1–3K token read-only Task Packet to requested gpt-5.6-sol agent 01a0976a-cc28-7650-bd74-0d240a239462.
+- Sol returned no structured response after two bounded wait windows and was closed while still running; downgraded to SINGLE_EXECUTOR / UNVERIFIED.
+- No Sol recommendations existed, so no ACCEPT / ACCEPT_WITH_MODIFICATIONS / REJECT entries could be recorded.
+- Did not modify Generator, Compliance Engine, Rule Profile, citation verifier, format verifier, production routes, UI, legal sources, or the unrelated failing fallback test.
+- Did not perform Revision, Final Gate, approval, export, or P7 work.
+
+HUMAN GATE:
+- YES
+
+NEXT PHASE:
+- P7 Revision (BLOCKED)
+
+STOP REASON:
+- P6 completed; explicit human approval is required before P7.
+
+---
+
+DATE: 2026-09-13
+AGENT: Codex executor (execution role follows Luna; actual runtime model identity UNVERIFIED) + requested gpt-5.6-sol read-only review (runtime identity UNVERIFIED)
+PHASE: P7 Revision
+START TIME: 2026-09-13T05:24:00+08:00 (approximate)
+END TIME: 2026-09-13T05:35:26.0824174+08:00
+
+OBJECTIVE:
+Implement Finding-ID-scoped Revision with immutable reviewed-payload fingerprints, deterministic approved sources, exact changed-path records, and mandatory P8 independent re-review.
+
+FILES CREATED:
+- src/lib/revision/pleadingRevision.ts
+- src/lib/revision/pleadingRevision.test.ts
+
+FILES MODIFIED:
+- src/types/compliance.ts
+- src/lib/reviewer/pleadingReviewer.ts
+- src/lib/reviewer/pleadingReviewer.test.ts
+- EXECUTION_LOG.md
+- coverage/* (generated by targeted coverage verification)
+
+COMMANDS RUN:
+- npm run lint
+- npx vitest run src/lib/reviewer/pleadingReviewer.test.ts src/lib/revision/pleadingRevision.test.ts
+- npx vitest run P4-P7 targeted regression files
+- npx vitest run src/lib/revision/pleadingRevision.test.ts --coverage --coverage.include=src/lib/revision/pleadingRevision.ts --coverage.reporter=text
+- rg caller and dependency searches
+- Get-FileHash -Algorithm SHA256
+
+TESTS:
+- npm run lint: PASS
+- P6 Reviewer + P7 Revision: PASS (2 files, 36 tests)
+- P4-P7 targeted regression: PASS (5 files, 68 tests)
+- P7 coverage: 96.59% statements, 93.42% branches, 100% functions, 98.68% lines
+
+RESULT:
+- P7 completed. Revision accepts no free-form replacement text, applies one allowed operation to one unique MISSING/CONFLICT Finding ID, and never emits READY/resolved/compliant.
+- Every successful revision receives a new draft ID and an audit record that retains the source Finding ID and requires independent re-review.
+- P8 was not executed during P7.
+
+FINDINGS:
+- P6 reports now bind SHA-256 fingerprints for the reviewed draft, CaseInput, and Rule Profile.
+- P7 rejects stale or same-ID modified payloads, unverified/inapplicable/duplicate-rule profiles, non-problem findings, no-op changes, invalid finding sources, and category-operation mismatches.
+- Legal content or fact revisions only copy content and source IDs for one existing section from the deterministic Generator output.
+- Structural revision only copies approved metadata for one existing section in both rendered and structure definitions.
+- Negative proof has separate SOURCE_USAGE and OMITTED_SECTIONS scopes.
+- Citation, evidence-mapping, and format findings cannot be auto-revised.
+
+SOL REVIEW DECISIONS:
+- ACCEPT: single Finding ID, no arbitrary replacement text, MISSING/CONFLICT only, three forbidden auto-fix categories, SHA-256 payload fingerprints, exact program-generated changed paths, new draft identity, and independent re-review requirement.
+- ACCEPT_WITH_MODIFICATIONS: narrowed broad structure repair to one section; split negative proof by scope; required finding source/category pairing and unique Rule IDs.
+- REJECT: APPLIED/STOP union because thrown errors already provide fail-closed behavior and no unchanged-success result exists; broad top-level contract repair and extra-section deletion were removed instead.
+
+UNKNOWN:
+- Actual model identities cannot be independently confirmed by the runtime, so DUAL_MODEL_PASS is not claimed.
+- Git diff/status remains unavailable because the workspace is not a Git repository.
+
+RISKS:
+- P6 Reviewer's public API is now asynchronous to compute browser-compatible SHA-256 fingerprints; current caller search found only the updated tests.
+- Aggregated P6 findings intentionally limit P7 to deterministic, narrowly scoped operations; some structural conflicts require regeneration rather than automatic revision.
+
+HUMAN GATE:
+- NO (P1.5 is the only Human Gate under the revised SDD)
+
+NEXT PHASE:
+- P8 Independent Re-Review (READY)
+
+---
+
+DATE: 2026-09-13
+AGENT: Codex executor (execution role follows Luna; actual runtime model identity UNVERIFIED) + requested gpt-5.6-sol read-only review (runtime identity UNVERIFIED)
+PHASE: P8 Independent Re-Review
+START TIME: 2026-09-13T05:35:27+08:00 (approximate)
+END TIME: 2026-09-13T05:48:45.7606973+08:00
+
+OBJECTIVE:
+Independently re-run objective verification after one P7 revision and prove the original issue is no longer present, no new problem was introduced, no fabricated content exists, and prior non-problem rules remain preserved.
+
+FILES CREATED:
+- src/lib/reviewer/independentReReviewer.ts
+- src/lib/reviewer/independentReReviewer.test.ts
+
+FILES MODIFIED:
+- src/types/compliance.ts
+- src/lib/reviewer/pleadingReviewer.ts
+- src/lib/reviewer/pleadingReviewer.test.ts
+- src/lib/revision/pleadingRevision.ts
+- src/lib/revision/pleadingRevision.test.ts
+- EXECUTION_LOG.md
+- coverage/* (generated by targeted coverage verification)
+
+TESTS:
+- npm run lint: PASS
+- P6-P8 focused tests: PASS (3 files, 62 tests)
+- P4-P8 targeted regression: PASS (6 files, 97 tests)
+- P8 coverage: 93.20% statements, 90.17% branches, 100% functions, 96.47% lines
+
+RESULT:
+- P8 completed and does not emit READY, BLOCKED, approved, or Final Gate output.
+- independentlyReReview internally reruns P5 Compliance, anti-ghost citation verification, generated-template format verification, and P6 Reviewer for both original and revised snapshots.
+- P8 verifies the original report against independently recomputed evidence and reconstructs the revised draft solely from recorded changedPaths to reject unrecorded edits.
+
+FINDINGS:
+- Fixed a P6 source-chain defect: Claim sourceFactIds/sourceEvidenceIds are support provenance and no longer require duplicating Fact/Evidence text in Claim section content.
+- P6 legal-content Finding IDs are stable by Rule ID, independent of P5 result ordering.
+- P6 citation Finding IDs are stable by normalized citation type/text plus duplicate occurrence ordinal.
+- Fingerprint serialization now uses locale-independent UTF-16 key ordering and rejects non-JSON objects or non-finite numbers.
+- P8 permits an unrelated pre-existing blocker to remain unchanged, but retains it in the revised P6 report for P9 to block.
+
+SOL REVIEW DECISIONS:
+- ACCEPT: direct P6 invocation, actual-diff reconstruction, no Final Gate output.
+- ACCEPT_WITH_MODIFICATIONS: P8 now owns payload composition and verifier execution; stable IDs replace semantic fallback; blocker comparisons include exact status; original report IDs/version/fingerprints are revalidated; inputs are cloned before awaits.
+- REJECT: tautological P8.REVISION_SCOPE result was removed; invalid scope throws fail-closed before a report exists.
+
+UNKNOWN:
+- Actual model identities remain UNVERIFIED; DUAL_MODEL_PASS is not claimed.
+- Git status/diff unavailable because workspace is not a Git repository.
+
+RISKS:
+- Citation duplicate occurrence ordinal assumes identical normalized citation records are interchangeable; differing claim context is not currently provided by all citation verifier outputs.
+- P8 allChecksPassed is revision-scoped only and may coexist with unchanged unrelated blockers; P9 must inspect every current finding.
+
+HUMAN GATE:
+- NO
+
+NEXT PHASE:
+- P9 Final Gate (READY)
+
+---
+
+DATE: 2026-09-13
+AGENT: Codex executor (execution role follows Luna; actual runtime model identity UNVERIFIED) + requested gpt-5.6-sol read-only review (runtime identity UNVERIFIED)
+PHASE: P9 Final Gate
+START TIME: 2026-09-13T12:40:00+08:00 (approximate)
+END TIME: 2026-09-13T13:03:52.5016406+08:00
+
+OBJECTIVE:
+Produce a fail-closed Final Gate that independently refreshes current evidence, distinguishes READY from BLOCKED_WITH_HUMAN_OVERRIDE, and prevents export policy from treating an override as READY.
+
+FILES CREATED:
+- src/lib/finalGate/pleadingFinalGate.ts
+- src/lib/finalGate/pleadingFinalGate.test.ts
+
+FILES MODIFIED:
+- src/types/compliance.ts
+- src/lib/reviewer/independentReReviewer.ts
+- EXECUTION_LOG.md
+
+TESTS:
+- npm run lint: PASS
+- P9 focused tests: PASS (1 file, 20 tests)
+- P4-P9 targeted regression: PASS (6 files, 115 tests)
+- P9 isolated coverage command: TESTS PASS, command FAIL because project-wide and named-file coverage thresholds also apply to untouched files; thresholds were not weakened.
+
+RESULT:
+- evaluateFinalGate returns READY only when there are no current blockers.
+- BLOCKED_WITH_HUMAN_OVERRIDE retains every blocker and requires a separate trusted HUMAN DEPLOY authorization before export.
+- The gate independently refreshes P5/P6/citation/format evidence and binds reports, override scope, legal references, edits, and revision history with SHA-256 fingerprints.
+- Twenty fixed audit questions are always emitted; Q19 records NOT_CREATED_PRE_GATE_BY_POLICY and CREATE_VERSION_SNAPSHOT_AFTER_READY.
+
+FINDINGS:
+- UNKNOWN, unverified or ghost legal sources, integrity failures, revision/re-review failures, and unreviewed human edits are non-overridable.
+- An override must exactly cover the eligible blocker ID/fingerprint set and match the current gate input fingerprint.
+- Format-only human edits remain blocked because no approved artifact-level format verifier exists.
+
+SOL REVIEW DECISIONS:
+- ACCEPT: fresh P5/P6/citation/format checks, P8-to-fresh-P6 fingerprint equality, namespaced blocker fingerprints, fixed 20-question audit, revision-chain continuity, and export prohibition before the gate.
+- ACCEPT_WITH_MODIFICATIONS: override requires exact blocker pairs plus gate fingerprint and trusted HUMAN APPROVE context; BLOCKED_WITH_HUMAN_OVERRIDE has a separate export policy instead of READY semantics.
+- REJECT: treating an override as READY or allowing UNKNOWN/integrity/source/edit blockers to be overridden.
+
+UNKNOWN:
+- Actual model identities remain UNVERIFIED; DUAL_MODEL_PASS is not claimed.
+- Git status/diff unavailable because the workspace is not a Git repository.
+
+RISKS:
+- Production export callers are not yet routed through this Final Gate; that migration is P10/P11 work.
+- Isolated coverage cannot be reported as a passing command under the current global threshold configuration, although all P9 tests pass.
+
+HUMAN GATE:
+- NO
+
+NEXT PHASE:
+- P10 Legacy Migration (READY)
+
+---
+
+DATE: 2026-09-13
+AGENT: Codex executor (execution role follows Luna; actual runtime model identity UNVERIFIED)
+PHASE: P10 Legacy Migration
+START TIME: 2026-09-13T13:03:53+08:00
+END TIME: 2026-09-13T13:07:28.1332520+08:00
+
+OBJECTIVE:
+Map the complete legacy formatChecker dependency path and move its remaining UI consumer to explicit non-compliance semantics without deleting the adapter.
+
+FILES CREATED:
+- docs/architecture/PLEADING_LEGACY_DEPENDENCY_MAP.md
+
+FILES MODIFIED:
+- src/lib/formatChecker.ts
+- src/components/toolbox/FormatCheckerDisplay.tsx
+- EXECUTION_LOG.md
+
+TESTS:
+- npm run lint: PASS
+- format boundary regression: PASS (2 files, 5 tests)
+
+RESULT:
+- The actual production chain is documented as ToolResultPanel -> FormatCheckerDisplay -> verifyDocumentFormat; formatChecker.test.ts is the only direct test consumer.
+- The UI no longer labels keyword indicators as passed or as a legal-compliance conclusion.
+- The legacy interface, passed field, and function are deprecated but retained.
+
+FINDINGS:
+- No generatedDocumentPipeline, docGeneration, API route, or server-service import of formatChecker.ts was found.
+- The canonical P4-P9 pipeline still has no production caller supplying structured CaseInput and gate evidence.
+- exportReport.ts is a separate LegalWorkflowState analysis-report exporter, not a proven StructuredPleadingDraft export path.
+- External DOCX/PDF physical layout verification remains UNVERIFIED and out of scope by SDD.
+
+DEPRECATION GATE:
+- Removal remains BLOCKED until production callers are migrated, non-pleading tools are excluded, delivery actions are gated, canonical regressions replace legacy coverage, and a human approves deletion.
+
+UNKNOWN:
+- Runtime production call frequency cannot be proven by static search.
+- Git status/diff unavailable because the workspace is not a Git repository.
+
+HUMAN GATE:
+- NO (legacy deletion itself remains separately human-blocked)
+
+NEXT PHASE:
+- P11 Regression / Integration (READY)

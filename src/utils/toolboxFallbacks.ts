@@ -1,6 +1,20 @@
 import { LegalToolboxResult } from '../types';
 import { verifyLegalCitations } from '../lib/citationVerifier';
 
+export class ProductionToolboxFallbackBlockedError extends Error {
+  readonly code = 'PRODUCTION_TOOLBOX_FALLBACK_BLOCKED';
+
+  constructor(category: string) {
+    super(`Production toolbox fallback is disabled for ${category}; no unverified substitute document may be returned.`);
+    this.name = 'ProductionToolboxFallbackBlockedError';
+  }
+}
+
+/** Production must fail closed instead of returning the legacy fabricated sample. */
+export function blockProductionToolboxFallback(category: string): never {
+  throw new ProductionToolboxFallbackBlockedError(category);
+}
+
 export function buildFallbackToolboxResult(
   category: string,
   params: Record<string, any>

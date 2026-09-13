@@ -2,12 +2,17 @@ import { Router, Request, Response } from "express";
 import { getLegalToolboxPrompt } from "../../src/prompts/toolbox-prompts.js";
 import { UNIVERSAL_SYLLOGISM_RULES } from "../../src/prompts/universal-syllogism.js";
 import { verifyGeneratedDocument, assertGeneratedDocumentVerified } from "../../src/lib/generatedDocumentPipeline.js";
-import { buildFallbackToolboxResult } from "../../src/utils/toolboxFallbacks.js";
+import {
+  blockProductionToolboxFallback,
+  ProductionToolboxFallbackBlockedError
+} from "../../src/utils/toolboxFallbacks.js";
 import { precheckLegalInput } from "../../src/lib/legalInputPrecheck.js";
 import { verifyLegalCitations } from "../../src/lib/citationVerifier.js";
 import { LEGAL_TOOL_TITLES } from "../../src/lib/legalToolTitles.js";
+import { LEGAL_TOOLS } from "../../src/lib/legalToolRegistry.js";
 import { findUnreadRetrievedCitations } from "../../src/domain/case/citationGate.js";
 import { defaultLegalGenerationPipeline } from "../services/legalGenerationPipeline.js";
+import { evaluatePleadingDelivery } from "../../src/lib/finalGate/pleadingExportGate.js";
 
 // Enforced via defaultLegalGenerationPipeline
 void [UNIVERSAL_SYLLOGISM_RULES, verifyGeneratedDocument, assertGeneratedDocumentVerified];
@@ -16,11 +21,29 @@ const router = Router();
 
 // 1. Generate Toolbox Document
 router.post("/api/toolbox/generate", async (req: Request, res: Response) => {
-  const { toolId, toolCategory, toolTitle, params } = req.body;
-  const categoryKey = toolCategory || toolId || "CRIMINAL_COMPLAINT_TRAFFIC";
-  const resolvedTitle = toolTitle || (toolId && LEGAL_TOOL_TITLES[toolId]) || "法律文書";
+  const { toolId, toolCategory, params } = req.body;
+  const rawCategory = toolCategory || toolId;
+  if (typeof rawCategory !== 'string' || !rawCategory.trim()) {
+    return res.status(400).json({
+      error: '必須提供有效的法律工具類別',
+      code: 'TOOLBOX_CATEGORY_REQUIRED'
+    });
+  }
+  const categoryKey = rawCategory.trim().toUpperCase();
+  const registeredTool = LEGAL_TOOLS.find(tool => tool.id === categoryKey);
+  const knownLegacyCategory = Object.prototype.hasOwnProperty.call(LEGAL_TOOL_TITLES, categoryKey);
+  if (!registeredTool && !knownLegacyCategory) {
+    return res.status(400).json({
+      error: '不支援或未知的法律工具類別',
+      code: 'UNKNOWN_TOOLBOX_CATEGORY'
+    });
+  }
+  // Display titles are server-owned. A request-provided title must not alter
+  // classification or make one category masquerade as another document type.
+  const resolvedTitle = registeredTool?.name || LEGAL_TOOL_TITLES[categoryKey] || "法律文書";
 
   const serializedInput = JSON.stringify(params || {});
+
   const unreadCitations = findUnreadRetrievedCitations((params || {}).selectedPrecedents || (params || {}).candidateCitations);
   if (unreadCitations.length > 0) {
     return res.status(422).json({ error: '檢索裁判尚未取得全文，拒絕將未讀取來源帶入生成', code: 'CITATION_FULLTEXT_REQUIRED', citations: unreadCitations.map(item => item.citation) });
@@ -30,6 +53,24 @@ router.post("/api/toolbox/generate", async (req: Request, res: Response) => {
     return res.status(422).json({
       error: "輸入內容包含顯著異常或虛構之法律條號，已被安全機制攔截",
       issues: precheck.issues
+    });
+  }
+
+  // Trust boundary: this legacy route does not execute P4-P9 and therefore can
+  // never possess a server-owned P9 authorization. Request-supplied gate data
+  // is intentionally ignored. Court pleadings remain blocked until a trusted
+  // adapter passes a P9-issued authorization here.
+  const deliveryDecision = evaluatePleadingDelivery(categoryKey);
+  if (!deliveryDecision.allowed) {
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(409).json({
+      error: deliveryDecision.message,
+      code: deliveryDecision.code,
+      deliveryGate: {
+        required: true,
+        status: 'BLOCKED',
+        authorizedActions: []
+      }
     });
   }
 
@@ -58,11 +99,7 @@ router.post("/api/toolbox/generate", async (req: Request, res: Response) => {
         };
       },
       fallback: () => {
-        const fallback = buildFallbackToolboxResult(categoryKey, params || {});
-        return {
-          documentText: fallback.documentText,
-          payload: fallback
-        };
+        return blockProductionToolboxFallback(categoryKey);
       }
     });
 
@@ -79,9 +116,10 @@ router.post("/api/toolbox/generate", async (req: Request, res: Response) => {
     res.json(finalPayload);
   } catch (err: any) {
     console.warn("[ToolboxGenerate] Pipeline 執行異常或檢核未通過:", err?.message || err);
-    return res.status(422).json({
+    const fallbackBlocked = err instanceof ProductionToolboxFallbackBlockedError;
+    return res.status(fallbackBlocked ? 503 : 422).json({
       error: err?.message || '法律文件引用檢核未通過，拒絕回傳未確認引用文件',
-      code: 'DOCUMENT_VERIFICATION_FAILED'
+      code: fallbackBlocked ? err.code : 'DOCUMENT_VERIFICATION_FAILED'
     });
   }
 });

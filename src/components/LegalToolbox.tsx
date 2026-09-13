@@ -18,6 +18,7 @@ import { UIConstants } from '../constants/ui';
 import { useGlobalUI } from '../contexts/GlobalUIContext';
 import { getCalculatorConfig } from '../lib/calculatorEngines';
 import { InteractiveCalculatorView } from './toolbox/InteractiveCalculatorView';
+import { evaluatePleadingDelivery } from '../lib/finalGate/pleadingExportGate';
 
 type DocumentGenerationStage = 'input' | 'analyzing' | 'formatting' | 'ready' | 'error';
 
@@ -103,6 +104,14 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
         params: formInputs
       });
       clearTimeout(formattingTimer);
+      const deliveryDecision = evaluatePleadingDelivery(
+        activeToolId,
+        res?.pleadingDeliveryAuthorization,
+        'RETURN'
+      );
+      if (!deliveryDecision.allowed) {
+        throw new Error(`${deliveryDecision.code}: ${deliveryDecision.message}`);
+      }
       setResult(res);
       setGenerationStage('ready');
 
