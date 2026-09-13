@@ -1,110 +1,151 @@
 import { randomUUID } from 'crypto';
-import type { CaseInput, IndependentReReviewReport } from '../../src/types/compliance.js';
+import type { CaseInput, Evidence, MissingInput, Party } from '../../src/types/compliance.js';
 import { buildStructuredPleadingDraft } from '../../src/lib/generator/civilPleadingGenerator.js';
 import { verifyPleadingCompliance } from '../../src/lib/compliance/pleadingComplianceEngine.js';
 import { reviewStructuredPleading } from '../../src/lib/reviewer/pleadingReviewer.js';
+import { independentlyReReviewUnchangedDraft } from '../../src/lib/reviewer/independentReReviewer.js';
 import { evaluateFinalGate } from '../../src/lib/finalGate/pleadingFinalGate.js';
 import { createPleadingDeliveryAuthorization } from '../../src/lib/finalGate/pleadingExportGate.js';
 import { getCourtPleadingConfig } from '../../src/lib/rules/courtPleadingRuleProfiles.js';
 import { verifyGeneratedDocument } from '../../src/lib/generatedDocumentPipeline.js';
 import { verifyGenerationTemplate } from '../../src/lib/compliance/generationTemplateVerifier.js';
 
-export async function executeCanonicalPleadingPipeline(categoryKey: string, params: any) {
-  const config = getCourtPleadingConfig(categoryKey);
-  if (!config) {
-    throw new Error(`此類別（${categoryKey}）尚未支援 P4-P9 確定性管線`);
+type CanonicalParams = Record<string, unknown>;
+
+export class CanonicalPleadingInputError extends Error {
+  readonly code = 'CANONICAL_PLEADING_INPUT_REQUIRED';
+
+  constructor(readonly missingInputs: MissingInput[]) {
+    super(`書狀輸入不足：${[...new Set(missingInputs.map(item => item.field))].join(', ')}`);
   }
+}
 
-  const factId = randomUUID();
-  const claimId = randomUUID();
-  const evidenceId = randomUUID();
-  const attachmentId = randomUUID();
-  const claimantId = randomUUID();
-  const respondentId = randomUUID();
+function text(params: CanonicalParams, ...keys: string[]): string {
+  for (const key of keys) {
+    const value = params[key];
+    if (typeof value === 'string' && value.trim()) return value.trim();
+    if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+  }
+  return '';
+}
 
-  const isSexualAssault = config.categoryKey === 'CRIMINAL_COMPLAINT_SEXUAL_ASSAULT';
-  const addressProtection = isSexualAssault || params.protectAddress ? {
-    requested: true,
-    reason: '性侵害犯罪防治法第12條身分資訊及住居所保密',
-    actualAddressStorage: 'protected' as const,
-    publicDocumentAddress: '代號年籍詳卷附身分保密對照表（依法密封）',
-    serviceAddress: params.serviceAddress || '受任送達代收處所'
-  } : undefined;
+function sourceTexts(value: unknown): string[] {
+  const values = Array.isArray(value) ? value : [value];
+  return values.flatMap(item => {
+    if (typeof item === 'string') return item.split(/\r?\n/).map(part => part.trim()).filter(Boolean);
+    if (!item || typeof item !== 'object') return [];
+    const content = (item as Record<string, unknown>).content;
+    return typeof content === 'string' && content.trim() ? [content.trim()] : [];
+  });
+}
 
-  const claimantName = params.plaintiffName || params.claimantName || (isSexualAssault ? '代號 A 女（真實年籍姓名詳密封對照表）' : `${config.claimantRole}姓名`);
-  const respondentName = params.defendantName || params.respondentName || `${config.respondentRole}姓名`;
-  const claimantAddress = params.plaintiffAddress || params.claimantAddress || (addressProtection ? '（實際住居所依法留存檢察署身分密封袋，不予對外揭露）' : '設址於中華民國境內（送達代收處所）');
-  const respondentAddress = params.defendantAddress || params.respondentAddress || '設址於中華民國境內（送達處所）';
+function evidenceFrom(params: CanonicalParams, ...keys: string[]): Evidence[] {
+  for (const key of keys) {
+    const contents = sourceTexts(params[key]);
+    if (contents.length) return contents.map(content => ({ id: randomUUID(), content }));
+  }
+  return [];
+}
 
-  const defaultCourt = config.caseType === 'criminal' ? '臺灣臺北地方檢察署' : '臺灣臺北地方法院';
-  const courtName = params.courtName || defaultCourt;
+function isPositiveDecimalAmount(value: string): boolean {
+  const normalized = value.replace(/,/g, '');
+  return /^\d+(?:\.\d+)?$/.test(normalized) && Number(normalized) > 0;
+}
 
-  const claimStatement = params.claimAmount
-    ? `${config.claimLabel}：請求給付新台幣 ${params.claimAmount} 元整`
-    : (params.claimStatement || `${config.claimLabel}如訴之聲明所示`);
+function buildParties(params: CanonicalParams, claimantRole: string, respondentRole: string): Party[] {
+  const claimant: Party = {
+    id: randomUUID(),
+    role: claimantRole,
+    name: text(params, 'plaintiffName', 'claimantName', 'creditorName', 'complainantName', 'petitionerName'),
+    address: text(params, 'plaintiffAddress', 'claimantAddress', 'creditorAddress', 'complainantAddress', 'petitionerAddress')
+  };
+  const defendants = [1, 2]
+    .map(index => ({
+      name: text(params, `defendant${index}Name`),
+      address: text(params, `defendant${index}Address`)
+    }))
+    .filter(party => party.name || party.address);
+  const respondents = defendants.length ? defendants : [{
+    name: text(params, 'defendantName', 'respondentName', 'debtorName', 'accusedName'),
+    address: text(params, 'defendantAddress', 'respondentAddress', 'debtorAddress', 'accusedAddress')
+  }];
 
-  const factContent = params.incidentDetails || params.facts || `${config.factsLabel}如後陳述：雙方因法律關係發生爭議，經催告未獲妥善處理。`;
-  const evidenceContent = params.evidenceDetails || '書證或相符證據資料乙份';
+  return [claimant, ...respondents.map((party, index) => ({
+    id: randomUUID(),
+    role: respondents.length > 1 ? `${respondentRole}${index + 1}` : respondentRole,
+    ...party
+  }))];
+}
+
+export async function executeCanonicalPleadingPipeline(categoryKey: string, rawParams: unknown) {
+  const config = getCourtPleadingConfig(categoryKey);
+  if (!config) throw new Error(`此類別（${categoryKey}）尚未支援 P4-P9 確定性管線`);
+  const params: CanonicalParams = rawParams && typeof rawParams === 'object' && !Array.isArray(rawParams)
+    ? rawParams as CanonicalParams
+    : {};
+
+  const factContent = text(params, 'facts', 'incidentDetails', 'caseContext');
+  const claimAmount = text(params, 'claimAmount', 'claimTotalAmount', 'debtAmount');
+  const claimStatement = text(params, 'claimStatement') || (
+    claimAmount ? `${config.claimLabel}：請求給付 ${claimAmount}` : ''
+  );
+  const evidence = evidenceFrom(params, 'evidence', 'evidenceDetails', 'evidenceList');
+  const attachments = evidenceFrom(params, 'attachments', 'attachmentDetails');
+  const factId = factContent ? randomUUID() : '';
+  const claimId = claimStatement ? randomUUID() : '';
 
   const caseInput: CaseInput = {
     id: randomUUID(),
     caseType: config.caseType,
     pleadingType: config.pleadingType,
     styleProfile: config.styleProfile,
-    court: courtName,
-    proceeding: params.proceeding || config.proceeding,
-    documentDate: new Date().toISOString().split('T')[0].replace(/-/g, '/'),
-    signature: claimantName,
-    parties: [
-      {
-        id: claimantId,
-        role: config.claimantRole,
-        name: claimantName,
-        address: claimantAddress,
-        addressProtection
-      },
-      { id: respondentId, role: config.respondentRole, name: respondentName, address: respondentAddress }
-    ],
-    claims: [
-      {
-        id: claimId,
-        statement: claimStatement,
-        factIds: [factId],
-        evidenceIds: [evidenceId]
-      }
-    ],
-    facts: [
-      {
-        id: factId,
-        content: factContent,
-        sourceLevel: 'EVIDENCE_BACKED',
-        evidenceIds: [evidenceId]
-      }
-    ],
-    evidence: [
-      { id: evidenceId, content: evidenceContent }
-    ],
-    attachments: [
-      { id: attachmentId, content: `${evidenceContent}（附屬文件）` }
-    ]
+    court: text(params, 'courtName'),
+    proceeding: text(params, 'proceeding'),
+    documentDate: text(params, 'documentDate'),
+    signature: text(params, 'signature'),
+    parties: buildParties(params, config.claimantRole, config.respondentRole),
+    claims: claimStatement ? [{
+      id: claimId,
+      statement: claimStatement,
+      factIds: factId && config.pleadingType === 'complaint' ? [factId] : [],
+      evidenceIds: evidence.map(item => item.id)
+    }] : [],
+    facts: factContent ? [{
+      id: factId,
+      content: factContent,
+      sourceLevel: 'USER_PROVIDED_FACT',
+      evidenceIds: evidence.map(item => item.id)
+    }] : [],
+    evidence,
+    attachments,
+    legalReferencesUsed: config.legalReferences.map(reference => reference.sourceReference)
   };
 
-  // P4: 生成結構化草稿
   const draft = buildStructuredPleadingDraft(caseInput, config.ruleProfile);
+  if (config.requiresFixedQuantityClaim && !isPositiveDecimalAmount(claimAmount)) {
+    draft.missingInputs = [...(draft.missingInputs || []), {
+      field: 'debtAmount',
+      reason: '支付命令須先以正數數值確認一定數量之金錢請求；其他代替物或有價證券標的尚未支援。',
+      severity: 'BLOCKING',
+      requiredFor: [config.pleadingType],
+      sourceRequirement: '民事訴訟法第508條',
+      category: 'MINIMUM_GENERATION'
+    }];
+  }
+  const blockingInputs = (draft.missingInputs || []).filter(
+    item => item.severity === 'BLOCKING' || item.severity === 'HIGH'
+  );
+  if (blockingInputs.length) throw new CanonicalPleadingInputError(blockingInputs);
 
-  // P5: 法規合規引擎檢核
   const complianceFindings = verifyPleadingCompliance({
     draft,
     caseInput,
     ruleProfile: config.ruleProfile,
     legalReferences: config.legalReferences
   });
-
-  const rawDocumentText = draft.sections.map(s => s.content).filter(Boolean).join('\n');
+  const rawDocumentText = draft.sections.map(section => section.content).filter(Boolean).join('\n');
   const citationVerification = verifyGeneratedDocument(rawDocumentText);
   const formatFinding = verifyGenerationTemplate(config.caseType, config.formatProfile);
-
-  // P6: 結構化書狀審查
   const reviewReport = await reviewStructuredPleading({
     draft,
     caseInput,
@@ -114,31 +155,22 @@ export async function executeCanonicalPleadingPipeline(categoryKey: string, para
     formatFinding,
     appliedFormatProfile: config.formatProfile
   });
-
-  // 誠實記錄：若初稿無任何 MISSING 或 CONFLICT 瑕疵，修訂步驟為 no-op passthrough
-  // （不使用偽造空白字元或空 findingId 湊數）
-  const hasBlockers = reviewReport.findings.some(f => f.status === 'MISSING' || f.status === 'CONFLICT');
-  if (hasBlockers) {
-    throw new Error('初稿存在未解決瑕疵，目前尚未實作自動修訂邏輯。');
+  if (reviewReport.findings.some(finding =>
+    finding.status === 'MISSING' || finding.status === 'CONFLICT' || finding.status === 'UNVERIFIED'
+  )) {
+    const problems = reviewReport.findings.filter(finding =>
+      finding.status === 'MISSING' || finding.status === 'CONFLICT' || finding.status === 'UNVERIFIED'
+    );
+    throw new Error(`初稿存在未解決瑕疵：${problems.map(finding => finding.id).join(', ')}`);
   }
 
-  // P8: 獨立再審查報告（合格確認）
-  const independentReReviewReport: IndependentReReviewReport = {
-    originalDraftId: draft.id,
-    revisedDraftId: draft.id,
-    revisionFindingId: 'NO_REVISION_NEEDED',
-    reReviewerVersion: '2.0.0-canonical-passthrough',
-    checks: [
-      { id: 'P8.ORIGINAL_FINDING', status: 'COMPLIANT', note: '初始草稿經 P6 審查無待修訂瑕疵。', objectiveBasis: ['P6 ReviewReport'] },
-      { id: 'P8.NO_NEW_FINDINGS', status: 'COMPLIANT', note: '無新瑕疵產生。', objectiveBasis: ['P6 ReviewReport'] },
-      { id: 'P8.NO_FABRICATION', status: 'COMPLIANT', note: '未包含未授權變更。', objectiveBasis: ['P6 ReviewReport'] },
-      { id: 'P8.OTHER_RULES_PRESERVED', status: 'COMPLIANT', note: '法規結構完整保留。', objectiveBasis: ['P6 ReviewReport'] }
-    ],
-    revisedReviewReport: reviewReport,
-    allChecksPassed: true
-  };
-
-  // P9: 最終守門員評估
+  const independentReReviewReport = await independentlyReReviewUnchangedDraft({
+    draft,
+    caseInput,
+    ruleProfile: config.ruleProfile,
+    legalReferences: config.legalReferences,
+    originalReviewReport: reviewReport
+  });
   const finalGateReport = await evaluateFinalGate({
     independentReReviewReport,
     draft,
@@ -148,17 +180,20 @@ export async function executeCanonicalPleadingPipeline(categoryKey: string, para
     revisionRecords: [],
     humanEditRecord: { occurred: false, kind: 'NONE', fields: [] }
   });
+  if (finalGateReport.status !== 'READY') {
+    throw new Error(`P9 Final Gate 阻擋交付：${finalGateReport.blockers.map(item => item.id).join(', ')}`);
+  }
 
   const documentText = draft.sections
-    .filter(s => s.content && s.content.trim())
-    .map(s => s.title ? `${s.title}\n${s.content}` : s.content)
+    .filter(section => section.content.trim())
+    .map(section => section.title ? `${section.title}\n${section.content}` : section.content)
     .join('\n\n');
-
-  // 取得交付授權 Token
   const authorization = await createPleadingDeliveryAuthorization(finalGateReport, documentText);
 
   return {
-    documentTitle: params.courtName ? `${params.courtName}${config.documentTitle}` : config.documentTitle,
+    toolCategory: config.categoryKey,
+    title: config.documentTitle,
+    documentTitle: config.documentTitle,
     documentText,
     pleadingDeliveryAuthorization: authorization,
     antiGhostVerification: {
@@ -168,17 +203,13 @@ export async function executeCanonicalPleadingPipeline(categoryKey: string, para
       ghostCitationsFound: 0,
       verifiedCitations: []
     },
-    legalSources: config.legalReferences.map(ref => ({
-      sourceReference: ref.sourceReference,
-      verificationStatus: ref.verificationStatus,
-      contentHash: ref.contentHash
-    })),
+    legalSources: config.legalReferences.map(reference => ({ ...reference })),
     isExternalRetrievalUsed: false,
     retrievalStatusMessage: '已使用 P4-P9 確定性合規管線產製（未執行外部網路檢索）',
-    complianceChecklist: complianceFindings.map(f => ({
-      rule: f.ruleId,
-      passed: f.status === 'COMPLIANT' || f.status === 'NOT_APPLICABLE',
-      detail: f.note || ''
+    complianceChecklist: complianceFindings.map(finding => ({
+      rule: finding.ruleId,
+      passed: finding.status === 'COMPLIANT' || finding.status === 'NOT_APPLICABLE' || finding.status === 'WARNING',
+      detail: finding.note || ''
     }))
   };
 }

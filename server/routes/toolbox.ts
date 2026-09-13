@@ -76,6 +76,7 @@ router.post("/api/toolbox/generate", async (req: Request, res: Response) => {
   }
 
   if (isCourtPleadingToolCategory(categoryKey)) {
+    res.setHeader('Cache-Control', 'no-store');
     try {
       const canonicalPayload = await executeCanonicalPleadingPipeline(categoryKey, params || {});
       return res.json(canonicalPayload);
@@ -83,7 +84,8 @@ router.post("/api/toolbox/generate", async (req: Request, res: Response) => {
       console.warn("[ToolboxGenerate] Canonical Pipeline Error:", err?.message || err);
       return res.status(422).json({
         error: err?.message || '書狀合規產製未通過 P9 最終守門員',
-        code: 'P9_FINAL_GATE_FAILED'
+        code: err?.code || 'P9_FINAL_GATE_FAILED',
+        ...(Array.isArray(err?.missingInputs) ? { missingInputs: err.missingInputs } : {})
       });
     }
   }

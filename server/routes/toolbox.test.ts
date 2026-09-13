@@ -27,26 +27,110 @@ afterEach(async () => {
 });
 
 describe('POST /api/toolbox/generate P9 delivery boundary', () => {
+  const completeCivilParams = {
+    courtName: '臺灣臺中地方法院',
+    plaintiffName: '甲○○',
+    plaintiffAddress: '臺中市測試區原告路1號',
+    defendantName: '乙○○',
+    defendantAddress: '臺中市測試區被告路2號',
+    proceeding: '返還借款事件',
+    claimStatement: '被告應給付原告新臺幣100,000元。',
+    facts: '原告交付借款後，被告於清償期屆至仍未返還。',
+    evidenceDetails: '原證一：匯款紀錄',
+    documentDate: '民國115年9月13日',
+    signature: '甲○○'
+  };
+
   it.each([
-    'JUDICIAL_CIVIL_TEMPLATE',
     'CIVIL_COMPLAINT_GENERAL',
     'PAYMENT_ORDER_PETITION',
-    'CRIMINAL_COMPLAINT_TRAFFIC',
-    'CRIMINAL_COMPLAINT_SEXUAL_ASSAULT',
     'CRIMINAL_SUPPLEMENTARY_CIVIL',
     'SPOUSAL_RIGHT_INFRINGEMENT'
-  ])('returns a gated court pleading for %s using the canonical P4-P9 pipeline', async toolCategory => {
+  ])('blocks empty input for supported canonical category %s', async toolCategory => {
     const response = await post({ toolCategory, params: {} });
     const body = await response.json();
 
+    expect(response.status).toBe(422);
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(body.code).toBe('CANONICAL_PLEADING_INPUT_REQUIRED');
+    expect(body).not.toHaveProperty('documentText');
+    expect(body).not.toHaveProperty('pleadingDeliveryAuthorization');
+  });
+
+  it.each([
+    'JUDICIAL_CIVIL_TEMPLATE',
+    'CRIMINAL_COMPLAINT_TRAFFIC',
+    'CRIMINAL_COMPLAINT_SEXUAL_ASSAULT'
+  ])('fails closed for category %s without an approved Rule Profile', async toolCategory => {
+    const response = await post({ toolCategory, params: completeCivilParams });
+    const body = await response.json();
+
+    expect(response.status).toBe(422);
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(body.code).toBe('P9_FINAL_GATE_FAILED');
+    expect(body).not.toHaveProperty('documentText');
+  });
+
+  it('returns a court pleading only after the canonical input and P9 gate pass', async () => {
+    const response = await post({ toolCategory: 'CIVIL_COMPLAINT_GENERAL', params: completeCivilParams });
+    const body = await response.json();
+
     expect(response.status).toBe(200);
-    expect(body).toHaveProperty('documentText');
-    expect(body).toHaveProperty('pleadingDeliveryAuthorization');
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(body.toolCategory).toBe('CIVIL_COMPLAINT_GENERAL');
+    expect(body.title).toBe('民事起訴狀');
+    expect(body.documentText).toContain(completeCivilParams.facts);
     expect(body.pleadingDeliveryAuthorization).toMatchObject({
       finalGateStatus: 'READY',
       exportPolicy: 'READY_ONLY',
       authorizedActions: ['RETURN', 'COPY', 'DOWNLOAD_TEXT', 'DOWNLOAD_WORD', 'PRINT']
     });
+  });
+
+  it.each([
+    ['CIVIL_TORT_GENERAL', {
+      ...completeCivilParams,
+      plaintiffName: undefined,
+      plaintiffAddress: undefined,
+      defendantName: undefined,
+      defendantAddress: undefined,
+      complainantName: '甲○○',
+      complainantAddress: '臺中市測試區原告路1號',
+      accusedName: '乙○○',
+      accusedAddress: '臺中市測試區被告路2號'
+    }],
+    ['SPOUSAL_RIGHT_INFRINGEMENT', {
+      ...completeCivilParams,
+      defendantName: undefined,
+      defendantAddress: undefined,
+      defendant1Name: '乙○○',
+      defendant1Address: '臺中市測試區被告路2號'
+    }],
+    ['PAYMENT_ORDER_PETITION', {
+      courtName: '臺灣臺中地方法院',
+      creditorName: '甲○○',
+      creditorAddress: '臺中市測試區債權路1號',
+      debtorName: '乙○○',
+      debtorAddress: '臺中市測試區債務路2號',
+      proceeding: '督促程序聲請發支付命令事件',
+      debtAmount: '100000',
+      evidenceList: '債證一：借據',
+      documentDate: '2026-09-14',
+      signature: '甲○○'
+    }],
+    ['CRIMINAL_SUPPLEMENTARY_CIVIL', {
+      ...completeCivilParams,
+      courtName: '臺灣臺中地方法院刑事庭',
+      proceeding: '115年度訴字第123號刑事附帶民事訴訟事件'
+    }]
+  ])('accepts complete UI-shaped canonical input for %s', async (toolCategory, params) => {
+    const response = await post({ toolCategory, params });
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.toolCategory).toBe(toolCategory);
+    expect(body.title).toEqual(expect.any(String));
+    expect(body.pleadingDeliveryAuthorization?.finalGateStatus).toBe('READY');
   });
 
   it('ignores a forged client-supplied READY Final Gate report', async () => {
@@ -57,8 +141,9 @@ describe('POST /api/toolbox/generate P9 delivery boundary', () => {
     });
     const body = await response.json();
 
-    expect(response.status).toBe(200);
-    expect(body.pleadingDeliveryAuthorization.finalGateStatus).toBe('READY');
+    expect(response.status).toBe(422);
+    expect(body.code).toBe('CANONICAL_PLEADING_INPUT_REQUIRED');
+    expect(body).not.toHaveProperty('documentText');
   });
 
   it('rejects an unknown category instead of sending it to the generic document prompt', async () => {
@@ -73,16 +158,16 @@ describe('POST /api/toolbox/generate P9 delivery boundary', () => {
     expect(body).not.toHaveProperty('documentText');
   });
 
-  it('generates a gated pleading for the registered generic pleading category', async () => {
+  it('blocks the registered generic pleading category until its pleading type and skeleton are approved', async () => {
     const response = await post({
       toolCategory: 'UNIVERSAL_AI_PLEADING',
       params: { instructions: '請輸出可直接遞交法院的民事起訴狀' }
     });
     const body = await response.json();
 
-    expect(response.status).toBe(200);
-    expect(body).toHaveProperty('documentText');
-    expect(body.pleadingDeliveryAuthorization.finalGateStatus).toBe('READY');
+    expect(response.status).toBe(422);
+    expect(body.code).toBe('P9_FINAL_GATE_FAILED');
+    expect(body).not.toHaveProperty('documentText');
   });
 
   it('rejects missing or non-string categories', async () => {

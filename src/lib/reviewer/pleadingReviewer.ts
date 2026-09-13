@@ -453,8 +453,14 @@ function evidenceMappingReview(input: PleadingReviewInput): ReviewFinding[] {
   const basis = ['P6.EVIDENCE', 'CaseInput Claim–Fact–Evidence relations'];
   const factIds = new Set(input.caseInput.facts.map(item => item.id));
   const evidenceIds = new Set(input.caseInput.evidence.map(item => item.id));
+  const factsRequired = input.ruleProfile.rules.some(rule =>
+    rule.level === 'REQUIRED' &&
+    rule.targetSection === 'subject_and_facts' &&
+    rule.appliesTo.includes(input.caseInput.caseType) &&
+    (!rule.pleadingTypes || rule.pleadingTypes.includes(input.caseInput.pleadingType))
+  );
   const invalidClaimLink = input.caseInput.claims.some(claim =>
-    !claim.factIds.length ||
+    (factsRequired && !claim.factIds.length) ||
     claim.factIds.some(id => !factIds.has(id)) ||
     (claim.evidenceIds || []).some(id => !evidenceIds.has(id))
   );

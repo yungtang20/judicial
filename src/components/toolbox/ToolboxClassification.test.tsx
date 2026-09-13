@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { LEGAL_TOOLS, TOOLBOX_CATEGORIES } from '../../lib/legalToolRegistry';
 import { ToolboxHeader, TOOLBOX_GROUPS } from './ToolboxHeader';
 import { ToolSelectorGrid } from './ToolSelectorGrid';
+import { isCurrentToolboxResponse } from '../LegalToolbox';
 
 describe('legal toolbox classification (Dingchuan 4-Core Categories)', () => {
   it('offers the 5 consistent life-situation categories matching Dingchuan layout', () => {
@@ -45,5 +46,11 @@ describe('legal toolbox classification (Dingchuan 4-Core Categories)', () => {
     expect(screen.getByText(tool.shortDesc)).toBeInTheDocument();
     expect(screen.getByText(`依據：${tool.legalBasis}`)).toBeInTheDocument();
     expect(screen.getByText('目前開啟')).toBeInTheDocument();
+  });
+
+  it('rejects a stale or category-mismatched toolbox response', () => {
+    expect(isCurrentToolboxResponse('CIVIL_COMPLAINT_GENERAL', 'CIVIL_COMPLAINT_GENERAL', 'CIVIL_COMPLAINT_GENERAL', 2, 2)).toBe(true);
+    expect(isCurrentToolboxResponse('CIVIL_COMPLAINT_GENERAL', 'PAYMENT_ORDER_PETITION', 'CIVIL_COMPLAINT_GENERAL', 2, 3)).toBe(false);
+    expect(isCurrentToolboxResponse('CIVIL_COMPLAINT_GENERAL', 'CIVIL_COMPLAINT_GENERAL', 'PAYMENT_ORDER_PETITION', 2, 2)).toBe(false);
   });
 });

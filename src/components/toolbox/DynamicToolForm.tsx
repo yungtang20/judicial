@@ -53,11 +53,14 @@ export const DynamicToolForm: React.FC<DynamicToolFormProps> = ({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
         {fields.map((field) => {
+          const fieldId = `tool-${toolId}-${field.key}`;
           if (field.type === 'textarea') {
             return (
               <div key={field.key} className="col-span-1 sm:col-span-2">
                 <div className="flex justify-between items-end mb-1.5">
-                  <label className="block font-medium text-slate-300 text-xs sm:text-sm">{field.label}</label>
+                  <label htmlFor={fieldId} className="block font-medium text-slate-300 text-xs sm:text-sm">
+                    {field.label}{field.required && <span className="ml-1 text-rose-400" aria-hidden="true">*</span>}
+                  </label>
                   {field.showAiSuggest && (
                     <AiSuggestButton 
                       fieldLabel={field.label} 
@@ -69,7 +72,11 @@ export const DynamicToolForm: React.FC<DynamicToolFormProps> = ({
                   )}
                 </div>
                 <textarea
+                  id={fieldId}
+                  name={field.key}
                   rows={field.rows || 5}
+                  required={field.required}
+                  aria-required={field.required}
                   value={formInputs[field.key] || ''}
                   onChange={(e) => onChange(field.key, e.target.value)}
                   className={`${UIConstants.textarea} text-sm`}
@@ -82,7 +89,9 @@ export const DynamicToolForm: React.FC<DynamicToolFormProps> = ({
           return (
             <div key={field.key} className="col-span-1 sm:col-span-2 md:col-span-1">
               <div className="flex justify-between items-end mb-1.5">
-                <label className="block font-medium text-slate-300 text-xs sm:text-sm">{field.label}</label>
+                <label htmlFor={fieldId} className="block font-medium text-slate-300 text-xs sm:text-sm">
+                  {field.label}{field.required && <span className="ml-1 text-rose-400" aria-hidden="true">*</span>}
+                </label>
                 {field.showAiSuggest && (
                   <AiSuggestButton 
                     fieldLabel={field.label} 
@@ -94,7 +103,11 @@ export const DynamicToolForm: React.FC<DynamicToolFormProps> = ({
                 )}
               </div>
               <input
-                type={field.type === 'number' ? 'number' : 'text'}
+                id={fieldId}
+                name={field.key}
+                type={field.type === 'number' || field.type === 'date' ? field.type : 'text'}
+                required={field.required}
+                aria-required={field.required}
                 value={formInputs[field.key] || ''}
                 onChange={(e) => onChange(field.key, e.target.value)}
                 className={`${UIConstants.input} text-sm`}

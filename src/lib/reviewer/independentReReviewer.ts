@@ -33,6 +33,14 @@ export interface IndependentReReviewInput {
   revisionRecord: PleadingRevisionRecord;
 }
 
+export interface IndependentNoRevisionReviewInput {
+  draft: StructuredPleadingDraft;
+  caseInput: CaseInput;
+  ruleProfile: PleadingRuleProfile;
+  legalReferences: LegalReference[];
+  originalReviewReport: PleadingReviewReport;
+}
+
 function isProblem(status: ComplianceStatus): boolean {
   return status === 'MISSING' || status === 'CONFLICT' || status === 'UNVERIFIED';
 }
@@ -247,6 +255,58 @@ export async function independentlyReReview(rawInput: IndependentReReviewInput):
     originalDraftId: input.originalDraft.id,
     revisedDraftId: input.revisedDraft.id,
     revisionFindingId: input.revisionRecord.findingId,
+    reReviewerVersion: INDEPENDENT_RE_REVIEWER_VERSION,
+    checks,
+    revisedReviewReport,
+    allChecksPassed: checks.every(item => item.status === 'COMPLIANT')
+  };
+}
+
+export async function independentlyReReviewUnchangedDraft(
+  rawInput: IndependentNoRevisionReviewInput
+): Promise<IndependentReReviewReport> {
+  const input = structuredClone(rawInput);
+  const revisedReviewReport = await reviewStructuredPleading(buildFreshReviewInput(
+    input.draft, input.caseInput, input.ruleProfile, input.legalReferences
+  ));
+  if (await fingerprintReviewPayload(revisedReviewReport) !== await fingerprintReviewPayload(input.originalReviewReport)) {
+    throw new Error('Original Reviewer report does not match independently recomputed verifier evidence.');
+  }
+  assertUniqueFindingIds(revisedReviewReport);
+
+  const problems = revisedReviewReport.findings.filter(finding => isProblem(finding.status));
+  const factFindings = revisedReviewReport.findings.filter(finding => finding.id === 'P6.FACTS.TRACEABILITY');
+  const factTraceabilityPassed = factFindings.length === 1 &&
+    factFindings[0].category === 'FACT_CONSISTENCY' &&
+    factFindings[0].source === 'REVIEWER' &&
+    factFindings[0].status === 'COMPLIANT';
+  const checks: IndependentReReviewCheck[] = [
+    check(
+      'P8.ORIGINAL_FINDING',
+      problems.length === 0,
+      problems.length ? `初稿仍有問題：${problems.map(item => item.id).join(', ')}` : '初稿沒有需要修訂的問題 finding。'
+    ),
+    check(
+      'P8.NO_NEW_FINDINGS',
+      problems.length === 0,
+      problems.length ? `獨立重算仍有問題：${problems.map(item => item.id).join(', ')}` : '獨立重算未發現問題 finding。'
+    ),
+    check(
+      'P8.NO_FABRICATION',
+      factTraceabilityPassed,
+      factTraceabilityPassed ? '事實、來源 ID 與 negative proof 均可回查。' : '無法排除虛構內容或來源不一致。'
+    ),
+    check(
+      'P8.OTHER_RULES_PRESERVED',
+      problems.length === 0,
+      problems.length ? '存在未通過的 fresh P5/P6 finding。' : '所有 fresh P5/P6 finding 均無問題狀態。'
+    )
+  ];
+
+  return {
+    originalDraftId: input.draft.id,
+    revisedDraftId: input.draft.id,
+    revisionFindingId: 'NO_REVISION_NEEDED',
     reReviewerVersion: INDEPENDENT_RE_REVIEWER_VERSION,
     checks,
     revisedReviewReport,

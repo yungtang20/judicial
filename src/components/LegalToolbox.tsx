@@ -9,7 +9,7 @@ import { LegalToolboxResult } from '../types';
 import { useCaseStore, getActiveCase } from '../store/useCaseStore';
 import { apiClient } from '../lib/apiClient';
 import { DocumentProgressTracker } from './DocumentProgressTracker';
-import { DEFAULT_FORM_INPUTS } from '../lib/toolFormDefaults';
+import { buildActiveCaseFormInputs } from '../lib/toolFormDefaults';
 import { ToolboxHeader, TOOLBOX_GROUPS } from './toolbox/ToolboxHeader';
 import { ToolSelectorGrid } from './toolbox/ToolSelectorGrid';
 import { DynamicToolForm } from './toolbox/DynamicToolForm';
@@ -22,27 +22,40 @@ import { evaluatePleadingDelivery } from '../lib/finalGate/pleadingExportGate';
 
 type DocumentGenerationStage = 'input' | 'analyzing' | 'formatting' | 'ready' | 'error';
 
+export function isCurrentToolboxResponse(
+  submittedToolId: string,
+  currentToolId: string,
+  responseToolCategory: unknown,
+  requestSequence: number,
+  currentRequestSequence: number
+): boolean {
+  return requestSequence === currentRequestSequence &&
+    submittedToolId === currentToolId &&
+    responseToolCategory === submittedToolId;
+}
+
 export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialToolId }) => {
   const { startLoading, stopLoading } = useGlobalUI();
   const activeCase = useCaseStore(getActiveCase);
   const addDocument = useCaseStore(state => state.addDocument);
   const presetToolId = initialToolId;
 
-  const [activeToolId, setActiveToolId] = useState<string>(presetToolId || 'CRIMINAL_COMPLAINT_TRAFFIC');
+  const [activeToolId, setActiveToolId] = useState<string>(presetToolId || 'CIVIL_COMPLAINT_GENERAL');
+  const activeToolIdRef = React.useRef(activeToolId);
+  const requestSequenceRef = React.useRef(0);
   const [selectedGroup, setSelectedGroup] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   
-  const [formInputs, setFormInputs] = useState<Record<string, any>>(DEFAULT_FORM_INPUTS);
+  const [formInputs, setFormInputs] = useState<Record<string, any>>({});
+
+  const activeCaseInputs = useMemo(
+    () => buildActiveCaseFormInputs(activeCase),
+    [activeCase.facts, activeCase.issues, activeCase.evidences]
+  );
 
   React.useEffect(() => {
-    if (!activeCase.facts && !activeCase.issues?.length) return;
-    setFormInputs(prev => ({
-      ...prev,
-      incidentDetails: activeCase.facts || prev.incidentDetails,
-      issueSummary: activeCase.issues?.map(issue => issue.title).join('\n') || prev.issueSummary,
-      evidenceList: activeCase.evidences?.map(evidence => evidence.provenFact).join('\n') || prev.evidenceList
-    }));
-  }, [activeCase]);
+    setFormInputs(prev => ({ ...prev, ...activeCaseInputs }));
+  }, [activeCaseInputs]);
 
   const handleInputChange = (field: string, value: any) => {
     setFormInputs(prev => ({ ...prev, [field]: value }));
@@ -77,7 +90,10 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
     if (groupId === 'ALL' || currentTool.categoryGroup === groupId) return;
     const firstTool = LEGAL_TOOLS.find(tool => tool.categoryGroup === groupId);
     if (!firstTool) return;
+    requestSequenceRef.current += 1;
+    activeToolIdRef.current = firstTool.id;
     setActiveToolId(firstTool.id);
+    setFormInputs(activeCaseInputs);
     setResult(null);
     setGenerationStage('input');
   };
@@ -89,23 +105,38 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
       : TOOLBOX_GROUPS.find(group => group.id === selectedGroup)?.label || '書狀與文件';
 
   const handleGenerate = async () => {
+    const submittedToolId = activeToolIdRef.current;
+    const requestSequence = ++requestSequenceRef.current;
     setIsLoading(true);
     setGenerationStage('analyzing');
     setGenerateError(null);
     startLoading();
 
     const formattingTimer = setTimeout(() => {
-      setGenerationStage('formatting');
+      if (requestSequence === requestSequenceRef.current) setGenerationStage('formatting');
     }, 1200);
 
     try {
       const res = await apiClient.toolboxGenerate({
-        toolCategory: activeToolId,
+        toolCategory: submittedToolId,
         params: formInputs
       });
       clearTimeout(formattingTimer);
+      if (requestSequence !== requestSequenceRef.current || activeToolIdRef.current !== submittedToolId) {
+        stopLoading();
+        return;
+      }
+      if (!isCurrentToolboxResponse(
+        submittedToolId,
+        activeToolIdRef.current,
+        res?.toolCategory,
+        requestSequence,
+        requestSequenceRef.current
+      )) {
+        throw new Error('TOOLBOX_CATEGORY_MISMATCH: 伺服器回應類別與送出類別不一致');
+      }
       const deliveryDecision = evaluatePleadingDelivery(
-        activeToolId,
+        submittedToolId,
         res?.pleadingDeliveryAuthorization,
         'RETURN'
       );
@@ -117,8 +148,8 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
 
       if (res?.documentText) {
         addDocument({
-          id: `toolbox-${activeToolId}-${Date.now()}`,
-          kind: activeToolId,
+          id: `toolbox-${submittedToolId}-${Date.now()}`,
+          kind: submittedToolId,
           title: res.title || currentTool.name,
           text: res.documentText,
           status: res.antiGhostVerification?.ghostCitationsFound ? 'NEEDS_HUMAN_REVIEW' : 'VERIFIED',
@@ -228,10 +259,12 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
     }
 
     setActiveToolId(targetDocTool);
-    setFormInputs(prev => ({
-      ...prev,
-      incidentDetails: `${prev.incidentDetails || ''}\n\n【試算約定條款】\n${clauseText}`.trim()
-    }));
+    requestSequenceRef.current += 1;
+    activeToolIdRef.current = targetDocTool;
+    setFormInputs({
+      ...activeCaseInputs,
+      incidentDetails: `${activeCaseInputs.incidentDetails || ''}\n\n【試算約定條款】\n${clauseText}`.trim()
+    });
     
     setInjectedNotice(`已成功將「${currentTool.name}」的試算條款帶入【${targetDocName}】！`);
     stopLoading({ message: `已帶入【${targetDocName}】`, type: 'success' });
@@ -261,7 +294,10 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
             tools={filteredTools}
             activeToolId={activeToolId}
             onSelect={(id) => {
+              requestSequenceRef.current += 1;
+              activeToolIdRef.current = id;
               setActiveToolId(id);
+              setFormInputs(activeCaseInputs);
               setResult(null);
               setGenerationStage('input');
               document.getElementById('tool-workspace-section')?.scrollIntoView({ behavior: 'smooth' });
@@ -309,32 +345,34 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
                     </div>
                   </div>
 
-                  <DynamicToolForm 
-                    toolId={activeToolId} 
-                    formInputs={formInputs} 
-                    onChange={handleInputChange} 
-                    currentToolName={currentTool.name}
-                    injectedClauseNotice={injectedNotice}
-                    onClearInjectedNotice={() => setInjectedNotice(null)}
-                  />
+                  <form onSubmit={(event) => { event.preventDefault(); void handleGenerate(); }}>
+                    <DynamicToolForm
+                      toolId={activeToolId}
+                      formInputs={formInputs}
+                      onChange={handleInputChange}
+                      currentToolName={currentTool.name}
+                      injectedClauseNotice={injectedNotice}
+                      onClearInjectedNotice={() => setInjectedNotice(null)}
+                    />
 
-                  <button
-                    onClick={handleGenerate}
-                    disabled={isLoading || generationStage === 'analyzing' || generationStage === 'formatting'}
-                    className={`mt-6 w-full ${UIConstants.buttonPrimary}`}
-                  >
-                    {(isLoading || generationStage === 'analyzing' || generationStage === 'formatting') ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        <span>AI 智能起草中...</span>
-                      </>
-                    ) : (
-                      <>
-                        <LayoutTemplate className="w-4 h-4" />
-                        <span>一鍵生成專業法律書狀</span>
-                      </>
-                    )}
-                  </button>
+                    <button
+                      type="submit"
+                      disabled={isLoading || generationStage === 'analyzing' || generationStage === 'formatting'}
+                      className={`mt-6 w-full ${UIConstants.buttonPrimary}`}
+                    >
+                      {(isLoading || generationStage === 'analyzing' || generationStage === 'formatting') ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          <span>AI 智能起草中...</span>
+                        </>
+                      ) : (
+                        <>
+                          <LayoutTemplate className="w-4 h-4" />
+                          <span>一鍵生成專業法律書狀</span>
+                        </>
+                      )}
+                    </button>
+                  </form>
                 </div>
               </div>
 

@@ -6,7 +6,12 @@ import { verifyGeneratedDocument } from '../generatedDocumentPipeline';
 import { buildStructuredPleadingDraft } from '../generator/civilPleadingGenerator';
 import { applyPleadingRevision } from '../revision/pleadingRevision';
 import { CIVIL_CONTENT_RULE_PROFILE, FORMAT_PROFILES } from '../rules/civilPleadingRuleProfile';
-import { independentlyReReview, type IndependentReReviewInput } from './independentReReviewer';
+import {
+  independentlyReReview,
+  independentlyReReviewUnchangedDraft,
+  INDEPENDENT_RE_REVIEWER_VERSION,
+  type IndependentReReviewInput
+} from './independentReReviewer';
 import { reviewStructuredPleading } from './pleadingReviewer';
 
 const legalReferences: LegalReference[] = [
@@ -267,5 +272,57 @@ describe('independentlyReReview', () => {
     input.ruleProfile = structuredClone(input.ruleProfile);
     input.ruleProfile.rules.push(structuredClone(input.ruleProfile.rules[0]));
     await expect(independentlyReReview(input)).rejects.toThrow();
+  });
+});
+
+describe('independentlyReReviewUnchangedDraft', () => {
+  it('independently recomputes a clean unchanged draft instead of accepting a handcrafted P8 report', async () => {
+    const caseInput = completeInput();
+    const draft = buildStructuredPleadingDraft(caseInput);
+    const originalReviewReport = await review(draft, caseInput);
+    const result = await independentlyReReviewUnchangedDraft({
+      draft,
+      caseInput,
+      ruleProfile: CIVIL_CONTENT_RULE_PROFILE,
+      legalReferences,
+      originalReviewReport
+    });
+
+    expect(result.reReviewerVersion).toBe(INDEPENDENT_RE_REVIEWER_VERSION);
+    expect(result.revisionFindingId).toBe('NO_REVISION_NEEDED');
+    expect(result.originalDraftId).toBe(draft.id);
+    expect(result.revisedDraftId).toBe(draft.id);
+    expect(result.allChecksPassed).toBe(true);
+  });
+
+  it('rejects a supplied P6 report that differs from fresh verifier evidence', async () => {
+    const caseInput = completeInput();
+    const draft = buildStructuredPleadingDraft(caseInput);
+    const originalReviewReport = await review(draft, caseInput);
+    originalReviewReport.findings[0].status = 'CONFLICT';
+
+    await expect(independentlyReReviewUnchangedDraft({
+      draft,
+      caseInput,
+      ruleProfile: CIVIL_CONTENT_RULE_PROFILE,
+      legalReferences,
+      originalReviewReport
+    })).rejects.toThrow('does not match independently recomputed');
+  });
+
+  it('does not mark an unchanged draft with an UNVERIFIED finding as passed', async () => {
+    const caseInput = completeInput({ court: '民法第184條' });
+    const draft = buildStructuredPleadingDraft(caseInput);
+    const originalReviewReport = await review(draft, caseInput);
+    const result = await independentlyReReviewUnchangedDraft({
+      draft,
+      caseInput,
+      ruleProfile: CIVIL_CONTENT_RULE_PROFILE,
+      legalReferences,
+      originalReviewReport
+    });
+
+    expect(result.allChecksPassed).toBe(false);
+    expect(result.checks.some(check => check.status === 'CONFLICT')).toBe(true);
   });
 });

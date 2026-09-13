@@ -145,6 +145,14 @@ describe('evaluateFinalGate', () => {
     expect(result.blockers).toContainEqual(expect.objectContaining({ id: 'INTEGRITY:P8_REPORT' }));
   });
 
+  it('blocks a P8 report that does not identify the approved independent re-reviewer', async () => {
+    const input = await scenario();
+    input.independentReReviewReport.reReviewerVersion = 'handcrafted-pass';
+    const result = await evaluateFinalGate(input);
+    expect(result.status).toBe('BLOCKED');
+    expect(result.blockers).toContainEqual(expect.objectContaining({ id: 'INTEGRITY:P8_PROVENANCE' }));
+  });
+
   it('blocks an inconsistent P8 aggregate flag', async () => {
     const input = await scenario();
     input.independentReReviewReport.allChecksPassed = false;

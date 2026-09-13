@@ -14,7 +14,10 @@ import type {
   PleadingRuleProfile,
   StructuredPleadingDraft
 } from '../../types/compliance';
-import { buildFreshReviewInput } from '../reviewer/independentReReviewer';
+import {
+  buildFreshReviewInput,
+  INDEPENDENT_RE_REVIEWER_VERSION
+} from '../reviewer/independentReReviewer';
 import { fingerprintReviewPayload, reviewStructuredPleading } from '../reviewer/pleadingReviewer';
 
 export const PLEADING_FINAL_GATE_VERSION = '1.0.0';
@@ -148,7 +151,19 @@ export async function evaluateFinalGate(rawInput: PleadingFinalGateInput): Promi
     });
   });
   const isNoRevisionNeeded = input.revisionRecords.length === 0 && input.independentReReviewReport?.revisionFindingId === 'NO_REVISION_NEEDED';
-  if (isNoRevisionNeeded && reviewerReport.findings.some(f => f.status === 'MISSING' || f.status === 'CONFLICT')) {
+  if (
+    input.independentReReviewReport.reReviewerVersion !== INDEPENDENT_RE_REVIEWER_VERSION ||
+    (isNoRevisionNeeded && (
+      input.independentReReviewReport.originalDraftId !== input.draft.id ||
+      input.independentReReviewReport.revisedDraftId !== input.draft.id
+    ))
+  ) {
+    add({
+      id: 'INTEGRITY:P8_PROVENANCE', source: 'INTEGRITY', status: 'CONFLICT',
+      message: 'P8 report 不是目前核准的獨立複審器產物或未綁定未修訂草稿。', overrideEligible: false
+    });
+  }
+  if (isNoRevisionNeeded && reviewerReport.findings.some(f => isProblem(f.status))) {
     add({
       id: 'INTEGRITY:REVISION_REQUIRED', source: 'INTEGRITY', status: 'CONFLICT',
       message: '草稿包含待修訂瑕疵（MISSING/CONFLICT），不可判定為無需修訂。', overrideEligible: false
