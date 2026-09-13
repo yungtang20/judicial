@@ -147,12 +147,21 @@ export async function evaluateFinalGate(rawInput: PleadingFinalGateInput): Promi
       overrideEligible: false
     });
   });
-  if (!revisionChainValid(input.revisionRecords, input.draft.id) ||
-      input.revisionRecords.at(-1)?.findingId !== input.independentReReviewReport.revisionFindingId) {
+  const isNoRevisionNeeded = input.revisionRecords.length === 0 && input.independentReReviewReport?.revisionFindingId === 'NO_REVISION_NEEDED';
+  if (isNoRevisionNeeded && reviewerReport.findings.some(f => f.status === 'MISSING' || f.status === 'CONFLICT')) {
     add({
-      id: 'INTEGRITY:REVISION_CHAIN', source: 'INTEGRITY', status: 'CONFLICT',
-      message: 'Revision Record ID chain 與最終 draft/P8 不一致。', overrideEligible: false
+      id: 'INTEGRITY:REVISION_REQUIRED', source: 'INTEGRITY', status: 'CONFLICT',
+      message: '草稿包含待修訂瑕疵（MISSING/CONFLICT），不可判定為無需修訂。', overrideEligible: false
     });
+  }
+  if (!isNoRevisionNeeded) {
+    if (!revisionChainValid(input.revisionRecords, input.draft.id) ||
+        input.revisionRecords.at(-1)?.findingId !== input.independentReReviewReport.revisionFindingId) {
+      add({
+        id: 'INTEGRITY:REVISION_CHAIN', source: 'INTEGRITY', status: 'CONFLICT',
+        message: 'Revision Record ID chain 與最終 draft/P8 不一致。', overrideEligible: false
+      });
+    }
   }
   const p8Consistent =
     input.independentReReviewReport.revisedDraftId === input.draft.id &&
@@ -200,7 +209,7 @@ export async function evaluateFinalGate(rawInput: PleadingFinalGateInput): Promi
     audit('Q10', '有哪些 missingInputs？', Array.isArray(input.draft.missingInputs), input.draft.missingInputs, ['draft.missingInputs']),
     audit('Q11', 'Compliance Findings？', true, complianceFindings, ['fresh P5']),
     audit('Q12', 'Reviewer Findings？', true, reviewerReport.findings, ['fresh P6']),
-    audit('Q13', 'Revision 做了什麼？', input.revisionRecords.length > 0, input.revisionRecords, ['revisionRecords']),
+    audit('Q13', 'Revision 做了什麼？', input.revisionRecords.length > 0 || isNoRevisionNeeded, input.revisionRecords.length > 0 ? input.revisionRecords : 'NO_REVISION_NEEDED_INITIAL_DRAFT_COMPLIANT', ['revisionRecords']),
     audit('Q14', 'Independent Re-Review 結果？', true, input.independentReReviewReport, ['independentReReviewReport']),
     audit('Q15', '是否有人為修改？', Boolean(edit), edit, ['humanEditRecord']),
     audit('Q16', '是否重新 Review？', p8Consistent, p8Consistent, ['fresh P6', 'independentReReviewReport'])

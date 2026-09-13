@@ -444,3 +444,51 @@ HUMAN GATE:
 
 NEXT PHASE:
 - P11 Regression / Integration (READY)
+
+---
+
+DATE: 2026-09-13
+AGENT: Codex executor (canonical pleading pipeline refactoring)
+PHASE: P11 Canonical Pleading Pipeline Refactoring & Multi-Category Alignment
+START TIME: 2026-09-13T14:30:00+08:00
+END TIME: 2026-09-13T15:01:00+08:00
+
+OBJECTIVE:
+Refactor server/services/canonicalPleadingPipeline.ts from hardcoded civil mock into a multi-category, rule-driven, fail-closed pipeline. Eliminate the fake whitespace revision hack, establish authentic category mapping via courtPleadingRuleProfiles.ts, and resolve failing integration tests in server/routes/toolbox.test.ts without compromising P4-P9 governance consistency.
+
+FILES CREATED:
+- legal_references/criminal_procedure_242.md (SHA-256: e4cc0af9ee68cccd1274ed35cfc702d1522d7ea39bbfa486981fa755d0b47ec2)
+- legal_references/civil_procedure_508.md (SHA-256: 571ffac7a2226079178a3ffc72953c6467ff3182937c3b823c6e9a983775e63c)
+- legal_references/family_violence_10.md (SHA-256: dca46dfdc037fca2f9386554507a96f9eb83a7f2af948d9f77998a753c53deff)
+- src/lib/rules/courtPleadingRuleProfiles.ts
+
+FILES MODIFIED:
+- src/lib/finalGate/pleadingFinalGate.ts
+- server/services/canonicalPleadingPipeline.ts
+- EXECUTION_LOG.md
+
+COMMANDS & TESTS RUN:
+- npx vitest run server/routes/toolbox.test.ts: PASS (1 file, 8 tests)
+- npx vitest run P4-P9 test suite (pleadingComplianceEngine, pleadingReviewer, independentReReviewer, pleadingFinalGate, pleadingExportGate, toolbox): PASS (6 files, 118 tests)
+- npm run test:eval (legalGovernance.test.ts): PASS (15 tests)
+- npm run test:ssrf: PASS (21 high-risk URLs blocked)
+- npm run lint (tsc --noEmit): PASS (0 errors)
+- compile_applet: Build succeeded
+
+FINDINGS & IMPLEMENTED ARCHITECTURE:
+1. Category Mapping Single Source of Truth:
+   - Established getCourtPleadingConfig in src/lib/rules/courtPleadingRuleProfiles.ts.
+   - Distinct profiles, caseTypes, pleadingTypes, styleProfiles, party roles (claimant/respondent), section rules, and official legal references configured for Civil, Criminal, Payment Order, and Family Protection pleadings.
+   - Any unsupported category explicitly throws an error rather than silently masquerading as a civil pleading.
+2. Honest Passthrough for Flawless Initial Drafts:
+   - Replaced the "append whitespace + empty findingId" hack with an authenticated NO_REVISION_NEEDED passthrough in pleadingFinalGate.ts.
+   - If the initial draft contains any MISSING or CONFLICT findings, the gate strictly enforces Fail-Closed rejection (INTEGRITY:REVISION_REQUIRED).
+3. Full P4-P9 Deterministic Linkage:
+   - P4 Structured Drafting -> P5 Compliance & Template/Citation Verification -> P6 Reviewer Report -> P8 Independent Re-Review Report -> P9 Final Gate -> Server-owned Delivery Authorization.
+4. Honest Citation & Verification Disclosure:
+   - When deterministic rule generation is executed without external court precedent retrieval, antiGhostVerification status is explicitly marked UNVERIFIED with 0 citations checked, instead of claiming zero findings with pseudo-clean status.
+
+RISKS & BOUNDARIES:
+- Automated AI draft revision (P7) is not yet integrated; if an initial draft contains missing statutory fields, the pipeline will fail-closed until an approved revision module is connected.
+- Categories beyond Civil, Criminal, Payment Order, and Family Violence Protection Order will return 422 P9_FINAL_GATE_FAILED until their corresponding statutory rule profiles are authored and verified.
+

@@ -24,6 +24,24 @@ describe("Security Middleware - sanitizeValue", () => {
     expect(cleaned).toBe("起訴事實：被告於民國 112 年借款未還。");
   });
 
+  it("thoroughly cleans nested, orphan, and unclosed residual script tags", () => {
+    // 巢狀繞過攻擊
+    const nested = "爭執重點：<scr<script>ipt>alert('nested')</scr</script>ipt>原告已履行清償。";
+    expect(sanitizeValue(nested)).toBe("爭執重點：原告已履行清償。");
+
+    // 孤立開頭標籤
+    const orphanOpen = "證據清單：<script src='https://malicious.com/attack.js'>錄音光碟乙份。";
+    expect(sanitizeValue(orphanOpen)).toBe("證據清單：錄音光碟乙份。");
+
+    // 孤立結尾標籤
+    const orphanClose = "聲明：</script>駁回原告之訴。";
+    expect(sanitizeValue(orphanClose)).toBe("聲明：駁回原告之訴。");
+
+    // 大小寫與空白變體
+    const mixedCase = "事由：<sCrIpt   type='text/javascript'>bad()</sCrIpt >房屋漏水修繕爭議。";
+    expect(sanitizeValue(mixedCase)).toBe("事由：房屋漏水修繕爭議。");
+  });
+
   it("removes non-printable ASCII control characters but keeps tabs and newlines", () => {
     const dirty = "標的\x00\x08金額\x1F：\t100\n元\x7F";
     const cleaned = sanitizeValue(dirty);

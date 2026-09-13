@@ -191,10 +191,21 @@ function extractHtmlText(html: string): { title: string; text: string } {
   const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
   const title = titleMatch ? titleMatch[1].replace(/[\r\n\t]+/g, " ").trim() : "";
 
-  let cleaned = html
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
-    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "")
-    .replace(/<noscript\b[^<]*(?:(?!<\/noscript>)<[^<]*)*<\/noscript>/gi, "");
+  let cleaned = html;
+  // 循環移除成對的 script/style/noscript 標籤區塊，防禦巢狀繞過
+  let prevHtml: string;
+  let iter = 0;
+  do {
+    prevHtml = cleaned;
+    cleaned = cleaned
+      .replace(/<script\b[\s\S]*?<\/script\s*>/gi, "")
+      .replace(/<style\b[\s\S]*?<\/style\s*>/gi, "")
+      .replace(/<noscript\b[\s\S]*?<\/noscript\s*>/gi, "");
+    iter++;
+  } while (cleaned !== prevHtml && iter < 10);
+
+  // 清除殘留未閉合或孤立的標籤
+  cleaned = cleaned.replace(/<\/?(script|style|noscript)\b[^>]*\/?>/gi, "");
 
   cleaned = cleaned.replace(/<\/(p|div|tr|h[1-6]|li|blockquote)>/gi, "\n");
   cleaned = cleaned.replace(/<br\s*[\/]?>/gi, "\n");

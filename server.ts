@@ -5,11 +5,12 @@ import dotenv from "dotenv";
 import { createExpressApp } from "./server/index.js";
 import { validateSecurityConfiguration } from "./server/middleware/auth.js";
 
+process.env.DOTENV_CONFIG_QUIET = "true";
 const _log = console.log;
 const _warn = console.warn;
 console.log = () => {};
 console.warn = () => {};
-dotenv.config();
+dotenv.config({ quiet: true });
 console.log = _log;
 console.warn = _warn;
 

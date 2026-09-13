@@ -63,15 +63,29 @@ export const apiLimiter = rateLimit({
  * 遞迴字串清洗器：
  * 1. 僅移除無效控制字元 (ASCII 0-8, 11-12, 14-31, 127)
  * 2. 徹底保留繁中全形/半形自然語言、標點、空白及法律書狀排版
- * 3. 移除危險的 <script> 標籤；不誤殺包含空白或文字提及 'javascript:' 的正常法律內容
+ * 3. 嚴格加固移除危險與殘留的 <script> 標籤（含巢狀/孤立標籤）；不誤殺包含空白或文字提及 'javascript:' 的正常法律內容
  * 4. 對巢狀 object、array 遞迴處理
  */
 export function sanitizeValue(value: unknown): unknown {
   if (typeof value === 'string') {
     // 移除 ASCII 控制字元 (保留換行 \n、Tab \t、Carriage Return \r)
     let cleaned = value.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
-    // 移除危險的 script 標籤，不使用粗暴字串比對誤殺正常法律文本
-    cleaned = cleaned.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+
+    // 循環移除成對的 script 標籤區塊，防禦 <scr<script>ipt> 等巢狀繞過攻擊
+    let previous: string;
+    let iteration = 0;
+    const MAX_ITERATIONS = 10;
+    do {
+      previous = cleaned;
+      cleaned = cleaned.replace(/<script\b[\s\S]*?<\/script\s*>/gi, '');
+      iteration++;
+    } while (cleaned !== previous && iteration < MAX_ITERATIONS);
+
+    // 移除未閉合或孤立的 <script...> 與 </script> 標籤
+    cleaned = cleaned.replace(/<\/?script\b[^>]*\/?>/gi, '');
+    // 處理未閉合且無 > 結尾之殘留 <script 開頭
+    cleaned = cleaned.replace(/<script\b[^<]*$/gi, '');
+
     return cleaned;
   }
 
