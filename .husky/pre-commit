@@ -1,5 +1,5 @@
 #!/bin/sh
-bad_files=$(ls fix_*.cjs patch_*.cjs test_*.cjs fix_*.py update_*.py 2>/dev/null | grep -v "^test-ssrf.cjs$" || true)
+bad_files=$(ls fix_*.py fix_*.cjs fix_*.sh patch_*.py patch_*.cjs patch_*.sh update_*.py update_*.cjs test_*.cjs 2>/dev/null | grep -v "^test-ssrf.cjs$" || true)
 if [ -n "$bad_files" ]; then
   echo "Error: Found temporary scripts. Please delete them before committing:"
   echo "$bad_files"

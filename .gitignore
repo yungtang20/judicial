@@ -11,3 +11,16 @@ coverage/
 .cache/
 data/*.sqlite-wal
 data/*.sqlite-shm
+
+# Temporary Scratch & Patch Scripts
+fix_*.py
+fix_*.cjs
+fix_*.sh
+patch_*.py
+patch_*.cjs
+patch_*.sh
+update_*.py
+update_*.cjs
+test_*.cjs
+!test-ssrf.cjs
+!scripts/maintenance/*

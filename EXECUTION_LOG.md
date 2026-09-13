@@ -492,3 +492,28 @@ RISKS & BOUNDARIES:
 - Automated AI draft revision (P7) is not yet integrated; if an initial draft contains missing statutory fields, the pipeline will fail-closed until an approved revision module is connected.
 - Categories beyond Civil, Criminal, Payment Order, and Family Violence Protection Order will return 422 P9_FINAL_GATE_FAILED until their corresponding statutory rule profiles are authored and verified.
 
+---
+
+DATE: 2026-09-13
+AGENT: Codex executor (repo cleanup and script defense upgrade)
+PHASE: Script Defense & Repo Hygiene Hardening
+START TIME: 2026-09-13T15:41:00+08:00
+END TIME: 2026-09-13T15:43:00+08:00
+
+OBJECTIVE:
+Enforce strict residual script defense by expanding .husky/pre-commit and .gitignore. Ensure that fix_*.py, fix_*.cjs, fix_*.sh, patch_*.py, patch_*.cjs, patch_*.sh, update_*.py, update_*.cjs, and test_*.cjs cannot be committed or tracked, with explicit whitelisting for test-ssrf.cjs and preservation of existing scripts/maintenance/. Confirm workspace hygiene via git status.
+
+FILES MODIFIED:
+- /.husky/pre-commit
+- /.gitignore
+- /EXECUTION_LOG.md
+
+COMMANDS & TESTS RUN:
+- Verification of .husky/pre-commit blocking: PASS (fix_*.py, fix_*.cjs, fix_*.sh, patch_*.py, patch_*.cjs, patch_*.sh, update_*.py, update_*.cjs, test_*.cjs all blocked; test-ssrf.cjs permitted)
+- Verification of .gitignore behavior: PASS (matching temporary patterns ignored; test-ssrf.cjs and scripts/maintenance/ exempted)
+- git status: PASS (clean workspace; no residual fix_* or patch_* temporary scripts)
+- npm run test:ssrf: PASS (21 high-risk URLs blocked)
+- npm run test:eval: PASS (15/15 legal governance tests pass)
+- npm run lint: PASS (0 errors)
+- compile_applet: Build succeeded
+
