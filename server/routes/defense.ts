@@ -138,7 +138,7 @@ router.post("/api/defense/generate-pleading", async (req: Request, res: Response
       fallback: () => {
         const fallbackResult = buildFallbackDefensePleading(pleadingType, clientInput, caseInfo);
         return {
-          documentText: "", // Bypass citation check for predefined rule engine
+          documentText: fallbackResult.pleadingText,
           payload: fallbackResult
         };
       }

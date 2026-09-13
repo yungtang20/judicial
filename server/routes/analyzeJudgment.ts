@@ -50,7 +50,7 @@ router.post("/api/analyze-judgment", async (req: Request, res: Response) => {
       fallback: () => {
         const fallback = buildFallbackJudgmentAnalysis(judgmentText || "裁判書內容");
         return {
-          documentText: "", // Bypass citation check for predefined rule engine
+          documentText: JSON.stringify(fallback),
           payload: fallback
         };
       }

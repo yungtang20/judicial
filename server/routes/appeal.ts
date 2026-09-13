@@ -113,7 +113,7 @@ router.post("/api/generate-appeal-petition", async (req: Request, res: Response)
           appealScope: normalized.claims || "原判決不利於上訴人部分廢棄"
         });
         return {
-          documentText: "", // Bypass citation check for predefined rule engine
+          documentText: fallbackText,
           payload: { fallbackText }
         };
       }
