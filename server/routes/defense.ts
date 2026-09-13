@@ -1,14 +1,13 @@
+import { UNIVERSAL_SYLLOGISM_RULES } from "../../src/prompts/universal-syllogism.js";
 import { Router, Request, Response } from "express";
 import { defaultAIProvider as defaultGeminiProvider } from "../../src/ai/providers/providerRegistry.js";
 import { getBPointTriagePrompt, getMineScanPrompt, getDefensePleadingPrompt } from "../../src/prompts/defense-workflow.js";
-import { UNIVERSAL_SYLLOGISM_RULES } from "../../src/prompts/universal-syllogism.js";
 import { buildFallbackDefenseTriage, buildFallbackMineScan, buildFallbackDefensePleading } from "../../src/utils/defenseFallbacks.js";
 import { precheckLegalInput } from "../../src/lib/legalInputPrecheck.js";
 import { verifyGeneratedDocument, assertGeneratedDocumentVerified } from "../../src/lib/generatedDocumentPipeline.js";
 import { defaultLegalGenerationPipeline, defaultLegalRetrievalService } from "../services/legalGenerationPipeline.js";
 
 // Enforced centrally via defaultLegalGenerationPipeline
-void [verifyGeneratedDocument, assertGeneratedDocumentVerified];
 
 const router = Router();
 

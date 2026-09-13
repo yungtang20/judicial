@@ -1,6 +1,6 @@
+import { UNIVERSAL_SYLLOGISM_RULES } from "../../src/prompts/universal-syllogism.js";
 import { Router, Request, Response } from "express";
 import { defaultAIProvider as defaultGeminiProvider } from "../../src/ai/providers/providerRegistry.js";
-import { UNIVERSAL_SYLLOGISM_RULES } from "../../src/prompts/universal-syllogism.js";
 import { fetchJudicialHtml, parseJudicialJudgment, normalizeTaiwanCaseQuery } from "../services/judicialCrawler.js";
 import { retrieve, defaultVectorStore } from "../services/legalRetrieval.js";
 import { ingestSeedCorpus } from "../services/corpusIngest.js";

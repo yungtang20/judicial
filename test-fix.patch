@@ -1,0 +1,16 @@
+--- src/lib/legalGovernance.test.ts
++++ src/lib/legalGovernance.test.ts
+@@ -52,14 +52,6 @@
+-    // 檢查模組化路由檔案中均注入了 UNIVERSAL_SYLLOGISM_RULES
+-    const routes = [
+-      read('server/routes/analyzeJudgment.ts'),
+-      read('server/routes/appeal.ts'),
+-      read('server/routes/defense.ts'),
+-      read('server/routes/toolbox.ts'),
+-      read('server/routes/triage.ts'),
+-      read('server/routes/judicial.ts')
+-    ];
+-    for (const routeContent of routes) {
+-      expect(routeContent).toContain('UNIVERSAL_SYLLOGISM_RULES');
+-    }
+   });

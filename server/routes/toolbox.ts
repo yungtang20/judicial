@@ -1,6 +1,5 @@
 import { Router, Request, Response } from "express";
 import { getLegalToolboxPrompt } from "../../src/prompts/toolbox-prompts.js";
-import { UNIVERSAL_SYLLOGISM_RULES } from "../../src/prompts/universal-syllogism.js";
 import { verifyGeneratedDocument, assertGeneratedDocumentVerified } from "../../src/lib/generatedDocumentPipeline.js";
 import {
   blockProductionToolboxFallback,
@@ -18,7 +17,6 @@ import { isCourtPleadingToolCategory } from "../../src/lib/finalGate/pleadingExp
 import { executeCanonicalPleadingPipeline } from "../services/canonicalPleadingPipeline.js";
 
 // Enforced via defaultLegalGenerationPipeline
-void [UNIVERSAL_SYLLOGISM_RULES, verifyGeneratedDocument, assertGeneratedDocumentVerified];
 
 const router = Router();
 
