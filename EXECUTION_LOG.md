@@ -517,3 +517,47 @@ COMMANDS & TESTS RUN:
 - npm run lint: PASS (0 errors)
 - compile_applet: Build succeeded
 
+---
+
+DATE: 2026-09-13
+AGENT: Codex executor (canonical pipeline expansion & privacy hardening)
+PHASE: Canonical Pleading Pipeline Expansion (Sexual Assault, Supplementary Civil, Spousal Infringement)
+START TIME: 2026-09-13T16:00:00+08:00
+END TIME: 2026-09-13T18:12:00+08:00
+
+OBJECTIVE:
+Expand server/services/canonicalPleadingPipeline.ts and src/lib/rules/courtPleadingRuleProfiles.ts to support CRIMINAL_COMPLAINT_SEXUAL_ASSAULT, CRIMINAL_SUPPLEMENTARY_CIVIL, and SPOUSAL_RIGHT_INFRINGEMENT while strictly upholding statutory victim privacy protections (性侵害犯罪防治法第12條) and preserving Fail-Closed boundaries for unverified categories (JUDICIAL_ADMIN_TEMPLATE, JUDICIAL_EXECUTION_TEMPLATE).
+
+FILES CREATED:
+- legal_references/sexual_assault_prevention_12.md (SHA-256: 2aaa3513635127e85f38cec0d1b422af59e9c10c29f342abb3716578e0b1d947)
+- legal_references/criminal_law_221.md (SHA-256: 1bd7553059d27845fa915fa40bca3e8b4c0f081219f2ba2e56d193d4ec6f83c2)
+- legal_references/criminal_procedure_487.md (SHA-256: b73072c1866ad3afe34af22aa25458b8733aae04ddb51963b1427eae0308d5df)
+- legal_references/criminal_procedure_492.md (SHA-256: 2b79447edbcf2b7bd656090fbc92d421d2b5b3b3b16016bcee7b680da6f2d168)
+- server/services/canonicalPleadingPipeline.test.ts
+
+FILES MODIFIED:
+- src/lib/rules/courtPleadingRuleProfiles.ts
+- server/services/canonicalPleadingPipeline.ts
+- server/routes/toolbox.test.ts
+- EXECUTION_LOG.md
+
+COMMANDS & TESTS RUN:
+- npx vitest run server/services/canonicalPleadingPipeline.test.ts: PASS (1 file, 7 tests)
+- npx vitest run server/routes/toolbox.test.ts: PASS (1 file, 11 tests)
+- npm run test:eval: PASS (1 file, 15 tests)
+- npm run test:ssrf: PASS (21 high-risk URLs blocked)
+- npm run lint: PASS (0 errors)
+- compile_applet: Build succeeded
+
+FINDINGS & IMPLEMENTED ARCHITECTURE:
+1. Sexual Assault Victim Privacy Hardening (性侵害犯罪防治法第12條):
+   - Configured CRIMINAL_COMPLAINT_SEXUAL_ASSAULT with specialized rule profile SEXUAL_ASSAULT_COMPLAINT_RULES and official statutes.
+   - Enforced automated AddressProtection in the canonical pipeline. Rendered pleading outputs strict anonymity headers: '告訴人（代號保護）' and sealed record location '代號年籍詳卷附身分保密對照表（依法密封）', completely preventing leakage of true residences or identity particulars.
+2. Criminal Supplementary Civil Litigation (刑事附帶民事訴訟起訴狀):
+   - Grounded in 刑事訴訟法第487, 492條 and 民事訴訟法第116, 117條.
+   - Applied quasi-civil complaint structure with distinct roles '原告（刑事被害人）' and '被告（刑事被告）'.
+3. Spousal Rights Infringement (侵害配偶權侵權行為起訴狀):
+   - Mapped SPOUSAL_RIGHT_INFRINGEMENT to CIVIL_CONTENT_RULE_PROFILE under civil tort damages.
+4. Deliberate Fail-Closed Boundaries Preserved:
+   - JUDICIAL_ADMIN_TEMPLATE (行政訴訟) and JUDICIAL_EXECUTION_TEMPLATE (強制執行) deliberately remain unsupported and strictly throw Fail-Closed errors until dedicated statutory profiles and verified legal references are authored.
+

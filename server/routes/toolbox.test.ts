@@ -31,7 +31,10 @@ describe('POST /api/toolbox/generate P9 delivery boundary', () => {
     'JUDICIAL_CIVIL_TEMPLATE',
     'CIVIL_COMPLAINT_GENERAL',
     'PAYMENT_ORDER_PETITION',
-    'CRIMINAL_COMPLAINT_TRAFFIC'
+    'CRIMINAL_COMPLAINT_TRAFFIC',
+    'CRIMINAL_COMPLAINT_SEXUAL_ASSAULT',
+    'CRIMINAL_SUPPLEMENTARY_CIVIL',
+    'SPOUSAL_RIGHT_INFRINGEMENT'
   ])('returns a gated court pleading for %s using the canonical P4-P9 pipeline', async toolCategory => {
     const response = await post({ toolCategory, params: {} });
     const body = await response.json();

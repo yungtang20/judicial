@@ -22,9 +22,18 @@ export async function executeCanonicalPleadingPipeline(categoryKey: string, para
   const claimantId = randomUUID();
   const respondentId = randomUUID();
 
-  const claimantName = params.plaintiffName || params.claimantName || `${config.claimantRole}姓名`;
+  const isSexualAssault = config.categoryKey === 'CRIMINAL_COMPLAINT_SEXUAL_ASSAULT';
+  const addressProtection = isSexualAssault || params.protectAddress ? {
+    requested: true,
+    reason: '性侵害犯罪防治法第12條身分資訊及住居所保密',
+    actualAddressStorage: 'protected' as const,
+    publicDocumentAddress: '代號年籍詳卷附身分保密對照表（依法密封）',
+    serviceAddress: params.serviceAddress || '受任送達代收處所'
+  } : undefined;
+
+  const claimantName = params.plaintiffName || params.claimantName || (isSexualAssault ? '代號 A 女（真實年籍姓名詳密封對照表）' : `${config.claimantRole}姓名`);
   const respondentName = params.defendantName || params.respondentName || `${config.respondentRole}姓名`;
-  const claimantAddress = params.plaintiffAddress || params.claimantAddress || '設址於中華民國境內（送達代收處所）';
+  const claimantAddress = params.plaintiffAddress || params.claimantAddress || (addressProtection ? '（實際住居所依法留存檢察署身分密封袋，不予對外揭露）' : '設址於中華民國境內（送達代收處所）');
   const respondentAddress = params.defendantAddress || params.respondentAddress || '設址於中華民國境內（送達處所）';
 
   const defaultCourt = config.caseType === 'criminal' ? '臺灣臺北地方檢察署' : '臺灣臺北地方法院';
@@ -47,7 +56,13 @@ export async function executeCanonicalPleadingPipeline(categoryKey: string, para
     documentDate: new Date().toISOString().split('T')[0].replace(/-/g, '/'),
     signature: claimantName,
     parties: [
-      { id: claimantId, role: config.claimantRole, name: claimantName, address: claimantAddress },
+      {
+        id: claimantId,
+        role: config.claimantRole,
+        name: claimantName,
+        address: claimantAddress,
+        addressProtection
+      },
       { id: respondentId, role: config.respondentRole, name: respondentName, address: respondentAddress }
     ],
     claims: [

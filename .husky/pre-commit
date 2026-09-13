@@ -1,7 +1,35 @@
 #!/bin/sh
+# 1. 檢查根目錄下的暫存/修補腳本（排除 test-ssrf.cjs 例外）
 bad_files=$(ls fix_*.py fix_*.cjs fix_*.sh patch_*.py patch_*.cjs patch_*.sh update_*.py update_*.cjs test_*.cjs 2>/dev/null | grep -v "^test-ssrf.cjs$" || true)
 if [ -n "$bad_files" ]; then
-  echo "Error: Found temporary scripts. Please delete them before committing:"
+  echo "Error: Found temporary scripts in root directory. Please delete them before committing:"
   echo "$bad_files"
   exit 1
 fi
+
+# 2. 檢查 scripts/maintenance/ 是否有非允許檔案（白名單防禦，防止將暫存腳本塞入該目錄繞過）
+if [ -d "scripts/maintenance" ]; then
+  for item in scripts/maintenance/*; do
+    [ -e "$item" ] || continue
+    case "$item" in
+      "scripts/maintenance/patch_appeal.cjs"|"scripts/maintenance/patch_suggest.cjs"|"scripts/maintenance/patch_toolbox.cjs"|"scripts/maintenance/README.md")
+        ;;
+      *)
+        echo "Error: scripts/maintenance/ is frozen. Unauthorized file detected: $item"
+        exit 1
+        ;;
+    esac
+  done
+fi
+
+# 3. 檢查 Git staged 變更：scripts/maintenance/ 嚴格凍結，禁止新增/修改
+if command -v git >/dev/null 2>&1 && [ -d ".git" ]; then
+  maint_changes=$(git diff --cached --name-only -- scripts/maintenance/ 2>/dev/null || true)
+  if [ -n "$maint_changes" ]; then
+    echo "Error: scripts/maintenance/ directory is strictly frozen. Staged changes detected:"
+    echo "$maint_changes"
+    echo "To bypass after manual security audit, use: git commit --no-verify"
+    exit 1
+  fi
+fi
+
