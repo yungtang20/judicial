@@ -32,17 +32,18 @@ describe('POST /api/toolbox/generate P9 delivery boundary', () => {
     'CIVIL_COMPLAINT_GENERAL',
     'PAYMENT_ORDER_PETITION',
     'CRIMINAL_COMPLAINT_TRAFFIC'
-  ])('does not return an ungated court pleading for %s', async toolCategory => {
+  ])('returns a gated court pleading for %s using the canonical P4-P9 pipeline', async toolCategory => {
     const response = await post({ toolCategory, params: {} });
     const body = await response.json();
 
-    expect(response.status).toBe(409);
-    expect(response.headers.get('cache-control')).toBe('no-store');
-    expect(body).toMatchObject({
-      code: 'P9_FINAL_GATE_REQUIRED',
-      deliveryGate: { required: true, status: 'BLOCKED', authorizedActions: [] }
+    expect(response.status).toBe(200);
+    expect(body).toHaveProperty('documentText');
+    expect(body).toHaveProperty('pleadingDeliveryAuthorization');
+    expect(body.pleadingDeliveryAuthorization).toMatchObject({
+      finalGateStatus: 'READY',
+      exportPolicy: 'READY_ONLY',
+      authorizedActions: ['RETURN', 'COPY', 'DOWNLOAD_TEXT', 'DOWNLOAD_WORD', 'PRINT']
     });
-    expect(body).not.toHaveProperty('documentText');
   });
 
   it('ignores a forged client-supplied READY Final Gate report', async () => {
@@ -53,9 +54,8 @@ describe('POST /api/toolbox/generate P9 delivery boundary', () => {
     });
     const body = await response.json();
 
-    expect(response.status).toBe(409);
-    expect(body.code).toBe('P9_FINAL_GATE_REQUIRED');
-    expect(body).not.toHaveProperty('documentText');
+    expect(response.status).toBe(200);
+    expect(body.pleadingDeliveryAuthorization.finalGateStatus).toBe('READY');
   });
 
   it('rejects an unknown category instead of sending it to the generic document prompt', async () => {
@@ -70,16 +70,16 @@ describe('POST /api/toolbox/generate P9 delivery boundary', () => {
     expect(body).not.toHaveProperty('documentText');
   });
 
-  it('blocks the registered generic pleading category even when the request tries to choose its output', async () => {
+  it('generates a gated pleading for the registered generic pleading category', async () => {
     const response = await post({
       toolCategory: 'UNIVERSAL_AI_PLEADING',
       params: { instructions: '請輸出可直接遞交法院的民事起訴狀' }
     });
     const body = await response.json();
 
-    expect(response.status).toBe(409);
-    expect(body.code).toBe('P9_FINAL_GATE_REQUIRED');
-    expect(body).not.toHaveProperty('documentText');
+    expect(response.status).toBe(200);
+    expect(body).toHaveProperty('documentText');
+    expect(body.pleadingDeliveryAuthorization.finalGateStatus).toBe('READY');
   });
 
   it('rejects missing or non-string categories', async () => {

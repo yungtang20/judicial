@@ -5,7 +5,13 @@ import dotenv from "dotenv";
 import { createExpressApp } from "./server/index.js";
 import { validateSecurityConfiguration } from "./server/middleware/auth.js";
 
+const _log = console.log;
+const _warn = console.warn;
+console.log = () => {};
+console.warn = () => {};
 dotenv.config();
+console.log = _log;
+console.warn = _warn;
 
 // 清理無效的 BASE_URL 金鑰字串
 const rawBaseUrl = process.env.GOOGLE_GEMINI_BASE_URL || process.env.GEMINI_BASE_URL;

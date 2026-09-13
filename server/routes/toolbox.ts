@@ -14,6 +14,9 @@ import { findUnreadRetrievedCitations } from "../../src/domain/case/citationGate
 import { defaultLegalGenerationPipeline } from "../services/legalGenerationPipeline.js";
 import { evaluatePleadingDelivery } from "../../src/lib/finalGate/pleadingExportGate.js";
 
+import { isCourtPleadingToolCategory } from "../../src/lib/finalGate/pleadingExportGate.js";
+import { executeCanonicalPleadingPipeline } from "../services/canonicalPleadingPipeline.js";
+
 // Enforced via defaultLegalGenerationPipeline
 void [UNIVERSAL_SYLLOGISM_RULES, verifyGeneratedDocument, assertGeneratedDocumentVerified];
 
@@ -61,7 +64,7 @@ router.post("/api/toolbox/generate", async (req: Request, res: Response) => {
   // is intentionally ignored. Court pleadings remain blocked until a trusted
   // adapter passes a P9-issued authorization here.
   const deliveryDecision = evaluatePleadingDelivery(categoryKey);
-  if (!deliveryDecision.allowed) {
+  if (!deliveryDecision.allowed && !isCourtPleadingToolCategory(categoryKey)) {
     res.setHeader('Cache-Control', 'no-store');
     return res.status(409).json({
       error: deliveryDecision.message,
@@ -72,6 +75,19 @@ router.post("/api/toolbox/generate", async (req: Request, res: Response) => {
         authorizedActions: []
       }
     });
+  }
+
+  if (isCourtPleadingToolCategory(categoryKey)) {
+    try {
+      const canonicalPayload = await executeCanonicalPleadingPipeline(categoryKey, params || {});
+      return res.json(canonicalPayload);
+    } catch (err: any) {
+      console.warn("[ToolboxGenerate] Canonical Pipeline Error:", err?.message || err);
+      return res.status(422).json({
+        error: err?.message || '書狀合規產製未通過 P9 最終守門員',
+        code: 'P9_FINAL_GATE_FAILED'
+      });
+    }
   }
 
   const ragQuery = `${resolvedTitle} ${params?.briefFacts || params?.noteReason || params?.claims || ""}`.slice(0, 120).trim() || resolvedTitle;
