@@ -89,6 +89,7 @@ describe('ToolResultPanel Export & Print Actions', () => {
     expect(await screen.findByText('引用檢查未發現異常')).toBeDefined();
     expect(screen.getByText(/不等同法律合規/)).toBeDefined();
     expect(screen.queryByText('法規檢驗通過')).toBeNull();
+    expect(screen.queryByText('舊版文字指標（非合規判定）')).toBeNull();
   });
 
   it('triggers Word document download on Word button click', async () => {

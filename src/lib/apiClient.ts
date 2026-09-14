@@ -192,6 +192,15 @@ export const apiClient = {
     triageData?: any;
     mineData?: any;
     caseInfo?: any;
+    answerDisposition?: string;
+    answerFactsAndReasons?: string;
+    opponentPosition?: string;
+    evidenceList?: string;
+    attachments?: string;
+    documentaryEvidenceCopies?: string;
+    directNotice?: string;
+    documentDate?: string;
+    signature?: string;
   }) => {
     return fetchWithHandler('/api/defense/generate-pleading', {
       method: 'POST',

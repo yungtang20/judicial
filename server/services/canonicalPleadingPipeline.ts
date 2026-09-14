@@ -1,5 +1,13 @@
 import { randomUUID } from 'crypto';
-import type { CaseInput, Evidence, MissingInput, Party } from '../../src/types/compliance.js';
+import type {
+  AppealGroundType,
+  CaseInput,
+  EnforcementTitleType,
+  Evidence,
+  MissingInput,
+  Party,
+  PleadingSectionInput
+} from '../../src/types/compliance.js';
 import { buildStructuredPleadingDraft } from '../../src/lib/generator/civilPleadingGenerator.js';
 import { verifyPleadingCompliance } from '../../src/lib/compliance/pleadingComplianceEngine.js';
 import { reviewStructuredPleading } from '../../src/lib/reviewer/pleadingReviewer.js';
@@ -70,11 +78,55 @@ function buildParties(params: CanonicalParams, claimantRole: string, respondentR
     address: text(params, 'defendantAddress', 'respondentAddress', 'debtorAddress', 'accusedAddress')
   }];
 
-  return [claimant, ...respondents.map((party, index) => ({
+  const parties: Party[] = [claimant, ...respondents.map((party, index) => ({
     id: randomUUID(),
     role: respondents.length > 1 ? `${respondentRole}${index + 1}` : respondentRole,
     ...party
   }))];
+  const legalRepresentativeName = text(params, 'legalRepresentativeName');
+  const litigationRepresentativeName = text(params, 'litigationRepresentativeName');
+  if (legalRepresentativeName) parties.push({
+    id: randomUUID(),
+    role: 'legal_representative',
+    name: legalRepresentativeName,
+    address: text(params, 'legalRepresentativeAddress'),
+    relationshipToParty: text(params, 'legalRepresentativeRelationship')
+  });
+  if (litigationRepresentativeName) parties.push({
+    id: randomUUID(),
+    role: 'litigation_representative',
+    name: litigationRepresentativeName,
+    address: text(params, 'litigationRepresentativeAddress')
+  });
+  return parties;
+}
+
+function sectionInputs(
+  params: CanonicalParams,
+  fieldMap: Readonly<Record<string, readonly string[]>> | undefined,
+  factContent: string,
+  factId: string
+): Record<string, PleadingSectionInput> | undefined {
+  if (!fieldMap) return undefined;
+  return Object.fromEntries(
+    Object.entries(fieldMap).map(([sectionId, keys]) => {
+      const content = text(params, ...keys);
+      return [sectionId, {
+        content,
+        ...(factId && content === factContent ? { sourceFactIds: [factId] } : {})
+      }];
+    })
+  );
+}
+
+function appealGroundType(value: unknown): AppealGroundType | undefined {
+  return value === 'STATUTORY' || value === 'PRINCIPLED_IMPORTANCE' ? value : undefined;
+}
+
+function enforcementTitleType(value: unknown): EnforcementTitleType | undefined {
+  return ['JUDGMENT', 'RULING', 'RECORD', 'NOTARIAL_DEED', 'SECURITY_RIGHT', 'OTHER'].includes(String(value))
+    ? value as EnforcementTitleType
+    : undefined;
 }
 
 export async function executeCanonicalPleadingPipeline(categoryKey: string, rawParams: unknown) {
@@ -101,6 +153,10 @@ export async function executeCanonicalPleadingPipeline(categoryKey: string, rawP
     styleProfile: config.styleProfile,
     court: text(params, 'courtName'),
     proceeding: text(params, 'proceeding'),
+    appealLevel: config.appealLevel,
+    appealGroundType: config.appealGroundType || appealGroundType(params.appealGroundType),
+    enforcementTitleType: enforcementTitleType(params.enforcementTitleType),
+    sectionInputs: sectionInputs(params, config.sectionFieldMap, factContent, factId),
     documentDate: text(params, 'documentDate'),
     signature: text(params, 'signature'),
     parties: buildParties(params, config.claimantRole, config.respondentRole),
@@ -129,6 +185,16 @@ export async function executeCanonicalPleadingPipeline(categoryKey: string, rawP
       severity: 'BLOCKING',
       requiredFor: [config.pleadingType],
       sourceRequirement: '民事訴訟法第508條',
+      category: 'MINIMUM_GENERATION'
+    }];
+  }
+  if (categoryKey.trim().toUpperCase() === 'CIVIL_ENFORCEMENT_APPLICATION' && !caseInput.enforcementTitleType) {
+    draft.missingInputs = [...(draft.missingInputs || []), {
+      field: 'enforcementTitleType',
+      reason: '強制執行聲請須先明確選擇執行名義類型，才能套用第6條相應文件規則。',
+      severity: 'BLOCKING',
+      requiredFor: [config.pleadingType],
+      sourceRequirement: '強制執行法第6條第1項',
       category: 'MINIMUM_GENERATION'
     }];
   }

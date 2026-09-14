@@ -33,7 +33,14 @@ describe('production security defaults', () => {
     const response = await request(app, '/');
 
     expect(response.status).toBe(200);
-    expect(response.headers.get('content-security-policy')).toContain("default-src 'self'");
+    const policy = response.headers.get('content-security-policy');
+    expect(policy).toContain("default-src 'self'");
+    expect(policy).toContain("script-src 'self'");
+    expect(policy).toContain("img-src 'self' data: blob:");
+    expect(policy).not.toContain("script-src 'self' 'unsafe-inline'");
+    expect(policy).not.toContain("img-src 'self' data: https:");
+    expect(policy).not.toContain('*.run.app');
+    expect(policy).not.toContain('*.dr-legal.com.tw');
     expect(response.headers.get('content-security-policy-report-only')).toBeNull();
   });
 

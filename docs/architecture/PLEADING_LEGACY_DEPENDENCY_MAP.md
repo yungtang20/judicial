@@ -9,13 +9,11 @@ This map covers the legacy keyword-based `formatChecker.ts` path found by reposi
 ```text
 Production UI
 ToolResultPanel.tsx
-  -> FormatCheckerDisplay.tsx
-     -> verifyDocumentFormat(documentText)
-        -> FormatCheckItem[]
+  -> canonical complianceChecklist + P9 delivery authorization
 
-Legacy regression
-formatChecker.test.ts
-  -> verifyDocumentFormat(documentText, { pleadingType? })
+Removed legacy path
+FormatCheckerDisplay.tsx / formatChecker.ts / formatChecker.test.ts
+  -> deleted after production migration, regression proof, and Human Gate approval
 
 Canonical generated-pleading path (separate; no production caller found)
 buildStructuredPleadingDraft
@@ -36,22 +34,22 @@ No import from `generatedDocumentPipeline.ts`, `docGeneration.ts`, API routes, o
 
 | Stage | Status | Evidence / next condition |
 |---|---|---|
-| Adapter | ACTIVE | `verifyDocumentFormat` retains the existing text-to-`FormatCheckItem[]` contract. Keyword presence never returns `COMPLIANT`. |
-| Migration | PARTIAL | The only production display now labels results as legacy text indicators and does not present a pass/compliance conclusion. Canonical P4-P9 modules are not yet supplied with production `CaseInput` and approval evidence. |
-| Deprecation | ACTIVE | The legacy interface, `passed` field, and function are marked `@deprecated`. |
-| Removal | BLOCKED | Requires production caller migration, regression proof, and explicit human approval. P10 does not delete or rename the legacy module. |
+| Adapter | REMOVED | Deleted after zero reachable production callers and explicit Human Gate approval. |
+| Migration | COMPLETE | `ToolResultPanel` no longer imports or renders the legacy display. Supported court pleadings receive server-owned canonical P4-P9 results; unsupported categories remain 422. |
+| Deprecation | COMPLETE | Superseded by canonical structured findings and P9 delivery authorization. |
+| Removal | COMPLETE | `FormatCheckerDisplay.tsx`, `formatChecker.ts`, and `formatChecker.test.ts` removed after 2026-09-14 Human Gate approval. |
 
 ## Known consumers
 
 | Consumer | Kind | Current dependency |
 |---|---|---|
-| `src/components/toolbox/FormatCheckerDisplay.tsx` | production UI | Direct function and type import |
-| `src/components/toolbox/ToolResultPanel.tsx` | production UI parent | Renders `FormatCheckerDisplay` for every generator result |
-| `src/lib/formatChecker.test.ts` | test | Direct function import |
+| `src/components/toolbox/FormatCheckerDisplay.tsx` | removed | No production importer remained before deletion |
+| `src/components/toolbox/ToolResultPanel.tsx` | production UI | Migrated to canonical `complianceChecklist` and P9 delivery authorization |
+| `src/lib/formatChecker.test.ts` | removed | Mapping protections retained by canonical Rule Profile, compliance, route, and P9 tests |
 
 ## Migration constraints
 
-- `ToolResultPanel` receives a `LegalToolboxResult` containing unstructured `documentText`; it does not receive the `CaseInput`, approved Rule Profile, P8 report, or P9 Final Gate report required by the canonical pipeline.
+- `ToolResultPanel` receives only server-owned `pleadingDeliveryAuthorization` plus a payload-bound document fingerprint; it does not independently infer compliance from text.
 - The toolbox includes generators that are not civil pleadings. Applying the civil Rule Profile to every result would expand legal scope and produce false conclusions.
 - `verifyExternalDocument` cannot replace the text adapter because physical DOCX/PDF layout parsing is explicitly outside the current SDD scope.
 - `exportReport.ts` exports a separate `LegalWorkflowState` analysis report. Static evidence does not identify it as a `StructuredPleadingDraft` export path.
@@ -65,4 +63,4 @@ Deletion is allowed only after all of the following are evidenced and approved b
 3. Copy, download, print, and API delivery paths enforce their applicable gate.
 4. Legacy regression tests are replaced by canonical integration tests without losing the Article 116/117/244 mapping protections.
 
-Until then, `formatChecker.ts` remains a deprecated, non-authoritative indicator adapter.
+The Human Gate approved removal on 2026-09-14 after these conditions were evidenced. The canonical pipeline remains the only court-pleading compliance path.

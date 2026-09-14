@@ -135,6 +135,7 @@ export interface GeneratedPleadingResult {
   signatoryRole: string;
   modelUsed?: string;
   isFallback?: boolean;
+  pleadingDeliveryAuthorization?: { finalGateStatus: 'READY' };
   antiGhostVerification?: {
     totalCitationsChecked: number;
     ghostCitationsFound: number;

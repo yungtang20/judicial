@@ -63,8 +63,19 @@ describe('P9 pleading export gate', () => {
     'ASSISTANCE_PETITION',
     'PROMISSORY_NOTE_RULING',
     'EXECUTION_SALARY_ATTACHMENT',
-    'EXECUTION_BANK_REAL_ESTATE'
-    ,'PROVISIONAL_ATTACHMENT'
+    'EXECUTION_BANK_REAL_ESTATE',
+    'PROVISIONAL_ATTACHMENT',
+    'CIVIL_ANSWER',
+    'CIVIL_APPEAL_SECOND',
+    'CIVIL_APPEAL_THIRD_STATUTORY',
+    'CIVIL_APPEAL_THIRD_PRINCIPLED',
+    'CIVIL_INTERLOCUTORY_APPEAL',
+    'CIVIL_RETRIAL',
+    'CRIMINAL_APPEAL_SECOND',
+    'CRIMINAL_APPEAL_THIRD',
+    'ADMINISTRATIVE_APPEAL',
+    'NON_CONTENTIOUS_APPLICATION',
+    'CIVIL_ENFORCEMENT_APPLICATION'
   ])('classifies %s as a court pleading without title heuristics', category => {
     expect(isCourtPleadingToolCategory(category)).toBe(true);
   });

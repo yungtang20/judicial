@@ -3,7 +3,6 @@ import { Copy, Download, Check, Printer, FileText } from 'lucide-react';
 import { ToolDefinition } from '../../lib/legalToolRegistry';
 import type { LegalToolboxResult } from '../../types';
 import { UIConstants } from '../../constants/ui';
-import { FormatCheckerDisplay } from './FormatCheckerDisplay';
 import {
   assertPleadingDocumentDeliveryAllowed,
   evaluatePleadingDelivery,
@@ -370,13 +369,6 @@ export const ToolResultPanel: React.FC<ToolResultPanelProps> = ({ result, curren
                 </div>
               ))}
             </div>
-          </div>
-        )}
-
-        {/* 格式自動校對面板 */}
-        {currentTool.toolType === 'generator' && (
-          <div className="px-4 sm:px-6 md:px-8 pt-4 bg-[var(--color-surface-overlay)]">
-            <FormatCheckerDisplay documentText={result.documentText} />
           </div>
         )}
 

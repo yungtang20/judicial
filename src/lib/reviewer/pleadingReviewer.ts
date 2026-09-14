@@ -359,8 +359,10 @@ function expectedSectionLines(section: StructuredPleadingDraft['sections'][numbe
         .map(([key, value]) => `${party.id}.${key}：${text(value)}`));
     case 'complaint_optional_details':
       return [];
-    default:
-      return [];
+    default: {
+      const supplied = input.sectionInputs?.[section.id];
+      return supplied ? text(supplied.content).split(/\r?\n/).map(line => line.trim()).filter(Boolean) : [];
+    }
   }
 }
 

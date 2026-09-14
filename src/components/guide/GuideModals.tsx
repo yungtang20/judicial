@@ -18,7 +18,7 @@ export const GuideModals: React.FC<GuideModalsProps> = (props) => {
     searchQuery, setSearchQuery, selectedCategory, setSelectedCategory,
     selectedScenario, setSelectedScenario, showAiTriageModal, setShowAiTriageModal,
     aiTriageLoading, setAiTriageLoading, aiTriageResult, setAiTriageResult,
-    copiedDraft, setCopiedDraft, syllogismAnswers, setSyllogismAnswers,
+    syllogismAnswers, setSyllogismAnswers,
     sourceTab, setSourceTab, isSafetyQuery, filteredScenarios, categories,
     QUICK_TAGS, handleRunAiTriage, handleLaunchScenario, handleSelectTool
   } = props;
@@ -315,30 +315,6 @@ export const GuideModals: React.FC<GuideModalsProps> = (props) => {
                     </div>
                   </div>
                 )}
-                {/* 自動生成的專屬訴狀草稿預覽 */}
-                {aiTriageResult.pleadingDraft && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
-                        <FileText className="w-3.5 h-3.5" /> AI 即時生成合規起訴/告訴狀草稿
-                      </span>
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(aiTriageResult.pleadingDraft);
-                          setCopiedDraft(true);
-                          setTimeout(() => setCopiedDraft(false), 2000);
-                        }}
-                        className="text-xs text-indigo-300 hover:text-white px-2.5 py-1 rounded-lg bg-indigo-950/80 border border-indigo-800/60 transition-colors"
-                      >
-                        {copiedDraft ? '✓ 已複製到剪貼簿' : '複製完整書狀'}
-                      </button>
-                    </div>
-                    <pre className="p-4 rounded-xl bg-slate-950 border border-slate-800 text-[11px] font-mono text-slate-300 whitespace-pre-wrap max-h-60 overflow-y-auto leading-relaxed">
-                      {aiTriageResult.pleadingDraft}
-                    </pre>
-                  </div>
-                )}
-
           {/* 底部導引與按鈕 */}
           <div className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-800">
             {/* 左側：快捷導引 */}
@@ -364,7 +340,7 @@ export const GuideModals: React.FC<GuideModalsProps> = (props) => {
                 className="px-3 py-2 rounded-xl bg-amber-950/60 text-amber-300 border border-amber-800/50 text-[11px] font-semibold hover:bg-amber-900/60 transition-all flex items-center gap-1.5"
               >
                 <FileSignature className="w-3.5 h-3.5" />
-                一鍵產書狀
+                進入法律工具箱
               </button>
             </div>
             {/* 右側：主操作 */}
@@ -417,7 +393,7 @@ export const GuideModals: React.FC<GuideModalsProps> = (props) => {
                       className="px-3 py-2 rounded-xl bg-amber-950/60 text-amber-300 border border-amber-800/50 text-[11px] font-semibold hover:bg-amber-900/60 transition-all flex items-center gap-1.5"
                     >
                       <FileSignature className="w-3.5 h-3.5" />
-                      一鍵產書狀
+                      進入法律工具箱
                     </button>
                   </div>
                   {/* 右側：主操作 */}
@@ -434,16 +410,13 @@ export const GuideModals: React.FC<GuideModalsProps> = (props) => {
                         setShowAiTriageModal(false);
                         handleSelectTool("legalToolbox", undefined, { 
                           preselectedToolId: recTool,
-                          prefilledData: {
-                            incidentDetails: searchQuery,
-                            pleadingText: aiTriageResult.pleadingDraft
-                          }
+                          prefilledData: { incidentDetails: searchQuery }
                         });
                       }}
                       className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all flex items-center justify-center gap-2"
                     >
                       <Sparkles className="w-4 h-4" />
-                      <span>進入法律工具箱編輯並產製此書狀</span>
+                      <span>進入法律工具箱</span>
                     </button>
                   </div>
                 </div>

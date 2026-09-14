@@ -19,24 +19,18 @@ export const securityHeaders = helmet({
         reportOnly: isCspReportOnly,
         directives: {
           defaultSrc: ["'self'"],
-          scriptSrc: ["'self'", "'unsafe-inline'"],
+          scriptSrc: ["'self'"],
           styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
           fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
-          imgSrc: ["'self'", "data:", "https:", "blob:"],
+          imgSrc: ["'self'", "data:", "blob:"],
           connectSrc: [
             "'self'",
-            "https://generativelanguage.googleapis.com",
-            "https://data.judicial.gov.tw",
-            "https://*.run.app",
-            "https://tlr.dr-legal.com.tw",
-            "https://*.dr-legal.com.tw",
-            process.env.APP_URL || "",
-            ...(isProduction ? [] : ["ws:", "wss:"])
+            process.env.APP_URL || ""
           ].filter(Boolean),
           workerSrc: ["'self'", "blob:"],
-          frameSrc: ["'self'", "blob:", "https://ai.studio", "https://*.google.com"],
+          frameSrc: ["'self'", "blob:"],
           objectSrc: ["'none'"],
-          frameAncestors: ["'self'", "https://ai.studio", "https://*.google.com"],
+          frameAncestors: ["'self'"],
           upgradeInsecureRequests: []
         }
       }

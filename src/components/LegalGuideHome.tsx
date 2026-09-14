@@ -8,6 +8,7 @@ import type { ScenarioItem } from './guide/ScenarioDetailModal';
 import { filterScenarios, matchesSafetyQuery } from './guide/scenarioSearch';
 import { LegalSourcesDisplay } from './LegalSourcesDisplay';
 import { LEGAL_TOOLS } from '../lib/legalToolRegistry';
+import { stripUngatedPleadingFields } from '../lib/universalTriage';
 import { useCaseStore } from '../store/useCaseStore';
 import { useToolContext } from '../contexts/ToolContext';
 import { 
@@ -60,7 +61,6 @@ export const LegalGuideHome: React.FC = () => {
   const [aiTriageLoading, setAiTriageLoading] = useState(false);
   const [aiTriageResult, setAiTriageResult] = useState<any | null>(null);
   const [showAiTriageModal, setShowAiTriageModal] = useState(false);
-  const [copiedDraft, setCopiedDraft] = useState(false);
   const [syllogismAnswers, setSyllogismAnswers] = useState<Record<number, { option: string, text: string }>>({});
   const [sourceTab, setSourceTab] = useState<'statutes' | 'judgments' | 'references' | 'literature'>('statutes');
   const saveTriage = useCaseStore(s => s.saveTriage);
@@ -68,7 +68,7 @@ export const LegalGuideHome: React.FC = () => {
 
   useEffect(() => {
     if (!aiTriageResult || !searchQuery.trim()) return;
-    saveTriage(searchQuery.trim(), aiTriageResult);
+    saveTriage(searchQuery.trim(), stripUngatedPleadingFields(aiTriageResult));
     const retrieved = (aiTriageResult.sources?.judgments || []).map((source: any, index: number) => ({
       id: source.citation || `retrieved-${index}`,
       type: 'TLR 檢索結果',
@@ -91,7 +91,6 @@ export const LegalGuideHome: React.FC = () => {
     setAiTriageLoading(true);
     setShowAiTriageModal(true);
     setSyllogismAnswers({});
-    setCopiedDraft(false);
 
     try {
       const res = await fetch('/api/triage/universal', {
@@ -131,7 +130,6 @@ export const LegalGuideHome: React.FC = () => {
         evidenceChecklist: Array.isArray(data.evidenceChecklist)
           ? data.evidenceChecklist
           : ['相關證據單據與對話截圖', '身分憑證'],
-        pleadingDraft: data.pleadingDraft || data.readyDocumentText || '',
         isSyllogismComplete: data.isSyllogismComplete !== false,
         missingQuestions: data.missingQuestions || [],
         isSensitive: !!data.isSensitive,
@@ -181,7 +179,6 @@ export const LegalGuideHome: React.FC = () => {
             '寵物晶片登記證明文件（證明原告所有權）',
             '與對造飼主協商溝通之對話紀錄截圖或存證信函影本'
           ],
-          pleadingDraft: `民事起訴狀（動物占有人侵權損害賠償）\n\n原告：[請填寫原告姓名]\n住居所：[請填寫地址]\n電話：[請填寫電話]\n\n被告：[請填寫犬隻飼主姓名]\n住居所：[請填寫地址]\n\n為請求侵權行為損害賠償事件，依法提起起訴事：\n\n訴之聲明：\n一、被告應給付原告新臺幣[填寫金額]元整，及自起訴狀繕本送達翌日起至清償日止，按週年利率百分之五計算之利息。\n二、訴訟費用由被告負擔。\n\n事實及理由：\n原告飼養之寵物貓於[日期]在[地點]，遭被告所管領之犬隻無故追咬成傷，經緊急送往動物醫院施以清創手術及住院治療，支出醫療費用共計新臺幣[金額]元整。\n按民法第190條第1項前段規定：「動物加損害於他人者，由其占有人負損害賠償責任。」被告未妥善管領犬隻，致侵害原告之權益，爰依法提起本訴。\n\n謹狀\n臺灣[地區]地方法院民事庭 公鑒\n具狀人：[簽名蓋章]\n中華民國 年 月 日`
         });
         return;
       }
@@ -213,7 +210,6 @@ export const LegalGuideHome: React.FC = () => {
             '現場目擊證人聯絡資料與警詢筆錄',
             '醫療費用單據、因傷受損之衣物財物照片'
           ],
-          pleadingDraft: `刑事告訴狀（傷害罪）\n\n告訴人：[請填寫姓名]\n住居所：[請填寫地址]\n電話：[請填寫電話]\n\n被告：[請填寫姓名]\n住居所：[請填寫地址]\n\n為被告涉犯刑法第277條第1項傷害罪，依法提出告訴事：\n\n訴之聲請：\n懇請 鈞署依法偵查，起訴被告傷害罪嫌，以懲不法。\n\n犯罪事實與理由：\n被告於民國[年]月[日]在[地點]，因故與告訴人發生口角，竟基於傷害人身體之犯意，出手毆打告訴人，致告訴人受有[傷勢說明]之傷害...\n按刑法第277條第1項規定：「傷害人之身體或健康者，處五年以下有期徒刑、拘役或五十萬元以下罰金。」被告犯行明確，爰依法提出告訴。\n\n證據清單：\n一、醫院驗傷診斷證明書正本乙份。\n二、案發現場監視器錄影光碟乙份。\n\n謹狀\n臺灣[地區]地方檢察署 公鑒\n告訴人：[簽名蓋章]\n中華民國 年 月 日`
         });
         return;
       }
@@ -244,7 +240,6 @@ export const LegalGuideHome: React.FC = () => {
             '精神受創就醫證明、心理諮商紀錄（供請求慰撫金評估佐證）',
             '已寄發存證信函或警告留言存根（若有）'
           ],
-          pleadingDraft: `刑事告訴狀（妨害名譽）\n\n告訴人：[請填寫姓名]\n住居所：[請填寫地址]\n電話：[請填寫電話]\n\n被告：[請填寫姓名或網路帳號ID]\n住居所：年籍不詳（請 檢察官向平台調閱IP及註冊資料）\n\n為被告涉犯刑法第309條公然侮辱罪及第310條誹謗罪，依法提出告訴事：\n\n訴之聲請：\n懇請 鈞署依法偵查，起訴被告罪嫌，以懲不法。\n\n犯罪事實與理由：\n告訴人於進行網路直播時，被告於公開聊天室發表侮辱性及不實言論...\n此行為已使不特定多數人得以共見共聞，嚴重貶損告訴人之社會評價及名譽。\n\n證據清單：\n一、直播側錄影片光碟乙份。\n二、聊天室發言截圖及留言網址。\n\n謹狀\n臺灣[地區]地方檢察署 公鑒\n告訴人：[簽名蓋章]\n中華民國 年 月 日`
         });
         return;
       }
@@ -275,7 +270,6 @@ export const LegalGuideHome: React.FC = () => {
             '借款人姓名、戶籍地址、身分證字號或聯絡資訊',
             '存證信函掛號收件回執'
           ],
-          pleadingDraft: `民事支付命令聲請狀\n\n聲請人（即債權人）：[請填寫姓名]\n住居所：[請填寫地址]\n\n相對人（即債務人）：[請填寫姓名]\n住居所：[請填寫戶籍地址]\n\n為聲請核發支付命令事：\n\n請求之標的及其數量：\n一、相對人應向聲請人清償新臺幣[金額]元整，及自支付命令送達翌日起至清償日止，按週年利率百分之五計算之利息。\n二、督促程序費用新臺幣伍佰元由相對人負擔。\n\n請求之原因事實：\n相對人於民國[年]月[日]向聲請人借款新臺幣[金額]元，約定應於民國[年]月[日]清償。詎屆期經聲請人多次催討，相對人均置之不理，尚欠前揭金額未還...\n\n謹狀\n臺灣[地區]地方法院民事庭 公鑒\n聲請人：[簽名蓋章]\n中華民國 年 月 日`
         });
         return;
       }
@@ -315,9 +309,6 @@ export const LegalGuideHome: React.FC = () => {
               '該涉案銀行帳戶存摺封面、近期交易明細及向銀行申請掛失止付之相關憑證'
             ]
           : ['相關合約或通訊截圖', '出入紀錄或監視器影像', '被害人身分證明文件'],
-        pleadingDraft: isCardFraud
-          ? `刑事陳報暨答辯狀\n\n案號：臺灣地方法院檢察署[填寫案號] 股別：[填寫股別]\n陳報人（即被告/告訴人）：[姓名]\n案由：為涉嫌洗錢防制法及詐欺取財案件，主動具狀陳報案發經過，依法聲請不起訴處分事：\n\n事實與理由：\n一、陳報人因求職/辦理貸款誤信詐騙集團話術，遭詐騙交付提款卡...\n二、陳報人於知悉受騙後，第一時間即向銀行掛失停卡並主動報警，絕無幫助詐欺或洗錢之故意...\n三、懇請 檢察官明察，賜予不起訴處分。`
-          : `民事起訴狀暨訴求說明書\n\n案由：針對「${q}」之民事損害賠償與權益主張\n原告/具狀人：[請填寫姓名]\n被告/相對人：[請填寫姓名]\n\n事實與理由：\n原告面臨「${q}」之具體權益侵害情事，特具狀依法請求民事損害賠償與返還。`
       });
     } finally {
       setAiTriageLoading(false);
@@ -348,7 +339,7 @@ export const LegalGuideHome: React.FC = () => {
     searchQuery, setSearchQuery, selectedCategory, setSelectedCategory,
     selectedScenario, setSelectedScenario, showAiTriageModal, setShowAiTriageModal,
     aiTriageLoading, setAiTriageLoading, aiTriageResult, setAiTriageResult,
-    copiedDraft, setCopiedDraft, syllogismAnswers, setSyllogismAnswers,
+    syllogismAnswers, setSyllogismAnswers,
     sourceTab, setSourceTab, isSafetyQuery, filteredScenarios, categories: SCENARIO_CATEGORIES,
     handleRunAiTriage, handleLaunchScenario, handleSelectTool
   };
