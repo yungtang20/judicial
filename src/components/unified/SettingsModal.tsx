@@ -34,9 +34,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = (props) => {
                       scenarioKeywords: workflowState?.router?.cause || '',
                       domain: workflowState?.router?.domain,
                       cause: workflowState?.router?.cause,
+                      facts: workflowState?.userNarrative || '',
+                      verificationStatus: workflowState?.verification?.verificationStatus,
                       sourceTool: 'unified'
                     });
-                    handleSelectTool('appeal', 'appeal', { initialTab: 'appeal' });
+                    handleSelectTool('appeal', 'appeal', { initialTab: 'appeal', facts: workflowState?.userNarrative || '' });
                   }}
                   className="w-full text-left p-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors"
                 >
@@ -52,9 +54,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = (props) => {
                       scenarioKeywords: workflowState?.router?.cause || '',
                       domain: workflowState?.router?.domain,
                       cause: workflowState?.router?.cause,
+                      facts: workflowState?.userNarrative || '',
+                      verificationStatus: workflowState?.verification?.verificationStatus,
                       sourceTool: 'unified'
                     });
-                    handleSelectTool('litigation', undefined, { initialTab: 'toolbox', preselectedToolId: 'CIVIL_DEMAND_LETTER_GENERAL' });
+                    handleSelectTool('litigation', undefined, { initialTab: 'toolbox', preselectedToolId: 'CIVIL_DEMAND_LETTER_GENERAL', facts: workflowState?.userNarrative || '' });
                   }}
                   className="w-full text-left p-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors"
                 >

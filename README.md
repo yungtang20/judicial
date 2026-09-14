@@ -68,10 +68,12 @@ npm run dev
 
 Production 服務目前部署於 Render：
 
-- 網址：[https://judicial-prod.onrender.com](https://judicial-prod.onrender.com)
+- 唯一正式入口：[https://judicial-prod.onrender.com](https://judicial-prod.onrender.com)
 - Runtime：Node.js 22.23.2（由 `.node-version` 與 Blueprint 固定）
 - Build command：`npm ci --include=dev && npm run build`
 - Start command：`npm start`
+
+目前採用全免費部署方案。`judicial-live.onrender.com` 與 `judicial-rf4b.onrender.com` 已停用並刪除，請勿再使用。免費 Render 的本機 SQLite 不屬於 durable audit storage，可能在服務休眠、重啟或重新部署後遺失；Agnes 僅確認設定存在，尚未完成真實 API 相容性驗證。此部署應視為公開 demo，不得宣稱為具永久稽核保存能力的 production-ready 法律文件系統。
 
 Render 部署設定位於根目錄的 `render.yaml`。部署時必須在 Render Environment Variables 設定：
 

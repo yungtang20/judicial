@@ -28,6 +28,8 @@ export interface CrossFeatureContext {
   sourceTool?: string;
   /** 文書類型 */
   documentType?: string;
+  /** 來源分析的查驗狀態；不代表目標文件已通過查驗 */
+  verificationStatus?: 'PASS' | 'NEEDS_REVIEW' | 'FAIL';
   /** 時間戳 */
   timestamp: number;
 }
