@@ -18,6 +18,7 @@ import agentChatRouter from "./routes/agentChat.js";
 import fetchUrlRouter from "./routes/fetchUrl.js";
 import { auditRouter } from "./routes/audit.js";
 import guestAuthRouter from "./routes/guestAuth.js";
+import officialTemplatesRouter from "./routes/officialTemplates.js";
 
 export function createExpressApp(): Express {
   // 啟動期環境安全性檢核：在 production 環境下未設置或不符合強度之 JWT_SECRET 立即中斷
@@ -50,6 +51,13 @@ export function createExpressApp(): Express {
   // 1. 中介軟體
   app.use(requestIdMiddleware);
   app.use(securityHeaders);
+
+  // Health probes stay outside the shared API quota.
+  app.use(healthRouter);
+
+  // Limit guest-token issuance and failed authentication attempts too.
+  app.use("/api", apiLimiter);
+
   app.use(express.json({ limit: "1mb" }));
   // No route consumes nested URL-encoded objects; use Node's simple parser to
   // avoid enabling the qs extended-parser attack surface.
@@ -59,7 +67,6 @@ export function createExpressApp(): Express {
   app.use(guestAuthRouter);
   app.use(authenticate());
   app.use(tenantScopeMiddleware);
-  app.use("/api", apiLimiter);
 
   // 2. 路由註冊
   app.use(analyzeJudgmentRouter);
@@ -74,8 +81,8 @@ export function createExpressApp(): Express {
   app.use(unifiedWorkflowRouter);
   app.use(agentChatRouter);
   app.use(fetchUrlRouter);
-  app.use(healthRouter);
   app.use(auditRouter);
+  app.use(officialTemplatesRouter);
   app.use("/api/sdlc", sdlcRouter);
 
   // 3. 全域錯誤處理器

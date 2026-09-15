@@ -19,6 +19,7 @@ import { useGlobalUI } from '../contexts/GlobalUIContext';
 import { getCalculatorConfig } from '../lib/calculatorEngines';
 import { InteractiveCalculatorView } from './toolbox/InteractiveCalculatorView';
 import { evaluatePleadingDelivery } from '../lib/finalGate/pleadingExportGate';
+import { OfficialTemplateDirectory } from './toolbox/OfficialTemplateDirectory';
 
 type DocumentGenerationStage = 'input' | 'analyzing' | 'formatting' | 'ready' | 'error';
 
@@ -87,6 +88,12 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
 
   const handleGroupSelect = (groupId: string) => {
     setSelectedGroup(groupId);
+    if (groupId === 'OFFICIAL_TEMPLATES') {
+      requestSequenceRef.current += 1;
+      setResult(null);
+      setGenerationStage('input');
+      return;
+    }
     if (groupId === 'ALL' || currentTool.categoryGroup === groupId) return;
     const firstTool = LEGAL_TOOLS.find(tool => tool.categoryGroup === groupId);
     if (!firstTool) return;
@@ -283,6 +290,9 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
         />
+        {selectedGroup === 'OFFICIAL_TEMPLATES' ? (
+          <OfficialTemplateDirectory searchQuery={searchQuery} />
+        ) : (
         <section aria-labelledby="tool-list-heading">
           <div className="mb-3 flex items-end justify-between gap-3">
             <div>
@@ -304,8 +314,10 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
             }}
           />
         </section>
+        )}
       </div>
 
+      {selectedGroup !== 'OFFICIAL_TEMPLATES' && (
       <div id="tool-workspace-section" className="scroll-mt-6">
         {activeCalculatorConfig ? (
           <div className="bg-slate-950/70 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl">
@@ -389,6 +401,7 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
           </div>
         )}
       </div>
+      )}
     </div>
   );
 };
