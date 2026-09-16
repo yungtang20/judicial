@@ -47,22 +47,45 @@ function extractCandidates(contentXml, stylesXml = '') {
   return candidates;
 }
 
+function extractLiteralCandidates(contentXml) {
+  const candidates = [];
+  let occurrence = 0;
+  for (const match of contentXml.matchAll(/○{2,}/g)) {
+    occurrence += 1;
+    const start = match.index || 0;
+    const end = start + match[0].length;
+    candidates.push({
+      token: match[0],
+      occurrence,
+      contextBefore: plainText(contentXml.slice(Math.max(0, start - 500), start)).slice(-60),
+      contextAfter: plainText(contentXml.slice(end, Math.min(contentXml.length, end + 500))).slice(0, 60),
+    });
+  }
+  return candidates;
+}
+
 const manifestBytes = await readFile(manifestPath);
 const templates = JSON.parse(manifestBytes.toString('utf8'));
 const inventory = [];
 let candidateCount = 0;
 let templatesWithCandidates = 0;
+let literalCandidateCount = 0;
+let templatesWithLiteralCandidates = 0;
 
 for (const template of templates) {
   if (!template.localFilePath?.endsWith('.odt')) continue;
   const entries = readOdtEntries(await readFile(path.resolve(template.localFilePath)));
+  const contentXml = entries.get('content.xml').toString('utf8');
   const candidates = extractCandidates(
-    entries.get('content.xml').toString('utf8'),
+    contentXml,
     entries.get('styles.xml')?.toString('utf8') || '',
   );
+  const literalCandidates = extractLiteralCandidates(contentXml);
   if (candidates.length) templatesWithCandidates += 1;
+  if (literalCandidates.length) templatesWithLiteralCandidates += 1;
   candidateCount += candidates.length;
-  inventory.push({ id: template.id, category: template.category, code: template.code, name: template.name, localFileHash: template.localFileHash, candidates });
+  literalCandidateCount += literalCandidates.length;
+  inventory.push({ id: template.id, category: template.category, code: template.code, name: template.name, localFileHash: template.localFileHash, candidates, literalCandidates });
 }
 
 const output = {
@@ -70,8 +93,10 @@ const output = {
   templatesScanned: inventory.length,
   templatesWithCandidates,
   candidateCount,
-  note: 'Heuristic candidates only. Human review must bind semantic fields and approved mappings to localFileHash.',
+  templatesWithLiteralCandidates,
+  literalCandidateCount,
+  note: 'Heuristic candidates only. Literal slots and underlined spans are not approved semantic mappings. Human review must bind fields and approved mappings to localFileHash.',
   templates: inventory,
 };
 await writeFile(outputPath, `${JSON.stringify(output, null, 2)}\n`);
-console.log(JSON.stringify({ templatesScanned: inventory.length, templatesWithCandidates, candidateCount, outputPath }));
+console.log(JSON.stringify({ templatesScanned: inventory.length, templatesWithCandidates, candidateCount, templatesWithLiteralCandidates, literalCandidateCount, outputPath }));
