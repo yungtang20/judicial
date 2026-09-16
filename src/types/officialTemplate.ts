@@ -24,11 +24,14 @@ export interface OfficialTemplateFieldMapping {
   key: string;
   /** Exactly one locator kind must be set. */
   odtStyle?: string;
+  odtParagraphStyle?: string;
   literalText?: string;
-  /** 1-based occurrence when the same ODT style is reused. */
+  /** 1-based occurrence when the same locator text/style is reused. */
   occurrence?: number;
-  /** Optional reviewed text guard; rejects the mapping if the source span changes. */
+  /** Reviewed text guard; mandatory for paragraph locators. */
   expectedText?: string;
+  prefix?: string;
+  suffix?: string;
 }
 
 export interface OfficialTemplate {

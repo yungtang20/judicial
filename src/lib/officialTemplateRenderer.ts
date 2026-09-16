@@ -51,6 +51,13 @@ function styleSpanPattern(style: string): RegExp {
   );
 }
 
+function paragraphPattern(style: string): RegExp {
+  return new RegExp(
+    `(<text:p text:style-name="${escapeRegExp(style)}">)([\\s\\S]*?)(</text:p>)`,
+    'g'
+  );
+}
+
 function literalOccurrences(content: string, literal: string): number[] {
   const indexes: number[] = [];
   for (let offset = 0; offset <= content.length - literal.length;) {
@@ -80,6 +87,7 @@ export function validateTemplateMapping(template: OfficialTemplate): TemplateMap
   const fields = new Set((template.fields || []).map(field => field.key));
   const seenKeys = new Set<string>();
   const seenLocators = new Set<string>();
+  const locatorRanges: Array<{ start: number; end: number }> = [];
   const mappedKeys: string[] = [];
 
   for (const mapping of template.fieldMappings || []) {
@@ -88,25 +96,37 @@ export function validateTemplateMapping(template: OfficialTemplate): TemplateMap
     if (seenKeys.has(mapping.key)) issues.push(`DUPLICATE_FIELD:${mapping.key}`);
     seenKeys.add(mapping.key);
     const hasStyle = typeof mapping.odtStyle === 'string';
+    const hasParagraph = typeof mapping.odtParagraphStyle === 'string';
     const hasLiteral = typeof mapping.literalText === 'string';
     const validStyle = hasStyle && /^[A-Za-z0-9_.-]{1,128}$/.test(mapping.odtStyle!);
+    const validParagraph = hasParagraph && /^[A-Za-z0-9_.-]{1,128}$/.test(mapping.odtParagraphStyle!);
     const validLiteral = hasLiteral && mapping.literalText!.length > 0 && mapping.literalText!.length <= 256 &&
       !/[<>&]/.test(mapping.literalText!);
-    if (hasStyle === hasLiteral || (!validStyle && !validLiteral) || !Number.isInteger(occurrence) || occurrence < 1 ||
+    const locatorKinds = Number(hasStyle) + Number(hasParagraph) + Number(hasLiteral);
+    if (locatorKinds !== 1 || (!validStyle && !validParagraph && !validLiteral) ||
+        (hasParagraph && (typeof mapping.expectedText !== 'string' || !mapping.expectedText)) ||
+        !Number.isInteger(occurrence) || occurrence < 1 ||
         (hasLiteral && mapping.expectedText !== undefined)) {
       issues.push(`INVALID_LOCATOR:${mapping.key}`);
       continue;
     }
     const locator = hasStyle
       ? `style:${mapping.odtStyle}#${occurrence}`
-      : `literal:${mapping.literalText}#${occurrence}`;
+      : hasParagraph
+        ? `paragraph:${mapping.odtParagraphStyle}#${occurrence}`
+        : `literal:${mapping.literalText}#${occurrence}`;
     if (seenLocators.has(locator)) issues.push(`DUPLICATE_LOCATOR:${locator}`);
     seenLocators.add(locator);
 
     const matches = hasStyle ? [...contentXml.matchAll(styleSpanPattern(mapping.odtStyle!))] : [];
+    const paragraphMatches = hasParagraph
+      ? [...contentXml.matchAll(paragraphPattern(mapping.odtParagraphStyle!))]
+      : [];
     const match = matches[occurrence - 1];
-    const literalFound = hasLiteral && literalOccurrences(contentXml, mapping.literalText!).length >= occurrence;
-    if ((hasStyle && !match) || (hasLiteral && !literalFound)) {
+    const paragraphMatch = paragraphMatches[occurrence - 1];
+    const literalIndex = hasLiteral ? literalOccurrences(contentXml, mapping.literalText!)[occurrence - 1] : undefined;
+    const literalFound = literalIndex !== undefined;
+    if ((hasStyle && !match) || (hasParagraph && !paragraphMatch) || (hasLiteral && !literalFound)) {
       issues.push(`LOCATOR_NOT_FOUND:${locator}`);
       continue;
     }
@@ -114,6 +134,17 @@ export function validateTemplateMapping(template: OfficialTemplate): TemplateMap
       issues.push(`EXPECTED_TEXT_MISMATCH:${locator}`);
       continue;
     }
+    if (hasParagraph && mapping.expectedText !== undefined && xmlToPlainText(paragraphMatch![2]) !== mapping.expectedText) {
+      issues.push(`EXPECTED_TEXT_MISMATCH:${locator}`);
+      continue;
+    }
+    const start = hasStyle ? match!.index : hasParagraph ? paragraphMatch!.index : literalIndex!;
+    const length = hasStyle ? match![0].length : hasParagraph ? paragraphMatch![0].length : mapping.literalText!.length;
+    if (locatorRanges.some(range => start < range.end && start + length > range.start)) {
+      issues.push(`OVERLAPPING_LOCATOR:${locator}`);
+      continue;
+    }
+    locatorRanges.push({ start, end: start + length });
     if (fields.has(mapping.key)) mappedKeys.push(mapping.key);
   }
 
@@ -253,24 +284,29 @@ function replaceFieldsInXml(contentXml: string, fields: Record<string, string>, 
     resolvedValues.push(value || '');
   }
 
-  // Replace only the reviewed occurrence. Never replace every span sharing a style.
-  for (let i = 0; i < fieldMapping.length; i++) {
-    const entry = fieldMapping[i];
-    const value = resolvedValues[i];
-    const targetOccurrence = entry.occurrence ?? 1;
+  // Resolve every reviewed locator against the unchanged source snapshot,
+  // then replace from the end so no replacement can shift another locator.
+  const replacements = fieldMapping.flatMap((entry, index) => {
+    const targetOccurrence = (entry.occurrence ?? 1) - 1;
+    const value = resolvedValues[index];
+    const formattedValue = escapeXml(`${entry.prefix || ''}${value}${entry.suffix || ''}`)
+      .replace(/\r?\n/g, '<text:line-break/>');
     if (entry.odtStyle) {
-      let occurrence = 0;
-      result = result.replace(styleSpanPattern(entry.odtStyle), (match, open, _content, close) => {
-        occurrence += 1;
-        return occurrence === targetOccurrence ? `${open}${escapeXml(value)}${close}` : match;
-      });
-    } else if (entry.literalText) {
-      const indexes = literalOccurrences(result, entry.literalText);
-      const index = indexes[targetOccurrence - 1];
-      if (index !== undefined) {
-        result = `${result.slice(0, index)}${escapeXml(value)}${result.slice(index + entry.literalText.length)}`;
-      }
+      const match = [...contentXml.matchAll(styleSpanPattern(entry.odtStyle))][targetOccurrence];
+      return match ? [{ start: match.index!, end: match.index! + match[0].length, value: `${match[1]}${formattedValue}${match[3]}` }] : [];
     }
+    if (entry.odtParagraphStyle) {
+      const match = [...contentXml.matchAll(paragraphPattern(entry.odtParagraphStyle))][targetOccurrence];
+      return match ? [{ start: match.index!, end: match.index! + match[0].length, value: `${match[1]}${formattedValue}${match[3]}` }] : [];
+    }
+    if (entry.literalText) {
+      const start = literalOccurrences(contentXml, entry.literalText)[targetOccurrence];
+      return start === undefined ? [] : [{ start, end: start + entry.literalText.length, value: formattedValue }];
+    }
+    return [];
+  }).sort((left, right) => right.start - left.start);
+  for (const replacement of replacements) {
+    result = `${result.slice(0, replacement.start)}${replacement.value}${result.slice(replacement.end)}`;
   }
 
   return result;
