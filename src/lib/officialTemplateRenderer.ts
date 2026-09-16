@@ -5,9 +5,15 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 import { inflateRawSync } from 'node:zlib';
 import { loadManifest, getTemplateById } from './officialTemplateManifest';
-import type { OfficialTemplate, OfficialTemplateField, RenderTemplateResponse } from '../types/officialTemplate';
+import type {
+  OfficialTemplate,
+  OfficialTemplateField,
+  OfficialTemplateFieldMapping,
+  RenderTemplateResponse,
+} from '../types/officialTemplate';
 
 const FILES_DIR = path.resolve(process.cwd(), 'data', 'official-templates', 'files');
 
@@ -19,13 +25,99 @@ function resolveTemplatePath(localFilePath: string): string | null {
 /**
  * Build mappings only from reviewed, explicit manifest entries.
  */
-function buildFieldMapping(template: OfficialTemplate): Array<{ odtStyle: string; key: string; label: string; required: boolean; placeholder?: string; type: string; options?: Array<{ label: string; value: string }> }> {
+function buildFieldMapping(template: OfficialTemplate): Array<OfficialTemplateFieldMapping & OfficialTemplateField> {
   if (!template.localFileHash || template.fieldMappingHash !== template.localFileHash) return [];
   const fieldsByKey = new Map((template.fields || []).map(field => [field.key, field]));
   return (template.fieldMappings || []).flatMap(mapping => {
     const field = fieldsByKey.get(mapping.key);
-    return field ? [{ ...field, odtStyle: mapping.odtStyle }] : [];
+    return field ? [{ ...field, ...mapping }] : [];
   });
+}
+
+export interface TemplateMappingValidation {
+  valid: boolean;
+  issues: string[];
+  mappedKeys: string[];
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function styleSpanPattern(style: string): RegExp {
+  return new RegExp(
+    `(<text:span text:style-name="${escapeRegExp(style)}">)([^<]*(?:<text:s[^>]*\\/>[^<]*)*)(</text:span>)`,
+    'g'
+  );
+}
+
+function literalOccurrences(content: string, literal: string): number[] {
+  const indexes: number[] = [];
+  for (let offset = 0; offset <= content.length - literal.length;) {
+    const index = content.indexOf(literal, offset);
+    if (index < 0) break;
+    indexes.push(index);
+    offset = index + literal.length;
+  }
+  return indexes;
+}
+
+/** Validate reviewed mappings against the exact hash-bound ODT source. */
+export function validateTemplateMapping(template: OfficialTemplate): TemplateMappingValidation {
+  const issues: string[] = [];
+  if (!template.localFileHash || template.fieldMappingHash !== template.localFileHash) {
+    issues.push('FIELD_MAPPING_HASH_MISMATCH');
+  }
+  if (!template.localFilePath) return { valid: false, issues: [...issues, 'TEMPLATE_NOT_DOWNLOADED'], mappedKeys: [] };
+
+  const absPath = resolveTemplatePath(template.localFilePath);
+  if (!absPath || !fs.existsSync(absPath)) {
+    return { valid: false, issues: [...issues, 'TEMPLATE_FILE_MISSING'], mappedKeys: [] };
+  }
+  const contentXml = extractContentXml(fs.readFileSync(absPath));
+  if (!contentXml) return { valid: false, issues: [...issues, 'TEMPLATE_PARSE_ERROR'], mappedKeys: [] };
+
+  const fields = new Set((template.fields || []).map(field => field.key));
+  const seenKeys = new Set<string>();
+  const seenLocators = new Set<string>();
+  const mappedKeys: string[] = [];
+
+  for (const mapping of template.fieldMappings || []) {
+    const occurrence = mapping.occurrence ?? 1;
+    if (!fields.has(mapping.key)) issues.push(`UNKNOWN_FIELD:${mapping.key}`);
+    if (seenKeys.has(mapping.key)) issues.push(`DUPLICATE_FIELD:${mapping.key}`);
+    seenKeys.add(mapping.key);
+    const hasStyle = typeof mapping.odtStyle === 'string';
+    const hasLiteral = typeof mapping.literalText === 'string';
+    const validStyle = hasStyle && /^[A-Za-z0-9_.-]{1,128}$/.test(mapping.odtStyle!);
+    const validLiteral = hasLiteral && mapping.literalText!.length > 0 && mapping.literalText!.length <= 256 &&
+      !/[<>&]/.test(mapping.literalText!);
+    if (hasStyle === hasLiteral || (!validStyle && !validLiteral) || !Number.isInteger(occurrence) || occurrence < 1 ||
+        (hasLiteral && mapping.expectedText !== undefined)) {
+      issues.push(`INVALID_LOCATOR:${mapping.key}`);
+      continue;
+    }
+    const locator = hasStyle
+      ? `style:${mapping.odtStyle}#${occurrence}`
+      : `literal:${mapping.literalText}#${occurrence}`;
+    if (seenLocators.has(locator)) issues.push(`DUPLICATE_LOCATOR:${locator}`);
+    seenLocators.add(locator);
+
+    const matches = hasStyle ? [...contentXml.matchAll(styleSpanPattern(mapping.odtStyle!))] : [];
+    const match = matches[occurrence - 1];
+    const literalFound = hasLiteral && literalOccurrences(contentXml, mapping.literalText!).length >= occurrence;
+    if ((hasStyle && !match) || (hasLiteral && !literalFound)) {
+      issues.push(`LOCATOR_NOT_FOUND:${locator}`);
+      continue;
+    }
+    if (hasStyle && mapping.expectedText !== undefined && xmlToPlainText(match![2]) !== mapping.expectedText) {
+      issues.push(`EXPECTED_TEXT_MISMATCH:${locator}`);
+      continue;
+    }
+    if (fields.has(mapping.key)) mappedKeys.push(mapping.key);
+  }
+
+  return { valid: issues.length === 0, issues, mappedKeys: [...new Set(mappedKeys)] };
 }
 
 /**
@@ -46,44 +138,98 @@ export function extractTemplateFields(template: OfficialTemplate): OfficialTempl
  * Extract content.xml from an ODT (ZIP) buffer
  */
 function extractContentXml(zipBuf: Buffer): string | null {
-  // ODT is a ZIP file. Use minimal ZIP parsing.
-  // Find content.xml entry
+  return extractZipEntries(zipBuf)?.find(entry => entry.name === 'content.xml')?.data.toString('utf8') || null;
+}
+
+function extractZipEntries(zipBuf: Buffer): Array<{ name: string; data: Buffer }> | null {
+  const entries: Array<{ name: string; data: Buffer }> = [];
+  const names = new Set<string>();
   let offset = 0;
+  while (offset + 30 <= zipBuf.length && zipBuf.readUInt32LE(offset) === 0x04034b50) {
+    const compressionMethod = zipBuf.readUInt16LE(offset + 8);
+    const compressedSize = zipBuf.readUInt32LE(offset + 18);
+    const fileNameLength = zipBuf.readUInt16LE(offset + 26);
+    const extraFieldLength = zipBuf.readUInt16LE(offset + 28);
+    const nameEnd = offset + 30 + fileNameLength;
+    const dataOffset = nameEnd + extraFieldLength;
+    const dataEnd = dataOffset + compressedSize;
+    if (dataEnd > zipBuf.length) return null;
+    const name = zipBuf.subarray(offset + 30, nameEnd).toString('utf8');
+    if (!name || names.has(name)) return null;
+    names.add(name);
+    const compressed = zipBuf.subarray(dataOffset, dataEnd);
+    try {
+      const data = compressionMethod === 0
+        ? Buffer.from(compressed)
+        : compressionMethod === 8
+          ? inflateRawSync(compressed)
+          : null;
+      if (!data) return null;
+      entries.push({ name, data });
+    } catch {
+      return null;
+    }
+    offset = dataEnd;
+  }
+  return entries.length ? entries : null;
+}
 
-  while (offset < zipBuf.length - 4) {
-    if (zipBuf[offset] === 0x50 && zipBuf[offset + 1] === 0x4B) {
-      // Local file header
-      const compressionMethod = zipBuf.readUInt16LE(offset + 8);
-      const compressedSize = zipBuf.readUInt32LE(offset + 18);
-      const fileNameLength = zipBuf.readUInt16LE(offset + 26);
-      const extraFieldLength = zipBuf.readUInt16LE(offset + 28);
-      const fileName = zipBuf.slice(offset + 30, offset + 30 + fileNameLength).toString('utf-8');
+export interface RenderedOdtArtifactVerification {
+  valid: boolean;
+  issues: string[];
+  sourceHash?: string;
+  artifactHash?: string;
+  documentText?: string;
+}
 
-      if (fileName === 'content.xml') {
-        const dataOffset = offset + 30 + fileNameLength + extraFieldLength;
-        const data = zipBuf.slice(dataOffset, dataOffset + compressedSize);
+/** Verify that rendering changed only the reviewed content.xml field locations. */
+export function verifyRenderedOdtArtifact(
+  template: OfficialTemplate,
+  fields: Record<string, string>,
+  artifact: Buffer
+): RenderedOdtArtifactVerification {
+  const mapping = validateTemplateMapping(template);
+  if (!mapping.valid || !template.localFilePath || !template.localFileHash) {
+    return { valid: false, issues: mapping.issues.length ? mapping.issues : ['TEMPLATE_MAPPING_INCOMPLETE'] };
+  }
+  const absPath = resolveTemplatePath(template.localFilePath);
+  if (!absPath || !fs.existsSync(absPath)) return { valid: false, issues: ['TEMPLATE_FILE_MISSING'] };
 
-        if (compressionMethod === 0) {
-          // Stored (no compression)
-          return data.toString('utf-8');
-        } else if (compressionMethod === 8) {
-          // Deflated
-          try {
-            return inflateRawSync(data).toString('utf-8');
-          } catch {
-            return null;
-          }
-        }
-        return null;
-      }
+  const source = fs.readFileSync(absPath);
+  const sourceHash = createHash('sha256').update(source).digest('hex');
+  if (sourceHash !== template.localFileHash) return { valid: false, issues: ['TEMPLATE_SOURCE_HASH_MISMATCH'], sourceHash };
 
-      // Skip to next entry
-      offset += 30 + fileNameLength + extraFieldLength + compressedSize;
-    } else {
-      offset++;
+  const sourceEntries = extractZipEntries(source);
+  const artifactEntries = extractZipEntries(artifact);
+  if (!sourceEntries || !artifactEntries) return { valid: false, issues: ['ODT_PACKAGE_INVALID'], sourceHash };
+  const sourceNames = sourceEntries.map(entry => entry.name);
+  const artifactNames = artifactEntries.map(entry => entry.name);
+  if (sourceNames.length !== artifactNames.length || sourceNames.some((name, index) => name !== artifactNames[index])) {
+    return { valid: false, issues: ['ODT_ENTRY_SET_CHANGED'], sourceHash };
+  }
+
+  const sourceByName = new Map(sourceEntries.map(entry => [entry.name, entry.data]));
+  const artifactByName = new Map(artifactEntries.map(entry => [entry.name, entry.data]));
+  const sourceContent = sourceByName.get('content.xml')?.toString('utf8');
+  const artifactContent = artifactByName.get('content.xml')?.toString('utf8');
+  if (!sourceContent || !artifactContent) return { valid: false, issues: ['ODT_CONTENT_XML_MISSING'], sourceHash };
+  if (artifactContent !== replaceFieldsInXml(sourceContent, fields, template)) {
+    return { valid: false, issues: ['ODT_CONTENT_XML_UNEXPECTED_CHANGE'], sourceHash };
+  }
+  for (const name of sourceNames) {
+    if (name === 'content.xml') continue;
+    if (!sourceByName.get(name)?.equals(artifactByName.get(name)!)) {
+      return { valid: false, issues: [`ODT_ENTRY_CHANGED:${name}`], sourceHash };
     }
   }
-  return null;
+
+  return {
+    valid: true,
+    issues: [],
+    sourceHash,
+    artifactHash: createHash('sha256').update(artifact).digest('hex'),
+    documentText: xmlToPlainText(artifactContent),
+  };
 }
 
 /**
@@ -107,19 +253,24 @@ function replaceFieldsInXml(contentXml: string, fields: Record<string, string>, 
     resolvedValues.push(value || '');
   }
 
-  // Replace each underline style in order, tracking position per style
+  // Replace only the reviewed occurrence. Never replace every span sharing a style.
   for (let i = 0; i < fieldMapping.length; i++) {
     const entry = fieldMapping[i];
     const value = resolvedValues[i];
-
-    const pattern = new RegExp(
-      `(<text:span text:style-name="${entry.odtStyle}">)([^<]*(?:<text:s[^>]*\\/>[^<]*)*)(</text:span>)`,
-      'g'
-    );
-
-    result = result.replace(pattern, (match, open, _content, close) => {
-      return `${open}${escapeXml(value)}${close}`;
-    });
+    const targetOccurrence = entry.occurrence ?? 1;
+    if (entry.odtStyle) {
+      let occurrence = 0;
+      result = result.replace(styleSpanPattern(entry.odtStyle), (match, open, _content, close) => {
+        occurrence += 1;
+        return occurrence === targetOccurrence ? `${open}${escapeXml(value)}${close}` : match;
+      });
+    } else if (entry.literalText) {
+      const indexes = literalOccurrences(result, entry.literalText);
+      const index = indexes[targetOccurrence - 1];
+      if (index !== undefined) {
+        result = `${result.slice(0, index)}${escapeXml(value)}${result.slice(index + entry.literalText.length)}`;
+      }
+    }
   }
 
   return result;
@@ -138,49 +289,12 @@ function escapeXml(s: string): string {
  * Rebuild ODT file from modified content.xml
  */
 function rebuildOdt(originalOdtPath: string, newContentXml: string): Buffer {
-  const zipBuf = fs.readFileSync(originalOdtPath);
-  const entries: Array<{ name: string; data: Buffer; offset: number; localHeaderOffset: number }> = [];
-
-  let offset = 0;
-  while (offset < zipBuf.length - 4) {
-    if (zipBuf[offset] === 0x50 && zipBuf[offset + 1] === 0x4B) {
-      const compressionMethod = zipBuf.readUInt16LE(offset + 8);
-      const compressedSize = zipBuf.readUInt32LE(offset + 18);
-      const fileNameLength = zipBuf.readUInt16LE(offset + 26);
-      const extraFieldLength = zipBuf.readUInt16LE(offset + 28);
-      const fileName = zipBuf.slice(offset + 30, offset + 30 + fileNameLength).toString('utf-8');
-      const dataOffset = offset + 30 + fileNameLength + extraFieldLength;
-
-      let data = zipBuf.slice(dataOffset, dataOffset + compressedSize);
-
-      if (fileName === 'content.xml') {
-        data = Buffer.from(newContentXml, 'utf-8');
-        // For simplicity, store uncompressed
-        entries.push({
-          name: fileName,
-          data,
-          offset: -1, // will be calculated
-          localHeaderOffset: offset,
-        });
-      } else {
-        if (compressionMethod === 8) {
-          data = inflateRawSync(data);
-        } else if (compressionMethod !== 0) {
-          throw new Error(`Unsupported ZIP compression method: ${compressionMethod}`);
-        }
-        entries.push({
-          name: fileName,
-          data,
-          offset: -1,
-          localHeaderOffset: offset,
-        });
-      }
-
-      offset = dataOffset + compressedSize;
-    } else {
-      break;
-    }
-  }
+  const sourceEntries = extractZipEntries(fs.readFileSync(originalOdtPath));
+  if (!sourceEntries) throw new Error('Invalid ODT package');
+  const entries = sourceEntries.map(entry => entry.name === 'content.xml'
+    ? { name: entry.name, data: Buffer.from(newContentXml, 'utf8') }
+    : entry
+  );
 
   // Rebuild as a new ZIP with all entries stored (no compression)
   const { ZIP_LOCAL_HEADER, ZIP_CENTRAL_DIR, ZIP_END_OF_CENTRAL_DIR } = buildZip(entries);
@@ -294,7 +408,7 @@ export function renderTemplate(
   }
 
   if (template.templateStatus === 'NEEDS_FIELD_MAPPING') {
-    const mappedKeys = new Set(buildFieldMapping(template).map(field => field.key));
+    const mappedKeys = new Set(validateTemplateMapping(template).mappedKeys);
     const unmappedRequired = (template.fields || [])
       .filter(field => field.required && !mappedKeys.has(field.key))
       .map(field => field.key);
@@ -329,6 +443,21 @@ export function renderTemplate(
   // Check required fields: ALL required fields must have ODT span positions.
   // If any required field lacks an ODT span, fail-closed with TEMPLATE_MAPPING_INCOMPLETE.
   const manifestFields = template.fields || [];
+  const mappingValidation = validateTemplateMapping(template);
+  if (!mappingValidation.valid) {
+    const mappedKeys = new Set(
+      mappingValidation.issues.includes('FIELD_MAPPING_HASH_MISMATCH') ? [] : mappingValidation.mappedKeys
+    );
+    const unmappedRequired = manifestFields
+      .filter(field => field.required && !mappedKeys.has(field.key))
+      .map(field => field.key);
+    return {
+      success: false,
+      error: 'Template mapping incomplete or no longer matches the reviewed source',
+      code: 'TEMPLATE_MAPPING_INCOMPLETE',
+      missingFields: unmappedRequired.length ? unmappedRequired : mappingValidation.issues,
+    };
+  }
   const fieldMapping = buildFieldMapping(template);
   const odtKeySet = new Set(fieldMapping.map(e => e.key));
   const missingFields: string[] = [];
@@ -381,13 +510,27 @@ export function renderTemplate(
 
     const outputFileName = `${templateId}-${Date.now()}.odt`;
     const outputBuf = rebuildOdt(absPath, newContentXml);
+    const artifactVerification = verifyRenderedOdtArtifact(template, fields, outputBuf);
+    if (!artifactVerification.valid) {
+      return {
+        success: false,
+        error: 'Rendered ODT artifact integrity verification failed',
+        code: 'TEMPLATE_ARTIFACT_VERIFICATION_FAILED',
+        missingFields: artifactVerification.issues,
+      };
+    }
 
     return {
       success: true,
       documentBase64: outputBuf.toString('base64'),
       fileName: outputFileName,
       mimeType: 'application/vnd.oasis.opendocument.text',
-      documentText: xmlToPlainText(newContentXml),
+      documentText: artifactVerification.documentText,
+      verification: {
+        sourceHash: artifactVerification.sourceHash,
+        artifactHash: artifactVerification.artifactHash,
+        artifactIntegrity: 'VERIFIED',
+      },
     };
   } catch (err: any) {
     return { success: false, error: `Render failed: ${err.message}`, code: 'RENDER_FAILED' };

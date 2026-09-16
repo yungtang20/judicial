@@ -20,6 +20,17 @@ export interface OfficialTemplateField {
   options?: { label: string; value: string }[];
 }
 
+export interface OfficialTemplateFieldMapping {
+  key: string;
+  /** Exactly one locator kind must be set. */
+  odtStyle?: string;
+  literalText?: string;
+  /** 1-based occurrence when the same ODT style is reused. */
+  occurrence?: number;
+  /** Optional reviewed text guard; rejects the mapping if the source span changes. */
+  expectedText?: string;
+}
+
 export interface OfficialTemplate {
   id: string;
   category: string;
@@ -33,7 +44,7 @@ export interface OfficialTemplate {
   localFileHash: string | null;
   templateStatus: TemplateStatus;
   fields: OfficialTemplateField[];
-  fieldMappings?: Array<{ key: string; odtStyle: string }>;
+  fieldMappings?: OfficialTemplateFieldMapping[];
   fieldMappingHash?: string;
   downloadedAt: string | null;
 }
@@ -55,8 +66,11 @@ export interface RenderTemplateResponse {
   mimeType?: string;
   documentText?: string;
   verification?: {
-    totalCitationsChecked: number;
-    ghostCitationsFound: number;
+    totalCitationsChecked?: number;
+    ghostCitationsFound?: number;
+    sourceHash?: string;
+    artifactHash?: string;
+    artifactIntegrity?: 'VERIFIED';
   };
   error?: string;
   code?: string;
