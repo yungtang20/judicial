@@ -141,11 +141,11 @@ describe.skipIf(!manifestExists)('Official Template Renderer', () => {
     }
   });
 
-  it('render fails for SOURCE_ONLY template', () => {
+  it('render fails for a downloaded PDF reference', () => {
     const m = loadManifest();
-    const sourceOnly = m.templates.find(t => t.templateStatus === 'SOURCE_ONLY');
-    if (!sourceOnly) return;
-    const result = renderTemplate(sourceOnly.id, {});
+    const downloaded = m.templates.find(t => t.templateStatus === 'DOWNLOADED' && t.localFilePath?.endsWith('.pdf'));
+    expect(downloaded).toBeDefined();
+    const result = renderTemplate(downloaded!.id, {});
     expect(result.success).toBe(false);
     expect(result.code).toBe('TEMPLATE_NOT_RENDERABLE');
   });
@@ -175,6 +175,7 @@ describe.skipIf(!manifestExists)('Official Template Renderer', () => {
       status: template.templateStatus,
       fields: template.fields,
       mappings: template.fieldMappings,
+      mappingHash: template.fieldMappingHash,
     };
 
     try {
@@ -185,6 +186,7 @@ describe.skipIf(!manifestExists)('Official Template Renderer', () => {
         { key: 'defendantName', odtStyle: 'T12' },
         { key: 'gender', odtStyle: 'T17' },
       ];
+      template.fieldMappingHash = template.localFileHash!;
 
       const first = renderTemplate(template.id, {
         caseNumber: 'CASE_ALPHA_9281', defendantName: 'PERSON_ALPHA_9281', gender: '男',
@@ -205,6 +207,32 @@ describe.skipIf(!manifestExists)('Official Template Renderer', () => {
       template.templateStatus = original.status;
       template.fields = original.fields;
       template.fieldMappings = original.mappings;
+      template.fieldMappingHash = original.mappingHash;
+    }
+  });
+
+  it('rejects reviewed mappings when the template hash changes', () => {
+    const template = getTemplateById('judicial-0202-1')!;
+    const original = {
+      status: template.templateStatus,
+      fields: template.fields,
+      mappings: template.fieldMappings,
+      mappingHash: template.fieldMappingHash,
+    };
+    try {
+      template.templateStatus = 'READY_FOR_MERGE';
+      template.fields = original.fields.slice(0, 1);
+      template.fieldMappings = [{ key: 'caseNumber', odtStyle: 'T11' }];
+      template.fieldMappingHash = '0'.repeat(64);
+      const result = renderTemplate(template.id, { caseNumber: '114年度訴字第1號' });
+      expect(result.success).toBe(false);
+      expect(result.code).toBe('TEMPLATE_MAPPING_INCOMPLETE');
+      expect(result.missingFields).toEqual(['caseNumber']);
+    } finally {
+      template.templateStatus = original.status;
+      template.fields = original.fields;
+      template.fieldMappings = original.mappings;
+      template.fieldMappingHash = original.mappingHash;
     }
   });
 });
@@ -216,11 +244,11 @@ describe.skipIf(!manifestExists)('Official Template - Fail-Closed', () => {
     expect(result.code).toBe('TEMPLATE_NOT_FOUND');
   });
 
-  it('SOURCE_ONLY template cannot be rendered', () => {
+  it('downloaded PDF template cannot be rendered', () => {
     const m = loadManifest();
-    const sourceOnly = m.templates.find(t => t.templateStatus === 'SOURCE_ONLY');
-    if (!sourceOnly) return;
-    const result = renderTemplate(sourceOnly.id, { any: 'field' });
+    const downloaded = m.templates.find(t => t.templateStatus === 'DOWNLOADED' && t.localFilePath?.endsWith('.pdf'));
+    expect(downloaded).toBeDefined();
+    const result = renderTemplate(downloaded!.id, { any: 'field' });
     expect(result.success).toBe(false);
     expect(result.code).toBe('TEMPLATE_NOT_RENDERABLE');
   });

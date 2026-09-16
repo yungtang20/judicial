@@ -18,7 +18,10 @@ interface CategorySummary {
   name: string;
   total: number;
   readyForMerge: number;
+  needsFieldMapping: number;
+  downloaded: number;
   sourceOnly: number;
+  sourceLinks: number;
 }
 
 interface TemplateDetail extends TemplateSummary {
@@ -323,7 +326,7 @@ export const OfficialTemplateDirectory: React.FC<OfficialTemplateDirectoryProps>
                 <ChevronRight className="w-4 h-4 shrink-0 text-sky-400" />
               </div>
               <p className="mt-2 text-[11px] text-slate-500">
-                可套版 {cat.readyForMerge} 份　|　來源連結 {cat.sourceOnly} 份
+                可套版 {cat.readyForMerge} 份　|　待對應 {cat.needsFieldMapping} 份　|　官方來源 {cat.sourceLinks} 份
               </p>
             </button>
           ))}

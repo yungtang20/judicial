@@ -20,6 +20,7 @@ function resolveTemplatePath(localFilePath: string): string | null {
  * Build mappings only from reviewed, explicit manifest entries.
  */
 function buildFieldMapping(template: OfficialTemplate): Array<{ odtStyle: string; key: string; label: string; required: boolean; placeholder?: string; type: string; options?: Array<{ label: string; value: string }> }> {
+  if (!template.localFileHash || template.fieldMappingHash !== template.localFileHash) return [];
   const fieldsByKey = new Map((template.fields || []).map(field => [field.key, field]));
   return (template.fieldMappings || []).flatMap(mapping => {
     const field = fieldsByKey.get(mapping.key);

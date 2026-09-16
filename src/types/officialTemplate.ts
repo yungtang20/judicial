@@ -34,6 +34,7 @@ export interface OfficialTemplate {
   templateStatus: TemplateStatus;
   fields: OfficialTemplateField[];
   fieldMappings?: Array<{ key: string; odtStyle: string }>;
+  fieldMappingHash?: string;
   downloadedAt: string | null;
 }
 

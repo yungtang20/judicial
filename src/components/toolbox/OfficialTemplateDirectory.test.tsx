@@ -19,7 +19,7 @@ describe('OfficialTemplateDirectory', () => {
     fetchWithAuth.mockReset();
     fetchWithAuth.mockImplementation((url: string) => {
       if (url === '/api/official-templates') {
-        return response({ categories: [{ name: '刑事', total: 72, readyForMerge: 0, sourceOnly: 71 }] });
+        return response({ categories: [{ name: '刑事', total: 72, readyForMerge: 0, needsFieldMapping: 72, downloaded: 0, sourceOnly: 0, sourceLinks: 72 }] });
       }
       if (url.includes('?category=')) {
         return response({ templates: [{
@@ -40,7 +40,10 @@ describe('OfficialTemplateDirectory', () => {
   it('lists categories and keeps an unmapped template non-renderable', async () => {
     render(<OfficialTemplateDirectory />);
 
-    fireEvent.click(await screen.findByRole('button', { name: /刑事/ }));
+    expect(await screen.findByText(/待對應 72 份/)).toBeInTheDocument();
+    expect(screen.getByText(/官方來源 72 份/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /刑事/ }));
     fireEvent.click(await screen.findByRole('button', { name: /答辯狀/ }));
 
     expect(await screen.findByText('待欄位對應')).toBeInTheDocument();
