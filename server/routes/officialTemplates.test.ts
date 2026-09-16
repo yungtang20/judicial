@@ -1,4 +1,5 @@
 import type { AddressInfo } from 'node:net';
+import { createHash } from 'node:crypto';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createExpressApp } from '../index';
 import { createSignedToken } from '../middleware/auth';
@@ -56,5 +57,47 @@ describe('official template routes', () => {
 
     expect(blocked.status).toBe(422);
     await expect(blocked.json()).resolves.toMatchObject({ code: 'TEMPLATE_MAPPING_INCOMPLETE' });
+  });
+
+  it('downloads only the unchanged hash-verified official source', async () => {
+    const unauthorized = await request('/api/official-templates/judicial-0202-1/source');
+    expect(unauthorized.status).toBe(401);
+
+    const token = createSignedToken({ sub: 'test-user', tenantId: 'test-tenant', role: 'client' });
+    const response = await request('/api/official-templates/judicial-0202-1/source', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const source = Buffer.from(await response.arrayBuffer());
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toContain('application/vnd.oasis.opendocument.text');
+    expect(response.headers.get('content-disposition')).toBe('attachment; filename="judicial-0202-1.odt"');
+    expect(response.headers.get('cache-control')).toBe('private, no-store');
+    expect(createHash('sha256').update(source).digest('hex')).toBe('c7978050ee139dc1df6e3ffac932ee393d8f48e9fc4ac9163885678f670e2d5e');
+  });
+
+  it('serves a downloaded PDF with the correct immutable source hash', async () => {
+    const token = createSignedToken({ sub: 'test-user', tenantId: 'test-tenant', role: 'client' });
+    const response = await request('/api/official-templates/judicial-0199-117/source', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const source = Buffer.from(await response.arrayBuffer());
+    const detail = await request('/api/official-templates/judicial-0199-117');
+    const metadata = await detail.json() as { localFileHash: string };
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toContain('application/pdf');
+    expect(response.headers.get('content-disposition')).toBe('attachment; filename="judicial-0199-117.pdf"');
+    expect(createHash('sha256').update(source).digest('hex')).toBe(metadata.localFileHash);
+  });
+
+  it('does not expose a source file for an unknown template id', async () => {
+    const token = createSignedToken({ sub: 'test-user', tenantId: 'test-tenant', role: 'client' });
+    const response = await request('/api/official-templates/not-a-template/source', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    expect(response.status).toBe(404);
+    await expect(response.json()).resolves.toMatchObject({ code: 'TEMPLATE_NOT_FOUND' });
   });
 });

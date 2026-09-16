@@ -5,6 +5,9 @@
  * POST /api/official-templates/:id/render - render a single template
  */
 import { Router, Request, Response } from 'express';
+import { createHash } from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
 import {
   loadManifest,
   getTemplateById,
@@ -16,6 +19,7 @@ import { assertGeneratedDocumentVerified, verifyGeneratedDocument } from '../../
 import { requireAuth } from '../middleware/auth';
 
 const router = Router();
+const TEMPLATE_FILES_DIR = path.resolve(process.cwd(), 'data', 'official-templates', 'files');
 
 /**
  * GET /api/official-templates
@@ -92,12 +96,59 @@ router.get('/api/official-templates/:id', (req: Request, res: Response) => {
       pdfFileUrl: template.pdfFileUrl,
       officialUpdatedAt: template.officialUpdatedAt,
       templateStatus: template.templateStatus,
+      hasEditableFile: !!template.editableFileUrl,
+      hasPdf: !!template.pdfFileUrl,
       localFileHash: template.localFileHash,
       downloadedAt: template.downloadedAt,
       fields,
     });
   } catch {
     res.status(500).json({ error: 'Unable to load official template details', code: 'TEMPLATE_CATALOG_ERROR' });
+  }
+});
+
+/**
+ * GET /api/official-templates/:id/source
+ * Downloads the hash-verified official source file. This is the unchanged
+ * Judicial Yuan artifact, not a generated or P9-approved pleading.
+ */
+router.get('/api/official-templates/:id/source', requireAuth(), (req: Request, res: Response) => {
+  try {
+    const template = getTemplateById(req.params.id);
+    if (!template) {
+      return res.status(404).json({ error: 'Template not found', code: 'TEMPLATE_NOT_FOUND' });
+    }
+    if (!template.localFilePath || !template.localFileHash) {
+      return res.status(404).json({ error: 'Official source file is unavailable', code: 'TEMPLATE_SOURCE_UNAVAILABLE' });
+    }
+
+    const resolved = path.resolve(process.cwd(), template.localFilePath);
+    const relative = path.relative(TEMPLATE_FILES_DIR, resolved);
+    if (!relative || relative.startsWith('..') || path.isAbsolute(relative) || !fs.existsSync(resolved)) {
+      return res.status(404).json({ error: 'Official source file is unavailable', code: 'TEMPLATE_SOURCE_UNAVAILABLE' });
+    }
+
+    const extension = path.extname(resolved).toLowerCase();
+    const mimeType = extension === '.odt'
+      ? 'application/vnd.oasis.opendocument.text'
+      : extension === '.pdf'
+        ? 'application/pdf'
+        : null;
+    if (!mimeType) {
+      return res.status(422).json({ error: 'Unsupported official source format', code: 'TEMPLATE_SOURCE_FORMAT_INVALID' });
+    }
+
+    const source = fs.readFileSync(resolved);
+    if (createHash('sha256').update(source).digest('hex') !== template.localFileHash) {
+      return res.status(409).json({ error: 'Official source integrity verification failed', code: 'TEMPLATE_SOURCE_HASH_MISMATCH' });
+    }
+
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('Content-Type', mimeType);
+    res.setHeader('Content-Disposition', `attachment; filename="${template.id}${extension}"`);
+    return res.send(source);
+  } catch {
+    return res.status(500).json({ error: 'Unable to download official source file', code: 'TEMPLATE_SOURCE_ERROR' });
   }
 });
 

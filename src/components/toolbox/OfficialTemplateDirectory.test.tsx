@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { fetchWithAuth } = vi.hoisted(() => ({ fetchWithAuth: vi.fn() }));
@@ -12,6 +12,7 @@ const response = (body: unknown, ok = true) => Promise.resolve({
   ok,
   status: ok ? 200 : 422,
   json: () => Promise.resolve(body),
+  blob: () => Promise.resolve(new Blob(['official-source'])),
 });
 
 describe('OfficialTemplateDirectory', () => {
@@ -28,11 +29,13 @@ describe('OfficialTemplateDirectory', () => {
           templateStatus: 'NEEDS_FIELD_MAPPING', hasEditableFile: true, hasPdf: true,
         }] });
       }
+      if (url.endsWith('/source')) return response(new Blob(['official-source']));
       return response({
         id: 'judicial-0202-1', code: '0202', name: '答辯狀', category: '刑事',
         sourcePageUrl: 'https://www.judicial.gov.tw/example', editableFileUrl: 'https://www.judicial.gov.tw/editable',
         pdfFileUrl: 'https://www.judicial.gov.tw/pdf', officialUpdatedAt: '110-12-23',
-        templateStatus: 'NEEDS_FIELD_MAPPING', localFileHash: 'hash', downloadedAt: '2026-09-15', fields: [],
+        templateStatus: 'NEEDS_FIELD_MAPPING', hasEditableFile: true, hasPdf: true,
+        localFileHash: 'hash', downloadedAt: '2026-09-15', fields: [],
       });
     });
   });
@@ -48,6 +51,23 @@ describe('OfficialTemplateDirectory', () => {
 
     expect(await screen.findByText('待欄位對應')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /下載套版文件/ })).not.toBeInTheDocument();
+  });
+
+  it('downloads the verified original without enabling template rendering', async () => {
+    const createObjectURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:official-source');
+    const revokeObjectURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+    const anchorClick = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
+    render(<OfficialTemplateDirectory />);
+
+    fireEvent.click(await screen.findByRole('button', { name: /刑事/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /答辯狀/ }));
+    fireEvent.click(await screen.findByRole('button', { name: '下載本站驗證官方原始檔' }));
+
+    await waitFor(() => expect(fetchWithAuth).toHaveBeenCalledWith('/api/official-templates/judicial-0202-1/source'));
+    expect(createObjectURL).toHaveBeenCalledOnce();
+    expect(anchorClick).toHaveBeenCalledOnce();
+    expect((anchorClick.mock.instances[0] as HTMLAnchorElement).download).toBe('judicial-0202-1.odt');
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:official-source');
   });
 
   it('shows an empty state for an unmatched category search', async () => {
