@@ -26,6 +26,7 @@
     "inventory:official-template-fields": "tsx scripts/inventory-official-template-fields.mjs",
     "verify:official-templates": "tsx scripts/sync-official-templates.mjs --verify-only",
     "verify:official-mappings": "tsx scripts/verify-official-template-mappings.mjs",
+    "preview:official-mapping": "tsx scripts/preview-official-template-mapping.mjs",
     "stress:official-source": "tsx scripts/stress-official-template-source.mjs",
     "prepare": "husky"
   },

@@ -317,6 +317,65 @@ describe.skipIf(!manifestExists)('Official Template Renderer', () => {
       template.fieldMappingHash = original.mappingHash;
     }
   });
+
+  it('renders an unapproved mapping proposal preview while preserving the verified ODT package', () => {
+    const template = getTemplateById('judicial-0102-66')!;
+    const proposal = JSON.parse(fs.readFileSync(path.resolve(
+      process.cwd(),
+      'data/official-templates/mapping-proposals/judicial-0102-66.json'
+    ), 'utf8'));
+    const original = {
+      status: template.templateStatus,
+      fields: template.fields,
+      mappings: template.fieldMappings,
+      mappingHash: template.fieldMappingHash,
+    };
+    try {
+      expect(proposal.proposalStatus).toBe('AI_PROPOSED_REQUIRES_HUMAN_REVIEW');
+      expect(template.templateStatus).toBe('NEEDS_FIELD_MAPPING');
+      expect(proposal.sourceHash).toBe(template.localFileHash);
+      template.templateStatus = 'READY_FOR_MERGE';
+      template.fields = proposal.fields;
+      template.fieldMappings = proposal.fieldMappings;
+      template.fieldMappingHash = template.localFileHash!;
+
+      expect(validateTemplateMapping(template)).toMatchObject({ valid: true, issues: [] });
+      const paragraph = template.fieldMappings.find(mapping => mapping.odtParagraphStyle === 'P55')!;
+      const expectedText = paragraph.expectedText;
+      delete paragraph.expectedText;
+      expect(validateTemplateMapping(template).issues).toContain('INVALID_LOCATOR:answerFactsAndReasons');
+      paragraph.expectedText = expectedText;
+
+      const result = renderTemplate(template.id, proposal.syntheticSample);
+      expect(result.success).toBe(true);
+      expect(result.documentText).toMatch(/原告\s+甲○○/);
+      expect(result.documentText).toContain('戶籍地：臺中市測試區原告路1號');
+      expect(result.documentText).toMatch(/被告\s+乙○○/);
+      expect(result.documentText).toContain('戶籍地：臺中市測試區被告路2號');
+      expect(result.documentText).toContain('為返還借款事件，提出答辯事：');
+      expect(result.documentText).toContain('一、被告否認兩造間成立借款契約。');
+      expect(result.documentText).toContain('臺灣臺中地方法院　公鑒');
+      expect(result.documentText).not.toContain('法院法院');
+      expect(result.documentText).toContain('具狀人　　　乙○○');
+      expect(result.documentText).toContain('撰狀人　　　測試撰狀人');
+      expect(result.documentText).not.toContain('(請敘明事實及理由)……。');
+      expect(result.verification?.artifactIntegrity).toBe('VERIFIED');
+
+      const adversarial = renderTemplate(template.id, {
+        ...proposal.syntheticSample,
+        claimAmount: 'VALUE_WITH_○○○_TOKEN',
+        plaintiffName: 'PLAINTIFF_TARGET',
+      });
+      expect(adversarial.success).toBe(true);
+      expect(adversarial.documentText).toContain('新臺幣VALUE_WITH_○○○_TOKEN元');
+      expect(adversarial.documentText).toMatch(/原告\s+PLAINTIFF_TARGET/);
+    } finally {
+      template.templateStatus = original.status;
+      template.fields = original.fields;
+      template.fieldMappings = original.mappings;
+      template.fieldMappingHash = original.mappingHash;
+    }
+  });
 });
 
 describe.skipIf(!manifestExists)('Official Template - Fail-Closed', () => {
