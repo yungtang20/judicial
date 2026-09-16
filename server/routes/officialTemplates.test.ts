@@ -28,6 +28,17 @@ describe('official template routes', () => {
     expect(body.templates[0]).not.toHaveProperty('localFilePath');
   });
 
+  it('reports downloaded catalog state without losing official source counts', async () => {
+    const response = await request('/api/official-templates');
+    const body = await response.json() as { totalTemplates: number; categories: Array<{ total: number; needsFieldMapping: number; downloaded: number; sourceLinks: number }> };
+
+    expect(response.status).toBe(200);
+    expect(body.totalTemplates).toBe(685);
+    expect(body.categories.reduce((sum, category) => sum + category.sourceLinks, 0)).toBe(685);
+    expect(body.categories.reduce((sum, category) => sum + category.needsFieldMapping, 0)).toBe(655);
+    expect(body.categories.reduce((sum, category) => sum + category.downloaded, 0)).toBe(30);
+  });
+
   it('requires authentication and fails closed on incomplete field mapping', async () => {
     const unauthorized = await request('/api/official-templates/judicial-0202-1/render', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fields: {} }),

@@ -27,6 +27,7 @@ jobs:
       - run: npm audit --omit=dev --audit-level=high
       - run: npm run lint
       - run: npm test
+      - run: npm run test:official-sync
       - run: npm run test:coverage
       - name: Upload coverage artifacts
         if: always()
