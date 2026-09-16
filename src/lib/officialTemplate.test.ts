@@ -9,7 +9,7 @@ import {
   getTemplatesByCategory,
   getAllCategories,
 } from '../lib/officialTemplateManifest';
-import { extractTemplateFields, renderTemplate } from '../lib/officialTemplateRenderer';
+import { extractTemplateFields, renderTemplate, validateTemplateMapping } from '../lib/officialTemplateRenderer';
 import path from 'path';
 import fs from 'fs';
 import { inflateRawSync } from 'node:zlib';
@@ -203,6 +203,13 @@ describe.skipIf(!manifestExists)('Official Template Renderer', () => {
       expect(second.documentText).not.toContain('CASE_ALPHA_9281');
       expect(Buffer.from(first.documentBase64!, 'base64').subarray(0, 2).toString()).toBe('PK');
       expect(Buffer.from(second.documentBase64!, 'base64').subarray(0, 2).toString()).toBe('PK');
+      expect(first.verification).toMatchObject({
+        sourceHash: template.localFileHash,
+        artifactIntegrity: 'VERIFIED',
+      });
+      expect(first.verification?.artifactHash).toMatch(/^[a-f0-9]{64}$/);
+      expect(second.verification?.artifactHash).toMatch(/^[a-f0-9]{64}$/);
+      expect(first.verification?.artifactHash).not.toBe(second.verification?.artifactHash);
     } finally {
       template.templateStatus = original.status;
       template.fields = original.fields;
@@ -228,6 +235,81 @@ describe.skipIf(!manifestExists)('Official Template Renderer', () => {
       expect(result.success).toBe(false);
       expect(result.code).toBe('TEMPLATE_MAPPING_INCOMPLETE');
       expect(result.missingFields).toEqual(['caseNumber']);
+    } finally {
+      template.templateStatus = original.status;
+      template.fields = original.fields;
+      template.fieldMappings = original.mappings;
+      template.fieldMappingHash = original.mappingHash;
+    }
+  });
+
+  it('validates hash-bound style, occurrence, expected text, and unique locators', () => {
+    const template = getTemplateById('judicial-0202-1')!;
+    const original = {
+      fields: template.fields,
+      mappings: template.fieldMappings,
+      mappingHash: template.fieldMappingHash,
+    };
+    try {
+      template.fields = original.fields.slice(0, 2);
+      template.fieldMappingHash = template.localFileHash!;
+      template.fieldMappings = [
+        { key: 'caseNumber', odtStyle: 'T11', occurrence: 1, expectedText: '' },
+        { key: 'defendantName', odtStyle: 'T12', occurrence: 1, expectedText: '' },
+      ];
+      expect(validateTemplateMapping(template)).toMatchObject({
+        valid: true,
+        issues: [],
+        mappedKeys: ['caseNumber', 'defendantName'],
+      });
+
+      template.fieldMappings[0].occurrence = 2;
+      expect(validateTemplateMapping(template).issues).toContain('LOCATOR_NOT_FOUND:style:T11#2');
+
+      template.fieldMappings = [
+        { key: 'caseNumber', odtStyle: 'T11' },
+        { key: 'defendantName', odtStyle: 'T11' },
+      ];
+      expect(validateTemplateMapping(template).issues).toContain('DUPLICATE_LOCATOR:style:T11#1');
+
+      template.fieldMappings = [{ key: 'caseNumber', odtStyle: 'T11', expectedText: 'source changed' }];
+      expect(validateTemplateMapping(template).issues).toContain('EXPECTED_TEXT_MISMATCH:style:T11#1');
+
+      template.fieldMappings = [{
+        key: 'caseNumber',
+        literalText: '○○年度○○字第○○○號',
+        occurrence: 1,
+      }];
+      expect(validateTemplateMapping(template)).toMatchObject({ valid: true, mappedKeys: ['caseNumber'] });
+    } finally {
+      template.fields = original.fields;
+      template.fieldMappings = original.mappings;
+      template.fieldMappingHash = original.mappingHash;
+    }
+  });
+
+  it('renders one reviewed literal occurrence and verifies the complete ODT artifact', () => {
+    const template = getTemplateById('judicial-0202-1')!;
+    const original = {
+      status: template.templateStatus,
+      fields: template.fields,
+      mappings: template.fieldMappings,
+      mappingHash: template.fieldMappingHash,
+    };
+    try {
+      template.templateStatus = 'READY_FOR_MERGE';
+      template.fields = original.fields.slice(0, 1);
+      template.fieldMappings = [{
+        key: 'caseNumber',
+        literalText: '○○年度○○字第○○○號',
+        occurrence: 1,
+      }];
+      template.fieldMappingHash = template.localFileHash!;
+
+      const result = renderTemplate(template.id, { caseNumber: '114年度訴字第99號' });
+      expect(result.success).toBe(true);
+      expect(result.documentText).toContain('114年度訴字第99號');
+      expect(result.verification?.artifactIntegrity).toBe('VERIFIED');
     } finally {
       template.templateStatus = original.status;
       template.fields = original.fields;
