@@ -52,7 +52,10 @@ router.get('/api/official-templates', (req: Request, res: Response) => {
         name: cat,
         total: templates.length,
         readyForMerge: templates.filter(t => t.templateStatus === 'READY_FOR_MERGE').length,
+        needsFieldMapping: templates.filter(t => t.templateStatus === 'NEEDS_FIELD_MAPPING').length,
+        downloaded: templates.filter(t => t.templateStatus === 'DOWNLOADED').length,
         sourceOnly: templates.filter(t => t.templateStatus === 'SOURCE_ONLY').length,
+        sourceLinks: templates.filter(t => !!t.sourcePageUrl).length,
       };
     });
 

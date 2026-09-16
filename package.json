@@ -18,9 +18,13 @@
     "lint": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "vitest run src/domain/case/caseLifecycle.e2e.test.ts",
+    "test:official-sync": "node --import tsx --test scripts/sync-official-templates.test.mjs",
     "test:coverage": "vitest run --coverage",
     "test:eval": "vitest run src/lib/legalGovernance.test.ts",
     "test:ssrf": "node test-ssrf.cjs",
+    "sync:official-templates": "tsx scripts/sync-official-templates.mjs",
+    "inventory:official-template-fields": "tsx scripts/inventory-official-template-fields.mjs",
+    "verify:official-templates": "tsx scripts/sync-official-templates.mjs --verify-only",
     "prepare": "husky"
   },
   "dependencies": {
