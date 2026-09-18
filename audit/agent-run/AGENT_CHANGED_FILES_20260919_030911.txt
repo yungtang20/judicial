@@ -1,0 +1,16 @@
+audit/agent-run/ACTIVE_MANIFEST.txt
+audit/agent-run/AGENT_CHANGED_FILES_20260919_030911.txt
+audit/agent-run/BASELINE_AGENT_FILES.txt
+audit/agent-run/BASELINE_COMMIT_COUNT.txt
+audit/agent-run/BASELINE_dirty_files.txt
+audit/agent-run/BASELINE_DIVERGENCE.txt
+audit/agent-run/BASELINE_git_status.txt
+audit/agent-run/BASELINE_HEAD.txt
+audit/agent-run/BASELINE_staged_files.txt
+audit/agent-run/CURRENT_PHASE.txt
+audit/agent-run/PHASE_0_REPORT_20260919_030911.md
+audit/agent-run/PHASE_A_REPORT_20260919_030911.md
+audit/agent-run/PHASE_HEAD.txt
+audit/agent-run/RUN_COUNTERS.txt
+audit/agent-run/RUN_ID.txt
+audit/agent-run/FINAL_REPORT_20260919_030911.md
