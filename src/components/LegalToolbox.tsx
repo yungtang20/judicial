@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useRef, useState, useMemo } from 'react';
 import { 
   FileText, Check, Copy, Download, Search, AlertTriangle, 
   FolderLock, ArrowRight, BookOpen, Clock, Printer, LayoutTemplate, Sparkles, Scale, SearchCheck, CheckCircle2, ShieldCheck, HandHeart
@@ -9,7 +9,7 @@ import { LegalToolboxResult } from '../types';
 import { useCaseStore, getActiveCase } from '../store/useCaseStore';
 import { apiClient } from '../lib/apiClient';
 import { DocumentProgressTracker } from './DocumentProgressTracker';
-import { buildActiveCaseFormInputs } from '../lib/toolFormDefaults';
+import { DEFAULT_FORM_INPUTS } from '../lib/toolFormDefaults';
 import { ToolboxHeader, TOOLBOX_GROUPS } from './toolbox/ToolboxHeader';
 import { ToolSelectorGrid } from './toolbox/ToolSelectorGrid';
 import { DynamicToolForm } from './toolbox/DynamicToolForm';
@@ -19,43 +19,40 @@ import { useGlobalUI } from '../contexts/GlobalUIContext';
 import { getCalculatorConfig } from '../lib/calculatorEngines';
 import { InteractiveCalculatorView } from './toolbox/InteractiveCalculatorView';
 import { evaluatePleadingDelivery } from '../lib/finalGate/pleadingExportGate';
+import { TOOL_FIELD_SCHEMAS } from '../lib/toolFieldSchemas';
+import { OfficialTemplateDirectory } from './toolbox/OfficialTemplateDirectory';
 
 type DocumentGenerationStage = 'input' | 'analyzing' | 'formatting' | 'ready' | 'error';
 
-export function isCurrentToolboxResponse(
-  submittedToolId: string,
-  currentToolId: string,
-  responseToolCategory: unknown,
-  requestSequence: number,
-  currentRequestSequence: number
-): boolean {
-  return requestSequence === currentRequestSequence &&
-    submittedToolId === currentToolId &&
-    responseToolCategory === submittedToolId;
-}
-
-export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialToolId }) => {
+export const LegalToolbox: React.FC<{ initialToolId?: string; initialFacts?: string }> = ({ initialToolId, initialFacts }) => {
   const { startLoading, stopLoading } = useGlobalUI();
   const activeCase = useCaseStore(getActiveCase);
   const addDocument = useCaseStore(state => state.addDocument);
   const presetToolId = initialToolId;
 
-  const [activeToolId, setActiveToolId] = useState<string>(presetToolId || 'CIVIL_COMPLAINT_GENERAL');
-  const activeToolIdRef = React.useRef(activeToolId);
-  const requestSequenceRef = React.useRef(0);
+  const [activeToolId, setActiveToolId] = useState<string>(() =>
+    presetToolId && LEGAL_TOOLS.some(tool => tool.id === presetToolId)
+      ? presetToolId
+      : 'CRIMINAL_COMPLAINT_TRAFFIC'
+  );
   const [selectedGroup, setSelectedGroup] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   
-  const [formInputs, setFormInputs] = useState<Record<string, any>>({});
-
-  const activeCaseInputs = useMemo(
-    () => buildActiveCaseFormInputs(activeCase),
-    [activeCase.facts, activeCase.issues, activeCase.evidences]
-  );
+  const [formInputs, setFormInputs] = useState<Record<string, any>>(() => ({
+    ...DEFAULT_FORM_INPUTS,
+    officialCategory: '0202',
+    ...(initialFacts?.trim() ? { incidentDetails: initialFacts.trim() } : {})
+  }));
 
   React.useEffect(() => {
-    setFormInputs(prev => ({ ...prev, ...activeCaseInputs }));
-  }, [activeCaseInputs]);
+    if (!activeCase.facts && !activeCase.issues?.length) return;
+    setFormInputs(prev => ({
+      ...prev,
+      incidentDetails: activeCase.facts || prev.incidentDetails,
+      issueSummary: activeCase.issues?.map(issue => issue.title).join('\n') || prev.issueSummary,
+      evidenceList: activeCase.evidences?.map(evidence => evidence.provenFact).join('\n') || prev.evidenceList
+    }));
+  }, [activeCase]);
 
   const handleInputChange = (field: string, value: any) => {
     setFormInputs(prev => ({ ...prev, [field]: value }));
@@ -66,6 +63,7 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
 
   const filteredTools = useMemo(() => {
     return LEGAL_TOOLS.filter(tool => {
+      if (tool.categoryGroup === 'OFFICIAL_TEMPLATES') return false;
       const matchGroup = Boolean(searchQuery.trim()) || selectedGroup === 'ALL' || tool.categoryGroup === selectedGroup;
       const matchQuery = !searchQuery.trim() || 
         tool.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -84,16 +82,22 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<LegalToolboxResult | null>(null);
   const [generateError, setGenerateError] = useState<string | null>(null);
+  const generationRequestRef = useRef(0);
+  const verificationRequestRef = useRef(0);
 
   const handleGroupSelect = (groupId: string) => {
     setSelectedGroup(groupId);
+    if (groupId === 'OFFICIAL_TEMPLATES') {
+      ++generationRequestRef.current;
+      setResult(null);
+      setGenerationStage('input');
+      return;
+    }
     if (groupId === 'ALL' || currentTool.categoryGroup === groupId) return;
     const firstTool = LEGAL_TOOLS.find(tool => tool.categoryGroup === groupId);
     if (!firstTool) return;
-    requestSequenceRef.current += 1;
-    activeToolIdRef.current = firstTool.id;
+    ++generationRequestRef.current;
     setActiveToolId(firstTool.id);
-    setFormInputs(activeCaseInputs);
     setResult(null);
     setGenerationStage('input');
   };
@@ -105,38 +109,26 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
       : TOOLBOX_GROUPS.find(group => group.id === selectedGroup)?.label || '書狀與文件';
 
   const handleGenerate = async () => {
-    const submittedToolId = activeToolIdRef.current;
-    const requestSequence = ++requestSequenceRef.current;
+    const requestId = ++generationRequestRef.current;
+    const submittedToolId = activeToolId;
     setIsLoading(true);
     setGenerationStage('analyzing');
     setGenerateError(null);
     startLoading();
 
     const formattingTimer = setTimeout(() => {
-      if (requestSequence === requestSequenceRef.current) setGenerationStage('formatting');
+      setGenerationStage('formatting');
     }, 1200);
 
     try {
       const res = await apiClient.toolboxGenerate({
         toolCategory: submittedToolId,
-        params: formInputs
+        params: Object.fromEntries((TOOL_FIELD_SCHEMAS[submittedToolId] || []).map(field => [field.key, formInputs[field.key]]))
       });
       clearTimeout(formattingTimer);
-      if (requestSequence !== requestSequenceRef.current || activeToolIdRef.current !== submittedToolId) {
-        stopLoading();
-        return;
-      }
-      if (!isCurrentToolboxResponse(
-        submittedToolId,
-        activeToolIdRef.current,
-        res?.toolCategory,
-        requestSequence,
-        requestSequenceRef.current
-      )) {
-        throw new Error('TOOLBOX_CATEGORY_MISMATCH: 伺服器回應類別與送出類別不一致');
-      }
+      if (requestId !== generationRequestRef.current || activeToolId !== submittedToolId) return;
       const deliveryDecision = evaluatePleadingDelivery(
-        submittedToolId,
+        activeToolId,
         res?.pleadingDeliveryAuthorization,
         'RETURN'
       );
@@ -148,8 +140,8 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
 
       if (res?.documentText) {
         addDocument({
-          id: `toolbox-${submittedToolId}-${Date.now()}`,
-          kind: submittedToolId,
+          id: `toolbox-${activeToolId}-${Date.now()}`,
+          kind: activeToolId,
           title: res.title || currentTool.name,
           text: res.documentText,
           status: res.antiGhostVerification?.ghostCitationsFound ? 'NEEDS_HUMAN_REVIEW' : 'VERIFIED',
@@ -165,12 +157,13 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
       stopLoading({ message: '文件產製完成', type: 'success' });
     } catch (err: any) {
       clearTimeout(formattingTimer);
+      if (requestId !== generationRequestRef.current || activeToolId !== submittedToolId) return;
       console.error('Toolbox generate error:', err);
       setGenerationStage('error');
       setGenerateError(err?.message || '文件產製未通過法規引用驗證，請稍候重試或調整案情內容');
       stopLoading({ message: '產製失敗', type: 'error' });
     } finally {
-      setIsLoading(false);
+      if (requestId === generationRequestRef.current) setIsLoading(false);
     }
   };
 
@@ -182,11 +175,13 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
     const text = textToVerify || result?.documentText;
     if (!text) return;
     
+    const requestId = ++verificationRequestRef.current;
     setIsVerifyingAi(true);
     setVerifyNotice(null);
     startLoading();
     try {
       const verifyRes = await apiClient.toolboxVerifyCitations({ documentText: text });
+      if (requestId !== verificationRequestRef.current) return;
       if (verifyRes?.antiGhostVerification) {
         setResult(prev => prev ? { ...prev, antiGhostVerification: verifyRes.antiGhostVerification } : null);
         const { totalCitationsChecked, ghostCitationsFound } = verifyRes.antiGhostVerification;
@@ -194,11 +189,12 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
       }
       stopLoading(); // Optional: show toast here, but user might be overwhelmed, so no toast.
     } catch (err: any) {
+      if (requestId !== verificationRequestRef.current) return;
       console.error('Full AI verification failed:', err);
       setVerifyNotice('引用檢查暫時無法完成，請稍後重試並人工查證來源。');
       stopLoading();
     } finally {
-      setIsVerifyingAi(false);
+      if (requestId === verificationRequestRef.current) setIsVerifyingAi(false);
     }
   };
 
@@ -258,13 +254,12 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
         }
     }
 
+    ++generationRequestRef.current;
     setActiveToolId(targetDocTool);
-    requestSequenceRef.current += 1;
-    activeToolIdRef.current = targetDocTool;
-    setFormInputs({
-      ...activeCaseInputs,
-      incidentDetails: `${activeCaseInputs.incidentDetails || ''}\n\n【試算約定條款】\n${clauseText}`.trim()
-    });
+    setFormInputs(prev => ({
+      ...prev,
+      incidentDetails: `${prev.incidentDetails || ''}\n\n【試算約定條款】\n${clauseText}`.trim()
+    }));
     
     setInjectedNotice(`已成功將「${currentTool.name}」的試算條款帶入【${targetDocName}】！`);
     stopLoading({ message: `已帶入【${targetDocName}】`, type: 'success' });
@@ -283,7 +278,9 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
         />
-        <section aria-labelledby="tool-list-heading">
+        {selectedGroup === 'OFFICIAL_TEMPLATES' ? (
+          <OfficialTemplateDirectory searchQuery={searchQuery} />
+        ) : <section aria-labelledby="tool-list-heading">
           <div className="mb-3 flex items-end justify-between gap-3">
             <div>
               <h2 id="tool-list-heading" className="text-lg font-bold text-white">{selectedGroupLabel}</h2>
@@ -294,19 +291,17 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
             tools={filteredTools}
             activeToolId={activeToolId}
             onSelect={(id) => {
-              requestSequenceRef.current += 1;
-              activeToolIdRef.current = id;
+              ++generationRequestRef.current;
               setActiveToolId(id);
-              setFormInputs(activeCaseInputs);
               setResult(null);
               setGenerationStage('input');
               document.getElementById('tool-workspace-section')?.scrollIntoView({ behavior: 'smooth' });
             }}
           />
-        </section>
+        </section>}
       </div>
 
-      <div id="tool-workspace-section" className="scroll-mt-6">
+      {selectedGroup !== 'OFFICIAL_TEMPLATES' && <div id="tool-workspace-section" className="scroll-mt-6">
         {activeCalculatorConfig ? (
           <div className="bg-slate-950/70 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl">
             <InteractiveCalculatorView 
@@ -345,34 +340,32 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
                     </div>
                   </div>
 
-                  <form onSubmit={(event) => { event.preventDefault(); void handleGenerate(); }}>
-                    <DynamicToolForm
-                      toolId={activeToolId}
-                      formInputs={formInputs}
-                      onChange={handleInputChange}
-                      currentToolName={currentTool.name}
-                      injectedClauseNotice={injectedNotice}
-                      onClearInjectedNotice={() => setInjectedNotice(null)}
-                    />
+                  <DynamicToolForm 
+                    toolId={activeToolId} 
+                    formInputs={formInputs} 
+                    onChange={handleInputChange} 
+                    currentToolName={currentTool.name}
+                    injectedClauseNotice={injectedNotice}
+                    onClearInjectedNotice={() => setInjectedNotice(null)}
+                  />
 
-                    <button
-                      type="submit"
-                      disabled={isLoading || generationStage === 'analyzing' || generationStage === 'formatting'}
-                      className={`mt-6 w-full ${UIConstants.buttonPrimary}`}
-                    >
-                      {(isLoading || generationStage === 'analyzing' || generationStage === 'formatting') ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          <span>AI 智能起草中...</span>
-                        </>
-                      ) : (
-                        <>
-                          <LayoutTemplate className="w-4 h-4" />
-                          <span>一鍵生成專業法律書狀</span>
-                        </>
-                      )}
-                    </button>
-                  </form>
+                  <button
+                    onClick={handleGenerate}
+                    disabled={isLoading || generationStage === 'analyzing' || generationStage === 'formatting'}
+                    className={`mt-6 w-full ${UIConstants.buttonPrimary}`}
+                  >
+                    {(isLoading || generationStage === 'analyzing' || generationStage === 'formatting') ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <span>AI 智能起草中...</span>
+                      </>
+                    ) : (
+                      <>
+                        <LayoutTemplate className="w-4 h-4" />
+                        <span>一鍵生成專業法律書狀</span>
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
 
@@ -388,7 +381,7 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
             </div>
           </div>
         )}
-      </div>
+      </div>}
     </div>
   );
 };
