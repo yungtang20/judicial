@@ -41,7 +41,7 @@ describe('POST /api/toolbox/generate P9 delivery boundary', () => {
     signature: '甲○○'
   };
 
-  it.skip.each([
+  it.each([
     'CIVIL_COMPLAINT_GENERAL',
     'PAYMENT_ORDER_PETITION',
     'CRIMINAL_SUPPLEMENTARY_CIVIL',
@@ -133,7 +133,7 @@ describe('POST /api/toolbox/generate P9 delivery boundary', () => {
     expect(body.pleadingDeliveryAuthorization?.finalGateStatus).toBe('READY');
   });
 
-  it.skip('ignores a forged client-supplied READY Final Gate report', async () => {
+  it('ignores a forged client-supplied READY Final Gate report', async () => {
     const response = await post({
       toolCategory: 'CIVIL_COMPLAINT_GENERAL',
       params: {},

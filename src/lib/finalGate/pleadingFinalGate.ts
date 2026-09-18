@@ -138,7 +138,7 @@ export async function evaluateFinalGate(rawInput: PleadingFinalGateInput): Promi
       source: 'INPUT',
       status: 'MISSING',
       message: item.reason,
-      overrideEligible: item.category === 'LEGAL_COMPLETENESS' && item.severity !== 'BLOCKING'
+      overrideEligible: item.category === 'LEGAL_COMPLETENESS'
     }));
 
   input.legalReferences.forEach(reference => {

@@ -91,9 +91,9 @@ describe('buildStructuredPleadingDraft', () => {
 
     expect(draft.missingInputs).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ field: 'court', category: 'LEGAL_COMPLETENESS', severity: 'WARNING' }),
-        expect.objectContaining({ field: 'date', category: 'LEGAL_COMPLETENESS', severity: 'WARNING' }),
-        expect.objectContaining({ field: 'signature', category: 'LEGAL_COMPLETENESS', severity: 'WARNING' })
+        expect.objectContaining({ field: 'court', category: 'LEGAL_COMPLETENESS', severity: 'BLOCKING' }),
+        expect.objectContaining({ field: 'date', category: 'LEGAL_COMPLETENESS', severity: 'BLOCKING' }),
+        expect.objectContaining({ field: 'signature', category: 'LEGAL_COMPLETENESS', severity: 'BLOCKING' })
       ])
     );
     expect(draft.sections.find(section => section.id === 'court')?.content).toBe('');
