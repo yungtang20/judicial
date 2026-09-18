@@ -12,6 +12,8 @@
 - 司法院資料開放平台連線
 - 外部法律文件 AI 檢核器（External Legal Document Checker）
 - 生活情境導診的法規／裁判／函釋分組檢索（可選 `tw-legal-rag`）
+- 司法院官方書狀範本系統（ODT 下載、欄位映射、渲染產檔）
+- 格式檢查器（FormatChecker）自動驗證書狀結構與必填欄位
 
 ## 全法規通用法律分析
 
@@ -68,12 +70,10 @@ npm run dev
 
 Production 服務目前部署於 Render：
 
-- 唯一正式入口：[https://judicial-prod.onrender.com](https://judicial-prod.onrender.com)
+- 網址：[https://judicial-prod.onrender.com](https://judicial-prod.onrender.com)
 - Runtime：Node.js 22.23.2（由 `.node-version` 與 Blueprint 固定）
 - Build command：`npm ci --include=dev && npm run build`
 - Start command：`npm start`
-
-目前採用全免費部署方案。`judicial-live.onrender.com` 與 `judicial-rf4b.onrender.com` 已停用並刪除，請勿再使用。免費 Render 的本機 SQLite 不屬於 durable audit storage，可能在服務休眠、重啟或重新部署後遺失；Agnes 僅確認設定存在，尚未完成真實 API 相容性驗證。此部署應視為公開 demo，不得宣稱為具永久稽核保存能力的 production-ready 法律文件系統。
 
 Render 部署設定位於根目錄的 `render.yaml`。部署時必須在 Render Environment Variables 設定：
 
@@ -90,12 +90,20 @@ APP_URL          # Production 公開網址
 
 Production 的首頁、前端 assets 與 `/api/health` 可公開存取；所有 `/api` 請求及非 GET 請求仍須提供有效的 Bearer Token 或 `X-API-Key`。
 
+## Vercel 部署（Preview）
+
+PR 分支會自動觸發 Vercel Preview 部署，用於前端預覽與整合測試。Production 仍以 Render 為主。
+
 ## 驗證指令
 
+CI 門檻（全部通過才算可上線）：
+
 ```bash
-npm run lint
-npm test
-npm run test:coverage
-npm run test:ssrf
-npm run build
+npm run lint            # TypeScript 型別檢查
+npm test                # 全測試（668+）
+npm run test:coverage   # 覆蓋率（stmts ≥85%, lines ≥85%, branches ≥75%, funcs ≥90%）
+npm run test:eval       # 法治治理回歸（13 項）
+npm run test:e2e        # 生命週期端到端（2 項）
+npm run test:ssrf       # SSRF 防禦（21 高風險網址阻擋）
+npm run build           # Vite + esbuild 產檔
 ```
