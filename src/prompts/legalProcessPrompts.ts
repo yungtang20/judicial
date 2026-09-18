@@ -9,6 +9,8 @@ export interface RouterEvaluationResult {
   is_sensitive: boolean;
   is_complete: boolean;
   missing_elements: string[];
+  has_judgment?: boolean;
+  is_new_case?: boolean;
 }
 
 /**
@@ -24,15 +26,19 @@ export function buildRouterPrompt(userInput: string): string {
   "cause": "具體案由或罪名（如：強制性交、返還押金）",
   "is_sensitive": true/false,
   "is_complete": true/false,
-  "missing_elements": ["缺少的關鍵事實1", "缺少的關鍵事實2"]
+  "missing_elements": ["缺少的關鍵事實1", "缺少的關鍵事實2"],
+  "has_judgment": true/false,
+  "is_new_case": true/false
 }
 
 判斷標準：
 - is_sensitive：若案情涉及性侵害、家庭暴力、跟蹤騷擾，必須為 true。
 - is_complete：若缺少「人、事、時、地、證據」中的關鍵要素，導致無法判斷是否成罪或侵權，必須為 false。
+- has_judgment：若使用者提到「收到判決」、「法官判了」、「已經宣判」等字眼，代表已經有第一審判決，必須為 true。
+- is_new_case：若使用者尚未報案、尚未起訴、尚未進入任何司法程序，必須為 true。
 
 使用者案情描述：
-"""${userInput}"""`;
+"""\${userInput}"""`;
 }
 
 /**

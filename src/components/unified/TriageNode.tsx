@@ -123,6 +123,21 @@ export const TriageNode: React.FC<TriageNodeProps> = (props) => {
                       )}%
                     </span>
                   </div>
+                  {workflowState.router.missing_elements && workflowState.router.missing_elements.length > 0 && (
+                    <div className="py-2.5 bg-amber-500/10 rounded-lg p-3 border border-amber-500/20 mt-2 space-y-1">
+                      <div className="flex items-center gap-1.5 font-bold text-amber-300 text-xs">
+                        <AlertTriangle className="w-3.5 h-3.5" />
+                        <span>建議補齊之關鍵訴訟要素：</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {workflowState.router.missing_elements.map((elem: string, i: number) => (
+                          <span key={i} className="px-2 py-0.5 rounded bg-slate-900 border border-amber-400/40 text-amber-200 text-xs font-medium">
+                            {elem}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

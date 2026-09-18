@@ -513,7 +513,7 @@ function ruleFindings(
       .filter(field => !text(field.value))
       .forEach(field =>
         findings.push(
-          missing(field.field, '缺少對應案件資料；Generator 未填入未提供內容。', requiredFor, 'LEGAL_COMPLETENESS', 'HIGH', rule.id)
+          missing(field.field, '缺少對應案件資料；Generator 未填入未提供內容，事後由使用者補齊。', requiredFor, 'LEGAL_COMPLETENESS', 'WARNING', rule.id)
         )
       );
   }

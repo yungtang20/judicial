@@ -89,6 +89,37 @@ describe('UnifiedNav', () => {
     vi.unstubAllGlobals();
   });
 
+  it('selects civil complaint document type correctly', () => {
+    const fetchSpy = vi.fn();
+    vi.stubGlobal('fetch', fetchSpy);
+    const handleSelectTool = vi.fn();
+    const saveCrossFeatureContext = vi.fn();
+    render(
+      <SettingsModal
+        showDocTypeModal
+        setShowDocTypeModal={vi.fn()}
+        workflowState={workflowState('NEEDS_REVIEW')}
+        handleSelectTool={handleSelectTool}
+        saveCrossFeatureContext={saveCrossFeatureContext}
+        showCustomPresetModal={false}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /民事起訴狀/ }));
+    expect(saveCrossFeatureContext).toHaveBeenCalledWith(expect.objectContaining({
+      documentType: 'civil_complaint',
+      facts: '使用者提供的案件事實',
+      verificationStatus: 'NEEDS_REVIEW',
+    }));
+    expect(handleSelectTool).toHaveBeenCalledWith('litigation', undefined, expect.objectContaining({
+      initialTab: 'toolbox',
+      preselectedToolId: 'CIVIL_COMPLAINT_GENERAL',
+      facts: '使用者提供的案件事實',
+    }));
+    expect(fetchSpy).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
+  });
+
   it.each([
     ['FAIL', workflowState('FAIL')],
     ['error', { ...workflowState('NEEDS_REVIEW'), error: '分析失敗' }],

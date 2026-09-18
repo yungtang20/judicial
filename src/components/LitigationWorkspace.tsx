@@ -18,9 +18,11 @@ interface LitigationWorkspaceProps {
   initialTab?: 'guide' | 'toolbox' | 'defense' | 'issues' | 'evidence' | 'appeal' | 'deadline';
   initialToolId?: string;
   appealOnly?: boolean;
+  autoGenerate?: boolean;
+  initialFacts?: string;
 }
 
-export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initialTab = 'toolbox', initialToolId, appealOnly = false }) => {
+export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initialTab = 'toolbox', initialToolId, appealOnly = false, autoGenerate = false, initialFacts }) => {
   // Check cross-feature context if available
   const crossCtx = loadCrossFeatureContext();
   const effectiveInitialTab = initialTab || crossCtx?.initialTab || 'guide';
@@ -107,7 +109,11 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initia
 
           {activeMainTab === 'toolbox' && (
             <div className="p-3.5 sm:p-6 max-w-7xl mx-auto h-full">
-              <LegalToolbox initialToolId={effectiveToolId} />
+              <LegalToolbox 
+                initialToolId={effectiveToolId} 
+                autoGenerate={crossCtx?.autoGenerate || autoGenerate} 
+                initialFacts={initialFacts || crossCtx?.facts}
+              />
             </div>
           )}
         

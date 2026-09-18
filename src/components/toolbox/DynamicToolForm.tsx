@@ -1,4 +1,5 @@
 import React from 'react';
+import { Save, Check, RefreshCw, Trash2 } from 'lucide-react';
 import { TOOL_FIELD_SCHEMAS } from '../../lib/toolFieldSchemas';
 import { getDocumentToolGuide } from '../../lib/documentToolGuides';
 import { DocumentToolGuideAccordion } from './DocumentToolGuideAccordion';
@@ -12,6 +13,9 @@ export interface DynamicToolFormProps {
   currentToolName: string;
   injectedClauseNotice?: string | null;
   onClearInjectedNotice?: () => void;
+  lastSavedAt?: Date | null;
+  isSavingDraft?: boolean;
+  onClearDraft?: () => void;
 }
 
 export const DynamicToolForm: React.FC<DynamicToolFormProps> = ({ 
@@ -20,13 +24,51 @@ export const DynamicToolForm: React.FC<DynamicToolFormProps> = ({
   onChange, 
   currentToolName,
   injectedClauseNotice,
-  onClearInjectedNotice
+  onClearInjectedNotice,
+  lastSavedAt,
+  isSavingDraft,
+  onClearDraft
 }) => {
   const fields = TOOL_FIELD_SCHEMAS[toolId] || [];
   const guide = getDocumentToolGuide(toolId);
 
   return (
     <div className="space-y-3.5 text-xs">
+      {/* 草稿自動保存狀態提示 */}
+      <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-800/80 border border-slate-700/70 text-[11px] text-slate-400">
+        <div className="flex items-center gap-1.5">
+          {isSavingDraft ? (
+            <>
+              <RefreshCw className="w-3.5 h-3.5 text-amber-400 animate-spin" />
+              <span className="text-amber-300">草稿自動儲存中...</span>
+            </>
+          ) : lastSavedAt ? (
+            <>
+              <Check className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="text-emerald-300">
+                草稿已自動儲存至本機 ({lastSavedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })})
+              </span>
+            </>
+          ) : (
+            <>
+              <Save className="w-3.5 h-3.5 text-slate-400" />
+              <span>已啟用草稿自動保存（輸入時自動存入本機）</span>
+            </>
+          )}
+        </div>
+        {onClearDraft && Object.keys(formInputs || {}).some(k => Boolean(formInputs[k])) && (
+          <button
+            type="button"
+            onClick={onClearDraft}
+            className="flex items-center gap-1 text-slate-400 hover:text-rose-400 transition-colors cursor-pointer"
+            title="清空本表單已填寫內容並清除暫存"
+          >
+            <Trash2 className="w-3 h-3" />
+            <span>清空重填</span>
+          </button>
+        )}
+      </div>
+
       {/* 鼎川法律風格：法務指南、要件與必備文件清冊 */}
       {guide && <DocumentToolGuideAccordion guide={guide} />}
 

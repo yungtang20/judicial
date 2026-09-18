@@ -20,31 +20,85 @@ export const SettingsModal: React.FC<SettingsModalProps> = (props) => {
     <>
         {/* Document Type Selection Modal */}
         {showDocTypeModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-            <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 w-[380px] space-y-4">
-              <h3 className="text-base font-bold text-white">選擇文書類型</h3>
-              <p className="text-xs text-[var(--color-text-muted)]">根據您的案件類型，推薦以下文書：</p>
-              <div className="space-y-2">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 w-full max-w-md space-y-4">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                <div>
+                  <h3 className="text-base font-bold text-white">選擇要產製的法律文書</h3>
+                  <p className="text-xs text-[var(--color-text-muted)] mt-0.5">根據案情階段推薦適合的法院或正式書面文件：</p>
+                </div>
+                <button
+                  onClick={() => setShowDocTypeModal(false)}
+                  className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-2.5 max-h-[65vh] overflow-y-auto pr-1">
+                {/* 1. 民事起訴狀（一般案件事實最首要、最常見之法院起訴文書） */}
                 <button
                   onClick={() => {
                     setShowDocTypeModal(false);
                     saveCrossFeatureContext({
-                      documentType: 'appeal',
+                      documentType: 'civil_complaint',
                       partyName: workflowState?.router?.cause || '',
                       scenarioKeywords: workflowState?.router?.cause || '',
-                      domain: workflowState?.router?.domain,
+                      domain: workflowState?.router?.domain || '民事',
                       cause: workflowState?.router?.cause,
                       facts: workflowState?.userNarrative || '',
                       verificationStatus: workflowState?.verification?.verificationStatus,
                       sourceTool: 'unified'
                     });
-                    handleSelectTool('appeal', 'appeal', { initialTab: 'appeal', facts: workflowState?.userNarrative || '' });
+                    handleSelectTool('litigation', undefined, {
+                      initialTab: 'toolbox',
+                      preselectedToolId: 'CIVIL_COMPLAINT_GENERAL',
+                      facts: workflowState?.userNarrative || '',
+                      autoGenerate: true
+                    });
                   }}
-                  className="w-full text-left p-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors"
+                  className="w-full text-left p-3.5 rounded-xl bg-slate-800/90 hover:bg-slate-750 border border-sky-500/40 hover:border-sky-400 transition-all group"
                 >
-                  <div className="font-bold text-sm text-white">上訴狀</div>
-                  <div className="text-xs text-[var(--color-text-muted)] mt-1">不服地方法院判決，向上級法院提起上訴</div>
+                  <div className="flex items-center justify-between">
+                    <div className="font-bold text-sm text-sky-300 group-hover:text-sky-200">民事起訴狀</div>
+                    <span className="text-[10px] bg-sky-500/20 text-sky-300 border border-sky-500/30 px-2 py-0.5 rounded-full font-medium">起訴首選</span>
+                  </div>
+                  <div className="text-xs text-slate-300 mt-1">案件尚未經法院判決，向地方法院正式提起訴訟，請求判賠或履行義務</div>
                 </button>
+
+                {/* 2. 刑事告訴狀（若涉及刑事犯罪時適用） */}
+                {workflowState?.router?.domain === '刑事' && (
+                  <button
+                    onClick={() => {
+                      setShowDocTypeModal(false);
+                      saveCrossFeatureContext({
+                        documentType: 'criminal_complaint',
+                        partyName: workflowState?.router?.cause || '',
+                        scenarioKeywords: workflowState?.router?.cause || '',
+                        domain: '刑事',
+                        cause: workflowState?.router?.cause,
+                        facts: workflowState?.userNarrative || '',
+                        verificationStatus: workflowState?.verification?.verificationStatus,
+                        sourceTool: 'unified'
+                      });
+                      handleSelectTool('litigation', undefined, {
+                        initialTab: 'toolbox',
+                        preselectedToolId: 'CRIMINAL_COMPLAINT_TRAFFIC',
+                        facts: workflowState?.userNarrative || '',
+                        autoGenerate: true
+                      });
+                    }}
+                    className="w-full text-left p-3.5 rounded-xl bg-slate-800/90 hover:bg-slate-750 border border-rose-500/40 hover:border-rose-400 transition-all group"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="font-bold text-sm text-rose-300 group-hover:text-rose-200">刑事告訴狀</div>
+                      <span className="text-[10px] bg-rose-500/20 text-rose-300 border border-rose-500/30 px-2 py-0.5 rounded-full font-medium">刑事偵查</span>
+                    </div>
+                    <div className="text-xs text-slate-300 mt-1">針對詐欺、過失傷害、恐嚇等刑事犯罪，向地檢署提出正式告訴</div>
+                  </button>
+                )}
+
+                {/* 3. 存證信函（訴前催告、中斷時效） */}
                 <button
                   onClick={() => {
                     setShowDocTypeModal(false);
@@ -58,20 +112,72 @@ export const SettingsModal: React.FC<SettingsModalProps> = (props) => {
                       verificationStatus: workflowState?.verification?.verificationStatus,
                       sourceTool: 'unified'
                     });
-                    handleSelectTool('litigation', undefined, { initialTab: 'toolbox', preselectedToolId: 'CIVIL_DEMAND_LETTER_GENERAL', facts: workflowState?.userNarrative || '' });
+                    handleSelectTool('litigation', undefined, {
+                      initialTab: 'toolbox',
+                      preselectedToolId: 'CIVIL_DEMAND_LETTER_GENERAL',
+                      facts: workflowState?.userNarrative || '',
+                      autoGenerate: true
+                    });
                   }}
-                  className="w-full text-left p-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors"
+                  className="w-full text-left p-3.5 rounded-xl bg-slate-800/90 hover:bg-slate-750 border border-slate-700 hover:border-slate-600 transition-all group"
                 >
-                  <div className="font-bold text-sm text-white">存證信函</div>
-                  <div className="text-xs text-[var(--color-text-muted)] mt-1">以正式書面通知對方，留存法律證據</div>
+                  <div className="flex items-center justify-between">
+                    <div className="font-bold text-sm text-amber-300 group-hover:text-amber-200">存證信函</div>
+                    <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-full font-medium">訴前催告</span>
+                  </div>
+                  <div className="text-xs text-slate-300 mt-1">以郵局標準正式書面限期對方處理，留存法定催告依據並中斷消滅時效</div>
+                </button>
+
+                {/* 4. 上訴狀（根據案件情境檢查器：若無判決或為新案，則自動停用） */}
+                {workflowState?.router?.has_judgment === false || workflowState?.router?.is_new_case === true ? (
+                  <div className="w-full text-left p-3.5 rounded-xl bg-slate-900/50 border border-slate-800/50 cursor-not-allowed opacity-50 relative overflow-hidden">
+                    <div className="absolute inset-0 bg-slate-900/40 z-10 flex items-center justify-center">
+                      <span className="bg-slate-800 text-slate-300 text-xs px-3 py-1 rounded-full shadow-sm flex items-center gap-1.5 border border-slate-700">
+                        <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+                        情境檢查：尚未有第一審判決，不適用上訴狀
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between opacity-40">
+                      <div className="font-bold text-sm text-indigo-300">上訴理由狀</div>
+                      <span className="text-[10px] bg-slate-500/20 text-slate-400 border border-slate-500/30 px-2 py-0.5 rounded-full font-medium">已有判決才適用</span>
+                    </div>
+                    <div className="text-xs text-slate-500 mt-1 opacity-40">已收到地方法院第一審判決，於法定 20 日不變期間內向上級法院提起上訴</div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setShowDocTypeModal(false);
+                      saveCrossFeatureContext({
+                        documentType: 'appeal',
+                        partyName: workflowState?.router?.cause || '',
+                        scenarioKeywords: workflowState?.router?.cause || '',
+                        domain: workflowState?.router?.domain,
+                        cause: workflowState?.router?.cause,
+                        facts: workflowState?.userNarrative || '',
+                        verificationStatus: workflowState?.verification?.verificationStatus,
+                        sourceTool: 'unified'
+                      });
+                      handleSelectTool('appeal', 'appeal', { initialTab: 'appeal', facts: workflowState?.userNarrative || '' });
+                    }}
+                    className="w-full text-left p-3.5 rounded-xl bg-slate-800/90 hover:bg-slate-750 border border-slate-700 hover:border-slate-600 transition-all group opacity-85 hover:opacity-100"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="font-bold text-sm text-indigo-300 group-hover:text-indigo-200">上訴理由狀</div>
+                      <span className="text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full font-medium">已有判決才適用</span>
+                    </div>
+                    <div className="text-xs text-slate-400 mt-1">已收到地方法院第一審判決，於法定 20 日不變期間內向上級法院提起上訴</div>
+                  </button>
+                )}
+              </div>
+
+              <div className="pt-2 border-t border-slate-800 flex justify-end">
+                <button
+                  onClick={() => setShowDocTypeModal(false)}
+                  className="text-xs text-[var(--color-text-muted)] hover:text-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-800 transition-colors"
+                >
+                  關閉
                 </button>
               </div>
-              <button
-                onClick={() => setShowDocTypeModal(false)}
-                className="w-full text-xs text-[var(--color-text-muted)] hover:text-slate-300 py-1 transition-colors"
-              >
-                取消
-              </button>
             </div>
           </div>
         )}

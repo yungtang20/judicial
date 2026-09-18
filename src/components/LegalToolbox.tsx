@@ -4,6 +4,7 @@ import {
   FolderLock, ArrowRight, BookOpen, Clock, Printer, LayoutTemplate, Sparkles, Scale, SearchCheck, CheckCircle2, ShieldCheck, HandHeart
 } from 'lucide-react';
 import { LEGAL_TOOLS } from '../lib/legalToolRegistry';
+import { TOOL_FIELD_SCHEMAS } from '../lib/toolFieldSchemas';
 // NOTE: This file utilizes LEGAL_TOOLS.length indirectly via ToolboxHeader
 import { LegalToolboxResult } from '../types';
 import { useCaseStore, getActiveCase } from '../store/useCaseStore';
@@ -19,7 +20,7 @@ import { useGlobalUI } from '../contexts/GlobalUIContext';
 import { getCalculatorConfig } from '../lib/calculatorEngines';
 import { InteractiveCalculatorView } from './toolbox/InteractiveCalculatorView';
 import { evaluatePleadingDelivery } from '../lib/finalGate/pleadingExportGate';
-import { OfficialTemplateDirectory } from './toolbox/OfficialTemplateDirectory';
+import { useAutoSave } from '../hooks/useAutoSave';
 
 type DocumentGenerationStage = 'input' | 'analyzing' | 'formatting' | 'ready' | 'error';
 
@@ -35,7 +36,7 @@ export function isCurrentToolboxResponse(
     responseToolCategory === submittedToolId;
 }
 
-export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialToolId }) => {
+export const LegalToolbox: React.FC<{ initialToolId?: string; autoGenerate?: boolean; initialFacts?: string }> = ({ initialToolId, autoGenerate, initialFacts }) => {
   const { startLoading, stopLoading } = useGlobalUI();
   const activeCase = useCaseStore(getActiveCase);
   const addDocument = useCaseStore(state => state.addDocument);
@@ -50,13 +51,70 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
   const [formInputs, setFormInputs] = useState<Record<string, any>>({});
 
   const activeCaseInputs = useMemo(
-    () => buildActiveCaseFormInputs(activeCase),
-    [activeCase.facts, activeCase.issues, activeCase.evidences]
+    () => buildActiveCaseFormInputs({
+      facts: initialFacts || activeCase?.facts,
+      issues: activeCase?.issues,
+      evidences: activeCase?.evidences
+    }),
+    [activeCase.facts, activeCase.issues, activeCase.evidences, initialFacts]
+  );
+
+  // 本地草稿保存 Key：依書狀工具與案件 ID 分離，避免交叉污染
+  const draftStorageKey = `draft_toolbox_${activeCase?.caseId || 'default'}_${activeToolId}`;
+
+  // 草稿自動保存與載入機制
+  const { lastSavedAt, isSaving: isSavingDraft, clearDraft } = useAutoSave<Record<string, any>>(
+    draftStorageKey,
+    formInputs,
+    (savedDraft) => {
+      if (savedDraft && typeof savedDraft === 'object' && Object.keys(savedDraft).length > 0) {
+        setFormInputs(prev => ({
+          ...prev,
+          ...savedDraft
+        }));
+      }
+    }
   );
 
   React.useEffect(() => {
-    setFormInputs(prev => ({ ...prev, ...activeCaseInputs }));
+    // 當案件預設值更新時，進行合併（以使用者在草稿中填入的值優先）
+    setFormInputs(prev => {
+      const merged = { ...activeCaseInputs, ...prev };
+      return merged;
+    });
   }, [activeCaseInputs]);
+
+  // 切換工具時，若該工具有暫存草稿則還原草稿，否則載入案件預設值
+  const switchTool = (targetToolId: string) => {
+    requestSequenceRef.current += 1;
+    activeToolIdRef.current = targetToolId;
+    setActiveToolId(targetToolId);
+
+    try {
+      const targetStorageKey = `draft_toolbox_${activeCase?.caseId || 'default'}_${targetToolId}`;
+      const saved = localStorage.getItem(targetStorageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') {
+          setFormInputs({ ...activeCaseInputs, ...parsed });
+          setResult(null);
+          setGenerationStage('input');
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('載入草稿失敗:', e);
+    }
+
+    setFormInputs(activeCaseInputs);
+    setResult(null);
+    setGenerationStage('input');
+  };
+
+  const handleClearDraft = () => {
+    clearDraft();
+    setFormInputs(activeCaseInputs);
+  };
 
   const handleInputChange = (field: string, value: any) => {
     setFormInputs(prev => ({ ...prev, [field]: value }));
@@ -88,21 +146,10 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
 
   const handleGroupSelect = (groupId: string) => {
     setSelectedGroup(groupId);
-    if (groupId === 'OFFICIAL_TEMPLATES') {
-      requestSequenceRef.current += 1;
-      setResult(null);
-      setGenerationStage('input');
-      return;
-    }
     if (groupId === 'ALL' || currentTool.categoryGroup === groupId) return;
     const firstTool = LEGAL_TOOLS.find(tool => tool.categoryGroup === groupId);
     if (!firstTool) return;
-    requestSequenceRef.current += 1;
-    activeToolIdRef.current = firstTool.id;
-    setActiveToolId(firstTool.id);
-    setFormInputs(activeCaseInputs);
-    setResult(null);
-    setGenerationStage('input');
+    switchTool(firstTool.id);
   };
 
   const selectedGroupLabel = searchQuery.trim()
@@ -111,9 +158,15 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
       ? '全部書狀與文件'
       : TOOLBOX_GROUPS.find(group => group.id === selectedGroup)?.label || '書狀與文件';
 
-  const handleGenerate = async () => {
+  const formInputsRef = React.useRef(formInputs);
+  React.useEffect(() => {
+    formInputsRef.current = formInputs;
+  }, [formInputs]);
+
+  const handleGenerate = async (overrideParams?: Record<string, any>) => {
     const submittedToolId = activeToolIdRef.current;
     const requestSequence = ++requestSequenceRef.current;
+    const paramsToSubmit = overrideParams || formInputsRef.current;
     setIsLoading(true);
     setGenerationStage('analyzing');
     setGenerateError(null);
@@ -126,7 +179,7 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
     try {
       const res = await apiClient.toolboxGenerate({
         toolCategory: submittedToolId,
-        params: formInputs
+        params: paramsToSubmit
       });
       clearTimeout(formattingTimer);
       if (requestSequence !== requestSequenceRef.current || activeToolIdRef.current !== submittedToolId) {
@@ -173,13 +226,59 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
     } catch (err: any) {
       clearTimeout(formattingTimer);
       console.error('Toolbox generate error:', err);
-      setGenerationStage('error');
-      setGenerateError(err?.message || '文件產製未通過法規引用驗證，請稍候重試或調整案情內容');
+      if (requestSequence === requestSequenceRef.current) {
+        setGenerationStage('error');
+        if (err instanceof TypeError && err.message.includes('fetch')) {
+           setGenerateError('API 連線逾時或無網路回應，請確認網路狀態後再試一次');
+        } else if (err?.data?.missingInputs && Array.isArray(err.data.missingInputs)) {
+           const toolFields = TOOL_FIELD_SCHEMAS[submittedToolId as keyof typeof TOOL_FIELD_SCHEMAS] || [];
+           const fieldMapping: Record<string, string> = {
+             'court': '管轄法院',
+             'proceeding': '訴訟事件',
+             'claims': '聲明事項',
+             'facts': '事實及理由',
+             'parties[0].name': '原告/聲請人姓名',
+             'parties[0].address': '原告/聲請人地址',
+             'parties[1].name': '被告/相對人姓名',
+             'parties[1].address': '被告/相對人地址',
+             'debtAmount': '訴訟標的金額',
+             'enforcementTitleType': '執行名義類型',
+             'claimStatement': '應受判決事項之聲明'
+           };
+           
+           const missingLabels = err.data.missingInputs.map((item: any) => {
+             // 1. 先嘗試對應內部轉換欄位
+             if (fieldMapping[item.field]) return fieldMapping[item.field];
+             // 2. 再嘗試對應前端表單欄位
+             const schemaField = toolFields.find((f: any) => f.key === item.field);
+             return schemaField ? schemaField.label : item.field;
+           });
+           
+           // 過濾重複的欄位提示並組合
+           const uniqueLabels = [...new Set(missingLabels)].filter(Boolean);
+           setGenerateError(`事實要件不足：請補齊 ${uniqueLabels.join('、')}`);
+        } else {
+           setGenerateError(err?.message || '文件產製未通過法規引用驗證，請稍候重試或調整案情內容');
+        }
+      }
       stopLoading({ message: '產製失敗', type: 'error' });
     } finally {
       setIsLoading(false);
     }
   };
+
+  const [hasAutoGenerated, setHasAutoGenerated] = useState(false);
+  React.useEffect(() => {
+    if (autoGenerate && !hasAutoGenerated) {
+      const timer = setTimeout(() => {
+        setHasAutoGenerated(true);
+        // 自動捲動到工作區，讓使用者直接看到產生結果
+        document.getElementById('tool-workspace-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        handleGenerate();
+      }, 500); // 確保 formInputs 與草稿、activeCase 載入完畢
+      return () => clearTimeout(timer);
+    }
+  }, [autoGenerate, hasAutoGenerated]);
 
   const [isVerifyingAi, setIsVerifyingAi] = useState(false);
   const [verifyNotice, setVerifyNotice] = useState<string | null>(null);
@@ -290,9 +389,6 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
         />
-        {selectedGroup === 'OFFICIAL_TEMPLATES' ? (
-          <OfficialTemplateDirectory searchQuery={searchQuery} />
-        ) : (
         <section aria-labelledby="tool-list-heading">
           <div className="mb-3 flex items-end justify-between gap-3">
             <div>
@@ -304,20 +400,13 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
             tools={filteredTools}
             activeToolId={activeToolId}
             onSelect={(id) => {
-              requestSequenceRef.current += 1;
-              activeToolIdRef.current = id;
-              setActiveToolId(id);
-              setFormInputs(activeCaseInputs);
-              setResult(null);
-              setGenerationStage('input');
+              switchTool(id);
               document.getElementById('tool-workspace-section')?.scrollIntoView({ behavior: 'smooth' });
             }}
           />
         </section>
-        )}
       </div>
 
-      {selectedGroup !== 'OFFICIAL_TEMPLATES' && (
       <div id="tool-workspace-section" className="scroll-mt-6">
         {activeCalculatorConfig ? (
           <div className="bg-slate-950/70 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl">
@@ -365,6 +454,9 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
                       currentToolName={currentTool.name}
                       injectedClauseNotice={injectedNotice}
                       onClearInjectedNotice={() => setInjectedNotice(null)}
+                      lastSavedAt={lastSavedAt}
+                      isSavingDraft={isSavingDraft}
+                      onClearDraft={handleClearDraft}
                     />
 
                     <button
@@ -401,7 +493,6 @@ export const LegalToolbox: React.FC<{ initialToolId?: string }> = ({ initialTool
           </div>
         )}
       </div>
-      )}
     </div>
   );
 };

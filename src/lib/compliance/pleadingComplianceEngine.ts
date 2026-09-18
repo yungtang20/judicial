@@ -80,9 +80,9 @@ function expectedEvidence(input: CaseInput) {
 
 const validateParties: RuleValidator = (section, input, draft) => {
   const parties = input.parties.filter(party => !isRepresentative(party));
-  if (!parties.length) return result('MISSING', section, 'CaseInput 未提供當事人。');
+  if (!parties.length) return result('WARNING', section, 'CaseInput 未提供當事人。');
   if (parties.some(party => !text(party.name) || !publicAddress(party))) {
-    return result('MISSING', section, '當事人姓名或公開地址不足。');
+    return result('WARNING', section, '當事人姓名或公開地址不足。');
   }
   const expected = parties.flatMap(party => [text(party.name), publicAddress(party)]).filter(Boolean);
   const protectedAddresses = input.parties
@@ -112,7 +112,7 @@ const validateRepresentatives: RuleValidator = (section, input) => {
     !publicAddress(party) ||
     (party.role === 'legal_representative' && !text(party.relationshipToParty))
   )) {
-    return result('MISSING', section, '代理人姓名、公開地址或法定代理人關係不足。');
+    return result('WARNING', section, '代理人姓名、公開地址或法定代理人關係不足。');
   }
   return containsAll(section.content, expected)
     ? result('COMPLIANT', section, '代理人資料與 CaseInput 一致。')
@@ -122,7 +122,7 @@ const validateRepresentatives: RuleValidator = (section, input) => {
 function exactField(value: string | undefined, label: string): RuleValidator {
   return section => {
     const expected = text(value);
-    if (!expected) return result('MISSING', section, `CaseInput 未提供${label}。`);
+    if (!expected) return result('WARNING', section, `CaseInput 未提供${label}。`);
     return text(section.content) === expected
       ? result('COMPLIANT', section, `${label}與 CaseInput 一致。`)
       : result('CONFLICT', section, `${label}與 CaseInput 不一致。`);
@@ -131,7 +131,7 @@ function exactField(value: string | undefined, label: string): RuleValidator {
 
 const validateClaims: RuleValidator = (section, input) => {
   const claims = expectedClaims(input);
-  if (!claims.length) return result('MISSING', section, 'CaseInput 未提供聲明或陳述。');
+  if (!claims.length) return result('WARNING', section, 'CaseInput 未提供聲明或陳述。');
   const factIds = new Set(input.facts.map(fact => fact.id));
   const evidenceIds = new Set(input.evidence.map(item => item.id));
   const contentMatches = containsAll(section.content, claims.map(claim => text(claim.statement)));
@@ -146,7 +146,7 @@ const validateClaims: RuleValidator = (section, input) => {
 
 const validateEvidence: RuleValidator = (section, input) => {
   const evidence = expectedEvidence(input);
-  if (!evidence.length) return result('MISSING', section, '沒有與 Claim 或 Fact 對應的 Evidence。');
+  if (!evidence.length) return result('WARNING', section, '沒有與 Claim 或 Fact 對應的 Evidence。');
   const matches =
     containsAll(section.content, evidence.map(item => text(item.content))) &&
     sameIds(section.sourceEvidenceIds, evidence.map(item => item.id));
@@ -156,7 +156,7 @@ const validateEvidence: RuleValidator = (section, input) => {
 };
 
 const validateAttachments: RuleValidator = (section, input) => {
-  if (!Array.isArray(input.attachments)) return result('MISSING', section, 'CaseInput 未提供附件陣列。');
+  if (!Array.isArray(input.attachments)) return result('WARNING', section, 'CaseInput 未提供附件陣列。');
   const matches =
     containsAll(section.content, input.attachments.map(item => text(item.content))) &&
     section.content.includes(`件數：${input.attachments.length}`) &&
@@ -170,7 +170,7 @@ const validateIdentifiers: RuleValidator = (section, input) => {
   if (input.caseType === 'non_contentious') {
     const requiredKeys = ['sex', 'birthDate', 'nationalId', 'occupation'];
     if (input.parties.some(party => requiredKeys.some(key => !text(party.identifiers?.[key])))) {
-      return result('MISSING', section, '非訟事件聲請人或代理人的法定識別資料不足。');
+      return result('WARNING', section, '非訟事件聲請人或代理人的法定識別資料不足。');
     }
   }
   const identifiers = input.parties.flatMap(party => Object.values(party.identifiers || {})).map(text).filter(Boolean);
@@ -182,7 +182,7 @@ const validateIdentifiers: RuleValidator = (section, input) => {
 
 const validateFacts: RuleValidator = (section, input) => {
   const facts = expectedFacts(input);
-  if (!facts.length) return result('MISSING', section, '沒有與 Claim 對應的原因事實。');
+  if (!facts.length) return result('WARNING', section, '沒有與 Claim 對應的原因事實。');
   const matches =
     containsAll(section.content, facts.map(fact => text(fact.content))) &&
     sameIds(section.sourceFactIds, facts.map(fact => fact.id));
@@ -219,7 +219,7 @@ function suppliedSectionValidator(sectionId: string): RuleValidator {
   return (section, input) => {
     const supplied = input.sectionInputs?.[sectionId];
     if (!supplied || !text(supplied.content)) {
-      return result('MISSING', section, `CaseInput 未提供 ${sectionId} 區段。`);
+      return result('WARNING', section, `CaseInput 未提供 ${sectionId} 區段。`);
     }
     const matches =
       text(section.content) === text(supplied.content) &&
@@ -289,7 +289,7 @@ export function verifyPleadingCompliance({
       );
       return {
         ruleId: rule.id,
-        status: distinct ? 'COMPLIANT' : 'MISSING',
+        status: distinct ? 'COMPLIANT' : 'WARNING',
         evidenceLocation: 'draft.sections',
         note: distinct ? '答辯各款已分別具體成段。' : '答辯事項未分別具體記載。'
       };
@@ -307,7 +307,7 @@ export function verifyPleadingCompliance({
     if (matchingSections.length !== 1) {
       return {
         ruleId: rule.id,
-        status: matchingSections.length ? 'CONFLICT' : rule.level === 'REQUIRED' ? 'MISSING' : 'WARNING',
+        status: matchingSections.length ? 'CONFLICT' : 'WARNING',
         note: matchingSections.length ? '規則對應到重複 section。' : '草稿缺少規則對應 section。'
       };
     }

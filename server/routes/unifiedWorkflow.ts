@@ -342,7 +342,7 @@ async function runRagNode(
       }
     }
   } catch (ragErr) {
-    console.warn("[UnifiedWorkflow] 動態條文檢索降級:", ragErr);
+    console.warn("[UnifiedWorkflow] 動態條文檢索降級:", ragErr instanceof Error ? ragErr.message : String(ragErr));
   }
 
   const statuteCitations = Array.from(dynamicStatuteSet).filter(Boolean);
@@ -359,7 +359,7 @@ async function runRagNode(
       sourceUrl: item.sourceUrl,
     }));
   } catch (err) {
-    console.warn("[UnifiedWorkflow] RAGNode 檢索失敗:", err);
+    console.warn("[UnifiedWorkflow] RAGNode 檢索失敗:", err instanceof Error ? err.message : String(err));
   }
 
   let officialSearch: Awaited<ReturnType<typeof searchOfficialJudgments>> | undefined;
@@ -430,7 +430,7 @@ async function runSyllogismNode(
     const response = await Promise.race([aiPromise, timeoutPromise]);
     fullAnalysis = response.text;
   } catch (err) {
-    console.warn("[UnifiedWorkflow] AI SyllogismNode 異常或逾時，啟用結構化三段論推論引擎:", err);
+    console.warn("[UnifiedWorkflow] AI SyllogismNode 異常或逾時，啟用結構化三段論推論引擎:", err instanceof Error ? err.message : String(err));
     
     // 若為性侵害或家暴，嚴禁使用泛用侵權起手
     if (isSexualOrDomestic) {
@@ -494,7 +494,7 @@ async function runVerificationGateNode(
     verifyOfficialCitations(uniqueCitations.map(citation => ({ citation, type: "PRECEDENT" as const }))),
     uniqueCitations.length > 0
       ? verifyExternalPrecedents(uniqueCitations).catch(extErr => {
-          console.warn("[UnifiedWorkflow] 外部裁判檢核降級:", extErr);
+          console.warn("[UnifiedWorkflow] 外部裁判檢核降級:", extErr instanceof Error ? extErr.message : String(extErr));
           return [];
         })
       : Promise.resolve([])

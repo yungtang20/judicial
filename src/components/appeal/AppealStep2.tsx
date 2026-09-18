@@ -1,9 +1,11 @@
-import React from 'react';
-import { ShieldCheck, CheckCircle2 } from "lucide-react";
+import React, { useState } from 'react';
+import { ShieldCheck, CheckCircle2, Copy, Check } from "lucide-react";
 import { AntiGhostBadge } from "../AntiGhostBadge";
 import { LegalSourcesDisplay } from "../LegalSourcesDisplay";
+import { buildPleadingCitationSnippet, copyToClipboard } from "../../lib/citationFormatter";
 
 export function AppealStep2({ ctx }: { ctx: any }) {
+  const [copiedPrecedentId, setCopiedPrecedentId] = useState<string>('');
   const {
     currentStep,
     setCurrentStep,
@@ -503,7 +505,7 @@ export function AppealStep2({ ctx }: { ctx: any }) {
               </p>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center">
               <input
                 type="text"
                 value={keywords}
@@ -512,11 +514,19 @@ export function AppealStep2({ ctx }: { ctx: any }) {
                 placeholder="輸入搜尋關鍵字 (例如：舉證責任 經驗法則 事實認定不憑證據)"
               />
               <button
-                onClick={handleSearchPrecedents}
+                onClick={() => handleSearchPrecedents(false)}
                 disabled={isSearchingPrecedents}
-                className="bg-[var(--color-brand-primary)] text-white px-5 py-2.5 rounded-lg text-xs font-bold hover:opacity-90 disabled:opacity-50 flex items-center gap-1.5"
+                className="bg-[var(--color-brand-primary)] text-white px-5 py-2.5 rounded-lg text-xs font-bold hover:opacity-90 disabled:opacity-50 flex items-center gap-1.5 whitespace-nowrap"
               >
-                {isSearchingPrecedents ? '🔍 聯網檢索中...' : '🔍 聯網檢索實務見解'}
+                {isSearchingPrecedents ? '🔍 檢索中...' : '🔍 檢索實務見解'}
+              </button>
+              <button
+                onClick={() => handleSearchPrecedents(true)}
+                disabled={isSearchingPrecedents}
+                title="跳過本地快取，強制發起全新檢索"
+                className="px-3 py-2.5 border border-[var(--color-border-subtle)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-raised)] rounded-lg text-xs font-bold disabled:opacity-50 flex items-center gap-1 whitespace-nowrap"
+              >
+                🔄 強制重整
               </button>
             </div>
 
@@ -582,6 +592,30 @@ export function AppealStep2({ ctx }: { ctx: any }) {
                         className="text-2xs font-bold bg-amber-100 text-[var(--color-status-warning)] border border-amber-300 rounded px-2 py-1 w-28 text-center"
                         placeholder="類型"
                       />
+
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const snippet = buildPleadingCitationSnippet(item);
+                          await copyToClipboard(snippet);
+                          setCopiedPrecedentId(item.id);
+                          setTimeout(() => setCopiedPrecedentId(''), 2500);
+                        }}
+                        className="text-2xs font-bold border border-[var(--color-brand-primary)]/40 text-[var(--color-brand-primary)] bg-[var(--color-surface-raised)] hover:bg-[var(--color-brand-primary)]/10 px-2 py-1 rounded flex items-center gap-1 transition-colors"
+                        title="複製符合法院書狀格式之標準法定引註（含裁判要旨）"
+                      >
+                        {copiedPrecedentId === item.id ? (
+                          <>
+                            <Check className="w-3 h-3 text-emerald-600" />
+                            <span className="text-emerald-700">已複製引註</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3 h-3" />
+                            <span>複製引註</span>
+                          </>
+                        )}
+                      </button>
 
                       <button
                         onClick={() => setPrecedents(precedents.filter(p => p.id !== item.id))}

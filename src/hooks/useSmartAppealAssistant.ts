@@ -5,6 +5,7 @@ import { IssueRow, EvidenceRow, PrecedentItem } from "../types";
 import { useAppealStore } from "../store/useAppealStore";
 import { useCaseStore } from "../store/useCaseStore";
 import { verifyLegalCitations } from "../lib/services/citationCheck";
+import { withJudgmentCache } from "../lib/cache/judgmentCache";
 import {
   calculateAppealDeadline,
   deidentifyJudgments,
@@ -254,8 +255,8 @@ export function useSmartAppealAssistant() {
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>, targetField: 'first' | 'second' = 'first') =>
     importJudgmentFile({ event, targetField, setIsParsingPdf, setRawText, setSecondText });
 
-    // 1-1. Taiwan Legal RAG (TLR: 2,250萬筆判決 24H 免帳密) 處理函式
-  const handleTlrSearch = async (queryOverride?: string) => {
+    // 1-1. Taiwan Legal RAG (TLR: 2,250萬筆判決 24H 免帳密) 處理函式（整合本地快取）
+  const handleTlrSearch = async (queryOverride?: string, bypassCache: boolean = false) => {
     const queryToUse = queryOverride !== undefined ? queryOverride : tlrQuery;
     if (!queryToUse || !queryToUse.trim()) {
       setJudicialMsg('請輸入裁判字號或案由關鍵字（例如：112 台上 2409、115 侵訴 33 或 加重詐欺）');
@@ -264,20 +265,29 @@ export function useSmartAppealAssistant() {
     setTlrLoading(true);
     setJudicialMsg('');
     try {
-      const res = await fetch('/api/tlr/search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query: queryToUse.trim(),
-          search_type: tlrSearchType,
-          max_results: 6
-        })
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || 'TLR 搜尋連線失敗');
-      }
-      const data = await res.json();
+      const cacheKey = `tlr_search_${tlrSearchType}_${queryToUse.trim()}`;
+      const cacheRes = await withJudgmentCache(
+        cacheKey,
+        async () => {
+          const res = await fetch('/api/tlr/search', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              query: queryToUse.trim(),
+              search_type: tlrSearchType,
+              max_results: 6
+            })
+          });
+          if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'TLR 搜尋連線失敗');
+          }
+          return await res.json();
+        },
+        { bypassCache, ttlMs: 24 * 60 * 60 * 1000, namespace: 'tlr_search' }
+      );
+
+      const data = cacheRes.data;
       setTlrResults(data.results || []);
       saveRetrievedCitations((data.results || []).map((hit: any): PrecedentItem => ({
         id: hit.doc_id || hit.citation_text,
@@ -293,10 +303,11 @@ export function useSmartAppealAssistant() {
         fetchedAt: new Date().toISOString()
       })));
       setTlrNote(data.note || '');
+      const cacheTag = cacheRes.fromCache ? ' ⚡[已自本地快取載入，節省 API 呼叫]' : '';
       if ((data.results || []).length === 0) {
-        setJudicialMsg(data.note || '查無相符裁判書，請嘗試使用其他案號格式或縮減關鍵字。');
+        setJudicialMsg((data.note || '查無相符裁判書，請嘗試使用其他案號格式或縮減關鍵字。') + cacheTag);
       } else {
-        setJudicialMsg(`🔍 檢索完成，共找到 ${data.results.length} 筆相符裁判書（點擊即可載入全文）`);
+        setJudicialMsg(`🔍 檢索完成，共找到 ${data.results.length} 筆相符裁判書（點擊即可載入全文）${cacheTag}`);
       }
     } catch (err: any) {
       setJudicialMsg('❌ 搜尋失敗：' + err.message);
@@ -305,24 +316,33 @@ export function useSmartAppealAssistant() {
     }
   };
 
-  const handleTlrFetchFulltext = async (item: any, customTargetField?: 'first' | 'second') => {
+  const handleTlrFetchFulltext = async (item: any, customTargetField?: 'first' | 'second', bypassCache: boolean = false) => {
     const targetField = customTargetField || targetJudicialField;
     setTlrFetchingDocId(item.doc_id);
     setJudicialMsg(`⏳ 正在向裁判書伺服器調閱【${item.citation_text || item.doc_id}】之完整裁判書內文...`);
     try {
-      const res = await fetch('/api/tlr/fulltext', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          doc_id: item.doc_id,
-          result_token: item.result_token
-        })
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || '無法取得裁判全文');
-      }
-      const data = await res.json();
+      const cacheKey = `tlr_fulltext_${item.doc_id}`;
+      const cacheRes = await withJudgmentCache(
+        cacheKey,
+        async () => {
+          const res = await fetch('/api/tlr/fulltext', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              doc_id: item.doc_id,
+              result_token: item.result_token
+            })
+          });
+          if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || '無法取得裁判全文');
+          }
+          return await res.json();
+        },
+        { bypassCache, ttlMs: 7 * 24 * 60 * 60 * 1000, namespace: 'tlr_fulltext' }
+      );
+
+      const data = cacheRes.data;
       const textToInsert = data.fulltext || data.text_excerpt || '';
       markCitationFulltextRead(item.doc_id || item.citation_text, item.source_url);
       if (!textToInsert) {
@@ -336,7 +356,8 @@ export function useSmartAppealAssistant() {
       if (item.court_name && (!courtName || courtName === '臺灣臺北地方法院')) {
         setCourtName(item.court_name);
       }
-      setJudicialMsg(`🎉 成功載入【${item.citation_text || item.doc_id}】至【${targetField === 'second' ? '裁判書 二' : '裁判書 一'}】！共 ${textToInsert.length.toLocaleString()} 字。`);
+      const cacheTag = cacheRes.fromCache ? ' ⚡[本地快取瞬間載入]' : '';
+      setJudicialMsg(`🎉 成功載入【${item.citation_text || item.doc_id}】至【${targetField === 'second' ? '裁判書 二' : '裁判書 一'}】！共 ${textToInsert.length.toLocaleString()} 字。${cacheTag}`);
       setTimeout(() => {
         setShowJudicialModal(false);
       }, 1200);
@@ -625,21 +646,30 @@ export function useSmartAppealAssistant() {
     }
   };
 
-  // 3. Search Precedents & Ministry Interpretations
-  const handleSearchPrecedents = async () => {
+  // 3. Search Precedents & Ministry Interpretations（整合本地快取）
+  const handleSearchPrecedents = async (bypassCache: boolean = false) => {
     setIsSearchingPrecedents(true);
     try {
-      const res = await fetch('/api/search-precedents', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          keywords,
-          caseSummary: issues.map(i => `${i.title}: ${i.appealArgument}`).join('; ')
-        })
-      });
+      const summaryStr = issues.map(i => `${i.title}: ${i.appealArgument}`).join('; ');
+      const cacheKey = `precedents_${keywords}_${summaryStr.slice(0, 100)}`;
+      const cacheRes = await withJudgmentCache(
+        cacheKey,
+        async () => {
+          const res = await fetch('/api/search-precedents', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              keywords,
+              caseSummary: summaryStr
+            })
+          });
+          if (!res.ok) throw new Error('檢索失敗');
+          return await res.json();
+        },
+        { bypassCache, ttlMs: 24 * 60 * 60 * 1000, namespace: 'precedents' }
+      );
 
-      if (!res.ok) throw new Error('檢索失敗');
-      const data = await res.json();
+      const data = cacheRes.data;
       const precedentList = Array.isArray(data) ? data : (data.precedents || []);
 
       if (precedentList && precedentList.length > 0) {

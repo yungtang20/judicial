@@ -1,4 +1,5 @@
 import { CitationVerificationResult, RealStatuteDatabaseItem, RealPrecedentDatabaseItem } from '../types';
+import { getCachedData, normalizeJudgmentQuery } from './cache/judgmentCache';
 
 /**
  * Verified Real Statutory Database (Taiwan Major Procedural and Substantive Laws)
@@ -950,6 +951,27 @@ export function verifyLegalCitations(
         hallucinationRisk: 'SAFE_VERIFIED',
           verificationStatus: 'VERIFIED',
         officialSnippet: foundPrecedent.holdingSummary
+      });
+    } else if (
+      // 本地快取 Fast-Path：若該案號裁判全文曾自司法院或 TLR 成功調閱，確認真實存在
+      Boolean(
+        getCachedData(`tlr_fulltext_${year}${caseWord}${caseNum}`, { namespace: 'tlr_fulltext' }) ||
+        getCachedData(`${court}${year}${caseWord}${caseNum}`, { namespace: 'tlr_fulltext' }) ||
+        getCachedData(`${year}${caseWord}${caseNum}`, { namespace: 'jdoc' })
+      )
+    ) {
+      results.push({
+        verified: true,
+        citationText: fullMatch,
+        type: 'PRECEDENT',
+        legalClaim,
+        claimSupportStatus: 'NEEDS_REVIEW',
+        officialTitle: fullMatch,
+        officialSourceUrl: 'https://judgment.judicial.gov.tw/',
+        isGhostOrFake: false,
+        hallucinationRisk: 'SAFE_VERIFIED',
+        verificationStatus: 'VERIFIED',
+        officialSnippet: '本地快取 Fast-Path 驗證：該裁判已由官方資料庫完整調閱並留存本地，真實性無虞。'
       });
     } else {
       // If AI generated an impossible/suspicious high number (e.g. 9999號) or recent fake citation,
