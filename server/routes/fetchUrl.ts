@@ -7,96 +7,118 @@ const MAX_REDIRECTS = 3;
 const MAX_BODY_BYTES = 2 * 1024 * 1024; // 2MB limit
 
 /**
- * 判斷 IPv4 是否屬於私人、保留或環回位址
+ * 判斷 IPv4 是否屬於私人、保留或環回位址（CIDR 表單，未格式視為不安全）
  */
-function isPrivateIPv4(ip: string): boolean {
-  const parts = ip.split(".").map((p) => parseInt(p, 10));
-  if (parts.length !== 4 || parts.some((p) => isNaN(p) || p < 0 || p > 255)) {
-    return true; // 格式異常視為不安全
+function parseIPv4(ip: string): number | null {
+  const parts = ip.split(".");
+  if (parts.length !== 4) return null;
+  let value = 0;
+  for (const p of parts) {
+    const n = Number(p);
+    if (p === "" || !Number.isInteger(n) || n < 0 || n > 255) return null;
+    value = (value << 8) | n;
   }
+  return value >>> 0;
+}
 
-  const [b0, b1] = parts;
-  // 0.0.0.0/8
-  if (b0 === 0) return true;
-  // 10.0.0.0/8
-  if (b0 === 10) return true;
-  // 100.64.0.0/10 (CGNAT: 100.64 - 100.127)
-  if (b0 === 100 && b1 >= 64 && b1 <= 127) return true;
-  // 127.0.0.0/8 (Loopback)
-  if (b0 === 127) return true;
-  // 169.254.0.0/16 (Link-Local & Cloud Metadata 169.254.169.254)
-  if (b0 === 169 && b1 === 254) return true;
-  // 172.16.0.0/12 (172.16 - 172.31)
-  if (b0 === 172 && b1 >= 16 && b1 <= 31) return true;
-  // 192.0.0.0/24 & 192.0.2.0/24
-  if (b0 === 192 && b1 === 0) return true;
-  // 192.88.99.0/24
-  if (b0 === 192 && b1 === 88) return true;
-  // 192.168.0.0/16 (Private LAN)
-  if (b0 === 192 && b1 === 168) return true;
-  // 198.18.0.0/15 (Benchmark)
-  if (b0 === 198 && (b1 === 18 || b1 === 19)) return true;
-  // 198.51.100.0/24 & 203.0.113.0/24
-  if (b0 === 198 && b1 === 51) return true;
-  if (b0 === 203 && b1 === 0) return true;
-  // 224.0.0.0/4 (Multicast) & 240.0.0.0/4 (Reserved / Broadcast)
-  if (b0 >= 224) return true;
+// 私人/保留/環回 IPv4 網段（保留原本較寬的 192.88/16、198.51/16、203.0/16 封鎖語意）
+const PRIVATE_V4_CIDRS: ReadonlyArray<readonly [number, number]> = [
+  [0x00000000, 8], // 0.0.0.0/8
+  [0x0a000000, 8], // 10.0.0.0/8
+  [0x64400000, 10], // 100.64.0.0/10 (CGNAT)
+  [0x7f000000, 8], // 127.0.0.0/8 (Loopback)
+  [0xa9fe0000, 16], // 169.254.0.0/16 (Link-Local & 雲端 Metadata)
+  [0xac100000, 12], // 172.16.0.0/12
+  [0xc0000000, 16], // 192.0.0.0/16
+  [0xc0580000, 16], // 192.88.0.0/16
+  [0xc6120000, 15], // 198.18.0.0/15 (Benchmark)
+  [0xc6330000, 16], // 198.51.0.0/16
+  [0xc0a80000, 16], // 192.168.0.0/16 (Private LAN)
+  [0xcb000000, 16], // 203.0.0.0/16
+  [0xe0000000, 4], // 224.0.0.0/4 (Multicast)
+  [0xf0000000, 4], // 240.0.0.0/4 (Reserved / Broadcast)
+];
 
-  return false;
+function inCidrV4(value: number, base: number, prefix: number): boolean {
+  const mask = prefix === 0 ? 0 : (0xffffffff << (32 - prefix)) >>> 0;
+  return (value & mask) === (base & mask);
+}
+
+function isPrivateIPv4(ip: string): boolean {
+  const value = parseIPv4(ip);
+  if (value === null) return true; // 格式異常視為不安全
+  return PRIVATE_V4_CIDRS.some(([base, prefix]) => inCidrV4(value, base, prefix));
+}
+
+function inCidrV4FromUint(value: number): boolean {
+  return PRIVATE_V4_CIDRS.some(([base, prefix]) => inCidrV4(value, base, prefix));
 }
 
 /**
- * 判斷 IPv6 是否屬於私人、保留或環回位址
+ * 判斷 IPv6 是否屬於私人、保留或環回位址（128-bit CIDR 表單，格式異常視為不安全）
  */
+function parseIPv6(ip: string): bigint | null {
+  let s = ip.toLowerCase();
+  // 結尾嵌入 IPv4 點分十進位（例如 ::ffff:127.0.0.1）→ 轉為兩個 16-bit 群
+  const v4 = s.match(/(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (v4) {
+    const nums = v4.slice(1, 5).map(Number);
+    if (v4.slice(1, 5).some((p) => p === "" || !Number.isInteger(nums[v4.slice(1, 5).indexOf(p)]) || Number(p) < 0 || Number(p) > 255)) {
+      return null;
+    }
+    const val = ((nums[0] << 24) | (nums[1] << 16) | (nums[2] << 8) | nums[3]) >>> 0;
+    s = s.slice(0, s.length - v4[0].length) + ((val >>> 16).toString(16) + ":" + (val & 0xffff).toString(16));
+  }
+  const halves = s.split("::");
+  if (halves.length > 2) return null;
+  const [left, right] = halves.length === 2 ? [halves[0], halves[1]] : [s, ""];
+  const parseGroups = (g: string): number[] | null => {
+    if (g === "") return [];
+    const parts = g.split(":");
+    if (parts.some((p) => p === "")) return null;
+    const nums = parts.map((p) => parseInt(p, 16));
+    if (parts.length > 8 || nums.some((n) => Number.isNaN(n) || n < 0 || n > 0xffff)) return null;
+    return nums;
+  };
+  const leftGroups = parseGroups(left);
+  const rightGroups = parseGroups(right);
+  if (!leftGroups || !rightGroups) return null;
+  const total = leftGroups.length + rightGroups.length;
+  if (halves.length === 2 ? total > 7 : total !== 8) return null;
+  const groups = [...leftGroups, ...Array(8 - total).fill(0), ...rightGroups];
+  let value = 0n;
+  for (const g of groups) value = (value << 16n) | BigInt(g);
+  return value;
+}
+
+// 私人/保留/環回 IPv6 網段（2001:db80::/32 保留原本 startswith("2001:db8") 的寬封鎖語意）
+const PRIVATE_V6_CIDRS: ReadonlyArray<readonly [bigint, number]> = [
+  [0n, 128], // ::/128 (Unspecified)
+  [1n, 128], // ::1/128 (Loopback)
+  [0xfc000000_00000000_00000000_00000000n, 7], // fc00::/7 (ULA)
+  [0xfe800000_00000000_00000000_00000000n, 10], // fe80::/10 (Link-Local)
+  [0xff000000_00000000_00000000_00000000n, 8], // ff00::/8 (Multicast)
+  [0x20010db8_00000000_00000000_00000000n, 32], // 2001:db8::/32 (Documentation)
+  [0x2001db80_00000000_00000000_00000000n, 28], // 2001:db80::/28（保留原本 startswith("2001:db8") 寬封鎖）
+];
+
+function inCidrV6(value: bigint, base: bigint, prefix: number): boolean {
+  if (prefix === 0) return true;
+  // mask keeps the top `prefix` bits of the 128-bit address (network portion)
+  const fullMask = (1n << 128n) - 1n;
+  const mask = prefix === 128 ? fullMask : fullMask ^ ((1n << BigInt(128 - prefix)) - 1n);
+  return (value & mask) === (base & mask);
+}
+
 function isPrivateIPv6(ip: string): boolean {
-  const normalized = ip.toLowerCase();
-
-  // IPv4-mapped IPv6 (e.g., ::ffff:127.0.0.1 或 WHATWG URL 標準化之 ::ffff:7f00:1)
-  if (normalized.startsWith("::ffff:")) {
-    const remainder = normalized.substring(7);
-    if (net.isIPv4(remainder)) {
-      return isPrivateIPv4(remainder);
-    }
-    const hexParts = remainder.split(":");
-    if (hexParts.length === 2) {
-      const hi = parseInt(hexParts[0], 16);
-      const lo = parseInt(hexParts[1], 16);
-      if (!isNaN(hi) && !isNaN(lo)) {
-        const b0 = (hi >> 8) & 0xff;
-        const b1 = hi & 0xff;
-        const b2 = (lo >> 8) & 0xff;
-        const b3 = lo & 0xff;
-        return isPrivateIPv4(`${b0}.${b1}.${b2}.${b3}`);
-      }
-    }
+  const value = parseIPv6(ip);
+  if (value === null) return true; // 格式異常視為不安全
+  const upper96 = value >> 32n;
+  // IPv4-compatible (::/96) 與 IPv4-mapped (::ffff:0:0/96) 轉交 IPv4 檢查
+  if (upper96 === 0n || upper96 === 0xffffn) {
+    return inCidrV4FromUint(Number(value & 0xffffffffn));
   }
-
-  // Loopback (::1) & Unspecified (::)
-  if (normalized === "::1" || normalized === "::" || normalized === "0:0:0:0:0:0:0:1" || normalized === "0:0:0:0:0:0:0:0") {
-    return true;
-  }
-
-  // Unique Local Address (fc00::/7 -> fc00 to fdff)
-  if (normalized.startsWith("fc") || normalized.startsWith("fd")) {
-    return true;
-  }
-
-  // Link-Local (fe80::/10)
-  if (normalized.startsWith("fe8") || normalized.startsWith("fe9") || normalized.startsWith("fea") || normalized.startsWith("feb")) {
-    return true;
-  }
-
-  // Multicast (ff00::/8)
-  if (normalized.startsWith("ff")) {
-    return true;
-  }
-
-  // Documentation (2001:db8::/32)
-  if (normalized.startsWith("2001:db8") || normalized.startsWith("2001:0db8")) {
-    return true;
-  }
-
-  return false;
+  return PRIVATE_V6_CIDRS.some(([base, prefix]) => inCidrV6(value, base, prefix));
 }
 
 /**
