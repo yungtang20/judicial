@@ -429,6 +429,7 @@ export function renderTemplate(
 
     return {
       success: true,
+      documentText: newContentXml,
       documentBase64: outputBuf.toString('base64'),
       fileName: outputFileName,
       mimeType: 'application/vnd.oasis.opendocument.text',

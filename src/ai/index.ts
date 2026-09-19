@@ -3,3 +3,4 @@ export * from './providers/AgnesProvider.js';
 export * from './providers/GeminiProvider.js';
 export * from './providers/OpenAICompatibleProvider.js';
 export * from './providers/providerRegistry.js';
+export * from './embedding/Embedder.js';

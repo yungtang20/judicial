@@ -9,7 +9,8 @@ import {
   LegalSearchSources,
   LegalPromptContext
 } from "../../src/lib/twLegalRagClient.js";
-import { LegalEmbedder, defaultEmbedder } from "../services/legalRetrieval.js";
+import { defaultEmbedder } from "../services/legalRetrieval.js";
+import { Embedder } from "../../src/ai/embedding/Embedder.js";
 
 function cosineSimilarity(a: number[], b: number[]): number {
   if (!a || !b || a.length !== b.length || a.length === 0) return 0;
@@ -66,14 +67,14 @@ function extractRelevantExcerpt(fullText: string, query: string, maxLength = 200
 }
 
 export interface LocalKnowledgeBaseOptions {
-  embedder?: LegalEmbedder;
+  embedder?: Embedder;
   statutesPath?: string;
   interpretationsPath?: string;
 }
 
 export class LocalLegalKnowledgeBase {
   private items: LegalKnowledgeItem[] = [];
-  private embedder: LegalEmbedder;
+  private embedder: Embedder;
   private initialized = false;
   private initPromise: Promise<void> | null = null;
 

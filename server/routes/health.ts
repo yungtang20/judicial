@@ -1,12 +1,12 @@
 import { Router, Request, Response } from "express";
-import { defaultAIProvider as defaultGeminiProvider } from "../../src/ai/providers/providerRegistry.js";
+import { defaultAIProvider as configuredAIProvider } from "../../src/ai/providers/providerRegistry.js";
 import { LEGAL_TOOLS } from "../../src/lib/legalToolRegistry.js";
 import { AuditLogService } from "../services/auditLog.js";
 
 const router = Router();
 
 router.get("/api/health", async (req: Request, res: Response) => {
-  const providerStatus = await defaultGeminiProvider.healthCheck();
+  const providerStatus = await configuredAIProvider.healthCheck();
   const tlrEnabled = process.env.TLR_ENABLED === 'true';
   const auditPersistence = AuditLogService.getPersistenceStatus();
   res.json({

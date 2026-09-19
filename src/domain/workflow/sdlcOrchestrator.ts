@@ -4,7 +4,7 @@
  */
 
 import { AIProvider } from '../../ai/providers/AIProvider';
-import { defaultAIProvider as defaultGeminiProvider } from '../../ai/providers/providerRegistry';
+import { defaultAIProvider as configuredAIProvider } from '../../ai/providers/providerRegistry';
 import {
   SdlcStageId,
   SdlcProjectState,
@@ -24,7 +24,7 @@ import { AuditLogRepository, defaultAuditLogger } from './auditEvent';
 export class SdlcOrchestrator {
   constructor(
     private repository: SdlcProjectRepository = defaultSdlcRepository,
-    private aiProvider: AIProvider = defaultGeminiProvider,
+    private aiProvider: AIProvider = configuredAIProvider,
     private auditLogger: AuditLogRepository = defaultAuditLogger
   ) {}
 

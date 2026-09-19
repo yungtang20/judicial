@@ -1,7 +1,8 @@
-import { GoogleGenAI } from "@google/genai";
 import { createRequire } from "node:module";
 import path from "node:path";
 import fs from "node:fs";
+import { GoogleGenAI } from "@google/genai";
+import { Embedder } from "../../src/ai/embedding/Embedder.js";
 
 let DatabaseSync: any;
 try {
@@ -116,7 +117,7 @@ export function cosineSimilarity(a: number[], b: number[]): number {
   return dot / denom;
 }
 
-export class LegalEmbedder {
+export class LegalEmbedder implements Embedder {
   private apiKey?: string;
 
   constructor() {
@@ -268,7 +269,7 @@ export const defaultVectorStore: VectorStore = new SQLiteVectorStore(defaultDbPa
 export async function indexDocument(
   doc: DocumentInput,
   vectorStore: VectorStore = defaultVectorStore,
-  embedder: LegalEmbedder = defaultEmbedder
+  embedder: Embedder = defaultEmbedder
 ): Promise<void> {
   const embeddingText = `${doc.citation} ${doc.fullText}`;
   const embedding = await embedder.embed(embeddingText);
@@ -329,7 +330,7 @@ export interface RetrieveOptions {
   source?: 'statute' | 'judgment';
   minScore?: number;
   vectorStore?: VectorStore;
-  embedder?: LegalEmbedder;
+  embedder?: Embedder;
   caseType?: string;
   category?: string;
   isSensitive?: boolean;
