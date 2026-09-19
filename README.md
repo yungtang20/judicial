@@ -100,10 +100,27 @@ CI 門檻（全部通過才算可上線）：
 
 ```bash
 npm run lint            # TypeScript 型別檢查
-npm test                # 全測試（668+）
+npm test                # 全測試（696 項 / 93 檔）
 npm run test:coverage   # 覆蓋率（stmts ≥85%, lines ≥85%, branches ≥75%, funcs ≥90%）
 npm run test:eval       # 法治治理回歸（13 項）
 npm run test:e2e        # 生命週期端到端（2 項）
 npm run test:ssrf       # SSRF 防禦（21 高風險網址阻擋）
 npm run build           # Vite + esbuild 產檔
 ```
+
+## 上線前壓力測試紀錄（2026-09-19）
+
+Production 模式本機實測（`NODE_ENV=production`、`AUDIT_DB_PATH=:memory:`、無 AI 金鑰）：
+
+| 測試 | 結果 |
+|---|---|
+| `tsx scripts/stress-official-template-source.mjs`（685 範本、120 併發、8 項 adversarial） | PASS：p50 195ms / p95 222ms / max 223ms，manifest 雜湊無漂移 |
+| 15 併發、235 請求混載（triage / verify-citations / defense / workflow / fetch-url / audit） | PASS：0 個 5xx、0 個連線失敗；429 為速率限制器預期行為（300 次／15 分／IP） |
+| 4 worker × 30 秒持續負載（32,095 請求、≈1070 rps） | PASS：0 個 5xx、0 個連線失敗；429 皆為速率限制器生效 |
+| 全端點人類模擬（auth→triage→toolbox P9 起訴狀→workflow→analyze-judgment→judicial fetch→external-citations→audit） | PASS：所有端點回傳預期結構；`fetch-url` 對 `169.254.169.254` 回 400 `SSRF_BLOCKED`；跨 tenant 審日誌隔離驗證通過 |
+
+已知環境限制（非程式 bug）：
+
+- 未設定 AI 金鑰時，`agent-chat`／`suggest-field` 回 503、toolbox 生成走規則式備援或 `PRODUCTION_TOOLBOX_FALLBACK_BLOCKED`（fail-closed 設計）；部署時於 Render 設定 `AGNES_API_KEY` 即恢復。
+- `legal-search` 於 `TLR_ENABLED` 未開時回 `enabled:false`（预期）。
+- 共享速率限制 300 次／15 分／IP 為防濫用常數；高併發情境 429 属正常，非故障。
