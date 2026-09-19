@@ -1,132 +1,48 @@
-import { UNIVERSAL_SYLLOGISM_RULES } from './universal-syllogism.js';
+import { UNIVERSAL_SYLLOGISM_RULES } from "./universal-syllogism.js";
 
-export function getGenerateAppealPetitionPrompt(body: any): string {
-  const {
-    caseType,
-    courtName,
-    appealCourtName,
-    caseNo,
-    sectionCode,
-    claimAmount,
-    claims,
-    appellantName,
-    appellantRole,
-    appellantId,
-    appellantAddress,
-    appellantPhone,
-    appellantLegalRep,
-    appelleeName,
-    appelleeRole,
-    appelleeAddress,
-    deliveryAgent,
-    deliveryAddress,
-    judgmentDeliveryDate,
-    issues,
-    evidences,
-    selectedPrecedents
-  } = body;
-
-  let petitionTitle = "民事上訴理由狀";
-  let proceduralLawRef = "依民事訴訟法第 441 條規定";
-
-  if (caseType === "criminal") {
-    petitionTitle = "刑事上訴理由狀";
-    proceduralLawRef = "依刑事訴訟法第 361 條規定";
-  } else if (caseType === "administrative") {
-    petitionTitle = "行政訴訟上訴狀（兼上訴理由狀）";
-    proceduralLawRef = "依行政訴訟法第 244 條規定";
-  } else if (caseType === "criminal_compensation") {
-    petitionTitle = "刑事補償覆審聲請狀";
-    proceduralLawRef = "依刑事補償法第 17 條第 1 項規定";
-  }
-
-  const formattedIssues = Array.isArray(issues) && issues.length > 0
-    ? issues.map((item: any, idx: number) => {
-        const strengthLabel = item.legalStrength === 'NEED_SUPPLEMENT' 
-          ? '【⚠️ 需補充證據爭點】（請於書狀中指摘原審事實認定證據不足，並結合聲請調查證據表請求法院調查）' 
-          : '【🎯 重點攻擊爭點】（請於書狀中重點深入論述，引用權威判例/實務見解精準打擊）';
-        return `（${idx + 1}）爭點【${item.title || `爭點 ${idx + 1}`}】 ${strengthLabel}：
-- 原審認定指摘：${item.originalHolding || "未審酌相關事證"}
-- 我方上訴攻擊理由：${item.appealArgument || "認定顯有違背經驗法則與論理法則"}
-- 對應證據編號：${item.relatedEvidenceCodes || "詳如聲請調查證據表"}
-- 援引法條/判解依據：${item.legalBasis || "訴訟法相關規定"}`;
-      }).join("\n")
-    : "（無特定爭點，請全盤指摘原審判決違背法令與認定瑕疵）";
-
-  const formattedEvidences = Array.isArray(evidences) && evidences.length > 0
-    ? evidences.map((item: any, idx: number) => `調查證據聲請第【${item.code || item.index || idx + 1}】項：
-- 所涉爭點：${item.relatedIssue || item.relatedIssueTitle || "本案事實認定"}
-- 調查事項：${item.investigationItem || item.method || "訊問證人/函調資料"}
-- 調查對象：${item.investigationTarget || item.target || "詳卷/機關單位"}
-- 對象地址及聯絡方式：${item.targetAddress || item.holder || "詳卷內通訊錄"}
-- 待證事實（限50字）：${item.provenFact || "證明本案關鍵事實"}`).join("\n")
-    : "（證物一：原裁判書影本乙份）";
-
-  const formattedPrecedents = Array.isArray(selectedPrecedents) && selectedPrecedents.length > 0
-    ? selectedPrecedents.map((item: any, idx: number) => `【援引權威見解 ${idx + 1}】：${item.citation || "最高法院判決"}
-- 要旨與核心理由：${item.summary || ""}
-- 運用於本案：${item.applicationReason || ""}`).join("\n")
-    : "（請依通用實務見解論證）";
+export function getGenerateAppealPetitionPrompt(data: any): string {
+  const caseNo = data.caseNo || "113年度上字第123號";
+  const caseType = data.caseType || "CIVIL";
+  const courtName = data.courtName || "臺灣高等法院";
+  const appealCourtName = data.appealCourtName || courtName;
+  const appellantName = data.appellantName || "上訴人";
+  const appellantRole = data.appellantRole || "上訴人";
+  const appelleeName = data.appelleeName || "被上訴人";
+  const appelleeRole = data.appelleeRole || "被上訴人";
+  const claims = typeof data.claims === "string" ? data.claims : JSON.stringify(data.claims || "原判決不利於上訴人部分廢棄");
+  const judgmentSummary = typeof data.judgmentSummary === "string" ? data.judgmentSummary : JSON.stringify(data.judgmentSummary || "原審判決認事用法顯有未盡之處");
+  const issues = Array.isArray(data.issues) ? data.issues.map((i: any) => typeof i === "string" ? i : (i.title || i.point || JSON.stringify(i))).join("\n") : (data.issues || "原審認定事實未憑客觀證據");
+  const evidences = Array.isArray(data.evidences) ? data.evidences.map((e: any) => typeof e === "string" ? e : (e.investigationItem || e.provenFact || JSON.stringify(e))).join("\n") : "";
+  const precedents = Array.isArray(data.selectedPrecedents) ? data.selectedPrecedents.map((p: any) => typeof p === "string" ? p : (p.citation || p.title || JSON.stringify(p))).join("\n") : "";
 
   return `${UNIVERSAL_SYLLOGISM_RULES}
-你是一位精通台灣訴訟實務與司法院標準書狀規範之資深律師。請為當事人撰寫一份符合司法院訴訟書狀範例規格之正式 ${petitionTitle}。
+你是一位精通台灣上訴審訴訟實務的資深訴訟律師。請依據下列第一審裁判爭點、上訴人主張及事證資料，撰寫一份嚴謹、專業且完全符合台灣法院書狀慣例的上訴理由狀。
 
-【訴訟書狀格式與法律公文規範】：
+【案件基本資訊】
+- 案由案號：${caseNo}
+- 原審法院：${courtName}
+- 管轄上訴法院：${appealCourtName}
+- 上訴人：${appellantName}（稱謂：${appellantRole}）
+- 被上訴人：${appelleeName}（稱謂：${appelleeRole}）
+- 訴訟類型：${caseType}
 
-一、狀頭標題（置中粗體）：
-   頁首正中間標示正式書狀名稱「${petitionTitle}」。
+【原審裁判摘要與認定缺失】
+${judgmentSummary}
 
-二、案號與股別標註（右上角）：
-   - 案號：${caseNo || "○○年度○○字第○○號"}
-   - 股別：${sectionCode || "○股"}
-   ${caseType === 'criminal_compensation' ? `- 案由：刑事補償事件` : caseType !== 'criminal' ? `- 訴訟標的金額：${claimAmount || "新臺幣 ○○○○ 元"}` : `- 案由：${claims || "○○事件"}`}
+【上訴之聲明與廢棄範圍】
+${claims}
 
-三、當事人完整表格欄（必須完整條列，符合司法院標準格式）：
-   - ${appellantRole || (caseType === 'criminal_compensation' ? "補償請求人" : "上訴人")}（即原告/被告/受判決人）：${appellantName || "○○○"}
-     身分證字號/統編：${appellantId || "詳卷"}
-     性別/出生年月日：詳卷
-     住居所/戶籍地：${appellantAddress || "詳卷"}
-     送達處所/電話：${appellantPhone || "詳卷"}
-     ${appellantLegalRep ? `法定代理人：${appellantLegalRep}` : ''}
-   - ${appelleeRole || (caseType === 'criminal_compensation' ? "原決定機關" : "被上訴人")}：${appelleeName || (caseType === 'criminal_compensation' ? courtName : "○○○")}
-     ${caseType !== 'criminal_compensation' ? `住居所/機關所在地：${appelleeAddress || "詳卷"}` : ''}
-   ${deliveryAgent ? `- 送達代收人：${deliveryAgent}，送達處所：${deliveryAddress || appellantAddress}` : ''}
+【原判決違背法令與事實爭點】
+${issues}
 
-四、案由與前言（開宗明義）：
-   ${caseType === 'criminal_compensation'
-     ? `為不服 ${courtName || "原決定機關"} 民國 ○○ 年 ○ 月 ○ 日宣辦之 ${caseNo || "○○年度刑補字第○○號"} 刑事補償決定，於法定 20 日不變期間內，${proceduralLawRef}，依法聲請覆審事：`
-     : `為不服 ${courtName || "臺灣○○地方法院"} 民國 ○○ 年 ○ 月 ○ 日宣判之 ${caseNo || "○○年度○○字第○○號"} 第一審判決，於法定 20 日不變期間內，${proceduralLawRef}，依法提起上訴事：`
-   }
+${evidences ? `【相關證據與調查聲請】\n${evidences}\n` : ""}
+${precedents ? `【引註實務裁判與判例見解】\n${precedents}\n` : ""}
 
-五、訴之聲明（或上訴之聲明 / 覆審聲明）：
-   ${caseType === 'criminal_compensation'
-     ? `一、原決定關於准予補償每日折算金額過低部分廢棄。\n二、上開廢棄部分，請准予改按每日新臺幣 5,000 元或適當高額折算補償。`
-     : `一、原判決廢棄。\n二、${claims || "上開廢棄部分，被上訴人在第一審之訴及假執行之聲請均駁回。"}\n三、第一、二審訴訟費用由被上訴人負擔。`
-   }
+【書狀撰寫要求】
+1. 嚴格依照法院書狀標準格式，包含：書狀名稱（如「民事上訴理由狀」或「刑事上訴理由狀」）、案號股別、當事人欄位、上訴聲明、事實及理由、證據清單、管轄法院結語與具狀日期署名。
+2. 嚴格落實「三段論法」（大前提：構成要件與法律原則；小前提：案件事實與原審違誤；涵攝：具體指駁原判決如何不當或違法；結論：請求廢棄或改判之法律效果）。
+3. 嚴格禁止虛構或捏造任何不存在之法條與裁判字號（Fail-Closed 防幻覺規則）。
+4. 針對原審判決認定事實不憑證據、違背採證法則（民事訴訟法第277條、經驗法則、論理法則等）進行精準反駁。
 
-六、事實及理由（訴訟攻防核心——三位一體扣合）：
-   （一）程序事項（上訴合法性）：
-         具狀人於民國 ${judgmentDeliveryDate || "○○年○月○日"} 收受原裁判/決定書，扣除在途期間，於法定 20 日不變期間內依法提出，程序完全合法，合先敘明。
-   （二）實體上訴理由（爭點剖析與指摘原審瑕疵）：
-         請將以下爭點，逐一結合【原審認定瑕疵】+【我方客觀證據】+【權威實務見解/函釋背書】，嚴密論述：
-${formattedIssues}
-   （三）援引權威實務見解背書（憲法法庭判決/最高法院/大法庭/高等法院座談會/主管機關函釋）：
-${formattedPrecedents}
-
-七、證據名稱及件數（聲請調查證據表，完全依司法院書狀附件格式）：
-${formattedEvidences}
-
-八、狀尾送達機關轉呈與簽章欄（標準公文結尾）：
-   此致
-   ${courtName || "原決定機關"} 轉呈
-   ${appealCourtName || (caseType === 'criminal_compensation' ? "司法院刑事補償法庭" : "臺灣高等法院")} 公鑒
-
-   附繳證物名稱及件數：${Array.isArray(evidences) && evidences.length > 0 ? evidences.map((e: any) => `${e.code || '證物'}（影本）乙份`).join('、') : '證物一（影本）乙份'}
-
-   具狀人：${appellantName || "○○○"} （簽名蓋章）
-   撰狀人/訴訟代理人：○○○ 律師 （簽名蓋章）
-
-   中華民國 ○○○ 年 ○ 月 ○ 日
-
-請直接輸出極度嚴謹、無任何贅言、符合司法院書狀規範格式之正式全文內容。`;
+請直接輸出完整之上訴書狀全文：`;
 }

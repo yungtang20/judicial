@@ -34,7 +34,32 @@ const SECTION_TITLES: Readonly<Record<string, string>> = {
   complaint_parties: '起訴當事人',
   subject_and_facts: '訴訟標的及原因事實',
   judgment_relief: '應受判決事項之聲明',
-  complaint_optional_details: '起訴狀宜記載事項'
+  complaint_optional_details: '起訴狀宜記載事項',
+  answer_facts_and_reasons: '答辯之事實及理由',
+  opponent_position: '對他造主張及證據之陳述',
+  documentary_evidence_copies: '書證影本',
+  direct_notice: '直接通知他造',
+  first_instance_judgment_and_appeal_statement: '原判決及上訴陳述',
+  appeal_disposition: '不服程度及應如何廢棄或變更之聲明',
+  appeal_reasons: '上訴理由',
+  appeal_supporting_facts_and_evidence: '上訴理由之事實及證據',
+  violated_law: '原判決違背之法令及具體內容',
+  record_facts: '訴訟資料所示之具體事實',
+  principled_importance_reason: '法律見解原則重要性',
+  appellate_interest: '上訴所得利益',
+  interlocutory_appeal_reasons: '抗告理由',
+  challenged_judgment_and_retrial_statement: '不服判決及再審陳述',
+  retrial_disposition: '再審聲明',
+  retrial_reasons_and_time_limit_evidence: '再審理由及不變期間證據',
+  hearing_preparation: '言詞辯論準備事項',
+  final_judgment_copy: '確定終局判決繕本或影本',
+  copies: '書狀繕本',
+  necessary_evidence: '上訴理由之必要證據',
+  request_and_facts: '聲請意旨及原因事實',
+  right_to_be_realized: '請求實現之權利',
+  enforcement_target: '執行標的物',
+  requested_enforcement_action: '應為之執行行為',
+  enforcement_title_documents: '執行名義證明文件'
 };
 
 function text(value: unknown): string {
@@ -142,7 +167,16 @@ function referencedEvidence(input: CaseInput) {
 function sectionValues(input: CaseInput): Record<string, SectionValue> {
   const partySection = renderParties(input, false);
   const claimSection = renderClaims(input);
+  const suppliedSections = Object.fromEntries(
+    Object.entries(input.sectionInputs || {}).map(([id, value]) => [id, {
+      content: text(value?.content),
+      sourceClaimIds: value?.sourceClaimIds,
+      sourceFactIds: value?.sourceFactIds,
+      sourceEvidenceIds: value?.sourceEvidenceIds
+    }])
+  );
   return {
+    ...suppliedSections,
     parties: partySection,
     representatives: renderParties(input, true),
     proceeding: { content: text(input.proceeding) },
@@ -212,6 +246,36 @@ function sourceFindings(input: CaseInput): MissingInput[] {
 
   const evidenceIds = new Set((Array.isArray(input.evidence) ? input.evidence : []).map(item => item.id));
   const factIds = new Set((Array.isArray(input.facts) ? input.facts : []).map(item => item.id));
+  const claimInputIds = new Set((Array.isArray(input.claims) ? input.claims : []).map(item => item.id));
+  if (input.sectionInputs !== undefined && (
+    !input.sectionInputs || typeof input.sectionInputs !== 'object' || Array.isArray(input.sectionInputs)
+  )) {
+    findings.push(
+      missing('sectionInputs', '書狀區段輸入必須是物件。', requiredFor, 'MINIMUM_GENERATION', 'BLOCKING')
+    );
+  } else {
+    Object.entries(input.sectionInputs || {}).forEach(([sectionId, section]) => {
+      for (const [field, ids, allowed] of [
+        ['sourceClaimIds', section?.sourceClaimIds, claimInputIds],
+        ['sourceFactIds', section?.sourceFactIds, factIds],
+        ['sourceEvidenceIds', section?.sourceEvidenceIds, evidenceIds]
+      ] as const) {
+        ids?.forEach((id, index) => {
+          if (!allowed.has(id)) {
+            findings.push(
+              missing(
+                `sectionInputs.${sectionId}.${field}[${index}]`,
+                '書狀區段引用的來源 ID 無法回查。',
+                requiredFor,
+                'TRACEABILITY',
+                'BLOCKING'
+              )
+            );
+          }
+        });
+      }
+    });
+  }
   (Array.isArray(input.facts) ? input.facts : []).forEach((fact, index) => {
     if (!fact.sourceLevel) {
       findings.push(
@@ -361,6 +425,14 @@ function requiredFields(targetSection: string, input: CaseInput, value: SectionV
         : [])
     ]);
   }
+  if (targetSection === 'party_identifiers' && input.caseType === 'non_contentious') {
+    return parties(input).flatMap((party, index) =>
+      ['sex', 'birthDate', 'nationalId', 'occupation'].map(key => ({
+        field: `parties[${index}].identifiers.${key}`,
+        value: text(party.identifiers?.[key])
+      }))
+    );
+  }
   if (Object.hasOwn(SECTION_TITLES, targetSection)) {
     return [{ field: targetSection, value: value.content }];
   }
@@ -441,7 +513,7 @@ function ruleFindings(
       .filter(field => !text(field.value))
       .forEach(field =>
         findings.push(
-          missing(field.field, '缺少對應案件資料；Generator 未填入未提供內容。', requiredFor, 'LEGAL_COMPLETENESS', 'HIGH', rule.id)
+          missing(field.field, '缺少對應案件資料。', requiredFor, 'LEGAL_COMPLETENESS', 'BLOCKING', rule.id)
         )
       );
   }
@@ -499,7 +571,7 @@ export function buildStructuredPleadingDraft(
       ruleProfileId: ruleProfile.id,
       applicableRuleIds: applicableRules.map(rule => rule.id),
       minimumGenerationThresholdMet: !missingInputs.some(
-        item => item.category !== 'LEGAL_COMPLETENESS' && item.severity === 'BLOCKING'
+        item => item.severity === 'BLOCKING'
       )
     }
   };
