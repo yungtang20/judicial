@@ -14,3 +14,5 @@ audit/agent-run/PHASE_HEAD.txt
 audit/agent-run/RUN_COUNTERS.txt
 audit/agent-run/RUN_ID.txt
 audit/agent-run/FINAL_REPORT_20260919_030911.md
+audit/agent-run/BLOCKED_REPORT_20260919_030911.md
+src/components/toolbox/ToolboxClassification.test.tsx

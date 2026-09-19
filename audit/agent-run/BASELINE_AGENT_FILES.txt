@@ -1,0 +1,9 @@
+D:\工作用\judicial\audit\agent-run\BASELINE_AGENT_FILES.txt
+D:\工作用\judicial\audit\agent-run\BASELINE_COMMIT_COUNT.txt
+D:\工作用\judicial\audit\agent-run\BASELINE_dirty_files.txt
+D:\工作用\judicial\audit\agent-run\BASELINE_DIVERGENCE.txt
+D:\工作用\judicial\audit\agent-run\BASELINE_git_status.txt
+D:\工作用\judicial\audit\agent-run\BASELINE_HEAD.txt
+D:\工作用\judicial\audit\agent-run\BASELINE_staged_files.txt
+D:\工作用\judicial\audit\agent-run\RUN_COUNTERS.txt
+D:\工作用\judicial\audit\agent-run\RUN_ID.txt

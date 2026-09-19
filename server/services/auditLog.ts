@@ -55,6 +55,7 @@ export class AuditLogService {
     try {
       if (DatabaseSync) {
         const dbPath = process.env.AUDIT_DB_PATH || path.resolve(process.cwd(), "data", "audit_logs.sqlite");
+        this.activeDbPath = dbPath;
         const dir = path.dirname(dbPath);
         if (!fs.existsSync(dir)) {
           fs.mkdirSync(dir, { recursive: true });
@@ -91,11 +92,14 @@ export class AuditLogService {
     }
   }
 
-  public static getPersistenceStatus(): { mode: "sqlite" | "memory"; durable: boolean; error?: string } {
+  private static activeDbPath: string | undefined;
+
+  public static getPersistenceStatus(): { mode: "sqlite" | "memory"; durable: boolean; error?: string; path?: string } {
     this.initDb();
-    const configuredPath = process.env.AUDIT_DB_PATH || "";
-    const durable = this.persistenceMode === "sqlite" && configuredPath !== ":memory:" && Boolean(configuredPath);
-    return { mode: this.persistenceMode, durable, error: this.persistenceError };
+    // durable = 實際寫入非 :memory: 的磁碟路徑。fallback 至 data/audit_logs.sqlite
+    // 亦為磁碟持久化；是否長期保留取決於部署環境 (Render 無 persistent disk 會清除)。
+    const durable = this.persistenceMode === "sqlite" && this.activeDbPath !== undefined && this.activeDbPath !== ":memory:";
+    return { mode: this.persistenceMode, durable, error: this.persistenceError, path: this.activeDbPath };
   }
 
   /**

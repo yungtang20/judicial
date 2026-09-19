@@ -24,6 +24,9 @@ patch_*.py
 patch_*.cjs
 odt-probe.ts
 tmp/
+
+# Tool-local agent config (self-ignores its node_modules)
+.opencode/
 patch_*.sh
 update_*.py
 update_*.cjs
