@@ -1,4 +1,4 @@
-import { DefenseTriageResult, MineScanResult } from '../types';
+import { DefenseTriageResult, MineScanResult, GeneratedPleadingResult } from '../types';
 
 export function buildFallbackDefenseTriage(
   clientInput: string,
@@ -132,6 +132,7 @@ export function buildFallbackDefenseTriage(
     isFallback: true
   };
 }
+
 export function buildFallbackMineScan(clientInput: string): MineScanResult {
   const mines: any[] = [];
   
@@ -207,4 +208,117 @@ export function buildFallbackMineScan(clientInput: string): MineScanResult {
       .replace(/不是不還[^，。]+[，。]?/g, '雙方債權債務尚未依法結算釐清。'),
     isFallback: true
   };
+}
+
+export function buildFallbackDefensePleading(
+  pleadingType: 'LAWYER_PLEADING' | 'CLIENT_PERSONAL_REPORT',
+  clientInput: string,
+  caseInfo: {
+    caseType: string;
+    courtName: string;
+    caseNo: string;
+    clientRole: string;
+    clientName: string;
+    opponentRole: string;
+    opponentName: string;
+    lawyerName?: string;
+  }
+): GeneratedPleadingResult {
+  const isLawyer = pleadingType === 'LAWYER_PLEADING';
+  const court = caseInfo.courtName || '臺灣臺北地方法院';
+  const caseNo = caseInfo.caseNo || '113年度訴字第1234號';
+  const clientName = caseInfo.clientName || '當事人';
+  const clientRole = caseInfo.clientRole || '被告';
+  const oppName = caseInfo.opponentName || '相對人';
+  const oppRole = caseInfo.opponentRole || '原告';
+  const lawyer = caseInfo.lawyerName || '訴訟代理人律師';
+
+  if (isLawyer) {
+    const text = `民事準備書狀
+案號：${caseNo}
+股別：平股
+原告：${oppName}
+被告（即具狀人）：${clientName}
+訴訟代理人：${lawyer}
+
+為就上述當事人間請求給付事件，依法提出民事準備書狀事：
+
+壹、答辯聲明
+一、原告之訴及假執行之聲請均駁回。
+二、訴訟費用由原告負擔。
+三、如受不利判決，願供擔保請准宣告免為假執行。
+
+貳、實體答辯理由
+一、原告主張兩造間成立消費借貸關係，顯屬無據，且未盡舉證責任：
+（一）按「當事人主張有利於己之事實者，就其事實有舉證之責任。」民事訴訟法第 277 條本文定有明文。又民法第 474 條規定，消費借貸契約之成立，須當事人間有借貸之「合意」及金錢之「交付」。
+（二）查被告雖曾收受款項，然此實係兩造過往業務合作代墊款之結算退款，兩造間從未就「消費借貸」達成任何意思表示之合致。原告單憑匯款單據即遽指兩造間有借貸關係，自屬無稽。
+
+二、被告從未承認原告主張之債權，原告請求權若屬實亦已罹於消滅時效：
+原告所指稱之款項發生迄今已逾法定請求權時效，被告依法行使消滅時效抗辯權，拒絕給付。
+
+參、聲請調查證據
+請  貴院依職權向相關金融機構函調兩造帳戶於爭端期間之完整往來交易明細，以釐清款項之真實法律關係。
+
+此  致
+${court}  公鑑
+
+具狀人即被告：${clientName}
+訴訟代理人：${lawyer}  （簽名蓋章）
+
+中華民國 115 年 ${new Date().getMonth() + 1} 月 ${new Date().getDate()} 日
+`;
+
+    return {
+      pleadingType: 'LAWYER_PLEADING',
+      title: '民事準備書狀',
+      courtName: court,
+      caseNo,
+      submitter: `被告 ${clientName}（訴訟代理人：${lawyer}）`,
+      pleadingText: text,
+      disclaimer: '本狀由訴訟代理人律師具狀簽章，代表專業訴訟代理責任。',
+      signatoryRole: `訴訟代理人：${lawyer}`,
+      isFallback: true
+    };
+  } else {
+    const text = `民事陳報個人意見狀
+案號：${caseNo}
+承辦股別：平股
+原告：${oppName}
+被告（陳報人）：${clientName}
+
+為就上述事件，陳報人本於個人認知與事實原委，如實向 鈞院陳報個人意見與心聲事：
+
+一、陳報人與原告往來之真實生活背景與事件原委：
+陳報人${clientName}面對本件訴訟，內心深感痛心與遺憾。回溯當初雙方之接觸，實係基於彼此信任之合作往來。陳報人秉持誠信原則處理各項事務，從未有任何欺瞞或惡意損害對造利益之意圖。
+
+二、針對對造起訴主張與事實出入之說明：
+（一）對造起訴所指稱之情節，有諸多關鍵時點與對話脈絡遭刻意忽略與曲解。
+（二）${clientInput ? clientInput.slice(0, 400) : '陳報人依個人記憶，當時雙方之約定與交付實情並非如對造所陳述。懇請 鈞院能體察全案之真實脈絡，而非僅依對造單方之說詞為斷。'}
+
+三、陳報人之個人心聲與請求：
+陳報人為一介平民，面對繁複之司法程序甚感惶恐。今日特具狀向 鈞院呈報個人內心之真實想法與經過，期盼 鈞院法官明察秋毫，體恤小民之困境與清白，賜予公正之裁判。
+
+【重要陳報聲明】
+本陳報狀係陳報人即當事人本人出於自由意志，本於個人之記憶與認知，向 貴院如實陳述本案糾葛之原委與個人意見。本陳報狀純屬當事人個人之主觀陳述與心聲表達，本案受任律師及訴訟代理人未參與本陳報狀之具名，亦不就本陳報內容予以法律背書。懇請 貴院惠予體察實情，明察秋毫。
+
+謹   狀
+${court}  公鑑
+
+陳報人即${clientRole}：${clientName} （親筆簽名捺印）
+
+中華民國 115 年 ${new Date().getMonth() + 1} 月 ${new Date().getDate()} 日
+`;
+
+    return {
+      pleadingType: 'CLIENT_PERSONAL_REPORT',
+      title: '民事陳報個人意見狀',
+      courtName: court,
+      caseNo,
+      submitter: `陳報人即${clientRole}：${clientName}（個人具名）`,
+      pleadingText: text,
+      disclaimer: '【責任隔離】本狀由當事人個人具名簽章陳報，律師不列名、不背書。',
+      signatoryRole: `陳報人：${clientName}（本人親簽）`,
+      isFallback: true
+    };
+  }
 }

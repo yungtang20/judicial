@@ -17,6 +17,7 @@ export interface ToolDefinition {
   toolType: ToolType;
   icon: any;
   legalBasis: string;
+  officialSourceUrl?: string;
   isNew?: boolean;
 }
 

@@ -30,15 +30,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = (props) => {
                     setShowDocTypeModal(false);
                     saveCrossFeatureContext({
                       documentType: 'appeal',
+                      facts: workflowState?.userNarrative || '',
                       partyName: workflowState?.router?.cause || '',
                       scenarioKeywords: workflowState?.router?.cause || '',
                       domain: workflowState?.router?.domain,
                       cause: workflowState?.router?.cause,
-                      facts: workflowState?.userNarrative || '',
-                      verificationStatus: workflowState?.verification?.verificationStatus,
                       sourceTool: 'unified'
                     });
-                    handleSelectTool('appeal', 'appeal', { initialTab: 'appeal', facts: workflowState?.userNarrative || '' });
+                    handleSelectTool('appeal', 'appeal', { initialTab: 'appeal' });
                   }}
                   className="w-full text-left p-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors"
                 >
@@ -50,20 +49,39 @@ export const SettingsModal: React.FC<SettingsModalProps> = (props) => {
                     setShowDocTypeModal(false);
                     saveCrossFeatureContext({
                       documentType: 'demand_letter',
+                      facts: workflowState?.userNarrative || '',
                       partyName: workflowState?.router?.cause || '',
                       scenarioKeywords: workflowState?.router?.cause || '',
                       domain: workflowState?.router?.domain,
                       cause: workflowState?.router?.cause,
-                      facts: workflowState?.userNarrative || '',
-                      verificationStatus: workflowState?.verification?.verificationStatus,
                       sourceTool: 'unified'
                     });
-                    handleSelectTool('litigation', undefined, { initialTab: 'toolbox', preselectedToolId: 'CIVIL_DEMAND_LETTER_GENERAL', facts: workflowState?.userNarrative || '' });
+                    handleSelectTool('litigation', undefined, { initialTab: 'toolbox', preselectedToolId: 'DEMAND_LETTER_GENERAL', facts: workflowState?.userNarrative || '' });
                   }}
                   className="w-full text-left p-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors"
                 >
                   <div className="font-bold text-sm text-white">存證信函</div>
                   <div className="text-xs text-[var(--color-text-muted)] mt-1">以正式書面通知對方，留存法律證據</div>
+                </button>
+                <button
+                  onClick={() => {
+                    setShowDocTypeModal(false);
+                    saveCrossFeatureContext({
+                      documentType: 'civil_complaint',
+                      facts: workflowState?.userNarrative || '',
+                      scenarioKeywords: workflowState?.router?.cause || '',
+                      domain: workflowState?.router?.domain,
+                      cause: workflowState?.router?.cause,
+                      sourceTool: 'unified',
+                      preselectedToolId: 'CIVIL_COMPLAINT_GENERAL',
+                      initialTab: 'toolbox'
+                    });
+                    handleSelectTool('litigation', undefined, { initialTab: 'toolbox', preselectedToolId: 'CIVIL_COMPLAINT_GENERAL', facts: workflowState?.userNarrative || '' });
+                  }}
+                  className="w-full text-left p-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors"
+                >
+                  <div className="font-bold text-sm text-white">民事起訴狀</div>
+                  <div className="text-xs text-[var(--color-text-muted)] mt-1">依案件事實提出民事損害賠償或給付請求</div>
                 </button>
               </div>
               <button

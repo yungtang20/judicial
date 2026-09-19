@@ -18,7 +18,10 @@ interface CategorySummary {
   name: string;
   total: number;
   readyForMerge: number;
+  needsFieldMapping: number;
+  downloaded: number;
   sourceOnly: number;
+  sourceLinks: number;
 }
 
 interface TemplateDetail extends TemplateSummary {
@@ -26,7 +29,7 @@ interface TemplateDetail extends TemplateSummary {
   pdfFileUrl: string | null;
   localFileHash: string | null;
   downloadedAt: string | null;
-  fields: Array<{ key: string; label: string; type: string; required: boolean; placeholder?: string }>;
+  fields: Array<{ key: string; label: string; type: string; required: boolean; placeholder?: string; options?: Array<{ label: string; value: string }> }>;
 }
 
 interface OfficialTemplateDirectoryProps {
@@ -40,25 +43,37 @@ export const OfficialTemplateDirectory: React.FC<OfficialTemplateDirectoryProps>
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateDetail | null>(null);
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
   const [isRendering, setIsRendering] = useState(false);
+  const [isDownloadingSource, setIsDownloadingSource] = useState(false);
   const [renderError, setRenderError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   // Load categories on mount
   useEffect(() => {
+    setLoadError(null);
     fetchWithAuth('/api/official-templates')
-      .then(r => r.json())
+      .then(async r => {
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+        return data;
+      })
       .then((data: { categories: CategorySummary[] }) => setCategories(data.categories || []))
-      .catch(() => {});
+      .catch(() => setLoadError('無法載入司法院範本目錄，請稍後重試。'));
   }, []);
 
   // Load templates when category selected
   useEffect(() => {
     if (!selectedCategory) { setTemplates([]); return; }
     setIsLoading(true);
+    setLoadError(null);
     fetchWithAuth(`/api/official-templates?category=${encodeURIComponent(selectedCategory)}`)
-      .then(r => r.json())
+      .then(async r => {
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+        return data;
+      })
       .then((data: { templates: TemplateSummary[] }) => setTemplates(data.templates || []))
-      .catch(() => {})
+      .catch(() => setLoadError('無法載入此分類的範本，請稍後重試。'))
       .finally(() => setIsLoading(false));
   }, [selectedCategory]);
 
@@ -67,11 +82,12 @@ export const OfficialTemplateDirectory: React.FC<OfficialTemplateDirectoryProps>
     try {
       const res = await fetchWithAuth(`/api/official-templates/${id}`);
       const data: TemplateDetail = await res.json();
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setSelectedTemplate(data);
       setFieldValues({});
       setRenderError(null);
     } catch {
-      setRenderError('Failed to load template details');
+      setRenderError('無法載入範本詳細資料，請稍後重試。');
     } finally {
       setIsLoading(false);
     }
@@ -112,6 +128,30 @@ export const OfficialTemplateDirectory: React.FC<OfficialTemplateDirectoryProps>
     }
   }, [selectedTemplate, fieldValues]);
 
+  const handleDownloadSource = useCallback(async () => {
+    if (!selectedTemplate) return;
+    setIsDownloadingSource(true);
+    setRenderError(null);
+    try {
+      const res = await fetchWithAuth(`/api/official-templates/${selectedTemplate.id}/source`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${selectedTemplate.id}.${selectedTemplate.hasEditableFile ? 'odt' : 'pdf'}`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      setRenderError(err.message || '無法下載官方原始檔');
+    } finally {
+      setIsDownloadingSource(false);
+    }
+  }, [selectedTemplate]);
+
   const query = searchQuery.trim().toLowerCase();
   const filteredCategories = query
     ? categories.filter(c => c.name.toLowerCase().includes(query))
@@ -122,6 +162,7 @@ export const OfficialTemplateDirectory: React.FC<OfficialTemplateDirectoryProps>
       case 'READY_FOR_MERGE': return <span className="text-green-400 flex items-center gap-1"><CheckCircle2 className="w-3 h-3" />可套版</span>;
       case 'SOURCE_ONLY': return <span className="text-yellow-400 flex items-center gap-1"><AlertTriangle className="w-3 h-3" />僅提供來源</span>;
       case 'DOWNLOADED': return <span className="text-sky-400 flex items-center gap-1"><Download className="w-3 h-3" />已下載</span>;
+      case 'NEEDS_FIELD_MAPPING': return <span className="text-amber-400 flex items-center gap-1"><AlertTriangle className="w-3 h-3" />待欄位對應</span>;
       default: return <span className="text-slate-500">{s}</span>;
     }
   };
@@ -153,6 +194,16 @@ export const OfficialTemplateDirectory: React.FC<OfficialTemplateDirectoryProps>
               </a>
             )}
           </div>
+          {selectedTemplate.localFileHash && (
+            <button
+              onClick={handleDownloadSource}
+              disabled={isDownloadingSource}
+              className="mt-3 inline-flex items-center gap-2 rounded-lg border border-sky-500/40 bg-sky-500/10 px-3 py-2 text-xs font-semibold text-sky-300 hover:bg-sky-500/20 disabled:opacity-50"
+            >
+              {isDownloadingSource ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
+              下載本站驗證官方原始檔
+            </button>
+          )}
         </div>
 
         {selectedTemplate.templateStatus === 'SOURCE_ONLY' ? (
@@ -160,7 +211,7 @@ export const OfficialTemplateDirectory: React.FC<OfficialTemplateDirectoryProps>
             <AlertTriangle className="w-4 h-4 inline mr-2" />
             此模板目前僅提供官方來源下載，無法線上套版。請點選上方「官方詳細頁」連結至司法院下載原始檔案。
           </div>
-        ) : selectedTemplate.templateStatus === 'READY_FOR_MERGE' || selectedTemplate.templateStatus === 'DOWNLOADED' ? (
+        ) : selectedTemplate.templateStatus === 'READY_FOR_MERGE' ? (
           <div className="space-y-4">
             {selectedTemplate.fields.length > 0 ? (
               <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4 space-y-3">
@@ -177,14 +228,28 @@ export const OfficialTemplateDirectory: React.FC<OfficialTemplateDirectoryProps>
                         value={fieldValues[field.key] || ''}
                         onChange={e => setFieldValues(prev => ({ ...prev, [field.key]: e.target.value }))}
                         rows={4}
+                        required={field.required}
                       />
+                    ) : field.type === 'select' ? (
+                      <select
+                        className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none"
+                        value={fieldValues[field.key] || ''}
+                        onChange={e => setFieldValues(prev => ({ ...prev, [field.key]: e.target.value }))}
+                        required={field.required}
+                      >
+                        <option value="">請選擇</option>
+                        {field.options?.map(option => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
+                      </select>
                     ) : (
                       <input
-                        type="text"
+                        type={field.type === 'date' ? 'date' : 'text'}
                         className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-sky-500 focus:outline-none"
                         placeholder={field.placeholder}
                         value={fieldValues[field.key] || ''}
                         onChange={e => setFieldValues(prev => ({ ...prev, [field.key]: e.target.value }))}
+                        required={field.required}
                       />
                     )}
                   </div>
@@ -278,10 +343,12 @@ export const OfficialTemplateDirectory: React.FC<OfficialTemplateDirectoryProps>
       <div className="mb-4">
         <h2 id="official-template-heading" className="text-lg font-bold text-white">司法院官方書狀範本</h2>
         <p className="mt-1 text-xs leading-5 text-slate-400">
-          選擇分類 → 選擇書狀 → 填寫資料 → 僅產生一份文件。所有文件經 P4–P9 合規驗證。
+          選擇分類與書狀；只有完成欄位對應及 P4–P9 Gate 的模板才可產生文件。
         </p>
       </div>
-      {filteredCategories.length > 0 ? (
+      {loadError ? (
+        <p role="alert" className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">{loadError}</p>
+      ) : filteredCategories.length > 0 ? (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {filteredCategories.map(cat => (
             <button key={cat.name} onClick={() => setSelectedCategory(cat.name)}
@@ -294,7 +361,7 @@ export const OfficialTemplateDirectory: React.FC<OfficialTemplateDirectoryProps>
                 <ChevronRight className="w-4 h-4 shrink-0 text-sky-400" />
               </div>
               <p className="mt-2 text-[11px] text-slate-500">
-                可套版 {cat.readyForMerge} 份　|　來源連結 {cat.sourceOnly} 份
+                可套版 {cat.readyForMerge} 份　|　待對應 {cat.needsFieldMapping} 份　|　官方來源 {cat.sourceLinks} 份
               </p>
             </button>
           ))}

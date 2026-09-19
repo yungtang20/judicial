@@ -1,6 +1,7 @@
 import React from 'react';
 import { Search } from 'lucide-react';
 import { LEGAL_TOOLS, TOOLBOX_CATEGORIES, CategoryGroupId } from '../../lib/legalToolRegistry';
+import { JUDICIAL_TEMPLATE_CATEGORIES } from '../../lib/officialJudicialTemplates';
 
 export interface ToolboxHeaderProps {
   selectedGroup: string;
@@ -24,7 +25,11 @@ export const ToolboxHeader: React.FC<ToolboxHeaderProps> = ({
   onSearchChange,
 }) => {
   const countToolsInGroup = (group: string) =>
-    group === 'ALL' ? LEGAL_TOOLS.length : LEGAL_TOOLS.filter(tool => tool.categoryGroup === group).length;
+    group === 'OFFICIAL_TEMPLATES'
+      ? JUDICIAL_TEMPLATE_CATEGORIES.length
+      : group === 'ALL'
+        ? LEGAL_TOOLS.filter(tool => tool.categoryGroup !== 'OFFICIAL_TEMPLATES').length
+        : LEGAL_TOOLS.filter(tool => tool.categoryGroup === group).length;
 
   return (
     <section className="border-b border-slate-800 pb-5 text-white" aria-labelledby="toolbox-heading">

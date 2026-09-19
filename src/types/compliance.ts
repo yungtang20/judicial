@@ -33,20 +33,6 @@ export type PleadingType =
   | 'interlocutory_appeal'
   | 'retrial';
 
-export type AppealLevel = 'SECOND' | 'THIRD';
-
-export type AppealGroundType = 'STATUTORY' | 'PRINCIPLED_IMPORTANCE';
-
-export type FamilyProceedingType = 'LITIGATION' | 'NON_CONTENTIOUS';
-
-export type EnforcementTitleType =
-  | 'JUDGMENT'
-  | 'RULING'
-  | 'RECORD'
-  | 'NOTARIAL_DEED'
-  | 'SECURITY_RIGHT'
-  | 'OTHER';
-
 export type StyleProfile =
   | 'simple_procedural'
   | 'formal_motion'
@@ -246,13 +232,6 @@ export interface Claim {
   evidenceIds?: string[];
 }
 
-export interface PleadingSectionInput {
-  content: string;
-  sourceClaimIds?: string[];
-  sourceFactIds?: string[];
-  sourceEvidenceIds?: string[];
-}
-
 export interface CaseInput {
   id: string;
   caseType: CaseType;
@@ -266,11 +245,6 @@ export interface CaseInput {
   court?: string;
   caseNumber?: string;
   proceeding?: string;
-  appealLevel?: AppealLevel;
-  appealGroundType?: AppealGroundType;
-  familyProceedingType?: FamilyProceedingType;
-  enforcementTitleType?: EnforcementTitleType;
-  sectionInputs?: Record<string, PleadingSectionInput>;
   signature?: string;
   documentDate?: string;
   expectedRuleProfileVersion?: string;

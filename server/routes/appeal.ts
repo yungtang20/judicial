@@ -1,78 +1,134 @@
 import { Router, Request, Response } from "express";
+import { getGenerateAppealPetitionPrompt } from "../../src/prompts/generate-appeal-petition.js";
+import { verifyGeneratedDocument } from "../../src/lib/generatedDocumentPipeline.js";
+import { buildFallbackPetition } from "../../src/utils/fallbacks.js";
+import { precheckLegalInput } from "../../src/lib/legalInputPrecheck.js";
 import { findUnreadRetrievedCitations } from "../../src/domain/case/citationGate.js";
-import { executeCanonicalPleadingPipeline } from "../services/canonicalPleadingPipeline.js";
+import { defaultLegalGenerationPipeline } from "../services/legalGenerationPipeline.js";
+
+// Note: verifyGeneratedDocument and UNIVERSAL_SYLLOGISM_RULES are enforced centrally within defaultLegalGenerationPipeline
 
 const router = Router();
 
-function joinedValues(value: unknown, keys: string[]): string {
-  if (!Array.isArray(value)) return '';
-  return value.flatMap(item => {
-    if (typeof item === 'string') return item.trim() ? [item.trim()] : [];
-    if (!item || typeof item !== 'object') return [];
-    const record = item as Record<string, unknown>;
-    return keys.flatMap(key => typeof record[key] === 'string' && record[key].trim() ? [record[key].trim()] : []);
-  }).join('\n');
-}
-
-function appealCategory(body: Record<string, unknown>): string | null {
-  const caseType = body.caseType === 'administrative' ? 'administrative_litigation' : body.caseType;
-  if (caseType === 'administrative_litigation') return 'ADMINISTRATIVE_APPEAL';
-  if (body.appealLevel !== 'SECOND' && body.appealLevel !== 'THIRD') return null;
-  if (caseType === 'criminal') {
-    return body.appealLevel === 'SECOND' ? 'CRIMINAL_APPEAL_SECOND' : 'CRIMINAL_APPEAL_THIRD';
-  }
-  if (caseType !== 'civil') return null;
-  if (body.appealLevel === 'SECOND') return 'CIVIL_APPEAL_SECOND';
-  if (body.appealGroundType === 'STATUTORY') return 'CIVIL_APPEAL_THIRD_STATUTORY';
-  if (body.appealGroundType === 'PRINCIPLED_IMPORTANCE') return 'CIVIL_APPEAL_THIRD_PRINCIPLED';
-  return null;
-}
-
 router.post("/api/generate-appeal-petition", async (req: Request, res: Response) => {
-  res.setHeader('Cache-Control', 'no-store');
-  const unreadCitations = findUnreadRetrievedCitations(req.body?.selectedPrecedents);
-  if (unreadCitations.length) {
-    return res.status(422).json({
-      error: '檢索裁判尚未取得全文，拒絕將未讀取來源帶入生成',
-      code: 'CITATION_FULLTEXT_REQUIRED',
-      citations: unreadCitations.map(item => item.citation)
-    });
-  }
-  const body = req.body && typeof req.body === 'object' && !Array.isArray(req.body)
-    ? req.body as Record<string, unknown>
-    : {};
-  const category = appealCategory(body);
-  if (!category) {
-    return res.status(422).json({
-      error: '必須提供已核准的案件類型、上訴審級及第三審上訴路徑。',
-      code: 'PLEADING_DISCRIMINATOR_REQUIRED'
-    });
-  }
+  const {
+    caseNumber: legacyCaseNumber,
+    caseNo,
+    caseType,
+    courtName,
+    appealCourtName,
+    sectionCode,
+    claimAmount,
+    judgmentDeliveryDate,
+    appellantName,
+    appellantRole,
+    appellantId,
+    appellantAddress,
+    appellantPhone,
+    appellantLegalRep,
+    appelleeName,
+    appelleeRole,
+    appelleeAddress,
+    deliveryAgent,
+    deliveryAddress,
+    claims,
+    issues,
+    evidences,
+    selectedPrecedents,
+    judgmentSummary: legacyJudgmentSummary,
+    selectedErrors: legacySelectedErrors,
+    newEvidence: legacyNewEvidence,
+    appealScope: legacyAppealScope
+  } = req.body;
 
-  const params = {
-    ...body,
-    courtName: body.courtName,
-    plaintiffName: body.appellantName,
-    plaintiffAddress: body.appellantAddress,
-    defendantName: body.appelleeName,
-    defendantAddress: body.appelleeAddress,
-    legalRepresentativeName: body.appellantLegalRep,
-    legalRepresentativeAddress: body.appellantLegalRepAddress,
-    legalRepresentativeRelationship: body.appellantLegalRepRelationship,
-    claimStatement: body.appealDisposition || body.claims,
-    appealDisposition: body.appealDisposition || body.claims,
-    appealReasons: body.appealReasons || joinedValues(body.issues, ['appealArgument']),
-    evidenceList: body.evidenceList || joinedValues(body.evidences, ['code', 'provenFact', 'investigationItem'])
+  // Accept the current UI contract while retaining compatibility with the
+  // original API field names used by older clients.
+  const normalized = {
+    caseNo: caseNo || legacyCaseNumber,
+    caseType,
+    courtName,
+    appealCourtName,
+    sectionCode,
+    claimAmount,
+    judgmentDeliveryDate,
+    appellantName,
+    appellantRole,
+    appellantId,
+    appellantAddress,
+    appellantPhone,
+    appellantLegalRep,
+    appelleeName,
+    appelleeRole,
+    appelleeAddress,
+    deliveryAgent,
+    deliveryAddress,
+    claims: claims || legacyAppealScope,
+    issues: Array.isArray(issues) ? issues : legacySelectedErrors,
+    evidences: Array.isArray(evidences) ? evidences : legacyNewEvidence,
+    selectedPrecedents,
+    judgmentSummary: legacyJudgmentSummary
   };
 
-  try {
-    const result = await executeCanonicalPleadingPipeline(category, params);
-    return res.json({ ...result, petitionText: result.documentText });
-  } catch (error: any) {
+  const unreadCitations = findUnreadRetrievedCitations(normalized.selectedPrecedents);
+  if (unreadCitations.length > 0) {
+    return res.status(422).json({ error: '檢索裁判尚未取得全文，拒絕將未讀取來源帶入生成', code: 'CITATION_FULLTEXT_REQUIRED', citations: unreadCitations.map(item => item.citation) });
+  }
+
+  // Pre-check
+  const combinedInput = JSON.stringify({
+    judgmentSummary: normalized.judgmentSummary,
+    issues: normalized.issues,
+    evidences: normalized.evidences,
+    claims: normalized.claims
+  });
+  const precheck = precheckLegalInput(combinedInput, "generation");
+  if (precheck.status === "reject") {
     return res.status(422).json({
-      error: error?.message || '上訴書狀未通過 P4-P9 Final Gate。',
-      code: error?.code || 'P9_FINAL_GATE_FAILED',
-      ...(Array.isArray(error?.missingInputs) ? { missingInputs: error.missingInputs } : {})
+      error: "輸入內容包含顯著異常或虛構之法律條號，已被安全機制攔截",
+      issues: precheck.issues
+    });
+  }
+
+  const ragQuery = [
+    normalized.caseNo,
+    normalized.caseType,
+    typeof normalized.claims === 'string' ? normalized.claims.slice(0, 80) : '',
+    Array.isArray(normalized.issues) ? normalized.issues.map((i: any) => typeof i === 'string' ? i : (i?.title || '')).join(' ').slice(0, 80) : ''
+  ].filter(Boolean).join(' ') || '上訴理由實務裁判';
+
+  try {
+    const pipelineResult = await defaultLegalGenerationPipeline.execute({
+      ragQuery,
+      buildPrompt: () => getGenerateAppealPetitionPrompt(normalized),
+      fallback: () => {
+        const fallbackText = buildFallbackPetition({
+          caseNumber: normalized.caseNo || "113年度上字第123號",
+          appellantName: normalized.appellantName || "上訴人",
+          appelleeName: normalized.appelleeName || "被上訴人",
+          courtName: normalized.courtName || "臺灣高等法院",
+          caseType: normalized.caseType || "CIVIL",
+          judgmentSummary: normalized.judgmentSummary || "原審判決認事用法顯有重大違誤",
+          appealScope: normalized.claims || "原判決不利於上訴人部分廢棄"
+        });
+        return {
+          documentText: fallbackText,
+          payload: { fallbackText }
+        };
+      }
+    });
+
+    res.json({
+      petitionText: pipelineResult.documentText || pipelineResult.payload?.fallbackText,
+      antiGhostVerification: pipelineResult.antiGhostVerification,
+      legalSources: pipelineResult.legalSources,
+      isExternalRetrievalUsed: pipelineResult.isExternalRetrievalUsed,
+      retrievalStatusMessage: pipelineResult.retrievalStatusMessage
+    });
+  } catch (err: any) {
+    console.warn("[GenerateAppealPetition] Pipeline 執行未通過或被攔截:", err?.message || err);
+    return res.status(422).json({
+      error: err?.message || '法律文件引用檢核未通過，拒絕回傳未確認引用文件',
+      code: 'DOCUMENT_VERIFICATION_FAILED'
     });
   }
 });

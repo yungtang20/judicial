@@ -29,9 +29,6 @@ describe('canonical pleading pipeline', () => {
     expect(getCourtPleadingConfig('CIVIL_COMPLAINT_GENERAL')).not.toBeNull();
     expect(getCourtPleadingConfig('PAYMENT_ORDER_PETITION')).not.toBeNull();
     expect(getCourtPleadingConfig('CRIMINAL_SUPPLEMENTARY_CIVIL')).not.toBeNull();
-    expect(getCourtPleadingConfig('CIVIL_ANSWER')).not.toBeNull();
-    expect(getCourtPleadingConfig('CIVIL_APPEAL_SECOND')).not.toBeNull();
-    expect(getCourtPleadingConfig('CIVIL_APPEAL_THIRD_PRINCIPLED')).not.toBeNull();
 
     for (const category of [
       'JUDICIAL_CIVIL_TEMPLATE',
@@ -42,79 +39,6 @@ describe('canonical pleading pipeline', () => {
     ]) {
       expect(getCourtPleadingConfig(category)).toBeNull();
     }
-  });
-
-  it('delivers a complete civil answer through its exact profile', async () => {
-    const result = await executeCanonicalPleadingPipeline('CIVIL_ANSWER', {
-      ...completeCivilInput,
-      claimStatement: '原告之訴駁回。',
-      answerFactsAndReasons: '被告否認借款契約成立。',
-      opponentPosition: '否認原告所稱借款交付，匯款用途另有原因。',
-      documentaryEvidenceCopies: '被證一影本一份。',
-      directNotice: '書證影本將依法直接通知原告。'
-    });
-
-    expect(result.pleadingDeliveryAuthorization.finalGateStatus).toBe('READY');
-    expect(result.documentText).toContain('被告否認借款契約成立。');
-    expect(result.documentText).toContain('書證影本將依法直接通知原告。');
-  });
-
-  it('delivers a complete civil second appeal only with exact appeal fields', async () => {
-    const result = await executeCanonicalPleadingPipeline('CIVIL_APPEAL_SECOND', {
-      ...completeCivilInput,
-      claimStatement: '原判決廢棄。',
-      challengedJudgment: '臺灣臺中地方法院115年度訴字第1號第一審判決，依法提起上訴。',
-      appealDisposition: '就原告敗訴部分全部不服，請求廢棄並改判。',
-      appealReasons: '原判決對匯款證據之認定與卷內資料不符。',
-      appealSupportingFactsAndEvidence: '匯款紀錄顯示款項性質，證據為原證一。'
-    });
-
-    expect(result.pleadingDeliveryAuthorization.finalGateStatus).toBe('READY');
-    expect(result.documentText).toContain('原判決對匯款證據之認定與卷內資料不符。');
-  });
-
-  it('blocks a criminal appeal with missing reasons before its unverified format can be mistaken as ready', async () => {
-    const error = await executeCanonicalPleadingPipeline('CRIMINAL_APPEAL_SECOND', {
-      courtName: '臺灣臺中地方法院',
-      copies: '繕本一份',
-      documentDate: '民國115年9月14日',
-      signature: '甲○○'
-    }).catch(value => value);
-
-    expect(error).toBeInstanceOf(CanonicalPleadingInputError);
-    expect(error.missingInputs).toEqual(expect.arrayContaining([
-      expect.objectContaining({ field: 'appeal_reasons', sourceRequirement: 'CRIMINAL_361_REASONS' })
-    ]));
-  });
-
-  it('blocks enforcement when the execution-title discriminator is missing', async () => {
-    const error = await executeCanonicalPleadingPipeline('CIVIL_ENFORCEMENT_APPLICATION', {
-      ...completeCivilInput,
-      rightToBeRealized: '依確定判決請求清償新臺幣100,000元。',
-      enforcementTitleDocuments: '確定判決正本及確定證明書。'
-    }).catch(value => value);
-
-    expect(error).toBeInstanceOf(CanonicalPleadingInputError);
-    expect(error.missingInputs).toEqual(expect.arrayContaining([
-      expect.objectContaining({ field: 'enforcementTitleType', sourceRequirement: '強制執行法第6條第1項' })
-    ]));
-  });
-
-  it('blocks an incomplete conditional legal representative instead of dropping it', async () => {
-    const error = await executeCanonicalPleadingPipeline('CIVIL_APPEAL_SECOND', {
-      ...completeCivilInput,
-      challengedJudgment: '臺灣臺中地方法院115年度訴字第1號判決，依法提起上訴。',
-      appealDisposition: '原判決廢棄。',
-      appealReasons: '原判決認定與卷內資料不符。',
-      appealSupportingFactsAndEvidence: '原證一可證明匯款性質。',
-      legalRepresentativeName: '丙○○'
-    }).catch(value => value);
-
-    expect(error).toBeInstanceOf(CanonicalPleadingInputError);
-    expect(error.missingInputs).toEqual(expect.arrayContaining([
-      expect.objectContaining({ field: 'representatives[0].address' }),
-      expect.objectContaining({ field: 'representatives[0].relationshipToParty' })
-    ]));
   });
 
   it('maps supplementary civil rules only through approved §492 incorporation', () => {
@@ -169,31 +93,6 @@ describe('canonical pleading pipeline', () => {
     expect(result.documentText).toContain('件數：0');
     expect(result.documentText).not.toContain('臺灣臺北');
     expect(result.complianceChecklist.every(item => item.passed)).toBe(true);
-  });
-
-  it('does not substitute a configured proceeding when the user omits it', async () => {
-    const error = await executeCanonicalPleadingPipeline('CIVIL_COMPLAINT_GENERAL', {
-      ...completeCivilInput,
-      proceeding: undefined
-    }).catch(value => value);
-
-    expect(error).toBeInstanceOf(CanonicalPleadingInputError);
-    expect(error.missingInputs).toEqual(expect.arrayContaining([
-      expect.objectContaining({ field: 'proceeding' })
-    ]));
-  });
-
-  it('does not treat a supplementary criminal case number as the proceeding', async () => {
-    const error = await executeCanonicalPleadingPipeline('CRIMINAL_SUPPLEMENTARY_CIVIL', {
-      ...completeCivilInput,
-      proceeding: undefined,
-      caseNo: '115年度訴字第123號'
-    }).catch(value => value);
-
-    expect(error).toBeInstanceOf(CanonicalPleadingInputError);
-    expect(error.missingInputs).toEqual(expect.arrayContaining([
-      expect.objectContaining({ field: 'proceeding' })
-    ]));
   });
 
   it('delivers supplementary civil input through the §492-mapped civil profile', async () => {

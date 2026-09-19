@@ -116,27 +116,15 @@ export const DefenseWorkflowTool: React.FC = () => {
   const addDocument = useCaseStore(s => s.addDocument);
   // Case metadata & input states
   const [caseType, setCaseType] = useState<string>('civil');
-  const [courtName, setCourtName] = useState<string>('');
-  const [caseNo, setCaseNo] = useState<string>('');
+  const [courtName, setCourtName] = useState<string>('臺灣臺北地方法院');
+  const [caseNo, setCaseNo] = useState<string>('113年度訴字第2841號');
   const [clientRole, setClientRole] = useState<string>('被告');
-  const [clientName, setClientName] = useState<string>('');
+  const [clientName, setClientName] = useState<string>('林小明');
   const [opponentRole, setOpponentRole] = useState<string>('原告');
-  const [opponentName, setOpponentName] = useState<string>('');
-  const [lawyerName, setLawyerName] = useState<string>('');
-  const [lawyerAddress, setLawyerAddress] = useState('');
-  const [clientAddress, setClientAddress] = useState('');
-  const [opponentAddress, setOpponentAddress] = useState('');
-  const [proceeding, setProceeding] = useState('');
-  const [answerDisposition, setAnswerDisposition] = useState('');
-  const [opponentPosition, setOpponentPosition] = useState('');
-  const [evidenceList, setEvidenceList] = useState('');
-  const [attachments, setAttachments] = useState('');
-  const [documentaryEvidenceCopies, setDocumentaryEvidenceCopies] = useState('');
-  const [directNotice, setDirectNotice] = useState('');
-  const [documentDate, setDocumentDate] = useState('');
-  const [signature, setSignature] = useState('');
+  const [opponentName, setOpponentName] = useState<string>('高利祥');
+  const [lawyerName, setLawyerName] = useState<string>('訴訟代理人律師');
   const [caseBackground, setCaseBackground] = useState<string>(activeCase.facts);
-  const [clientStatement, setClientStatement] = useState<string>(activeCase.facts || '');
+  const [clientStatement, setClientStatement] = useState<string>(activeCase.facts || PRESET_CASES[0].rawStatement);
 
   // Workflow stages & results
   const [currentStage, setCurrentStage] = useState<'INGEST' | 'B_POINT' | 'PHASE_2' | 'PHASE_3' | 'OUTPUT'>('INGEST');
@@ -240,25 +228,12 @@ export const DefenseWorkflowTool: React.FC = () => {
           caseType,
           courtName,
           caseNo,
-          proceeding,
           clientRole,
           clientName,
-          clientAddress,
           opponentRole,
           opponentName,
-          opponentAddress,
-          lawyerName,
-          lawyerAddress
-        },
-        answerDisposition,
-        answerFactsAndReasons: clientStatement,
-        opponentPosition,
-        evidenceList,
-        attachments,
-        documentaryEvidenceCopies,
-        directNotice,
-        documentDate,
-        signature
+          lawyerName
+        }
       });
       if (type === 'LAWYER_PLEADING') {
         setLawyerPleading(res);
@@ -273,7 +248,7 @@ export const DefenseWorkflowTool: React.FC = () => {
           kind: type,
           title: res.title || '防禦書狀',
           text: res.pleadingText,
-          status: res.pleadingDeliveryAuthorization?.finalGateStatus === 'READY' ? 'VERIFIED' : 'NEEDS_HUMAN_REVIEW',
+          status: res.antiGhostVerification?.ghostCitationsFound ? 'NEEDS_HUMAN_REVIEW' : 'VERIFIED',
           sourceTool: 'DefenseWorkflowTool',
           createdAt: new Date().toISOString(),
           verification: res.antiGhostVerification
@@ -382,30 +357,6 @@ export const DefenseWorkflowTool: React.FC = () => {
             onSaveGlobal={() => {}}
             lawyerName={lawyerName}
             setLawyerName={setLawyerName}
-            lawyerAddress={lawyerAddress}
-            setLawyerAddress={setLawyerAddress}
-            clientAddress={clientAddress}
-            setClientAddress={setClientAddress}
-            opponentAddress={opponentAddress}
-            setOpponentAddress={setOpponentAddress}
-            proceeding={proceeding}
-            setProceeding={setProceeding}
-            answerDisposition={answerDisposition}
-            setAnswerDisposition={setAnswerDisposition}
-            opponentPosition={opponentPosition}
-            setOpponentPosition={setOpponentPosition}
-            evidenceList={evidenceList}
-            setEvidenceList={setEvidenceList}
-            attachments={attachments}
-            setAttachments={setAttachments}
-            documentaryEvidenceCopies={documentaryEvidenceCopies}
-            setDocumentaryEvidenceCopies={setDocumentaryEvidenceCopies}
-            directNotice={directNotice}
-            setDirectNotice={setDirectNotice}
-            documentDate={documentDate}
-            setDocumentDate={setDocumentDate}
-            signature={signature}
-            setSignature={setSignature}
           />
         </div>
 

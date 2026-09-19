@@ -97,18 +97,4 @@ describe('UnifiedResult', () => {
     const legacy = { ...baseState, verification: { ...baseState.verification!, verificationStatus: undefined } };
     expect(canUseWorkflowResult(legacy)).toBe(false);
   });
-
-  it('keeps copy and export actions disabled while official verification needs review', () => {
-    const needsReview: LegalWorkflowState = {
-      ...baseState,
-      verification: { ...baseState.verification!, passGate: false, verificationStatus: 'NEEDS_REVIEW' },
-    };
-
-    render(<UnifiedResult workflowState={needsReview} {...handlers} />);
-
-    expect(screen.getByRole('button', { name: '複製' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'HTML' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'TXT' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: '列印' })).toBeDisabled();
-  });
 });

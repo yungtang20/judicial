@@ -12,7 +12,18 @@ const CIVIL_PROCEDURE_116 = 'legal_references/civil_procedure_116.md';
 const CIVIL_PROCEDURE_117 = 'legal_references/civil_procedure_117.md';
 const CIVIL_PROCEDURE_244 = 'legal_references/civil_procedure_244.md';
 
-const CIVIL_PLEADING_TYPES: PleadingType[] = ['complaint'];
+const CIVIL_PLEADING_TYPES: PleadingType[] = [
+  'complaint',
+  'answer',
+  'preparatory',
+  'supplement',
+  'motion',
+  'report',
+  'withdrawal',
+  'appeal',
+  'interlocutory_appeal',
+  'retrial'
+];
 
 type RuleDefinition = Omit<ContentRule, 'sourceReferences'> & { sourceReference: string };
 
@@ -69,50 +80,29 @@ export const FORMAT_PROFILES: Readonly<Record<CaseType, FormatProfile>> = {
   criminal: {
     caseType: 'criminal',
     formatRuleSource: '司法狀紙要點',
-    ...JUDICIAL_PAPER_FORMAT,
-    formatConfirmed: false
+    ...JUDICIAL_PAPER_FORMAT
   },
   administrative_litigation: {
     caseType: 'administrative_litigation',
     formatRuleSource: '司法狀紙要點',
-    ...JUDICIAL_PAPER_FORMAT,
-    formatConfirmed: false
+    ...JUDICIAL_PAPER_FORMAT
   },
   juvenile: {
     caseType: 'juvenile',
     formatRuleSource: '司法狀紙要點',
-    ...JUDICIAL_PAPER_FORMAT,
-    formatConfirmed: false
+    ...JUDICIAL_PAPER_FORMAT
   },
   family: {
     caseType: 'family',
-    formatRuleSource: '家事事件書狀規則第4條準用民事訴訟書狀規則',
-    ...CIVIL_DOCUMENT_FORMAT
+    formatRuleSource: '家事事件書狀規則',
+    ...JUDICIAL_PAPER_FORMAT
   },
   non_contentious: {
     caseType: 'non_contentious',
-    formatRuleSource: '非訟事件書狀格式規則尚未凍結',
-    ...CIVIL_DOCUMENT_FORMAT,
-    formatConfirmed: false
+    formatRuleSource: '民事訴訟書狀規則',
+    ...CIVIL_DOCUMENT_FORMAT
   }
 };
-
-export const FAMILY_FORMAT_PROFILES = {
-  litigation: FORMAT_PROFILES.family,
-  non_contentious: {
-    caseType: 'family',
-    formatRuleSource: '家事事件書狀規則第5條至第7條',
-    formatConfirmed: true,
-    paperSize: 'A4',
-    writingDirection: 'vertical_horizontal_ltr',
-    marginsCm: null,
-    fontSizePt: null,
-    lineSpacingPt: null,
-    pageNumbering: false,
-    tocThresholdPages: null,
-    doubleSidedPrint: false
-  }
-} as const satisfies Readonly<Record<'litigation' | 'non_contentious', FormatProfile>>;
 
 export const CIVIL_PLEADING_RULES: ContentRule[] = [
   defineRule({

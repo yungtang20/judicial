@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Server } from 'node:http';
+import http from 'node:http';
 import { performance } from 'node:perf_hooks';
-import request from 'supertest';
 
 vi.mock('../../src/ai/providers/providerRegistry.js', () => ({
   defaultAIProvider: {
@@ -24,6 +24,26 @@ afterEach(async () => {
   vi.resetModules();
 });
 
+function get(server: Server, path: string): Promise<{ status: number; body: any; headers: http.IncomingHttpHeaders }> {
+  return new Promise((resolve, reject) => {
+    const addr = server.address();
+    if (!addr || typeof addr === 'string') return reject(new Error('Server not listening'));
+    const req = http.get({ hostname: '127.0.0.1', port: addr.port, path, timeout: 3000 }, res => {
+      let data = '';
+      res.on('data', chunk => { data += chunk; });
+      res.on('end', () => {
+        try {
+          resolve({ status: res.statusCode ?? 0, body: JSON.parse(data), headers: res.headers });
+        } catch {
+          resolve({ status: res.statusCode ?? 0, body: data, headers: res.headers });
+        }
+      });
+    });
+    req.on('error', reject);
+    req.on('timeout', () => { req.destroy(); reject(new Error('Request timeout')); });
+  });
+}
+
 describe('health endpoint bounded local load', () => {
   it('serves 200 requests with 10 workers without errors or application quota consumption', async () => {
     vi.stubEnv('NODE_ENV', 'production');
@@ -38,14 +58,13 @@ describe('health endpoint bounded local load', () => {
       server!.once('listening', resolve);
       server!.once('error', reject);
     });
-    const client = request(server);
     const durations: number[] = [];
     const statuses: number[] = [];
     const started = performance.now();
     await Promise.all(Array.from({ length: 10 }, async () => {
       for (let index = 0; index < 20; index++) {
         const start = performance.now();
-        const response = await client.get('/api/health').timeout({ response: 2000, deadline: 3000 });
+        const response = await get(server!, '/api/health');
         durations.push(performance.now() - start);
         statuses.push(response.status);
         expect(response.status).toBe(200);

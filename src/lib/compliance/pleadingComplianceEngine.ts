@@ -29,11 +29,10 @@ function text(value: unknown): string {
 
 function sameIds(actual: string[] | undefined, expected: string[]): boolean {
   const uniqueExpected = [...new Set(expected)];
-  const actualIds = actual || [];
   return (
-    actualIds.length === uniqueExpected.length &&
-    new Set(actualIds).size === actualIds.length &&
-    uniqueExpected.every(id => actualIds.includes(id))
+    actual?.length === uniqueExpected.length &&
+    new Set(actual).size === actual.length &&
+    uniqueExpected.every(id => actual.includes(id))
   );
 }
 
@@ -167,12 +166,6 @@ const validateAttachments: RuleValidator = (section, input) => {
 };
 
 const validateIdentifiers: RuleValidator = (section, input) => {
-  if (input.caseType === 'non_contentious') {
-    const requiredKeys = ['sex', 'birthDate', 'nationalId', 'occupation'];
-    if (input.parties.some(party => requiredKeys.some(key => !text(party.identifiers?.[key])))) {
-      return result('MISSING', section, '非訟事件聲請人或代理人的法定識別資料不足。');
-    }
-  }
   const identifiers = input.parties.flatMap(party => Object.values(party.identifiers || {})).map(text).filter(Boolean);
   if (!identifiers.length) return result('WARNING', section, '未提供第116條第2項宜記載的識別資料。');
   return containsAll(section.content, identifiers)
@@ -212,23 +205,6 @@ function validators(input: CaseInput): Record<string, RuleValidator> {
     subject_and_facts: validateFacts,
     judgment_relief: validateClaims,
     complaint_optional_details: validateOptionalComplaintDetails
-  };
-}
-
-function suppliedSectionValidator(sectionId: string): RuleValidator {
-  return (section, input) => {
-    const supplied = input.sectionInputs?.[sectionId];
-    if (!supplied || !text(supplied.content)) {
-      return result('MISSING', section, `CaseInput 未提供 ${sectionId} 區段。`);
-    }
-    const matches =
-      text(section.content) === text(supplied.content) &&
-      sameIds(section.sourceClaimIds, supplied.sourceClaimIds || []) &&
-      sameIds(section.sourceFactIds, supplied.sourceFactIds || []) &&
-      sameIds(section.sourceEvidenceIds, supplied.sourceEvidenceIds || []);
-    return matches
-      ? result('COMPLIANT', section, '程序專用區段與 CaseInput 一致。')
-      : result('CONFLICT', section, '程序專用區段內容或來源 ID 與 CaseInput 不一致。');
   };
 }
 
@@ -282,25 +258,12 @@ export function verifyPleadingCompliance({
     ) {
       return { ruleId: rule.id, status: 'UNVERIFIED', note: '規則或凍結法源尚未完成驗證。' };
     }
-    if (rule.validatorId === 'DISTINCT_ANSWER_ENTRIES') {
-      const requiredSections = ['answer_facts_and_reasons', 'evidence', 'opponent_position'];
-      const distinct = requiredSections.every(id =>
-        draft.sections.filter(section => section.id === id && text(section.content)).length === 1
-      );
-      return {
-        ruleId: rule.id,
-        status: distinct ? 'COMPLIANT' : 'MISSING',
-        evidenceLocation: 'draft.sections',
-        note: distinct ? '答辯各款已分別具體成段。' : '答辯事項未分別具體記載。'
-      };
-    }
     if (rule.level !== 'REQUIRED' && rule.level !== 'RECOMMENDED') {
       return { ruleId: rule.id, status: 'UNVERIFIED', note: '未知 Requirement Level。' };
     }
-    if (!rule.targetSection) {
+    if (!rule.targetSection || !sectionValidators[rule.targetSection]) {
       return { ruleId: rule.id, status: 'UNVERIFIED', note: '沒有核准的 targetSection validator。' };
     }
-    const sectionValidator = sectionValidators[rule.targetSection] || suppliedSectionValidator(rule.targetSection);
     const matchingSections = draft.sections.filter(
       section => section.id === rule.targetSection && section.ruleIds.includes(rule.id)
     );
@@ -329,17 +292,9 @@ export function verifyPleadingCompliance({
         note: 'Draft section 與 PleadingStructure／Rule Profile 不一致。'
       };
     }
-    if (rule.level === 'RECOMMENDED' && !text(section.content)) {
-      return {
-        ruleId: rule.id,
-        status: 'WARNING',
-        evidenceLocation: `sections.${section.id}`,
-        note: '未提供法源標示為宜記載的內容。'
-      };
-    }
     return {
       ruleId: rule.id,
-      ...sectionValidator(section, caseInput, draft)
+      ...sectionValidators[rule.targetSection](section, caseInput, draft)
     };
   });
 }

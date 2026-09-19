@@ -611,6 +611,7 @@ router.post("/api/workflow/execute", async (req: Request, res: Response) => {
     }
 
     const state: LegalWorkflowState = createInitialWorkflowState(userInput.trim());
+    state.inputType = inputType;
     if (stateId) state.id = stateId;
 
     // 步驟 1: RouterNode 評估（全面調用 universalTriage）

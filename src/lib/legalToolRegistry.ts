@@ -20,6 +20,7 @@ import {
   AlertCircle 
 } from 'lucide-react';
 import { ToolDefinition, CategoryGroupId } from '../types/legalTools';
+import { JUDICIAL_CRIMINAL_TEMPLATE_SOURCE } from './officialJudicialTemplates';
 
 export type { ToolDefinition, CategoryGroupId };
 
@@ -78,7 +79,8 @@ export const LEGAL_TOOLS: ToolDefinition[] = [
     badge: '官方整合',
     toolType: 'generator',
     icon: ShieldCheck,
-    legalBasis: '刑事訴訟法、司法狀紙要點'
+    legalBasis: '刑事訴訟法、司法狀紙要點',
+    officialSourceUrl: JUDICIAL_CRIMINAL_TEMPLATE_SOURCE
   },
   {
     id: 'JUDICIAL_ADMIN_TEMPLATE',

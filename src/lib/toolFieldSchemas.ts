@@ -1,4 +1,6 @@
-export type FieldType = 'text' | 'textarea' | 'number' | 'date' | 'checkbox';
+import { JUDICIAL_CRIMINAL_TEMPLATE_CATEGORIES } from './officialJudicialTemplates';
+
+export type FieldType = 'text' | 'textarea' | 'number' | 'checkbox' | 'select';
 
 export interface ToolFieldDef {
   key: string;
@@ -6,7 +8,7 @@ export interface ToolFieldDef {
   type: FieldType;
   rows?: number;
   showAiSuggest?: boolean;
-  required?: boolean;
+  options?: readonly { value: string; label: string }[];
 }
 
 export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
@@ -16,6 +18,7 @@ export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
     { "key": "evidenceList", "label": "相關證據清單 (證物名稱)", "type": "textarea", "rows": 2, "showAiSuggest": true }
   ],
   "JUDICIAL_CRIMINAL_TEMPLATE": [
+    { "key": "officialCategory", "label": "司法院官方刑事書狀類別", "type": "select", "options": JUDICIAL_CRIMINAL_TEMPLATE_CATEGORIES },
     { "key": "templateName", "label": "所需司法院書狀名稱 (例如：刑事告訴狀、刑事附帶民事訴訟起訴狀)", "type": "text", "showAiSuggest": true },
     { "key": "caseContext", "label": "案件事實與訴求", "type": "textarea", "rows": 4, "showAiSuggest": true },
     { "key": "evidenceList", "label": "相關證據清單 (證物名稱)", "type": "textarea", "rows": 2, "showAiSuggest": true }
@@ -336,80 +339,25 @@ export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
       "key": "complainantName",
       "label": "原告姓名",
       "type": "text",
-      "required": true
-    },
-    {
-      "key": "complainantAddress",
-      "label": "原告住所或居所",
-      "type": "text",
-      "required": true
+      "showAiSuggest": true
     },
     {
       "key": "accusedName",
       "label": "被告姓名",
       "type": "text",
-      "required": true
-    },
-    {
-      "key": "accusedAddress",
-      "label": "被告住所或居所",
-      "type": "text",
-      "required": true
+      "showAiSuggest": true
     },
     {
       "key": "stolenItems",
       "label": "請求返還之標的物",
-      "type": "text"
+      "type": "text",
+      "showAiSuggest": true
     },
     {
       "key": "claimTotalAmount",
       "label": "請求損害賠償金額（元）",
-      "type": "number"
-    },
-    {
-      "key": "courtName",
-      "label": "法院全名",
       "type": "text",
-      "required": true
-    },
-    {
-      "key": "proceeding",
-      "label": "訴訟事件",
-      "type": "text",
-      "required": true
-    },
-    {
-      "key": "claimStatement",
-      "label": "應受判決事項之聲明",
-      "type": "textarea",
-      "rows": 3,
-      "required": true
-    },
-    {
-      "key": "incidentDetails",
-      "label": "訴訟標的及原因事實",
-      "type": "textarea",
-      "rows": 5,
-      "required": true
-    },
-    {
-      "key": "evidenceList",
-      "label": "供證明用之證據（每行一項）",
-      "type": "textarea",
-      "rows": 3,
-      "required": true
-    },
-    {
-      "key": "documentDate",
-      "label": "具狀日期",
-      "type": "date",
-      "required": true
-    },
-    {
-      "key": "signature",
-      "label": "具狀人簽名或蓋章文字",
-      "type": "text",
-      "required": true
+      "showAiSuggest": true
     }
   ],
   "UNIVERSAL_AI_PLEADING": [
@@ -435,98 +383,34 @@ export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
   ],
   "CRIMINAL_SUPPLEMENTARY_CIVIL": [
     {
-      "key": "courtName",
-      "label": "受理法院及刑事庭",
-      "type": "text",
-      "required": true
-    },
-    {
       "key": "caseNo",
       "label": "刑事案號與股別",
-      "type": "text"
-    },
-    {
-      "key": "proceeding",
-      "label": "刑事附帶民事訴訟事件",
       "type": "text",
-      "required": true
-    },
-    {
-      "key": "plaintiffName",
-      "label": "原告（刑事被害人）姓名",
-      "type": "text",
-      "required": true
-    },
-    {
-      "key": "plaintiffAddress",
-      "label": "原告住所或居所",
-      "type": "text",
-      "required": true
-    },
-    {
-      "key": "defendantName",
-      "label": "被告（刑事被告）姓名",
-      "type": "text",
-      "required": true
-    },
-    {
-      "key": "defendantAddress",
-      "label": "被告住所或居所",
-      "type": "text",
-      "required": true
+      "showAiSuggest": true
     },
     {
       "key": "claimTotalAmount",
       "label": "請求總金額（元）",
-      "type": "number"
-    },
-    {
-      "key": "claimStatement",
-      "label": "應受判決事項之聲明",
-      "type": "textarea",
-      "rows": 3,
-      "required": true
+      "type": "text",
+      "showAiSuggest": true
     },
     {
       "key": "medicalExpense",
       "label": "醫療費",
-      "type": "number"
+      "type": "text",
+      "showAiSuggest": true
     },
     {
       "key": "workLoss",
       "label": "工作損失",
-      "type": "number"
+      "type": "text",
+      "showAiSuggest": true
     },
     {
       "key": "solatium",
       "label": "精神慰撫金",
-      "type": "number"
-    },
-    {
-      "key": "incidentDetails",
-      "label": "訴訟標的及原因事實",
-      "type": "textarea",
-      "rows": 5,
-      "required": true
-    },
-    {
-      "key": "evidenceList",
-      "label": "供證明用之證據（每行一項）",
-      "type": "textarea",
-      "rows": 3,
-      "required": true
-    },
-    {
-      "key": "documentDate",
-      "label": "具狀日期",
-      "type": "date",
-      "required": true
-    },
-    {
-      "key": "signature",
-      "label": "具狀人簽名或蓋章文字",
       "type": "text",
-      "required": true
+      "showAiSuggest": true
     }
   ],
   "INHERITANCE_CALCULATOR": [
@@ -778,76 +662,35 @@ export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
   ],
   "PAYMENT_ORDER_PETITION": [
     {
-      "key": "courtName",
-      "label": "管轄地方法院",
-      "type": "text",
-      "required": true
-    },
-    {
       "key": "creditorName",
       "label": "債權人",
       "type": "text",
-      "required": true
-    },
-    {
-      "key": "creditorAddress",
-      "label": "債權人住所或居所",
-      "type": "text",
-      "required": true
+      "showAiSuggest": true
     },
     {
       "key": "debtorName",
       "label": "債務人",
       "type": "text",
-      "required": true
-    },
-    {
-      "key": "debtorAddress",
-      "label": "債務人住所或居所",
-      "type": "text",
-      "required": true
-    },
-    {
-      "key": "proceeding",
-      "label": "聲請事件",
-      "type": "text",
-      "required": true
+      "showAiSuggest": true
     },
     {
       "key": "debtAmount",
-      "label": "請求金額（元）",
-      "type": "number",
-      "required": true
+      "label": "金額",
+      "type": "text",
+      "showAiSuggest": true
     },
     {
       "key": "interestRate",
-      "label": "利息約定或起算說明",
-      "type": "text"
+      "label": "利息起算日",
+      "type": "text",
+      "showAiSuggest": true
     },
     {
       "key": "incidentDetails",
       "label": "請求原因事實",
       "type": "textarea",
-      "rows": 5
-    },
-    {
-      "key": "evidenceList",
-      "label": "供證明用之證據（每行一項）",
-      "type": "textarea",
-      "rows": 3,
-      "required": true
-    },
-    {
-      "key": "documentDate",
-      "label": "具狀日期",
-      "type": "date",
-      "required": true
-    },
-    {
-      "key": "signature",
-      "label": "聲請人簽名或蓋章文字",
-      "type": "text",
-      "required": true
+      "rows": 5,
+      "showAiSuggest": true
     }
   ],
   "LOAN_AGREEMENT": [
@@ -1014,98 +857,48 @@ export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
   ],
   "SPOUSAL_RIGHT_INFRINGEMENT": [
     {
-      "key": "courtName",
-      "label": "管轄地方法院",
-      "type": "text",
-      "required": true
-    },
-    {
       "key": "plaintiffName",
       "label": "原告（配偶）",
       "type": "text",
-      "required": true
-    },
-    {
-      "key": "plaintiffAddress",
-      "label": "原告住所或居所",
-      "type": "text",
-      "required": true
+      "showAiSuggest": true
     },
     {
       "key": "defendant1Name",
       "label": "被告一（侵權配偶）",
       "type": "text",
-      "required": true
-    },
-    {
-      "key": "defendant1Address",
-      "label": "被告一住所或居所",
-      "type": "text",
-      "required": true
+      "showAiSuggest": true
     },
     {
       "key": "defendant2Name",
       "label": "被告二（第三者）",
-      "type": "text"
-    },
-    {
-      "key": "defendant2Address",
-      "label": "被告二住所或居所",
-      "type": "text"
-    },
-    {
-      "key": "proceeding",
-      "label": "訴訟事件",
       "type": "text",
-      "required": true
-    },
-    {
-      "key": "claimAmount",
-      "label": "請求損害賠償金額（元）",
-      "type": "number"
-    },
-    {
-      "key": "claimStatement",
-      "label": "應受判決事項之聲明",
-      "type": "textarea",
-      "rows": 3,
-      "required": true
+      "showAiSuggest": true
     },
     {
       "key": "marriageDate",
       "label": "結婚日期",
-      "type": "date"
+      "type": "text",
+      "showAiSuggest": true
     },
     {
       "key": "infringementStart",
       "label": "外遇發現日期",
-      "type": "date"
+      "type": "text",
+      "showAiSuggest": true
     },
     {
       "key": "incidentDetails",
       "label": "侵害配偶權具體情節",
       "type": "textarea",
       "rows": 5,
-      "required": true
+      "showAiSuggest": true
     },
     {
       "key": "evidenceList",
       "label": "已掌握之證據",
       "type": "textarea",
       "rows": 3,
-      "required": true
-    },
-    {
-      "key": "documentDate",
-      "label": "具狀日期",
-      "type": "date",
-      "required": true
-    },
-    {
-      "key": "signature",
-      "label": "具狀人簽名或蓋章文字",
-      "type": "text",
-      "required": true
+      "showAiSuggest": true
     }
   ],
   "DEMAND_LETTER_DEBT": [
@@ -1268,18 +1061,11 @@ export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
     { "key": "incidentDetails", "label": "借款交付方式與擔保說明", "type": "textarea", "rows": 4, "showAiSuggest": true }
   ],
   "CIVIL_COMPLAINT_GENERAL": [
-    { "key": "courtName", "label": "管轄地方法院", "type": "text", "required": true },
-    { "key": "plaintiffName", "label": "原告姓名", "type": "text", "required": true },
-    { "key": "plaintiffAddress", "label": "原告住所或居所", "type": "text", "required": true },
-    { "key": "defendantName", "label": "被告姓名", "type": "text", "required": true },
-    { "key": "defendantAddress", "label": "被告住所或居所", "type": "text", "required": true },
-    { "key": "proceeding", "label": "訴訟事件", "type": "text", "required": true },
-    { "key": "claimAmount", "label": "訴訟標的金額（元）", "type": "number" },
-    { "key": "claimStatement", "label": "應受判決事項之聲明", "type": "textarea", "rows": 3, "required": true },
-    { "key": "incidentDetails", "label": "訴訟標的及原因事實", "type": "textarea", "rows": 5, "required": true },
-    { "key": "evidenceList", "label": "供證明用之證據（每行一項）", "type": "textarea", "rows": 3, "required": true },
-    { "key": "documentDate", "label": "具狀日期", "type": "date", "required": true },
-    { "key": "signature", "label": "具狀人簽名或蓋章文字", "type": "text", "required": true }
+    { "key": "courtName", "label": "管轄地方法院", "type": "text", "showAiSuggest": true },
+    { "key": "plaintiffName", "label": "原告姓名", "type": "text", "showAiSuggest": true },
+    { "key": "defendantName", "label": "被告姓名", "type": "text", "showAiSuggest": true },
+    { "key": "claimAmount", "label": "訴訟標的金額（元）", "type": "text", "showAiSuggest": true },
+    { "key": "incidentDetails", "label": "起訴請求事實與理由", "type": "textarea", "rows": 5, "showAiSuggest": true }
   ],
   "COURT_FEE_CALCULATOR": [
     { "key": "claimAmount", "label": "訴訟標的金額（元）", "type": "number", "showAiSuggest": true },

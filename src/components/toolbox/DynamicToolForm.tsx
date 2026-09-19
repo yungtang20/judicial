@@ -4,6 +4,7 @@ import { getDocumentToolGuide } from '../../lib/documentToolGuides';
 import { DocumentToolGuideAccordion } from './DocumentToolGuideAccordion';
 import { AiSuggestButton } from './AiSuggestButton';
 import { UIConstants } from '../../constants/ui';
+import { LEGAL_TOOLS } from '../../lib/legalToolRegistry';
 
 export interface DynamicToolFormProps {
   toolId: string;
@@ -24,11 +25,23 @@ export const DynamicToolForm: React.FC<DynamicToolFormProps> = ({
 }) => {
   const fields = TOOL_FIELD_SCHEMAS[toolId] || [];
   const guide = getDocumentToolGuide(toolId);
+  const officialSourceUrl = LEGAL_TOOLS.find(tool => tool.id === toolId)?.officialSourceUrl;
 
   return (
     <div className="space-y-3.5 text-xs">
       {/* 鼎川法律風格：法務指南、要件與必備文件清冊 */}
       {guide && <DocumentToolGuideAccordion guide={guide} />}
+
+      {officialSourceUrl && (
+        <a
+          href={officialSourceUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center text-xs text-sky-300 underline underline-offset-2 hover:text-sky-200"
+        >
+          開啟司法院官方刑事書狀範例（共 9 類、72 筆）
+        </a>
+      )}
 
       {injectedClauseNotice && (
         <div 
@@ -53,14 +66,26 @@ export const DynamicToolForm: React.FC<DynamicToolFormProps> = ({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
         {fields.map((field) => {
-          const fieldId = `tool-${toolId}-${field.key}`;
+          if (field.type === 'select') {
+            return (
+              <div key={field.key} className="col-span-1 sm:col-span-2">
+                <label className="block font-medium text-slate-300 text-xs sm:text-sm mb-1.5">{field.label}</label>
+                <select
+                  value={formInputs[field.key] || field.options?.[0]?.value || ''}
+                  onChange={(e) => onChange(field.key, e.target.value)}
+                  className={`${UIConstants.input} text-sm`}
+                >
+                  {field.options?.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+                </select>
+              </div>
+            );
+          }
+
           if (field.type === 'textarea') {
             return (
               <div key={field.key} className="col-span-1 sm:col-span-2">
                 <div className="flex justify-between items-end mb-1.5">
-                  <label htmlFor={fieldId} className="block font-medium text-slate-300 text-xs sm:text-sm">
-                    {field.label}{field.required && <span className="ml-1 text-rose-400" aria-hidden="true">*</span>}
-                  </label>
+                  <label className="block font-medium text-slate-300 text-xs sm:text-sm">{field.label}</label>
                   {field.showAiSuggest && (
                     <AiSuggestButton 
                       fieldLabel={field.label} 
@@ -72,11 +97,7 @@ export const DynamicToolForm: React.FC<DynamicToolFormProps> = ({
                   )}
                 </div>
                 <textarea
-                  id={fieldId}
-                  name={field.key}
                   rows={field.rows || 5}
-                  required={field.required}
-                  aria-required={field.required}
                   value={formInputs[field.key] || ''}
                   onChange={(e) => onChange(field.key, e.target.value)}
                   className={`${UIConstants.textarea} text-sm`}
@@ -89,9 +110,7 @@ export const DynamicToolForm: React.FC<DynamicToolFormProps> = ({
           return (
             <div key={field.key} className="col-span-1 sm:col-span-2 md:col-span-1">
               <div className="flex justify-between items-end mb-1.5">
-                <label htmlFor={fieldId} className="block font-medium text-slate-300 text-xs sm:text-sm">
-                  {field.label}{field.required && <span className="ml-1 text-rose-400" aria-hidden="true">*</span>}
-                </label>
+                <label className="block font-medium text-slate-300 text-xs sm:text-sm">{field.label}</label>
                 {field.showAiSuggest && (
                   <AiSuggestButton 
                     fieldLabel={field.label} 
@@ -103,11 +122,7 @@ export const DynamicToolForm: React.FC<DynamicToolFormProps> = ({
                 )}
               </div>
               <input
-                id={fieldId}
-                name={field.key}
-                type={field.type === 'number' || field.type === 'date' ? field.type : 'text'}
-                required={field.required}
-                aria-required={field.required}
+                type={field.type === 'number' ? 'number' : 'text'}
                 value={formInputs[field.key] || ''}
                 onChange={(e) => onChange(field.key, e.target.value)}
                 className={`${UIConstants.input} text-sm`}

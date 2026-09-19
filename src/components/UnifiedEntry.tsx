@@ -147,6 +147,7 @@ export const UnifiedEntry: React.FC = () => {
   const executeLocalFallbackWorkflow = (userInputText: string, safetyAck?: boolean): LegalWorkflowState => {
     const trimmed = userInputText.trim();
     const state = createInitialWorkflowState(trimmed);
+    state.inputType = 'facts';
     const baseTriage = buildIntelligentRuleBasedTriage(trimmed);
     const triage = enforceTriageConsistency(baseTriage, trimmed);
     const temporal = detectTemporalConflict(trimmed);

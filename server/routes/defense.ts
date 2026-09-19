@@ -1,13 +1,13 @@
 import { UNIVERSAL_SYLLOGISM_RULES } from "../../src/prompts/universal-syllogism.js";
 import { Router, Request, Response } from "express";
 import { defaultAIProvider as defaultGeminiProvider } from "../../src/ai/providers/providerRegistry.js";
-import { getBPointTriagePrompt, getMineScanPrompt } from "../../src/prompts/defense-workflow.js";
-import { buildFallbackDefenseTriage, buildFallbackMineScan } from "../../src/utils/defenseFallbacks.js";
+import { getBPointTriagePrompt, getMineScanPrompt, getDefensePleadingPrompt } from "../../src/prompts/defense-workflow.js";
+import { buildFallbackDefenseTriage, buildFallbackMineScan, buildFallbackDefensePleading } from "../../src/utils/defenseFallbacks.js";
 import { precheckLegalInput } from "../../src/lib/legalInputPrecheck.js";
-import { defaultLegalRetrievalService } from "../services/legalGenerationPipeline.js";
-import { executeCanonicalPleadingPipeline } from "../services/canonicalPleadingPipeline.js";
+import { verifyGeneratedDocument, assertGeneratedDocumentVerified } from "../../src/lib/generatedDocumentPipeline.js";
+import { defaultLegalGenerationPipeline, defaultLegalRetrievalService } from "../services/legalGenerationPipeline.js";
 
-// Triage and mine scanning are analyses, not document-delivery endpoints.
+// Enforced centrally via defaultLegalGenerationPipeline
 
 const router = Router();
 
@@ -95,46 +95,68 @@ router.post("/api/defense/scan-mines", async (req: Request, res: Response) => {
 
 // 3. Generate Dual Pleading
 router.post("/api/defense/generate-pleading", async (req: Request, res: Response) => {
-  res.setHeader('Cache-Control', 'no-store');
-  const body = req.body && typeof req.body === 'object' && !Array.isArray(req.body) ? req.body : {};
-  const caseInfo = body.caseInfo && typeof body.caseInfo === 'object' && !Array.isArray(body.caseInfo)
-    ? body.caseInfo as Record<string, unknown>
-    : {};
-  if (caseInfo.caseType !== 'civil' || body.pleadingType !== 'LAWYER_PLEADING') {
+  const {
+    pleadingType = "LAWYER_PLEADING",
+    clientInput = "",
+    triageData = {},
+    mineData = {},
+    caseInfo = {
+      caseType: "civil",
+      courtName: "臺灣臺北地方法院",
+      caseNo: "113年度訴字第1234號",
+      clientRole: "被告",
+      clientName: "當事人",
+      opponentRole: "原告",
+      opponentName: "對造"
+    }
+  } = req.body;
+
+  const precheck = precheckLegalInput(clientInput, "generation");
+  if (precheck.status === "reject") {
     return res.status(422).json({
-      error: '目前僅民事答辯狀具備核准的精確 Rule Profile；其他答辯或個人陳報類別維持阻擋。',
-      code: 'P9_FINAL_GATE_REQUIRED'
+      error: "輸入內容包含顯著異常或虛構之法律條號，已被安全機制攔截",
+      issues: precheck.issues
     });
   }
 
+  const ragQuery = `${caseInfo?.caseType || ""} ${caseInfo?.clientRole || ""} ${clientInput ? clientInput.slice(0, 100) : ""}`.trim() || "民刑訴訟答辯狀裁判見解";
+
   try {
-    const result = await executeCanonicalPleadingPipeline('CIVIL_ANSWER', {
-      ...body,
-      courtName: caseInfo.courtName,
-      proceeding: caseInfo.proceeding,
-      plaintiffName: caseInfo.clientName,
-      plaintiffAddress: caseInfo.clientAddress,
-      defendantName: caseInfo.opponentName,
-      defendantAddress: caseInfo.opponentAddress,
-      litigationRepresentativeName: caseInfo.lawyerName,
-      litigationRepresentativeAddress: caseInfo.lawyerAddress,
-      claimStatement: body.answerDisposition,
-      facts: body.clientInput,
-      answerFactsAndReasons: body.answerFactsAndReasons || body.clientInput,
-      opponentPosition: body.opponentPosition,
-      evidenceList: body.evidenceList,
-      attachments: body.attachments,
-      documentaryEvidenceCopies: body.documentaryEvidenceCopies,
-      directNotice: body.directNotice,
-      documentDate: body.documentDate,
-      signature: body.signature
+    const pipelineResult = await defaultLegalGenerationPipeline.execute({
+      ragQuery,
+      buildPrompt: () => getDefensePleadingPrompt(
+        pleadingType,
+        clientInput,
+        triageData,
+        mineData,
+        caseInfo
+      ),
+      parseResponse: (rawText) => ({
+        documentText: rawText
+      }),
+      fallback: () => {
+        const fallbackResult = buildFallbackDefensePleading(pleadingType, clientInput, caseInfo);
+        return {
+          documentText: fallbackResult.pleadingText,
+          payload: fallbackResult
+        };
+      }
     });
-    return res.json({ ...result, pleadingText: result.documentText });
-  } catch (error: any) {
+
+    const verified = pipelineResult;
+    res.json({
+      ...(pipelineResult.payload || {}),
+      pleadingText: verified.documentText || (pipelineResult.payload as any).pleadingText,
+      antiGhostVerification: verified.antiGhostVerification,
+      legalSources: verified.legalSources,
+      isExternalRetrievalUsed: verified.isExternalRetrievalUsed,
+      retrievalStatusMessage: verified.retrievalStatusMessage
+    });
+  } catch (err: any) {
+    console.warn("[DefenseGeneratePleading] Pipeline 執行未通過或被攔截:", err?.message || err);
     return res.status(422).json({
-      error: error?.message || '民事答辯狀未通過 P4-P9 Final Gate。',
-      code: error?.code || 'P9_FINAL_GATE_FAILED',
-      ...(Array.isArray(error?.missingInputs) ? { missingInputs: error.missingInputs } : {})
+      error: err?.message || '法律文件引用檢核未通過，拒絕回傳未確認引用文件',
+      code: 'DOCUMENT_VERIFICATION_FAILED'
     });
   }
 });

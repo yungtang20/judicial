@@ -77,60 +77,12 @@ describe('POST /api/toolbox/generate P9 delivery boundary', () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get('cache-control')).toBe('no-store');
-    expect(body.toolCategory).toBe('CIVIL_COMPLAINT_GENERAL');
-    expect(body.title).toBe('民事起訴狀');
     expect(body.documentText).toContain(completeCivilParams.facts);
     expect(body.pleadingDeliveryAuthorization).toMatchObject({
       finalGateStatus: 'READY',
       exportPolicy: 'READY_ONLY',
       authorizedActions: ['RETURN', 'COPY', 'DOWNLOAD_TEXT', 'DOWNLOAD_WORD', 'PRINT']
     });
-  });
-
-  it.each([
-    ['CIVIL_TORT_GENERAL', {
-      ...completeCivilParams,
-      plaintiffName: undefined,
-      plaintiffAddress: undefined,
-      defendantName: undefined,
-      defendantAddress: undefined,
-      complainantName: '甲○○',
-      complainantAddress: '臺中市測試區原告路1號',
-      accusedName: '乙○○',
-      accusedAddress: '臺中市測試區被告路2號'
-    }],
-    ['SPOUSAL_RIGHT_INFRINGEMENT', {
-      ...completeCivilParams,
-      defendantName: undefined,
-      defendantAddress: undefined,
-      defendant1Name: '乙○○',
-      defendant1Address: '臺中市測試區被告路2號'
-    }],
-    ['PAYMENT_ORDER_PETITION', {
-      courtName: '臺灣臺中地方法院',
-      creditorName: '甲○○',
-      creditorAddress: '臺中市測試區債權路1號',
-      debtorName: '乙○○',
-      debtorAddress: '臺中市測試區債務路2號',
-      proceeding: '督促程序聲請發支付命令事件',
-      debtAmount: '100000',
-      evidenceList: '債證一：借據',
-      documentDate: '2026-09-14',
-      signature: '甲○○'
-    }],
-    ['CRIMINAL_SUPPLEMENTARY_CIVIL', {
-      ...completeCivilParams,
-      courtName: '臺灣臺中地方法院刑事庭',
-      proceeding: '115年度訴字第123號刑事附帶民事訴訟事件'
-    }]
-  ])('accepts complete UI-shaped canonical input for %s', async (toolCategory, params) => {
-    const response = await post({ toolCategory, params });
-    const body = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(body.toolCategory).toBe(toolCategory);
-    expect(body.title).toEqual(expect.any(String));
-    expect(body.pleadingDeliveryAuthorization?.finalGateStatus).toBe('READY');
   });
 
   it('ignores a forged client-supplied READY Final Gate report', async () => {

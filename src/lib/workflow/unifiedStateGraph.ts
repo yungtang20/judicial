@@ -109,6 +109,7 @@ export interface LegalWorkflowState {
   updatedAt: number;
   currentStep: WorkflowStepId;
   userNarrative: string; // 用戶輸入或追加之案情文字
+  inputType?: 'facts' | 'judgment_document';
   factHistory: string[]; // 事實修訂與補充歷史
   router?: WorkflowRouterData;
   questioning?: WorkflowQuestioningData;

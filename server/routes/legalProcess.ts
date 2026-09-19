@@ -112,7 +112,7 @@ router.post("/api/process/router", async (req: Request, res: Response) => {
       const response = await Promise.race([aiPromise, timeoutPromise]);
       result = extractJsonFromText<RouterEvaluationResult>(response.text);
     } catch (aiErr) {
-      console.warn("[LegalProcess] AI Router 呼叫異常或逾時，切換至本地規範規則引擎:", aiErr);
+      console.warn("[LegalProcess] AI Router 呼叫異常或逾時，切換至本地規範規則引擎:", aiErr instanceof Error ? aiErr.message : String(aiErr));
     }
 
     // 若 AI 未回傳有效 JSON 或異常，採用嚴格符合 Prompt 規範的評估引擎
@@ -176,7 +176,7 @@ router.post("/api/process/question", async (req: Request, res: Response) => {
       const optionMatches = rawMessage.match(/\[(.*?)\]/g) || [];
       options = optionMatches.map(m => m.replace(/^\[|\]$/g, "").trim()).filter(Boolean);
     } catch (aiErr) {
-      console.warn("[LegalProcess] AI Questioning 呼叫異常或逾時，切換至標準追問模板:", aiErr);
+      console.warn("[LegalProcess] AI Questioning 呼叫異常或逾時，切換至標準追問模板:", aiErr instanceof Error ? aiErr.message : String(aiErr));
       const missingLabels = missing.join("、");
       rawMessage = `我已理解您目前遇到的狀況。為了確認適用法規（例如是否構成家暴法之保護令要件、或影響告訴期間與罪名成罪門檻），我們需要進一步釐清【${missingLabels}】。請問當時的具體情況為？\n\n[事件發生在最近3天內] [對方是我的配偶或同住家人] [尚未至醫院驗傷，但保留有通訊紀錄]`;
       options = ["事件發生在最近3天內", "對方是我的配偶或同住家人", "尚未至醫院驗傷，但保留有通訊紀錄"];
@@ -224,7 +224,7 @@ router.post("/api/process/syllogism", async (req: Request, res: Response) => {
         legalElements = retrieval.promptBlock;
       }
     } catch (ragErr) {
-      console.warn("[LegalProcess] RAG 檢索構成要件降級:", ragErr);
+      console.warn("[LegalProcess] RAG 檢索構成要件降級:", ragErr instanceof Error ? ragErr.message : String(ragErr));
     }
 
     let analysis = "";
@@ -237,7 +237,7 @@ router.post("/api/process/syllogism", async (req: Request, res: Response) => {
       const response = await Promise.race([aiPromise, timeoutPromise]);
       analysis = response.text;
     } catch (aiErr) {
-      console.warn("[LegalProcess] AI Syllogism 呼叫異常或逾時，啟動結構化三段論分析引擎:", aiErr);
+      console.warn("[LegalProcess] AI Syllogism 呼叫異常或逾時，啟動結構化三段論分析引擎:", aiErr instanceof Error ? aiErr.message : String(aiErr));
       analysis = `1. 大前提：\n根據中華民國相關法規之構成要件，行為人若具備侵害行為、侵害結果與因果關係，且無合法阻卻違法事由，即應負相應之法律責任。\n\n2. 小前提：\n用戶提供之事實指出：「${userFacts.trim()}」。目前已掌握當事人陳述與相關情境描述。\n\n3. 涵攝：\n經逐一比對事實與構成要件：\n- 行為事實部分：使用者描述之行為樣態初步符合客觀要件要旨。\n- 證據支持度部分：目前主要為片面陳述，客觀書面或醫療證據仍待補強，待舉證充足方能成罪或成立侵權。\n\n4. 結論：\n初步評估具有訴訟或救濟基礎，建議下一步優先保全客觀對話紀錄、就醫紀錄或相關事證，並向主管機關或法院具狀提出聲請。`;
     }
 

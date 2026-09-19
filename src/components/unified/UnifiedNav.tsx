@@ -3,23 +3,18 @@ import React from 'react';
 import {
   FileText, ArrowRight, Briefcase, Table, Scale, Compass
 } from 'lucide-react';
-import type { LegalWorkflowState } from '../../lib/workflow/unifiedStateGraph';
+import { canUseWorkflowResult } from './UnifiedResult';
 
 export interface UnifiedNavProps {
   [key: string]: any;
-}
-
-export function canCarryWorkflowResult(state: LegalWorkflowState): boolean {
-  return !state.error && state.router?.is_complete === true &&
-    (state.verification?.verificationStatus === 'PASS' || state.verification?.verificationStatus === 'NEEDS_REVIEW');
 }
 
 export const UnifiedNav: React.FC<UnifiedNavProps> = (props) => {
   const { workflowState, handleSelectTool, saveCrossFeatureContext, setShowDocTypeModal } = props;
 
   if (!workflowState?.syllogism) return null;
-  const canCarryResult = canCarryWorkflowResult(workflowState);
-  const verificationStatus = workflowState.verification?.verificationStatus;
+  const canUseResult = canUseWorkflowResult(workflowState);
+  const hasJudgmentContext = workflowState.inputType === 'judgment_document';
 
   const handleJumpToLitigation = (tab: 'toolbox' | 'issues' | 'appeal') => {
     saveCrossFeatureContext({
@@ -27,8 +22,7 @@ export const UnifiedNav: React.FC<UnifiedNavProps> = (props) => {
       domain: workflowState?.router?.domain,
       cause: workflowState?.router?.cause,
       facts: workflowState?.userNarrative || '',
-      ...(verificationStatus === 'PASS' ? { issuesSummary: workflowState?.syllogism?.majorPremise || '' } : {}),
-      verificationStatus,
+      issuesSummary: workflowState?.syllogism?.majorPremise || '',
       initialTab: tab,
       sourceTool: 'unified',
       timestamp: Date.now()
@@ -45,7 +39,6 @@ export const UnifiedNav: React.FC<UnifiedNavProps> = (props) => {
       domain: workflowState?.router?.domain,
       cause: workflowState?.router?.cause,
       facts: workflowState?.userNarrative || '',
-      verificationStatus,
       sourceTool: 'unified',
       timestamp: Date.now()
     });
@@ -56,17 +49,13 @@ export const UnifiedNav: React.FC<UnifiedNavProps> = (props) => {
     <div className="border-t border-slate-800 pt-4 space-y-3">
       <div className="flex items-center justify-between">
         <span className="text-sm font-bold text-white">下一步</span>
-        <span className="text-xs text-[var(--color-text-muted)]">
-          {canCarryResult
-            ? verificationStatus === 'PASS' ? '可帶入，點擊後才生成' : '可帶入待查驗內容，點擊後才生成'
-            : '請先補齊資料或排除查驗錯誤'}
-        </span>
+        <span className="text-xs text-[var(--color-text-muted)]">{canUseResult ? '可產生草稿，仍需律師審閱' : '完成官方查驗後才可帶入'}</span>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <button
           onClick={() => setShowDocTypeModal(true)}
-          disabled={!canCarryResult}
+          disabled={!canUseResult}
           className="flex items-center justify-between p-3.5 rounded-xl bg-slate-800 hover:bg-slate-750 text-white text-xs font-bold border border-slate-700 transition-colors text-left disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <div className="flex items-center gap-2.5">
@@ -81,7 +70,7 @@ export const UnifiedNav: React.FC<UnifiedNavProps> = (props) => {
 
         <button
           onClick={() => handleJumpToLitigation('toolbox')}
-          disabled={!canCarryResult}
+          disabled={!canUseResult}
           className="flex items-center justify-between p-3.5 rounded-xl bg-slate-800 hover:bg-slate-750 text-white text-xs font-bold border border-slate-700 transition-colors text-left disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <div className="flex items-center gap-2.5">
@@ -96,7 +85,7 @@ export const UnifiedNav: React.FC<UnifiedNavProps> = (props) => {
 
         <button
           onClick={() => handleJumpToLitigation('issues')}
-          disabled={!canCarryResult}
+          disabled={!canUseResult}
           className="flex items-center justify-between p-3.5 rounded-xl bg-slate-800 hover:bg-slate-750 text-white text-xs font-bold border border-slate-700 transition-colors text-left disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <div className="flex items-center gap-2.5">
@@ -111,14 +100,14 @@ export const UnifiedNav: React.FC<UnifiedNavProps> = (props) => {
 
         <button
           onClick={() => handleJumpToLitigation('appeal')}
-          disabled={!canCarryResult}
+          disabled={!canUseResult || !hasJudgmentContext}
           className="flex items-center justify-between p-3.5 rounded-xl bg-slate-800 hover:bg-slate-750 text-white text-xs font-bold border border-slate-700 transition-colors text-left disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <div className="flex items-center gap-2.5">
             <Scale className="w-4 h-4 text-indigo-400 shrink-0" />
             <div>
               <div className="font-bold">判決剖析與上訴</div>
-              <div className="text-[10px] text-[var(--color-text-muted)] font-normal">20天期間與上訴狀</div>
+              <div className="text-[10px] text-[var(--color-text-muted)] font-normal">{hasJudgmentContext ? '20天期間與上訴狀' : '需先提供判決書'}</div>
             </div>
           </div>
           <ArrowRight className="w-3.5 h-3.5 text-[var(--color-text-muted)]" />

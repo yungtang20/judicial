@@ -1,0 +1,277 @@
+
+> smart-legal-assistant@0.0.0 test
+> vitest run --run
+
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.11 [39m[90m/app/applet[39m
+
+ [32m✓[39m server/services/agentChat.test.ts [2m([22m[2m27 tests[22m[2m)[22m[33m 15062[2mms[22m[39m
+     [33m[2m✓[22m[39m returns error when LLM times out [33m 15002[2mms[22m[39m
+[90mstdout[2m | server/middleware/tenantIsolation.adversarial.test.ts[2m > [22m[2mTenant Isolation Adversarial Tests (Phase A)[2m > [22m[2mCross-Tenant SDLC Access Control[2m > [22m[2mTenant B cannot read a project created by Tenant A
+[22m[39m[AUDIT] [SUCCESS] [tenant-alpha:user-a] POST /api/sdlc/project on /api/sdlc (75ms) - 200 req:req_b47ce647-3f12-4149-9649-b912fdecf9ce
+
+[90mstdout[2m | server/middleware/tenantIsolation.adversarial.test.ts[2m > [22m[2mTenant Isolation Adversarial Tests (Phase A)[2m > [22m[2mCross-Tenant SDLC Access Control[2m > [22m[2mTenant B cannot read a project created by Tenant A
+[22m[39m[AUDIT] [DENIED] [tenant-beta:user-b] GET /api/sdlc/project/project-alpha-secure on /api/sdlc (2ms) - 403 req:req_1f012fab-f53a-4329-8e36-182b35f9e6b6
+
+[90mstdout[2m | server/middleware/tenantIsolation.adversarial.test.ts[2m > [22m[2mTenant Isolation Adversarial Tests (Phase A)[2m > [22m[2mCross-Tenant SDLC Access Control[2m > [22m[2mTenant B cannot execute a stage or tamper with Tenant A's project
+[22m[39m[AUDIT] [SUCCESS] [tenant-alpha:user-a] POST /api/sdlc/project on /api/sdlc (3ms) - 200 req:req_1b9cf698-e0cb-4d7e-ada1-d3206c5f0b4a
+
+[90mstdout[2m | server/middleware/tenantIsolation.adversarial.test.ts[2m > [22m[2mTenant Isolation Adversarial Tests (Phase A)[2m > [22m[2mCross-Tenant SDLC Access Control[2m > [22m[2mTenant B cannot execute a stage or tamper with Tenant A's project
+[22m[39m[AUDIT] [DENIED] [tenant-beta:user-b] POST /api/sdlc/execute-stage on /api/sdlc (2ms) - 403 req:req_bbc17bc3-7f2c-4b64-8b7b-8d338eb6fead
+
+[90mstdout[2m | server/middleware/tenantIsolation.adversarial.test.ts[2m > [22m[2mTenant Isolation Adversarial Tests (Phase A)[2m > [22m[2mCross-Tenant SDLC Access Control[2m > [22m[2mTenant B cannot advance a decision gate for Tenant A's project
+[22m[39m[AUDIT] [SUCCESS] [tenant-alpha:user-a] POST /api/sdlc/project on /api/sdlc (68ms) - 200 req:req_73c9b655-ca22-4ec2-8d43-cb5bb08cc662
+
+[90mstdout[2m | server/middleware/tenantIsolation.adversarial.test.ts[2m > [22m[2mTenant Isolation Adversarial Tests (Phase A)[2m > [22m[2mCross-Tenant SDLC Access Control[2m > [22m[2mTenant B cannot advance a decision gate for Tenant A's project
+[22m[39m[AUDIT] [DENIED] [tenant-beta:user-b] POST /api/sdlc/advance-gate on /api/sdlc (2ms) - 403 req:req_f17e47bd-55cc-4e7e-9b20-85ad626c5527
+
+[90mstdout[2m | server/middleware/tenantIsolation.adversarial.test.ts[2m > [22m[2mTenant Isolation Adversarial Tests (Phase A)[2m > [22m[2mCross-Tenant SDLC Access Control[2m > [22m[2mSystem Admin can access cross-tenant project for global auditing
+[22m[39m[AUDIT] [SUCCESS] [tenant-alpha:user-a] POST /api/sdlc/project on /api/sdlc (1ms) - 200 req:req_207efdb5-fd5c-47e4-beca-9224836e8507
+
+[90mstdout[2m | server/middleware/tenantIsolation.adversarial.test.ts[2m > [22m[2mTenant Isolation Adversarial Tests (Phase A)[2m > [22m[2mCross-Tenant SDLC Access Control[2m > [22m[2mSystem Admin can access cross-tenant project for global auditing
+[22m[39m[AUDIT] [SUCCESS] [system-admin-tenant:admin-user] GET /api/sdlc/project/project-alpha-admin-audit on /api/sdlc (2ms) - 200 req:req_45e05ddb-f2f7-42d1-b8ca-88e217074f59
+
+[90mstdout[2m | server/middleware/tenantIsolation.adversarial.test.ts[2m > [22m[2mTenant Isolation Adversarial Tests (Phase A)[2m > [22m[2mComprehensive Cross-Tenant Access Matrix (3 Resource Types)[2m > [22m[2mResource Type 1: Project (projectId)[2m > [22m[2mTenant B cannot READ Tenant A's project (403 Forbidden)
+[22m[39m[AUDIT] [SUCCESS] [tenant-alpha:user-a] POST /api/sdlc/project on /api/sdlc (3ms) - 200 req:req_cdac3079-aa20-41ef-b408-22585198514e
+
+[90mstdout[2m | server/middleware/tenantIsolation.adversarial.test.ts[2m > [22m[2mTenant Isolation Adversarial Tests (Phase A)[2m > [22m[2mComprehensive Cross-Tenant Access Matrix (3 Resource Types)[2m > [22m[2mResource Type 1: Project (projectId)[2m > [22m[2mTenant B cannot READ Tenant A's project (403 Forbidden)
+[22m[39m[AUDIT] [DENIED] [tenant-beta:user-b] GET /api/sdlc/project/project-isolation-crud-1 on /api/sdlc (1ms) - 403 req:req_ba01b09e-8e0e-4d60-bff6-2532af4ef1bc
+
+[90mstdout[2m | server/middleware/tenantIsolation.adversarial.test.ts[2m > [22m[2mTenant Isolation Adversarial Tests (Phase A)[2m > [22m[2mComprehensive Cross-Tenant Access Matrix (3 Resource Types)[2m > [22m[2mResource Type 1: Project (projectId)[2m > [22m[2mTenant B cannot MODIFY Tenant A's project (403 Forbidden)
+[22m[39m[AUDIT] [SUCCESS] [tenant-alpha:user-a] POST /api/sdlc/project on /api/sdlc (1ms) - 200 req:req_0b0ceb7f-e22f-4f18-a09a-2701417ff756
+
+[90mstdout[2m | server/middleware/tenantIsolation.adversarial.test.ts[2m > [22m[2mTenant Isolation Adversarial Tests (Phase A)[2m > [22m[2mComprehensive Cross-Tenant Access Matrix (3 Resource Types)[2m > [22m[2mResource Type 1: Project (projectId)[2m > [22m[2mTenant B cannot MODIFY Tenant A's project (403 Forbidden)
+[22m[39m[AUDIT] [DENIED] [tenant-beta:user-b] PATCH /api/sdlc/project/project-isolation-crud-1 on /api/sdlc (1ms) - 403 req:req_9d57f2bc-37fd-4614-b425-624d5b280c50
+
+[90mstdout[2m | server/middleware/tenantIsolation.adversarial.test.ts[2m > [22m[2mTenant Isolation Adversarial Tests (Phase A)[2m > [22m[2mComprehensive Cross-Tenant Access Matrix (3 Resource Types)[2m > [22m[2mResource Type 1: Project (projectId)[2m > [22m[2mTenant B cannot DELETE Tenant A's project (403 Forbidden)
+[22m[39m[AUDIT] [SUCCESS] [tenant-alpha:user-a] POST /api/sdlc/project on /api/sdlc (2ms) - 200 req:req_dcefc8e9-eaa7-4d63-b27a-dd2bee48edab
+
+[90mstdout[2m | server/middleware/tenantIsolation.adversarial.test.ts[2m > [22m[2mTenant Isolation Adversarial Tests (Phase A)[2m > [22m[2mComprehensive Cross-Tenant Access Matrix (3 Resource Types)[2m > [22m[2mResource Type 1: Project (projectId)[2m > [22m[2mTenant B cannot DELETE Tenant A's project (403 Forbidden)
+[22m[39m[AUDIT] [DENIED] [tenant-beta:user-b] DELETE /api/sdlc/project/project-isolation-crud-1 on /api/sdlc (2ms) - 403 req:req_ade0cd51-ca67-4914-90a7-f9ef2df96277
+
+[90mstdout[2m | server/middleware/tenantIsolation.adversarial.test.ts[2m > [22m[2mTenant Isolation Adversarial Tests (Phase A)[2m > [22m[2mComprehensive Cross-Tenant Access Matrix (3 Resource Types)[2m > [22m[2mResource Type 1: Project (projectId)[2m > [22m[2mTenant B cannot DELETE Tenant A's project (403 Forbidden)
+[22m[39m[AUDIT] [SUCCESS] [tenant-alpha:user-a] GET /api/sdlc/project/project-isolation-crud-1 on /api/sdlc (1ms) - 200 req:req_0d49b42e-b8f5-41e5-a9b5-8702700dbab4
+
+[90mstdout[2m | server/middleware/tenantIsolation.adversarial.test.ts[2m > [22m[2mTenant Isolation Adversarial Tests (Phase A)[2m > [22m[2mComprehensive Cross-Tenant Access Matrix (3 Resource Types)[2m > [22m[2mResource Type 2: Artifact / Document (artifactId)[2m > [22m[2mTenant B cannot READ Tenant A's document / artifact (403 Forbidden)
+[22m[39m[AUDIT] [SUCCESS] [tenant-alpha:user-a] POST /api/sdlc/project on /api/sdlc (1ms) - 200 req:req_482f674a-593d-4489-9a93-fec9216510f8
+
+[90mstdout[2m | server/middleware/tenantIsolation.adversarial.test.ts[2m > [22m[2mTenant Isolation Adversarial Tests (Phase A)[2m > [22m[2mComprehensive Cross-Tenant Access Matrix (3 Resource Types)[2m > [22m[2mResource Type 2: Artifact / Document (artifactId)[2m > [22m[2mTenant B cannot READ Tenant A's document / artifact (403 Forbidden)
+[22m[39m[AUDIT] [SUCCESS] [tenant-alpha:user-a] POST /api/sdlc/execute-stage on /api/sdlc (8ms) - 200 req:req_a29042a1-d7e9-47d4-9ddc-6d93345a4385
+
+[90mstdout[2m | server/middleware/tenantIsolation.adversarial.test.ts[2m > [22m[2mTenant Isolation Adversarial Tests (Phase A)[2m > [22m[2mComprehensive Cross-Tenant Access Matrix (3 Resource Types)[2m > [22m[2mResource Type 2: Artifact / Document (artifactId)[2m > [22m[2mTenant B cannot READ Tenant A's document / artifact (403 Forbidden)
+[22m[39m[AUDIT] [DENIED] [tenant-beta:user-b] GET /api/sdlc/project/project-isolation-doc-2/artifact/art_01_plan_1789714640829 on /api/sdlc (2ms) - 403 req:req_0d3376ef-8293-4a99-96eb-2b4d7b085e6c
+
+[90mstdout[2m | server/middleware/tenantIsolation.adversarial.test.ts[2m > [22m[2mTenant Isolation Adversarial Tests (Phase A)[2m > [22m[2mComprehensive Cross-Tenant Access Matrix (3 Resource Types)[2m > [22m[2mResource Type 2: Artifact / Document (artifactId)[2m > [22m[2mTenant B cannot MODIFY Tenant A's document / artifact (403 Forbidden)
+[22m[39m[AUDIT] [SUCCESS] [tenant-alpha:user-a] POST /api/sdlc/project on /api/sdlc (2ms) - 200 req:req_d761d2ea-5bcd-4fc1-a9ab-36eef35084bc
+
+[90mstdout[2m | server/middleware/tenantIsolation.adversarial.test.ts[2m > [22m[2mTenant Isolation Adversarial Tests (Phase A)[2m > [22m[2mComprehensive Cross-Tenant Access Matrix (3 Resource Types)[2m > [22m[2mResource Type 2: Artifact / Document (artifactId)[2m > [22m[2mTenant B cannot MODIFY Tenant A's document / artifact (403 Forbidden)
+[22m[39m[AUDIT] [SUCCESS] [tenant-alpha:user-a] POST /api/sdlc/execute-stage on /api/sdlc (3ms) - 200 req:req_687255c2-4f76-472c-8b3d-be9608782aad
+
+[90mstdout[2m | server/middleware/tenantIsolation.adversarial.test.ts[2m > [22m[2mTenant Isolation Adversarial Tests (Phase A)[2m > [22m[2mComprehensive Cross-Tenant Access Matrix (3 Resource Types)[2m > [22m[2mResource Type 2: Artifact / Document (artifactId)[2m > [22m[2mTenant B cannot MODIFY Tenant A's document / artifact (403 Forbidden)
+[22m[39m[AUDIT] [DENIED] [tenant-beta:user-b] PATCH /api/sdlc/project/project-isolation-doc-2/artifact/art_01_plan_1789714640907 on /api/sdlc (2ms) - 403 req:req_806bbf3b-013d-47be-b088-6c1076767605
+
+[90mstdout[2m | server/middleware/tenantIsolation.adversarial.test.ts[2m > [22m[2mTenant Isolation Adversarial Tests (Phase A)[2m > [22m[2mComprehensive Cross-Tenant Access Matrix (3 Resource Types)[2m > [22m[2mResource Type 2: Artifact / Document (artifactId)[2m > [22m[2mTenant B cannot DELETE Tenant A's document / artifact (403 Forbidden)
+[22m[39m[AUDIT] [SUCCESS] [tenant-alpha:user-a] POST /api/sdlc/project on /api/sdlc (1ms) - 200 req:req_2810d241-0914-466f-96a3-4b924008b6e4
+
+[90mstdout[2m | server/middleware/tenantIsolation.adversarial.test.ts[2m > [22m[2mTenant Isolation Adversarial Tests (Phase A)[2m > [22m[2mComprehensive Cross-Tenant Access Matrix (3 Resource Types)[2m > [22m[2mResource Type 2: Artifact / Document (artifactId)[2m > [22m[2mTenant B cannot DELETE Tenant A's document / artifact (403 Forbidden)
+[22m[39m[AUDIT] [SUCCESS] [tenant-alpha:user-a] POST /api/sdlc/execute-stage on /api/sdlc (1ms) - 200 req:req_1f12ead1-348b-43ed-b255-6526ab13cc3e
+
+[90mstdout[2m | server/middleware/tenantIsolation.adversarial.test.ts[2m > [22m[2mTenant Isolation Adversarial Tests (Phase A)[2m > [22m[2mComprehensive Cross-Tenant Access Matrix (3 Resource Types)[2m > [22m[2mResource Type 2: Artifact / Document (artifactId)[2m > [22m[2mTenant B cannot DELETE Tenant A's document / artifact (403 Forbidden)
+[22m[39m[AUDIT] [DENIED] [tenant-beta:user-b] DELETE /api/sdlc/project/project-isolation-doc-2/artifact/art_01_plan_1789714640922 on /api/sdlc (1ms) - 403 req:req_0d59ce21-adc2-4cd4-9826-76102e62674a
+
+[90mstdout[2m | server/middleware/tenantIsolation.adversarial.test.ts[2m > [22m[2mTenant Isolation Adversarial Tests (Phase A)[2m > [22m[2mComprehensive Cross-Tenant Access Matrix (3 Resource Types)[2m > [22m[2mResource Type 2: Artifact / Document (artifactId)[2m > [22m[2mTenant B cannot DELETE Tenant A's document / artifact (403 Forbidden)
+[22m[39m[AUDIT] [SUCCESS] [tenant-alpha:user-a] GET /api/sdlc/project/project-isolation-doc-2/artifact/art_01_plan_1789714640922 on /api/sdlc (2ms) - 200 req:req_3505242c-34f3-4a21-b9e4-ca02a6f791a1
+
+[90mstdout[2m | server/middleware/tenantIsolation.adversarial.test.ts[2m > [22m[2mTenant Isolation Adversarial Tests (Phase A)[2m > [22m[2mComprehensive Cross-Tenant Access Matrix (3 Resource Types)[2m > [22m[2mResource Type 3: AuditLog (auditId)[2m > [22m[2mTenant B cannot query Tenant A's audit logs via query params (403 Forbidden)
+[22m[39m[AUDIT] [SUCCESS] [tenant-alpha:user-a] POST /api/sdlc/project on /api/sdlc (1ms) - 200 req:req_b8052edb-95bc-4a50-bed5-146e27ace656
+
+[90mstdout[2m | server/middleware/tenantIsolation.adversarial.test.ts[2m > [22m[2mTenant Isolation Adversarial Tests (Phase A)[2m > [22m[2mComprehensive Cross-Tenant Access Matrix (3 Resource Types)[2m > [22m[2mResource Type 3: AuditLog (auditId)[2m > [22m[2mTenant B cannot query Tenant A's audit logs via query params (403 Forbidden)
+[22m[39m[AUDIT] [SUCCESS] [tenant-alpha:user-a] GET /api/audit/logs on /api/audit/logs (1ms) - 200 req:req_7b26d500-5e66-46d8-921a-5d3c497941ef
+
+[90mstdout[2m | server/middleware/tenantIsolation.adversarial.test.ts[2m > [22m[2mTenant Isolation Adversarial Tests (Phase A)[2m > [22m[2mComprehensive Cross-Tenant Access Matrix (3 Resource Types)[2m > [22m[2mResource Type 3: AuditLog (auditId)[2m > [22m[2mTenant B cannot query Tenant A's audit logs via query params (403 Forbidden)
+[22m[39m[AUDIT] [DENIED] [tenant-beta:user-b] GET /api/audit/logs on /api/audit/logs (1ms) - 403 req:req_2e22b468-34c9-4b2e-b85c-9944fc64a2ea
+
+[90mstdout[2m | server/middleware/tenantIsolation.adversarial.test.ts[2m > [22m[2mTenant Isolation Adversarial Tests (Phase A)[2m > [22m[2mComprehensive Cross-Tenant Access Matrix (3 Resource Types)[2m > [22m[2mResource Type 3: AuditLog (auditId)[2m > [22m[2mTenant B cannot READ Tenant A's single audit log entry (403 Forbidden)
+[22m[39m[AUDIT] [SUCCESS] [tenant-alpha:user-a] POST /api/sdlc/project on /api/sdlc (1ms) - 200 req:req_f4367b72-caf5-49a4-8ec3-160ae719fb99
+
+[90mstdout[2m | server/middleware/tenantIsolation.adversarial.test.ts[2m > [22m[2mTenant Isolation Adversarial Tests (Phase A)[2m > [22m[2mComprehensive Cross-Tenant Access Matrix (3 Resource Types)[2m > [22m[2mResource Type 3: AuditLog (auditId)[2m > [22m[2mTenant B cannot READ Tenant A's single audit log entry (403 Forbidden)
+[22m[39m[AUDIT] [SUCCESS] [tenant-alpha:user-a] GET /api/audit/logs on /api/audit/logs (2ms) - 200 req:req_b9fa4a04-3612-42f8-9a26-2e77d58327c8
+
+[90mstdout[2m | server/middleware/tenantIsolation.adversarial.test.ts[2m > [22m[2mTenant Isolation Adversarial Tests (Phase A)[2m > [22m[2mComprehensive Cross-Tenant Access Matrix (3 Resource Types)[2m > [22m[2mResource Type 3: AuditLog (auditId)[2m > [22m[2mTenant B cannot READ Tenant A's single audit log entry (403 Forbidden)
+[22m[39m[AUDIT] [DENIED] [tenant-beta:user-b] GET /api/audit/logs/audit_1789714640940_aid59 on /api/audit/logs/audit_1789714640940_aid59 (16ms) - 403 req:req_8e7584ee-3b44-4490-a5a9-01c1cdc0260c
+
+[90mstdout[2m | server/middleware/tenantIsolation.adversarial.test.ts[2m > [22m[2mTenant Isolation Adversarial Tests (Phase A)[2m > [22m[2mComprehensive Cross-Tenant Access Matrix (3 Resource Types)[2m > [22m[2mResource Type 3: AuditLog (auditId)[2m > [22m[2mTenant B cannot MODIFY Tenant A's audit log entry (403 Forbidden)
+[22m[39m[AUDIT] [SUCCESS] [tenant-alpha:user-a] POST /api/sdlc/project on /api/sdlc (1ms) - 200 req:req_c6aec484-bb3a-49e2-8fb1-c7399605411c
+
+[90mstdout[2m | server/middleware/tenantIsolation.adversarial.test.ts[2m > [22m[2mTenant Isolation Adversarial Tests (Phase A)[2m > [22m[2mComprehensive Cross-Tenant Access Matrix (3 Resource Types)[2m > [22m[2mResource Type 3: AuditLog (auditId)[2m > [22m[2mTenant B cannot MODIFY Tenant A's audit log entry (403 Forbidden)
+[22m[39m[AUDIT] [SUCCESS] [tenant-alpha:user-a] GET /api/audit/logs on /api/audit/logs (1ms) - 200 req:req_ec378f72-2310-498e-a670-09c7b5f1bbc5
+
+[90mstdout[2m | server/middleware/tenantIsolation.adversarial.test.ts[2m > [22m[2mTenant Isolation Adversarial Tests (Phase A)[2m > [22m[2mComprehensive Cross-Tenant Access Matrix (3 Resource Types)[2m > [22m[2mResource Type 3: AuditLog (auditId)[2m > [22m[2mTenant B cannot MODIFY Tenant A's audit log entry (403 Forbidden)
+[22m[39m[AUDIT] [DENIED] [tenant-beta:user-b] PATCH /api/audit/logs/audit_1789714641006_xi973 on /api/audit/logs/audit_1789714641006_xi973 (1ms) - 403 req:req_5a4cca25-0751-4c23-be68-afdcf0585dd2
+
+[90mstdout[2m | server/middleware/tenantIsolation.adversarial.test.ts[2m > [22m[2mTenant Isolation Adversarial Tests (Phase A)[2m > [22m[2mComprehensive Cross-Tenant Access Matrix (3 Resource Types)[2m > [22m[2mResource Type 3: AuditLog (auditId)[2m > [22m[2mTenant B cannot DELETE Tenant A's audit log entry (403 Forbidden)
+[22m[39m[AUDIT] [SUCCESS] [tenant-alpha:user-a] POST /api/sdlc/project on /api/sdlc (2ms) - 200 req:req_99cd10c0-5592-469e-9ad0-2b6e8949e90e
+
+[90mstdout[2m | server/middleware/tenantIsolation.adversarial.test.ts[2m > [22m[2mTenant Isolation Adversarial Tests (Phase A)[2m > [22m[2mComprehensive Cross-Tenant Access Matrix (3 Resource Types)[2m > [22m[2mResource Type 3: AuditLog (auditId)[2m > [22m[2mTenant B cannot DELETE Tenant A's audit log entry (403 Forbidden)
+[22m[39m[AUDIT] [SUCCESS] [tenant-alpha:user-a] GET /api/audit/logs on /api/audit/logs (2ms) - 200 req:req_5a6f6aee-58ab-4da7-ba4b-51e1ee07d8dd
+
+[90mstdout[2m | server/middleware/tenantIsolation.adversarial.test.ts[2m > [22m[2mTenant Isolation Adversarial Tests (Phase A)[2m > [22m[2mComprehensive Cross-Tenant Access Matrix (3 Resource Types)[2m > [22m[2mResource Type 3: AuditLog (auditId)[2m > [22m[2mTenant B cannot DELETE Tenant A's audit log entry (403 Forbidden)
+[22m[39m[AUDIT] [DENIED] [tenant-beta:user-b] DELETE /api/audit/logs/audit_1789714641017_bjmmi on /api/audit/logs/audit_1789714641017_bjmmi (1ms) - 403 req:req_2e0ee40d-701d-4e06-93c4-c261391862c8
+
+[90mstdout[2m | server/middleware/tenantIsolation.adversarial.test.ts[2m > [22m[2mTenant Isolation Adversarial Tests (Phase A)[2m > [22m[2mComprehensive Cross-Tenant Access Matrix (3 Resource Types)[2m > [22m[2mMass Assignment & Tenant Spoofing Defense[2m > [22m[2mClient cannot spoof tenantId or ownerId via request body in project creation
+[22m[39m[AUDIT] [SUCCESS] [tenant-beta:user-b] POST /api/sdlc/project on /api/sdlc (2ms) - 200 req:req_5cf14f91-115f-49c7-b2dd-b75caf90a359
+
+[90mstdout[2m | server/middleware/tenantIsolation.adversarial.test.ts[2m > [22m[2mTenant Isolation Adversarial Tests (Phase A)[2m > [22m[2mComprehensive Cross-Tenant Access Matrix (3 Resource Types)[2m > [22m[2mMass Assignment & Tenant Spoofing Defense[2m > [22m[2mClient cannot spoof tenantId or ownerId via request body in project creation
+[22m[39m[AUDIT] [DENIED] [tenant-alpha:user-a] GET /api/sdlc/project/spoof-test-1789714641026 on /api/sdlc (1ms) - 403 req:req_3e24213a-48bb-4488-bbf0-a7c52887fd51
+
+[90mstdout[2m | server/middleware/tenantIsolation.adversarial.test.ts[2m > [22m[2mTenant Isolation Adversarial Tests (Phase A)[2m > [22m[2mComprehensive Cross-Tenant Access Matrix (3 Resource Types)[2m > [22m[2mMass Assignment & Tenant Spoofing Defense[2m > [22m[2mNon-admin client cannot spoof tenantId via X-Tenant-Id header
+[22m[39m[AUDIT] [SUCCESS] [tenant-beta:user-b] POST /api/sdlc/project on /api/sdlc (1ms) - 200 req:req_28ede6ff-3845-44c3-a7cc-dc28faf284f3
+
+ [32m✓[39m server/middleware/tenantIsolation.adversarial.test.ts [2m([22m[2m16 tests[22m[2m)[22m[33m 577[2mms[22m[39m
+ [32m✓[39m src/lib/reviewer/pleadingReviewer.test.ts [2m([22m[2m19 tests[22m[2m)[22m[32m 185[2mms[22m[39m
+ [32m✓[39m src/lib/reviewer/independentReReviewer.test.ts [2m([22m[2m28 tests[22m[2m)[22m[32m 300[2mms[22m[39m
+ [32m✓[39m src/domain/workflow/sdlcOrchestrator.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 37[2mms[22m[39m
+ [32m✓[39m src/lib/finalGate/pleadingFinalGate.test.ts [2m([22m[2m21 tests[22m[2m)[22m[33m 560[2mms[22m[39m
+ [32m✓[39m src/lib/generator/civilPleadingGenerator.test.ts [2m([22m[2m14 tests[22m[2m)[22m[32m 75[2mms[22m[39m
+ [32m✓[39m src/lib/revision/pleadingRevision.test.ts [2m([22m[2m21 tests[22m[2m)[22m[32m 185[2mms[22m[39m
+ [32m✓[39m server/routes/unifiedWorkflow.test.ts [2m([22m[2m14 tests[22m[2m)[22m[33m 23166[2mms[22m[39m
+     [33m[2m✓[22m[39m 上傳裁判書直接完成文件分析，不套用一般案情動態追問 [33m 11964[2mms[22m[39m
+     [33m[2m✓[22m[39m 3. 完整案情也先追問，補充後才走完分析與外部檢核閘門 [33m 2950[2mms[22m[39m
+     [33m[2m✓[22m[39m 4. 追問補充：透過 /api/workflow/supplement 補足事實後順利推進至 COMPLETED [33m 4350[2mms[22m[39m
+     [33m[2m✓[22m[39m 4.1 追問補充：明確回答無其他資料後仍可進入結果 [33m 3798[2mms[22m[39m
+ [32m✓[39m server/middleware/auth.adversarial.test.ts [2m([22m[2m24 tests[22m[2m)[22m[32m 65[2mms[22m[39m
+ [32m✓[39m server/services/canonicalPleadingPipeline.test.ts [2m([22m[2m18 tests[22m[2m)[22m[32m 194[2mms[22m[39m
+ [32m✓[39m src/lib/legalGovernance.test.ts [2m([22m[2m13 tests[22m[2m)[22m[33m 362[2mms[22m[39m
+     [33m[2m✓[22m[39m verifies generated documents at runtime and enforces UNIVERSAL_SYLLOGISM_RULES in the prompt [33m 336[2mms[22m[39m
+[90mstdout[2m | server/middleware/security.test.ts[2m > [22m[2mAuditLogService Persistence[2m > [22m[2mrecords audit events with sanitized tenant and retrieves them
+[22m[39m[AUDIT] [SUCCESS] [tenant_1789714714567:usr_test_1] POST /api/test on /api/test (15ms) - 200 req:req_test_123
+
+ [32m✓[39m server/middleware/security.test.ts [2m([22m[2m15 tests[22m[2m)[22m[32m 25[2mms[22m[39m
+ [32m✓[39m src/components/unified/UnifiedResult.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 1107[2mms[22m[39m
+     [33m[2m✓[22m[39m shows a verified result first, deduplicates evidence, and keeps reasoning collapsed [33m 817[2mms[22m[39m
+[90mstdout[2m | server/routes/fallbackBypass.adversarial.test.ts[2m > [22m[2mAUDIT-P0-001: Fallback PASS Bypass & Empty Document Hard Enforcement[2m > [22m[2mRoute Level Enforcement: court pleadings require canonical P9 authorization[2m > [22m[2mblocks /api/generate-appeal-petition without an approved Rule Profile and P9 Final Gate
+[22m[39m[AUDIT] [FAILURE] [sandbox-tenant:guest_731fcb280573] POST /api/generate-appeal-petition on /api/generate-appeal-petition (34ms) - 422 req:req_ed40e9a6-b76a-446f-96bc-b11aae35b424
+
+[90mstdout[2m | server/routes/fallbackBypass.adversarial.test.ts[2m > [22m[2mAUDIT-P0-001: Fallback PASS Bypass & Empty Document Hard Enforcement[2m > [22m[2mRoute Level Enforcement: court pleadings require canonical P9 authorization[2m > [22m[2mblocks /api/defense/generate-pleading without an approved Rule Profile and P9 Final Gate
+[22m[39m[AUDIT] [FAILURE] [sandbox-tenant:guest_0f6210fe1bb4] POST /api/defense/generate-pleading on /api/defense/generate-pleading (3ms) - 422 req:req_022a482a-29b6-4a68-8fc0-2de36f81bfa1
+
+[90mstdout[2m | server/routes/fallbackBypass.adversarial.test.ts[2m > [22m[2mAUDIT-P0-001: Fallback PASS Bypass & Empty Document Hard Enforcement[2m > [22m[2mRoute Level Enforcement: court pleadings require canonical P9 authorization[2m > [22m[2mreturns a civil second appeal only after the canonical P9 gate is READY
+[22m[39m[AUDIT] [SUCCESS] [sandbox-tenant:guest_6e7d67990c8b] POST /api/generate-appeal-petition on /api/generate-appeal-petition (64ms) - 200 req:req_22a5377e-2403-4cbd-94b2-54f290f59ff8
+
+[90mstdout[2m | server/routes/fallbackBypass.adversarial.test.ts[2m > [22m[2mAUDIT-P0-001: Fallback PASS Bypass & Empty Document Hard Enforcement[2m > [22m[2mRoute Level Enforcement: court pleadings require canonical P9 authorization[2m > [22m[2mreturns a civil answer only after the canonical P9 gate is READY
+[22m[39m[AUDIT] [SUCCESS] [sandbox-tenant:guest_a80e2ae579f9] POST /api/defense/generate-pleading on /api/defense/generate-pleading (13ms) - 200 req:req_4cc17a42-c718-4fce-bca3-0c9cc5fdf7cf
+
+[90mstdout[2m | server/routes/fallbackBypass.adversarial.test.ts[2m > [22m[2mAUDIT-P0-001: Fallback PASS Bypass & Empty Document Hard Enforcement[2m > [22m[2mRoute Level Enforcement: court pleadings require canonical P9 authorization[2m > [22m[2mkeeps a complete criminal appeal blocked while its official format profile is unverified
+[22m[39m[AUDIT] [FAILURE] [sandbox-tenant:guest_840c26f5b2c0] POST /api/generate-appeal-petition on /api/generate-appeal-petition (4ms) - 422 req:req_24230f1a-a50d-42f3-a329-0e40d62844a9
+
+[90mstdout[2m | server/routes/fallbackBypass.adversarial.test.ts[2m > [22m[2mAUDIT-P0-001: Fallback PASS Bypass & Empty Document Hard Enforcement[2m > [22m[2mRoute Level Enforcement: court pleadings require canonical P9 authorization[2m > [22m[2mblocks a civil third appeal without an explicit ground route
+[22m[39m[AUDIT] [FAILURE] [sandbox-tenant:guest_82cd2e95bece] POST /api/generate-appeal-petition on /api/generate-appeal-petition (1ms) - 422 req:req_b7acb4ec-50d1-4511-a8a3-ebd6831e5fb4
+
+ [32m✓[39m server/routes/fallbackBypass.adversarial.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 225[2mms[22m[39m
+ [32m✓[39m src/lib/compliance/pleadingComplianceEngine.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 23[2mms[22m[39m
+ [32m✓[39m server/services/officialCitationVerification.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 74[2mms[22m[39m
+ [32m✓[39m server/services/legalGenerationPipeline.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+ [32m✓[39m server/routes/toolbox.test.ts [2m([22m[2m16 tests[22m[2m)[22m[33m 350[2mms[22m[39m
+[90mstdout[2m | server/routes/judicial.test.ts[2m > [22m[2mJudicial Precedent Search RAG API (/api/judicial/search-precedents)[2m > [22m[2mreturns empty precedents without hallucination when no matches found
+[22m[39m[JudicialRouter] 向量儲存庫為空，正在匯入種子法規與實務判例...
+
+ [32m✓[39m server/routes/judicial.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 170[2mms[22m[39m
+ [32m✓[39m src/lib/finalGate/pleadingExportGate.test.ts [2m([22m[2m50 tests[22m[2m)[22m[32m 32[2mms[22m[39m
+ [32m✓[39m src/components/unified/UnifiedNav.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 966[2mms[22m[39m
+     [33m[2m✓[22m[39m allows complete NEEDS_REVIEW analysis to be carried without generating [33m 359[2mms[22m[39m
+ [32m✓[39m src/components/toolbox/ToolResultPanel.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 546[2mms[22m[39m
+ [32m✓[39m server/routes/fetchUrl.adversarial.test.ts [2m([22m[2m20 tests[22m[2m)[22m[32m 274[2mms[22m[39m
+ [32m✓[39m server/routes/legalProcess.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 450[2mms[22m[39m
+       [33m[2m✓[22m[39m executes syllogism analysis via API [33m 308[2mms[22m[39m
+ [32m✓[39m server/services/legalRetrieval.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 53[2mms[22m[39m
+[90mstdout[2m | server/services/piiAuditPrivacy.adversarial.test.ts[2m > [22m[2mPII De-identification & Audit Log Privacy Adversarial Tests (Phase C)[2m > [22m[2mAuditLogService Deep Sanitization (Array & Nested Metadata)[2m > [22m[2msanitizes PII inside arrays and deeply nested metadata objects
+[22m[39m[AUDIT] [SUCCESS] [tenant_pii_1789714753520:user_pii_1] TEST_PII_LOGGING on /api/test (10ms) - 200 req:req_pii_test
+
+[90mstdout[2m | server/services/piiAuditPrivacy.adversarial.test.ts[2m > [22m[2mPII De-identification & Audit Log Privacy Adversarial Tests (Phase C)[2m > [22m[2mAuditLogService Deep Sanitization (Array & Nested Metadata)[2m > [22m[2msanitizes Error objects, error messages, and redacts secret keys in metadata
+[22m[39m[AUDIT] [FAILURE] [tenant_pii_err_1789714753525:user_pii_2] ERROR_LOGGING on /api/sdlc (15ms) - 500 req:req_err_test
+
+ [32m✓[39m server/services/piiAuditPrivacy.adversarial.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+ [32m✓[39m server/knowledge-base/localKnowledgeBase.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 51[2mms[22m[39m
+ [32m✓[39m src/domain/workflow/verification.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+ [32m✓[39m src/lib/calculatorEngines/calculators.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 46[2mms[22m[39m
+ [32m✓[39m src/domain/workflow/authorization.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m server/routes/agentChat.test.ts [2m([22m[2m7 tests[22m[2m)[22m[33m 1082[2mms[22m[39m
+ [32m✓[39m server/middleware/productionSecurity.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 192[2mms[22m[39m
+ [32m✓[39m src/lib/cache/judgmentCache.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 42[2mms[22m[39m
+ [32m✓[39m src/lib/sdlcEngine.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m src/lib/apiClient.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+ [32m✓[39m src/domain/workflow/runtimeSchemaValidator.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+ [32m✓[39m src/lib/legalProcessClassifier.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m src/store/useCaseStore.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 279[2mms[22m[39m
+ [32m✓[39m src/lib/externalCitationVerifier.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 33[2mms[22m[39m
+ [32m✓[39m src/lib/toolFieldSchemas.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+ [32m✓[39m server/knowledge-base/judgmentKnowledgeBase.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 29[2mms[22m[39m
+ [32m✓[39m src/lib/universalTriage.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32m✓[39m src/lib/twLegalRagClient.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+ [32m✓[39m src/lib/rules/proceduralPleadingRuleProfiles.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+ [32m✓[39m src/lib/citationVerifier.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+ [32m✓[39m src/components/toolbox/ClauseInjection.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 640[2mms[22m[39m
+     [33m[2m✓[22m[39m triggers onSendToDocument callback with legal clause when clicking the button in InteractiveCalculatorView [33m 438[2mms[22m[39m
+ [32m✓[39m src/hooks/appealDocumentActions.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 27[2mms[22m[39m
+ [32m✓[39m src/lib/pdfUtils.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+ [32m✓[39m src/domain/workflow/stageExecutors.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32m✓[39m src/components/toolbox/ToolboxClassification.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 441[2mms[22m[39m
+     [33m[2m✓[22m[39m offers the 5 consistent life-situation categories matching Dingchuan layout [33m 397[2mms[22m[39m
+ [32m✓[39m src/components/toolbox/DocumentToolGuideAccordion.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 401[2mms[22m[39m
+     [33m[2m✓[22m[39m renders DocumentToolGuideAccordion collapsed by default and expands upon click [33m 361[2mms[22m[39m
+ [32m✓[39m src/domain/workflow/LegalWorkflowState.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+ [32m✓[39m src/ai/providers/OpenAICompatibleProvider.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+ [32m✓[39m src/components/ui/uiComponents.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 303[2mms[22m[39m
+[90mstdout[2m | src/domain/case/caseLifecycle.e2e.test.ts[2m > [22m[2mcase lifecycle flow[2m > [22m[2mrejects an unread TLR citation at the real appeal and toolbox routes
+[22m[39m[AUDIT] [FAILURE] [sandbox-tenant:guest_688d5445f089] POST /api/generate-appeal-petition on /api/generate-appeal-petition (24ms) - 422 req:req_da307f7b-4a83-4830-b86d-8160fc103d8c
+
+[90mstdout[2m | src/domain/case/caseLifecycle.e2e.test.ts[2m > [22m[2mcase lifecycle flow[2m > [22m[2mrejects an unread TLR citation at the real appeal and toolbox routes
+[22m[39m[AUDIT] [FAILURE] [sandbox-tenant:guest_9e61ec76da33] POST /api/toolbox/generate on /api/toolbox/generate (2ms) - 422 req:req_d97a043e-c6b0-4133-966d-f439b04eb495
+
+ [32m✓[39m src/domain/case/caseLifecycle.e2e.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 85[2mms[22m[39m
+ [32m✓[39m src/ai/providers/AgnesProvider.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+ [32m✓[39m server/services/judicialDataFetcher.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 27[2mms[22m[39m
+ [32m✓[39m src/components/LitigationWorkspace.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 2071[2mms[22m[39m
+     [33m[2m✓[22m[39m uses document drafting as the workspace starting point [33m 361[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps the legacy guide route separate from document drafting [33m 310[2mms[22m[39m
+     [33m[2m✓[22m[39m renders the deadline section selected from the sidebar [33m 312[2mms[22m[39m
+     [33m[2m✓[22m[39m renders the appeal section selected from the sidebar [33m 309[2mms[22m[39m
+     [33m[2m✓[22m[39m renders the defense section selected from the sidebar [33m 308[2mms[22m[39m
+     [33m[2m✓[22m[39m renders the issues section selected from the sidebar [33m 465[2mms[22m[39m
+ [32m✓[39m src/domain/workflow/feedbackPolicy.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m server/routes/triage.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m src/domain/workflow/stageTransitions.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m server/services/judicialServiceHours.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 26[2mms[22m[39m
+ [32m✓[39m src/components/UnifiedEntry.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 352[2mms[22m[39m
+ [32m✓[39m src/components/Sidebar.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 450[2mms[22m[39m
+     [33m[2m✓[22m[39m shows workspace sections in the sidebar and routes the selected section [33m 342[2mms[22m[39m
+ [32m✓[39m src/lib/classifier.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m src/domain/workflow/architectureBoundary.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m src/lib/cache/indexedDbStorage.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m server/services/judicialAuthService.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 1298[2mms[22m[39m
+     [33m[2m✓[22m[39m getAuthToken returns null when credentials missing [33m 1288[2mms[22m[39m
+ [32m✓[39m src/components/guide/scenarioSearch.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m src/lib/deadlineCalculator.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m src/lib/citationFormatter.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m server/routes/fetchUrl.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 76[2mms[22m[39m
+ [32m✓[39m src/lib/compliance/formatVerification.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m src/lib/cache/judicialTokenStore.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m src/hooks/usePersistentState.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 37[2mms[22m[39m
+ [32m✓[39m src/lib/legalChapterLabels.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m server/services/promptInjection.adversarial.test.ts [2m([22m[2m1 test[22m[2m)[22m[33m 334[2mms[22m[39m
+     [33m[2m✓[22m[39m should not allow user content to bypass fail-closed verification [33m 331[2mms[22m[39m
+ [32m✓[39m src/components/LegalGuideHome.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 543[2mms[22m[39m
+     [33m[2m✓[22m[39m renders scenario categories and guidance cards [33m 539[2mms[22m[39m
+ [32m✓[39m src/domain/case/citationGate.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m src/hooks/useAutoSave.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 36[2mms[22m[39m
+ [32m✓[39m src/components/LegalDocAiChecker.test.tsx [2m([22m[2m1 test[22m[2m)[22m[32m 136[2mms[22m[39m
+ [32m✓[39m src/utils/toolboxFallbacks.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m server/index.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m src/lib/deidentifier.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m src/domain/case/workflow.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 6[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m86 passed[39m[22m[90m (86)[39m
+[2m      Tests [22m [1m[32m654 passed[39m[22m[90m (654)[39m
+[2m   Start at [22m 06:56:55
+[2m   Duration [22m 281.52s[2m (transform 7.57s, setup 21.07s, import 21.69s, tests 54.47s, environment 150.52s)[22m
+

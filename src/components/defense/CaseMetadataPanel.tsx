@@ -21,30 +21,6 @@ export interface CaseMetadataPanelProps {
   onSaveGlobal: () => void;
   lawyerName: string;
   setLawyerName: (t: string) => void;
-  lawyerAddress: string;
-  setLawyerAddress: (t: string) => void;
-  clientAddress: string;
-  setClientAddress: (t: string) => void;
-  opponentAddress: string;
-  setOpponentAddress: (t: string) => void;
-  proceeding: string;
-  setProceeding: (t: string) => void;
-  answerDisposition: string;
-  setAnswerDisposition: (t: string) => void;
-  opponentPosition: string;
-  setOpponentPosition: (t: string) => void;
-  evidenceList: string;
-  setEvidenceList: (t: string) => void;
-  attachments: string;
-  setAttachments: (t: string) => void;
-  documentaryEvidenceCopies: string;
-  setDocumentaryEvidenceCopies: (t: string) => void;
-  directNotice: string;
-  setDirectNotice: (t: string) => void;
-  documentDate: string;
-  setDocumentDate: (t: string) => void;
-  signature: string;
-  setSignature: (t: string) => void;
 }
 
 export const CaseMetadataPanel: React.FC<CaseMetadataPanelProps> = ({
@@ -52,12 +28,7 @@ export const CaseMetadataPanel: React.FC<CaseMetadataPanelProps> = ({
   clientRole, setClientRole, clientName, setClientName,
   opponentRole, setOpponentRole, opponentName, setOpponentName,
   caseBackground, setCaseBackground, onSaveGlobal,
-  lawyerName, setLawyerName, lawyerAddress, setLawyerAddress,
-  clientAddress, setClientAddress, opponentAddress, setOpponentAddress,
-  proceeding, setProceeding, answerDisposition, setAnswerDisposition,
-  opponentPosition, setOpponentPosition, evidenceList, setEvidenceList,
-  attachments, setAttachments, documentaryEvidenceCopies, setDocumentaryEvidenceCopies,
-  directNotice, setDirectNotice, documentDate, setDocumentDate, signature, setSignature
+  lawyerName, setLawyerName
 }) => {
   return (
     <div className="bg-[var(--color-surface-overlay)] border border-[var(--color-border-subtle)] rounded-xl p-5 shadow-sm space-y-4">
@@ -160,66 +131,6 @@ export const CaseMetadataPanel: React.FC<CaseMetadataPanelProps> = ({
              onChange={(e) => setLawyerName(e.target.value)}
              className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] text-xs focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none"
            />
-        </div>
-        {lawyerName && (
-          <div>
-            <label className="block font-medium text-[var(--color-text-secondary)] mb-1">代理人律師住所或事務所（必要）</label>
-            <input type="text" value={lawyerAddress} onChange={e => setLawyerAddress(e.target.value)} className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--color-border-subtle)] text-xs" />
-          </div>
-        )}
-
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <label className="block font-medium text-[var(--color-text-secondary)] mb-1">我方地址（必要）</label>
-            <input type="text" value={clientAddress} onChange={e => setClientAddress(e.target.value)} className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--color-border-subtle)] text-xs" />
-          </div>
-          <div>
-            <label className="block font-medium text-[var(--color-text-secondary)] mb-1">對方地址（必要）</label>
-            <input type="text" value={opponentAddress} onChange={e => setOpponentAddress(e.target.value)} className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--color-border-subtle)] text-xs" />
-          </div>
-        </div>
-
-        <div>
-          <label className="block font-medium text-[var(--color-text-secondary)] mb-1">訴訟事件（必要）</label>
-          <input type="text" value={proceeding} onChange={e => setProceeding(e.target.value)} placeholder="例：返還借款事件" className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--color-border-subtle)] text-xs" />
-        </div>
-
-        <div>
-          <label className="block font-medium text-[var(--color-text-secondary)] mb-1">答辯聲明（必要）</label>
-          <textarea rows={2} value={answerDisposition} onChange={e => setAnswerDisposition(e.target.value)} className="w-full px-2.5 py-2 rounded-lg border border-[var(--color-border-subtle)] text-xs" />
-        </div>
-
-        <div>
-          <label className="block font-medium text-[var(--color-text-secondary)] mb-1">對原告事實及證據承認或爭執之陳述（必要）</label>
-          <textarea rows={3} value={opponentPosition} onChange={e => setOpponentPosition(e.target.value)} className="w-full px-2.5 py-2 rounded-lg border border-[var(--color-border-subtle)] text-xs" />
-        </div>
-
-        <div>
-          <label className="block font-medium text-[var(--color-text-secondary)] mb-1">證據／附件（必要；僅填已存在資料）</label>
-          <textarea rows={2} value={evidenceList} onChange={e => setEvidenceList(e.target.value)} placeholder="證據清單" className="w-full px-2.5 py-2 rounded-lg border border-[var(--color-border-subtle)] text-xs mb-2" />
-          <textarea rows={2} value={attachments} onChange={e => setAttachments(e.target.value)} placeholder="附件清單；沒有附件時請明確輸入無" className="w-full px-2.5 py-2 rounded-lg border border-[var(--color-border-subtle)] text-xs" />
-        </div>
-
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <label className="block font-medium text-[var(--color-text-secondary)] mb-1">書證影本提出情形（必要）</label>
-            <input type="text" value={documentaryEvidenceCopies} onChange={e => setDocumentaryEvidenceCopies(e.target.value)} className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--color-border-subtle)] text-xs" />
-          </div>
-          <div>
-            <label className="block font-medium text-[var(--color-text-secondary)] mb-1">直接通知他造情形（必要）</label>
-            <input type="text" value={directNotice} onChange={e => setDirectNotice(e.target.value)} className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--color-border-subtle)] text-xs" />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <label className="block font-medium text-[var(--color-text-secondary)] mb-1">具狀日期（必要）</label>
-            <input type="date" value={documentDate} onChange={e => setDocumentDate(e.target.value)} className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--color-border-subtle)] text-xs" />
-          </div>
-          <div>
-            <label className="block font-medium text-[var(--color-text-secondary)] mb-1">簽名或蓋章文字（必要）</label>
-            <input type="text" value={signature} onChange={e => setSignature(e.target.value)} className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--color-border-subtle)] text-xs" />
-          </div>
         </div>
 
         <div>

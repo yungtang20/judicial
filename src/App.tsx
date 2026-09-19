@@ -34,15 +34,15 @@ function AppContent() {
       case 'unified':
         return <UnifiedEntry />;
       case 'guide':
-        return <LitigationWorkspace initialTab={initialData?.initialTab || 'guide'} initialToolId={initialData?.preselectedToolId} />;
+        return <LitigationWorkspace initialTab={initialData?.initialTab || 'guide'} initialToolId={initialData?.preselectedToolId} initialFacts={initialData?.facts} />;
       case 'litigation':
-        return <LitigationWorkspace initialTab={initialData?.initialTab === 'guide' ? 'toolbox' : initialData?.initialTab || 'toolbox'} initialToolId={initialData?.preselectedToolId} />;
+        return <LitigationWorkspace initialTab={initialData?.initialTab === 'guide' ? 'toolbox' : initialData?.initialTab || 'toolbox'} initialToolId={initialData?.preselectedToolId} initialFacts={initialData?.facts} />;
       case 'processGuide':
         return <LegalProcessGuide onNavigateToTool={handleSelectTool} />;
       case 'sdlc':
         return <LegalSdlcWorkbench />;
       case 'legalToolbox':
-        return <LitigationWorkspace initialTab={initialData?.initialTab || 'toolbox'} initialToolId={initialData?.preselectedToolId} />;
+        return <LitigationWorkspace initialTab={initialData?.initialTab || 'toolbox'} initialToolId={initialData?.preselectedToolId} initialFacts={initialData?.facts} />;
       case 'appeal':
       case 'smartAppeal':
       case 'appealDeadline':
@@ -50,6 +50,7 @@ function AppContent() {
           <LitigationWorkspace
             initialTab={initialData?.initialTab || (activeTool === 'smartAppeal' ? 'appeal' : 'deadline')}
             initialToolId={initialData?.preselectedToolId}
+            initialFacts={initialData?.facts}
             appealOnly
           />
         );

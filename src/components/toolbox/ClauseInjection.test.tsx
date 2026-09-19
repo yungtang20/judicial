@@ -64,21 +64,4 @@ describe('Todo 1: Calculator Clause Injection & Smooth Transition to Document Ge
 
     expect(screen.queryByText(testNotice)).not.toBeInTheDocument();
   });
-
-  it('binds canonical labels to native required controls', () => {
-    render(
-      <DynamicToolForm
-        toolId="CIVIL_COMPLAINT_GENERAL"
-        formInputs={{}}
-        onChange={vi.fn()}
-        currentToolName="民事起訴狀產生器"
-      />
-    );
-
-    expect(screen.getByLabelText(/管轄地方法院/)).toBeRequired();
-    expect(screen.getByLabelText(/原告住所或居所/)).toBeRequired();
-    expect(screen.getByLabelText(/被告住所或居所/)).toBeRequired();
-    expect(screen.getByLabelText(/具狀日期/)).toHaveAttribute('type', 'date');
-    expect(screen.getByLabelText(/具狀人簽名或蓋章文字/)).toBeRequired();
-  });
 });

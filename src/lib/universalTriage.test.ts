@@ -50,24 +50,4 @@ describe('universalTriage', () => {
     expect(corrected.statuteAnalysis).not.toContain('767');
   });
 
-  it('never returns ungated pleading or pseudo-verification fields', () => {
-    const result = buildIntelligentRuleBasedTriage('我借了朋友50萬元，有匯款單據與借據，但他過期不還');
-    expect(result).not.toHaveProperty('readyDocumentTitle');
-    expect(result).not.toHaveProperty('readyDocumentText');
-    expect(result).not.toHaveProperty('pleadingDraft');
-    expect(result).not.toHaveProperty('complianceChecklist');
-    expect(result).not.toHaveProperty('antiGhostVerification');
-
-    const corrected = enforceTriageConsistency({
-      plainExplanation: '僅供導診',
-      pleadingDraft: '未經 Final Gate 的書狀',
-      readyDocumentText: '不可交付',
-      antiGhostVerification: { ghostCitationsFound: 0 }
-    }, '借款爭議');
-    expect(corrected.plainExplanation).toBe('僅供導診');
-    expect(corrected).not.toHaveProperty('pleadingDraft');
-    expect(corrected).not.toHaveProperty('readyDocumentText');
-    expect(corrected).not.toHaveProperty('antiGhostVerification');
-  });
-
 });

@@ -1,24 +1,12 @@
-const UNGATED_PLEADING_FIELDS = [
-  'readyDocumentTitle',
-  'readyDocumentText',
-  'pleadingDraft',
-  'complianceChecklist',
-  'antiGhostVerification'
-] as const;
+import { buildFallbackToolboxResult } from '../utils/toolboxFallbacks.js';
 
-export function stripUngatedPleadingFields(payload: any): any {
-  if (!payload || typeof payload !== 'object') return payload;
-  const sanitized = { ...payload };
-  for (const field of UNGATED_PLEADING_FIELDS) delete sanitized[field];
-  return sanitized;
-}
-
-function buildIntelligentRuleBasedTriageUnsafe(query: string) {
+export function buildIntelligentRuleBasedTriage(query: string) {
     const q = (query || "").toLowerCase();
     
     // 1. 寵物/動物傷害 (純民事侵權，無刑事責任，非告訴乃論)
     if (q.includes("貓") || q.includes("狗") || q.includes("寵物") || (q.includes("咬") && !q.includes("人咬人")) || q.includes("動物")) {
       const cat = "CIVIL_PET_DISPUTE";
+      const fallbackDoc = buildFallbackToolboxResult(cat, { incidentDetails: query, searchQuery: query });
       return {
         identifiedIssue: "寵物遭鄰犬/動物咬傷侵權損害賠償爭議",
         category: cat,
@@ -50,12 +38,18 @@ function buildIntelligentRuleBasedTriageUnsafe(query: string) {
         ],
         targetToolCategory: cat,
         recommendedToolId: cat,
+        readyDocumentTitle: fallbackDoc.title,
+        readyDocumentText: fallbackDoc.documentText,
+        pleadingDraft: fallbackDoc.documentText,
+        complianceChecklist: fallbackDoc.complianceChecklist,
+        antiGhostVerification: fallbackDoc.antiGhostVerification
       };
     }
 
     // 2. 傷害罪 / 互毆 / 正當防衛 (刑事告訴乃論，6個月時效)
     if (q.includes("打架") || q.includes("互毆") || q.includes("被揍") || q.includes("被打") || q.includes("毆打") || q.includes("打人") || q.includes("動手") || q.includes("還手") || (q.includes("傷害") && !q.includes("過失傷害")) || q.includes("正當防衛")) {
       const cat = "CRIMINAL_COMPLAINT_ASSAULT";
+      const fallbackDoc = buildFallbackToolboxResult(cat, { incidentDetails: query, searchQuery: query });
       return {
         identifiedIssue: "普通傷害罪 / 互毆與正當防衛法律爭議",
         category: cat,
@@ -87,12 +81,18 @@ function buildIntelligentRuleBasedTriageUnsafe(query: string) {
         ],
         targetToolCategory: cat,
         recommendedToolId: cat,
+        readyDocumentTitle: fallbackDoc.title,
+        readyDocumentText: fallbackDoc.documentText,
+        pleadingDraft: fallbackDoc.documentText,
+        complianceChecklist: fallbackDoc.complianceChecklist,
+        antiGhostVerification: fallbackDoc.antiGhostVerification
       };
     }
 
     // 3. 公然侮辱 / 誹謗 / 妨害名譽 / 直播辱罵 (刑事告訴乃論，6個月時效)
     if (q.includes("辱罵") || q.includes("罵我") || q.includes("侮辱") || q.includes("誹謗") || q.includes("名譽") || q.includes("造謠") || q.includes("抹黑") || q.includes("直播") || q.includes("酸民") || q.includes("公然") || q.includes("三字經")) {
       const cat = "DEFAMATION_CEASE_AND_DESIST";
+      const fallbackDoc = buildFallbackToolboxResult(cat, { incidentDetails: query, searchQuery: query });
       return {
         identifiedIssue: "公然侮辱罪 / 誹謗罪 / 網路妨害名譽爭議",
         category: cat,
@@ -123,6 +123,11 @@ function buildIntelligentRuleBasedTriageUnsafe(query: string) {
         ],
         targetToolCategory: cat,
         recommendedToolId: cat,
+        readyDocumentTitle: fallbackDoc.title,
+        readyDocumentText: fallbackDoc.documentText,
+        pleadingDraft: fallbackDoc.documentText,
+        complianceChecklist: fallbackDoc.complianceChecklist,
+        antiGhostVerification: fallbackDoc.antiGhostVerification
       };
     }
 
@@ -131,6 +136,7 @@ function buildIntelligentRuleBasedTriageUnsafe(query: string) {
       const hasInjury = q.includes("傷") || q.includes("骨折") || q.includes("痛") || q.includes("住院") || q.includes("急診") || q.includes("人受傷");
       if (hasInjury) {
         const cat = "CRIMINAL_COMPLAINT_TRAFFIC";
+        const fallbackDoc = buildFallbackToolboxResult(cat, { incidentDetails: query, searchQuery: query });
         return {
           identifiedIssue: "車禍事故過失傷害刑事告訴暨損害賠償求償",
           category: cat,
@@ -162,9 +168,15 @@ function buildIntelligentRuleBasedTriageUnsafe(query: string) {
           ],
           targetToolCategory: cat,
           recommendedToolId: cat,
+          readyDocumentTitle: fallbackDoc.title,
+          readyDocumentText: fallbackDoc.documentText,
+          pleadingDraft: fallbackDoc.documentText,
+          complianceChecklist: fallbackDoc.complianceChecklist,
+          antiGhostVerification: fallbackDoc.antiGhostVerification
         };
       } else {
         const cat = "CIVIL_TORT_GENERAL";
+        const fallbackDoc = buildFallbackToolboxResult(cat, { incidentDetails: query, searchQuery: query });
         return {
           identifiedIssue: "車禍純財損修車費侵權損害賠償爭議",
           category: cat,
@@ -193,6 +205,11 @@ function buildIntelligentRuleBasedTriageUnsafe(query: string) {
           ],
           targetToolCategory: cat,
           recommendedToolId: cat,
+          readyDocumentTitle: "民事侵權損害賠償起訴狀（車損求償）",
+          readyDocumentText: fallbackDoc.documentText,
+          pleadingDraft: fallbackDoc.documentText,
+          complianceChecklist: fallbackDoc.complianceChecklist,
+          antiGhostVerification: fallbackDoc.antiGhostVerification
         };
       }
     }
@@ -200,6 +217,7 @@ function buildIntelligentRuleBasedTriageUnsafe(query: string) {
     // 5. 詐騙 / 寄卡 / 提款卡 / 人頭帳戶 / 洗錢 (刑事非告訴乃論/公訴罪)
     if (q.includes("卡片") || q.includes("寄卡") || q.includes("提款卡") || q.includes("人頭") || q.includes("詐騙") || q.includes("洗錢") || q.includes("買簿子") || q.includes("警示帳戶")) {
       const cat = "CRIMINAL_COMPLAINT_FRAUD";
+      const fallbackDoc = buildFallbackToolboxResult(cat, { incidentDetails: query, searchQuery: query });
       return {
         identifiedIssue: "誤交提款卡/存摺遭詐騙集團利用（洗錢人頭帳戶自救與刑責防禦）",
         category: cat,
@@ -231,12 +249,18 @@ function buildIntelligentRuleBasedTriageUnsafe(query: string) {
         ],
         targetToolCategory: cat,
         recommendedToolId: cat,
+        readyDocumentTitle: fallbackDoc.title,
+        readyDocumentText: fallbackDoc.documentText,
+        pleadingDraft: fallbackDoc.documentText,
+        complianceChecklist: fallbackDoc.complianceChecklist,
+        antiGhostVerification: fallbackDoc.antiGhostVerification
       };
     }
 
     // 6. 借錢不還 / 債務催討 / 本票 (純民事事件)
     if (q.includes("借錢") || q.includes("欠錢") || q.includes("不還錢") || q.includes("借據") || q.includes("本票") || q.includes("支付命令") || q.includes("借款")) {
       const cat = "DEMAND_LETTER_DEBT";
+      const fallbackDoc = buildFallbackToolboxResult(cat, { incidentDetails: query, searchQuery: query });
       return {
         identifiedIssue: "消費借貸欠款催告返還暨支付命令爭議",
         category: cat,
@@ -268,12 +292,18 @@ function buildIntelligentRuleBasedTriageUnsafe(query: string) {
         ],
         targetToolCategory: cat,
         recommendedToolId: cat,
+        readyDocumentTitle: fallbackDoc.title,
+        readyDocumentText: fallbackDoc.documentText,
+        pleadingDraft: fallbackDoc.documentText,
+        complianceChecklist: fallbackDoc.complianceChecklist,
+        antiGhostVerification: fallbackDoc.antiGhostVerification
       };
     }
 
     // 7. 恐嚇危安 / 威脅 (刑事非告訴乃論/公訴罪)
     if (q.includes("恐嚇") || q.includes("威脅") || q.includes("殺") || q.includes("打斷腿") || q.includes("要你好看")) {
       const cat = "CRIMINAL_COMPLAINT_INTIMIDATION";
+      const fallbackDoc = buildFallbackToolboxResult(cat, { incidentDetails: query, searchQuery: query });
       return {
         identifiedIssue: "恐嚇危害安全罪 / 強制罪爭議",
         category: cat,
@@ -302,6 +332,11 @@ function buildIntelligentRuleBasedTriageUnsafe(query: string) {
         ],
         targetToolCategory: cat,
         recommendedToolId: cat,
+        readyDocumentTitle: fallbackDoc.title,
+        readyDocumentText: fallbackDoc.documentText,
+        pleadingDraft: fallbackDoc.documentText,
+        complianceChecklist: fallbackDoc.complianceChecklist,
+        antiGhostVerification: fallbackDoc.antiGhostVerification
       };
     }
 
@@ -311,6 +346,7 @@ function buildIntelligentRuleBasedTriageUnsafe(query: string) {
 
     if (isPreIncapacitated && isPreSexualAct) {
       const cat = "CRIMINAL_COMPLAINT_SEXUAL_ASSAULT";
+      const fallbackDoc = buildFallbackToolboxResult(cat, { incidentDetails: query, searchQuery: query });
       
       const isSpouse = q.includes("老公") || q.includes("老婆") || q.includes("丈夫") || q.includes("妻子") || q.includes("配偶");
       const isDomestic = isSpouse || q.includes("伴侶") || q.includes("同居");
@@ -386,6 +422,11 @@ function buildIntelligentRuleBasedTriageUnsafe(query: string) {
         targetToolCategory: cat,
         recommendedToolId: cat,
         recommendedTools: tools, 
+        readyDocumentTitle: fallbackDoc.title,
+        readyDocumentText: fallbackDoc.documentText,
+        pleadingDraft: fallbackDoc.documentText,
+        complianceChecklist: fallbackDoc.complianceChecklist,
+        antiGhostVerification: fallbackDoc.antiGhostVerification
       };
     }
 
@@ -398,6 +439,7 @@ function buildIntelligentRuleBasedTriageUnsafe(query: string) {
 
     if (isSexualAssault) {
       const cat = "CRIMINAL_COMPLAINT_SEXUAL_ASSAULT";
+      const fallbackDoc = buildFallbackToolboxResult(cat, { incidentDetails: query, searchQuery: query });
       
       const isSpouse = q.includes("老公") || q.includes("老婆") || q.includes("丈夫") || q.includes("妻子") || q.includes("配偶");
       const isDomestic = isSpouse || q.includes("伴侶") || q.includes("同居");
@@ -483,12 +525,18 @@ function buildIntelligentRuleBasedTriageUnsafe(query: string) {
         targetToolCategory: cat,
         recommendedToolId: cat,
         recommendedTools: tools, 
+        readyDocumentTitle: fallbackDoc.title,
+        readyDocumentText: fallbackDoc.documentText,
+        pleadingDraft: fallbackDoc.documentText,
+        complianceChecklist: fallbackDoc.complianceChecklist,
+        antiGhostVerification: fallbackDoc.antiGhostVerification
       };
     }
 
     // 9. 竊盜 / 侵占// 9. 竊盜 / 侵占// 9. 竊盜 / 侵占// 9. 竊盜 / 侵占 (公訴罪，親屬同居特例為告訴乃論)
     if (q.includes("偷") || q.includes("竊盜") || q.includes("侵占") || q.includes("拿走") || q.includes("偷竊")) {
       const cat = "CRIMINAL_COMPLAINT_THEFT";
+      const fallbackDoc = buildFallbackToolboxResult(cat, { incidentDetails: query, searchQuery: query });
       return {
         identifiedIssue: "竊盜罪 / 侵占罪 / 親屬伴侶財產侵害爭議",
         category: cat,
@@ -519,12 +567,18 @@ function buildIntelligentRuleBasedTriageUnsafe(query: string) {
         ],
         targetToolCategory: cat,
         recommendedToolId: cat,
+        readyDocumentTitle: fallbackDoc.title,
+        readyDocumentText: fallbackDoc.documentText,
+        pleadingDraft: fallbackDoc.documentText,
+        complianceChecklist: fallbackDoc.complianceChecklist,
+        antiGhostVerification: fallbackDoc.antiGhostVerification
       };
     }
 
     // 10. 租屋糾紛 / 漏水 / 房屋瑕疵 (純民事事件)
     if (q.includes("租屋") || q.includes("房東") || q.includes("房客") || q.includes("漏水") || q.includes("押金") || q.includes("裝潢") || q.includes("修繕")) {
       const cat = "CIVIL_TORT_GENERAL";
+      const fallbackDoc = buildFallbackToolboxResult(cat, { incidentDetails: query, searchQuery: query });
       return {
         identifiedIssue: "租賃契約修繕爭議 / 房屋漏水侵權損害賠償",
         category: cat,
@@ -553,11 +607,17 @@ function buildIntelligentRuleBasedTriageUnsafe(query: string) {
         ],
         targetToolCategory: cat,
         recommendedToolId: cat,
+        readyDocumentTitle: "民事損害賠償暨請求修繕起訴狀",
+        readyDocumentText: fallbackDoc.documentText,
+        pleadingDraft: fallbackDoc.documentText,
+        complianceChecklist: fallbackDoc.complianceChecklist,
+        antiGhostVerification: fallbackDoc.antiGhostVerification
       };
     }
 
     // 11. 通用預設 (根據有無刑法關鍵字做嚴謹定性)
     const cat = "UNIVERSAL_AI_PLEADING";
+    const fallbackDoc = buildFallbackToolboxResult(cat, { incidentDetails: query, searchQuery: query });
     return {
       identifiedIssue: "生活爭議法律案件實體法與程序法即時診斷",
       category: cat,
@@ -582,12 +642,13 @@ function buildIntelligentRuleBasedTriageUnsafe(query: string) {
       ],
       targetToolCategory: cat,
       recommendedToolId: cat,
+      readyDocumentTitle: fallbackDoc.title,
+      readyDocumentText: fallbackDoc.documentText,
+      pleadingDraft: fallbackDoc.documentText,
+      complianceChecklist: fallbackDoc.complianceChecklist,
+      antiGhostVerification: fallbackDoc.antiGhostVerification
     };
   }
-
-export function buildIntelligentRuleBasedTriage(query: string): any {
-  return stripUngatedPleadingFields(buildIntelligentRuleBasedTriageUnsafe(query));
-}
 
 
 /**
@@ -791,5 +852,5 @@ export function enforceTriageConsistency(payload: any, query: string): any {
     );
   }
 
-  return stripUngatedPleadingFields(p);
+  return p;
 }

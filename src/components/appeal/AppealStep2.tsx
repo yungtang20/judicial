@@ -9,28 +9,6 @@ export function AppealStep2({ ctx }: { ctx: any }) {
     setCurrentStep,
     caseType,
     setCaseType,
-    appealLevel,
-    setAppealLevel,
-    appealGroundType,
-    setAppealGroundType,
-    proceeding,
-    setProceeding,
-    challengedJudgment,
-    setChallengedJudgment,
-    appealSupportingFactsAndEvidence,
-    setAppealSupportingFactsAndEvidence,
-    violatedLaw,
-    setViolatedLaw,
-    recordFacts,
-    setRecordFacts,
-    principledImportanceReason,
-    setPrincipledImportanceReason,
-    copies,
-    setCopies,
-    documentDate,
-    setDocumentDate,
-    signature,
-    setSignature,
     courtName,
     setCourtName,
     appealCourtName,
@@ -52,10 +30,6 @@ export function AppealStep2({ ctx }: { ctx: any }) {
     appellantPhone,
     setAppellantPhone,
     appellantLegalRep,
-    appellantLegalRepAddress,
-    setAppellantLegalRepAddress,
-    appellantLegalRepRelationship,
-    setAppellantLegalRepRelationship,
     setAppellantLegalRep,
     appelleeRole,
     setAppelleeRole,
@@ -223,70 +197,6 @@ export function AppealStep2({ ctx }: { ctx: any }) {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 border-t border-[var(--color-border-strong)] pt-3">
-              {(caseType === 'civil' || caseType === 'criminal') && (
-                <div>
-                  <label className="font-bold text-[var(--color-text-secondary)] block mb-1">上訴審級（必要）</label>
-                  <select value={appealLevel} onChange={e => setAppealLevel(e.target.value)} className="w-full border rounded p-1.5 bg-[var(--color-surface-overlay)]">
-                    <option value="SECOND">第二審</option>
-                    <option value="THIRD">第三審</option>
-                  </select>
-                </div>
-              )}
-              {caseType === 'civil' && appealLevel === 'THIRD' && (
-                <div>
-                  <label className="font-bold text-[var(--color-text-secondary)] block mb-1">第三審上訴路徑（必要）</label>
-                  <select value={appealGroundType} onChange={e => setAppealGroundType(e.target.value)} className="w-full border rounded p-1.5 bg-[var(--color-surface-overlay)]">
-                    <option value="STATUTORY">法定違背法令事由</option>
-                    <option value="PRINCIPLED_IMPORTANCE">民訴第469條之1許可上訴</option>
-                  </select>
-                </div>
-              )}
-              <div>
-                <label className="font-bold text-[var(--color-text-secondary)] block mb-1">訴訟事件（必要）</label>
-                <input type="text" value={proceeding} onChange={e => setProceeding(e.target.value)} className="w-full border rounded p-1.5 bg-[var(--color-surface-overlay)]" placeholder="例：返還借款事件" />
-              </div>
-              <div>
-                <label className="font-bold text-[var(--color-text-secondary)] block mb-1">具狀日期／簽名（必要）</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <input type="date" value={documentDate} onChange={e => setDocumentDate(e.target.value)} className="border rounded p-1.5 bg-[var(--color-surface-overlay)]" />
-                  <input type="text" value={signature} onChange={e => setSignature(e.target.value)} className="border rounded p-1.5 bg-[var(--color-surface-overlay)]" placeholder="簽名或蓋章文字" />
-                </div>
-              </div>
-              <div className="md:col-span-2">
-                <label className="font-bold text-[var(--color-text-secondary)] block mb-1">原判決及提起上訴之陳述（必要）</label>
-                <textarea value={challengedJudgment} onChange={e => setChallengedJudgment(e.target.value)} rows={2} className="w-full border rounded p-2 bg-[var(--color-surface-overlay)]" />
-              </div>
-              <div className="md:col-span-2">
-                <label className="font-bold text-[var(--color-text-secondary)] block mb-1">上訴理由所據事實及證據／事實與法律陳述（必要）</label>
-                <textarea value={appealSupportingFactsAndEvidence} onChange={e => setAppealSupportingFactsAndEvidence(e.target.value)} rows={3} className="w-full border rounded p-2 bg-[var(--color-surface-overlay)]" />
-              </div>
-              {(caseType === 'administrative' || (caseType === 'civil' && appealLevel === 'THIRD')) && (
-                <>
-                  <div>
-                    <label className="font-bold text-[var(--color-text-secondary)] block mb-1">原判決違背之法令及具體內容（必要）</label>
-                    <textarea value={violatedLaw} onChange={e => setViolatedLaw(e.target.value)} rows={3} className="w-full border rounded p-2 bg-[var(--color-surface-overlay)]" />
-                  </div>
-                  <div>
-                    <label className="font-bold text-[var(--color-text-secondary)] block mb-1">卷內訴訟資料所示具體事實（必要）</label>
-                    <textarea value={recordFacts} onChange={e => setRecordFacts(e.target.value)} rows={3} className="w-full border rounded p-2 bg-[var(--color-surface-overlay)]" />
-                  </div>
-                </>
-              )}
-              {caseType === 'civil' && appealLevel === 'THIRD' && appealGroundType === 'PRINCIPLED_IMPORTANCE' && (
-                <div className="md:col-span-2">
-                  <label className="font-bold text-[var(--color-text-secondary)] block mb-1">法律見解具原則重要性之具體理由（必要）</label>
-                  <textarea value={principledImportanceReason} onChange={e => setPrincipledImportanceReason(e.target.value)} rows={3} className="w-full border rounded p-2 bg-[var(--color-surface-overlay)]" />
-                </div>
-              )}
-              {caseType === 'criminal' && (
-                <div className="md:col-span-2">
-                  <label className="font-bold text-[var(--color-text-secondary)] block mb-1">按他造人數提出之繕本（必要）</label>
-                  <input type="text" value={copies} onChange={e => setCopies(e.target.value)} className="w-full border rounded p-1.5 bg-[var(--color-surface-overlay)]" placeholder="例：繕本一份" />
-                </div>
-              )}
-            </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {caseType !== 'criminal' && (
                 <div>
@@ -316,12 +226,6 @@ export function AppealStep2({ ctx }: { ctx: any }) {
                   <input type="text" value={appellantPhone} onChange={e => setAppellantPhone(e.target.value)} placeholder="電話" className="border rounded p-1 bg-[var(--color-surface-overlay)]" />
                   <input type="text" value={appellantLegalRep} onChange={e => setAppellantLegalRep(e.target.value)} placeholder="法定代理人（無則免填）" className="border rounded p-1 bg-[var(--color-surface-overlay)]" />
                 </div>
-                {appellantLegalRep && (
-                  <div className="grid grid-cols-2 gap-2">
-                    <input type="text" value={appellantLegalRepAddress} onChange={e => setAppellantLegalRepAddress(e.target.value)} placeholder="法定代理人住所（必要）" className="border rounded p-1 bg-[var(--color-surface-overlay)]" />
-                    <input type="text" value={appellantLegalRepRelationship} onChange={e => setAppellantLegalRepRelationship(e.target.value)} placeholder="與上訴人關係（必要）" className="border rounded p-1 bg-[var(--color-surface-overlay)]" />
-                  </div>
-                )}
               </div>
 
               <div className="space-y-2 bg-[var(--color-surface-overlay)]/70 p-3 rounded border border-[var(--color-border-subtle)]">

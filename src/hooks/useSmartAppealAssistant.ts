@@ -102,19 +102,6 @@ export function useSmartAppealAssistant() {
       const setDeliveryDate = useAppealStore(s => s.setDeliveryDate);
   const travelDays = useAppealStore(s => s.travelDays);
       const setTravelDays = useAppealStore(s => s.setTravelDays); // 在途期間
-  const [appealLevel, setAppealLevel] = useState<'SECOND' | 'THIRD'>('SECOND');
-  const [appealGroundType, setAppealGroundType] = useState<'STATUTORY' | 'PRINCIPLED_IMPORTANCE'>('STATUTORY');
-  const [proceeding, setProceeding] = useState('');
-  const [challengedJudgment, setChallengedJudgment] = useState('');
-  const [appealSupportingFactsAndEvidence, setAppealSupportingFactsAndEvidence] = useState('');
-  const [violatedLaw, setViolatedLaw] = useState('');
-  const [recordFacts, setRecordFacts] = useState('');
-  const [principledImportanceReason, setPrincipledImportanceReason] = useState('');
-  const [copies, setCopies] = useState('');
-  const [documentDate, setDocumentDate] = useState('');
-  const [signature, setSignature] = useState('');
-  const [appellantLegalRepAddress, setAppellantLegalRepAddress] = useState('');
-  const [appellantLegalRepRelationship, setAppellantLegalRepRelationship] = useState('');
 
   // Parties Full Details ( Judicial Yuan Format Requirement )
   const appellantRole = useAppealStore(s => s.appellantRole);
@@ -670,8 +657,6 @@ export function useSmartAppealAssistant() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           caseType,
-          appealLevel,
-          appealGroundType,
           courtName,
           appealCourtName,
           caseNo,
@@ -684,8 +669,6 @@ export function useSmartAppealAssistant() {
           appellantAddress,
           appellantPhone,
           appellantLegalRep,
-          appellantLegalRepAddress,
-          appellantLegalRepRelationship,
           appelleeRole,
           appelleeName,
           appelleeId,
@@ -693,18 +676,6 @@ export function useSmartAppealAssistant() {
           deliveryAgent,
           deliveryAddress,
           claims,
-          proceeding,
-          challengedJudgment,
-          appealDisposition: claims,
-          appealSupportingFactsAndEvidence,
-          factsAndLaw: appealSupportingFactsAndEvidence,
-          violatedLaw,
-          recordFacts,
-          principledImportanceReason,
-          copies,
-          necessaryEvidence: evidences.map(item => `${item.code} ${item.provenFact}`.trim()).filter(Boolean).join('\n'),
-          documentDate,
-          signature,
           issues,
           evidences,
           selectedPrecedents: selectedPrecedentsList
@@ -740,7 +711,7 @@ export function useSmartAppealAssistant() {
           kind: 'APPEAL_PETITION',
           title: '上訴理由狀',
           text: data.petitionText,
-          status: data.pleadingDeliveryAuthorization?.finalGateStatus === 'READY' ? 'VERIFIED' : 'NEEDS_HUMAN_REVIEW',
+          status: data.antiGhostVerification?.verificationPassed === false ? 'NEEDS_HUMAN_REVIEW' : 'VERIFIED',
           sourceTool: 'SmartAppealAssistant',
           createdAt: new Date().toISOString(),
           verification: data.antiGhostVerification
@@ -862,28 +833,6 @@ export function useSmartAppealAssistant() {
     todayRoc,
     caseType,
     setCaseType,
-    appealLevel,
-    setAppealLevel,
-    appealGroundType,
-    setAppealGroundType,
-    proceeding,
-    setProceeding,
-    challengedJudgment,
-    setChallengedJudgment,
-    appealSupportingFactsAndEvidence,
-    setAppealSupportingFactsAndEvidence,
-    violatedLaw,
-    setViolatedLaw,
-    recordFacts,
-    setRecordFacts,
-    principledImportanceReason,
-    setPrincipledImportanceReason,
-    copies,
-    setCopies,
-    documentDate,
-    setDocumentDate,
-    signature,
-    setSignature,
     courtName,
     setCourtName,
     appealCourtName,
@@ -909,10 +858,6 @@ export function useSmartAppealAssistant() {
     appellantPhone,
     setAppellantPhone,
     appellantLegalRep,
-    appellantLegalRepAddress,
-    setAppellantLegalRepAddress,
-    appellantLegalRepRelationship,
-    setAppellantLegalRepRelationship,
     setAppellantLegalRep,
     appelleeRole,
     setAppelleeRole,

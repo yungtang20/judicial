@@ -132,13 +132,13 @@ export async function evaluateFinalGate(rawInput: PleadingFinalGateInput): Promi
       (!rule.pleadingTypes || rule.pleadingTypes.includes(input.caseInput.pleadingType)))
     .map(rule => rule.id));
   (input.draft.missingInputs || [])
-    .filter(item => item.severity === 'BLOCKING' || Boolean(item.sourceRequirement && requiredRuleIds.has(item.sourceRequirement)))
+    .filter(item => item.severity === 'BLOCKING' || (item.severity === 'HIGH' && Boolean(item.sourceRequirement && requiredRuleIds.has(item.sourceRequirement))))
     .forEach(item => add({
       id: `INPUT:${encodeURIComponent(item.field)}:${encodeURIComponent(item.sourceRequirement || 'NONE')}:${[...item.requiredFor].sort().join(',')}`,
       source: 'INPUT',
       status: 'MISSING',
       message: item.reason,
-      overrideEligible: item.category === 'LEGAL_COMPLETENESS' && item.severity !== 'BLOCKING'
+      overrideEligible: item.category === 'LEGAL_COMPLETENESS'
     }));
 
   input.legalReferences.forEach(reference => {

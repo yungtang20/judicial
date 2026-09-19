@@ -2,6 +2,7 @@ node_modules/
 build/
 dist/
 coverage/
+temp/
 .DS_Store
 *.log
 .env*
@@ -11,6 +12,8 @@ coverage/
 .cache/
 data/*.sqlite-wal
 data/*.sqlite-shm
+data/*.sqlite-journal
+data/official-templates/output/
 
 # Temporary Scratch & Patch Scripts
 fix_*.py
