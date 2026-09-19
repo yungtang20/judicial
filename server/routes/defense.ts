@@ -1,6 +1,6 @@
 import { UNIVERSAL_SYLLOGISM_RULES } from "../../src/prompts/universal-syllogism.js";
 import { Router, Request, Response } from "express";
-import { defaultAIProvider as defaultGeminiProvider } from "../../src/ai/providers/providerRegistry.js";
+import { defaultAIProvider as configuredAIProvider } from "../../src/ai/providers/providerRegistry.js";
 import { getBPointTriagePrompt, getMineScanPrompt, getDefensePleadingPrompt } from "../../src/prompts/defense-workflow.js";
 import { buildFallbackDefenseTriage, buildFallbackMineScan, buildFallbackDefensePleading } from "../../src/utils/defenseFallbacks.js";
 import { precheckLegalInput } from "../../src/lib/legalInputPrecheck.js";
@@ -30,7 +30,7 @@ router.post("/api/defense/triage", async (req: Request, res: Response) => {
   const fullPrompt = `${prompt}\n\n${legalContext.promptBlock}\n\n${UNIVERSAL_SYLLOGISM_RULES}`;
 
   try {
-    const aiRes = await defaultGeminiProvider.generate(fullPrompt);
+    const aiRes = await configuredAIProvider.generate(fullPrompt);
     let parsed: any;
     try {
       const cleaned = aiRes.text.replace(/```json/gi, "").replace(/```/g, "").trim();
@@ -71,7 +71,7 @@ router.post("/api/defense/scan-mines", async (req: Request, res: Response) => {
   const fullPrompt = `${prompt}\n\n${legalContext.promptBlock}\n\n${UNIVERSAL_SYLLOGISM_RULES}`;
 
   try {
-    const aiRes = await defaultGeminiProvider.generate(fullPrompt);
+    const aiRes = await configuredAIProvider.generate(fullPrompt);
     let parsed: any;
     try {
       const cleaned = aiRes.text.replace(/```json/gi, "").replace(/```/g, "").trim();

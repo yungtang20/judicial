@@ -48,6 +48,7 @@ export interface RenderTemplateRequest {
 
 export interface RenderTemplateResponse {
   success: boolean;
+  documentText?: string;
   documentBase64?: string;
   fileName?: string;
   mimeType?: string;

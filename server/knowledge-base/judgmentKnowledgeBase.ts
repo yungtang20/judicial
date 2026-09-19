@@ -5,7 +5,8 @@ import {
   JudgmentRetrievalFilter
 } from "./judgmentTypes.js";
 import { LegalSearchSources, LegalSourceItem } from "../../src/lib/twLegalRagClient.js";
-import { LegalEmbedder, defaultEmbedder } from "../services/legalRetrieval.js";
+import { defaultEmbedder } from "../services/legalRetrieval.js";
+import { Embedder } from "../../src/ai/embedding/Embedder.js";
 
 // Utility for Cosine Similarity
 function cosineSimilarity(a: number[], b: number[]): number {
@@ -65,11 +66,11 @@ export interface HybridJudgmentResult {
 
 export class JudgmentKnowledgeBase {
   private chunks: JudgmentChunk[] = [];
-  private embedder: LegalEmbedder;
+  private embedder: Embedder;
   private initialized = false;
   private initPromise: Promise<void> | null = null;
 
-  constructor(private seedPath?: string, embedder?: LegalEmbedder) {
+  constructor(private seedPath?: string, embedder?: Embedder) {
     this.embedder = embedder || defaultEmbedder;
   }
 

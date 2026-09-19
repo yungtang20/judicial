@@ -1,5 +1,6 @@
 import { VERIFIED_REAL_STATUTES } from "../../src/lib/citationVerifier.js";
-import { indexDocument, VectorStore, defaultVectorStore, defaultEmbedder, LegalEmbedder } from "./legalRetrieval.js";
+import { indexDocument, VectorStore, defaultVectorStore, defaultEmbedder } from "./legalRetrieval.js";
+import { Embedder } from "../../src/ai/embedding/Embedder.js";
 
 export interface IngestStats {
   statutesCount: number;
@@ -13,7 +14,7 @@ export interface IngestStats {
  */
 export async function ingestSeedCorpus(
   vectorStore: VectorStore = defaultVectorStore,
-  embedder: LegalEmbedder = defaultEmbedder
+  embedder: Embedder = defaultEmbedder
 ): Promise<IngestStats> {
   const stats: IngestStats = {
     statutesCount: 0,

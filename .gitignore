@@ -10,6 +10,7 @@ temp/
 
 # Local Database Caches
 .cache/
+data/*.sqlite
 data/*.sqlite-wal
 data/*.sqlite-shm
 data/*.sqlite-journal
@@ -21,6 +22,8 @@ fix_*.cjs
 fix_*.sh
 patch_*.py
 patch_*.cjs
+odt-probe.ts
+tmp/
 patch_*.sh
 update_*.py
 update_*.cjs

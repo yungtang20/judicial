@@ -1,6 +1,6 @@
 import { UNIVERSAL_SYLLOGISM_RULES } from "../../src/prompts/universal-syllogism.js";
 import { Router, Request, Response } from "express";
-import { defaultAIProvider as defaultGeminiProvider } from "../../src/ai/providers/providerRegistry.js";
+import { defaultAIProvider as configuredAIProvider } from "../../src/ai/providers/providerRegistry.js";
 import { fetchJudicialHtml, parseJudicialJudgment, normalizeTaiwanCaseQuery } from "../services/judicialCrawler.js";
 import { retrieve, defaultVectorStore } from "../services/legalRetrieval.js";
 import { ingestSeedCorpus } from "../services/corpusIngest.js";
@@ -167,7 +167,7 @@ ${precedentContext}
     const fullPrompt = `${prompt}\n\n${UNIVERSAL_SYLLOGISM_RULES}`;
 
     try {
-      const aiRes = await defaultGeminiProvider.generate(fullPrompt);
+      const aiRes = await configuredAIProvider.generate(fullPrompt);
       const parsed = RuntimeSchemaValidator.parseAndValidate<any>(aiRes.text, {
         type: "object", required: ["precedents"], properties: {
           precedents: { type: "array", items: { type: "object", required: ["caseNumber"], properties: { caseNumber: { type: "string", minLength: 1 }, courtName: { type: "string" }, summary: { type: "string" }, relevance: { type: "string" }, keyTakeaway: { type: "string" }, sourceUrl: { type: "string" } } } },
