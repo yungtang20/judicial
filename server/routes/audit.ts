@@ -1,8 +1,75 @@
 import { Router, Request, Response } from "express";
 import { AuditLogService } from "../services/auditLog.js";
 import { verifyTenantOwnership } from "../middleware/tenantScope.js";
+import {
+  summarizeAuditFailures,
+  topFailureGroups,
+  formatFlywheelReport,
+  type FlywheelLogInput
+} from "../../src/lib/auditFlywheel.js";
 
 export const auditRouter = Router();
+
+const FLYWHEEL_PAGE_SIZE = 100;
+
+/**
+ * 稽核資料飛輪（手動觸發端點）: 讀取租戶稽核紀錄 → summarizeAuditFailures → 週報
+ * GET /api/audit/flywheel?limit=100&format=report|json
+ * 依既有租戶隔離規則；僅彙整動作／資源／狀態碼與筆數，不取個資欄位
+ */
+auditRouter.get("/api/audit/flywheel", (req: Request, res: Response) => {
+  const ctx = req.tenantContext;
+  if (!ctx) {
+    return res.status(401).json({
+      error: "未授權存取稽核紀錄",
+      code: "UNAUTHORIZED",
+      status: 401
+    });
+  }
+
+  const requestedTenant = req.query.tenantId as string | undefined;
+  if (requestedTenant && requestedTenant !== ctx.tenantId && !ctx.isSystemAdmin) {
+    return res.status(403).json({
+      error: "禁止跨租戶查詢稽核日誌",
+      code: "PERMISSION_DENIED",
+      status: 403
+    });
+  }
+
+  const targetTenantId = ctx.isSystemAdmin && requestedTenant ? requestedTenant : ctx.tenantId;
+  const limit = Math.min(500, Math.max(1, Number(req.query.limit) || FLYWHEEL_PAGE_SIZE));
+
+  // 分頁讀完該租戶全部稽核紀錄（僅取飛輪所需欄位）
+  const entries: FlywheelLogInput[] = [];
+  let offset = 0;
+  while (true) {
+    const page = AuditLogService.getLogsByTenant(targetTenantId, FLYWHEEL_PAGE_SIZE, offset);
+    if (page.logs.length === 0) break;
+    for (const log of page.logs) {
+      entries.push({
+        action: log.action,
+        resource: log.resource,
+        status: log.status,
+        statusCode: log.statusCode
+      });
+      if (entries.length >= limit) break;
+    }
+    if (entries.length >= limit || page.logs.length < FLYWHEEL_PAGE_SIZE) break;
+    offset += FLYWHEEL_PAGE_SIZE;
+  }
+
+  const summary = summarizeAuditFailures(entries);
+  const top = topFailureGroups(summary, 5);
+  const report = formatFlywheelReport(summary, 5);
+
+  const wantsReport = req.query.format === "report";
+  return res.json({
+    success: true,
+    tenantId: targetTenantId,
+    sampled: entries.length,
+    ...(wantsReport ? { report } : { summary, top })
+  });
+});
 
 /**
  * 查詢租戶專屬稽核日誌 (GET /api/audit/logs)
@@ -74,6 +141,7 @@ auditRouter.get("/api/audit/logs/:id", (req: Request, res: Response) => {
 /**
  * 嘗試修改稽核紀錄 (PATCH / PUT /api/audit/logs/:id)
  * 稽核日誌依法與治理規則不可篡改 (Tamper-Proof)
+ * 注意：/api/audit/flywheel 為唯讀彙整端點，不影響上述不可篡改性
  */
 auditRouter.patch("/api/audit/logs/:id", (_req: Request, res: Response) => {
   return res.status(403).json({
