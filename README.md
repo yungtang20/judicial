@@ -98,15 +98,25 @@ PR 分支會自動觸發 Vercel Preview 部署，用於前端預覽與整合測�
 
 CI 門檻（全部通過才算可上線）：
 
+> Windows 注意：路徑與測試名稱含繁體中文，執行前先將命令提示字元切換為 UTF-8
+>（程式碼頁 65001、輸出編碼 UTF-8、`PYTHONUTF8=1`、`LANG`／`LC_ALL` 設為 UTF-8），
+>避免輸出亂碼後再判讀結果。詳見 `AGENTS.md`「執行環境編碼」一節。
+
 ```bash
 npm run lint            # TypeScript 型別檢查
-npm test                # 全測試（696 項 / 93 檔）
+npm test                # 全測試（703 項 / 95 檔，含尾部評測與飛輪）
 npm run test:coverage   # 覆蓋率（stmts ≥85%, lines ≥85%, branches ≥75%, funcs ≥90%）
 npm run test:eval       # 法治治理回歸（13 項）
 npm run test:e2e        # 生命週期端到端（2 項）
 npm run test:ssrf       # SSRF 防禦（21 高風險網址阻擋）
 npm run build           # Vite + esbuild 產檔
 ```
+
+## 資料飛輪週報（每週一次，每次只修第一名）
+
+1. 以有權限帳號查詢稽核紀錄（依租戶隔離分頁取得，僅取動作、資源、狀態與狀態碼，不取個資欄位）。
+2. 將結果送入 `summarizeAuditFailures` 排出失敗名次，用 `formatFlywheelReport` 產出週報。
+3. 只修第一名：該群組對應的提示詞或規則修一處，下週再看名次是否下降。
 
 ## 上線前壓力測試紀錄（2026-09-19）
 

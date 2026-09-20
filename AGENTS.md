@@ -42,6 +42,12 @@ npm run build
 
 完整 CI 等價清單（含 `test:coverage`、`test:e2e`）見 `.github/workflows/ci.yml` 與 `docs/architecture/AUDIT.md`。
 
+## 執行環境編碼（Windows 必讀）
+
+本機路徑與測試名稱含繁體中文，Windows 命令提示字元預設非 UTF-8 會造成輸出亂碼。
+每次執行測試前，先將執行環境切換為 UTF-8（程式碼頁 65001、輸出編碼 UTF-8、
+`PYTHONUTF8=1`、`LANG`／`LC_ALL` 設為 UTF-8），確認輸出中文正常後再判讀結果。
+
 ## 完成標準
 
 預設流程：理解任務 → 實作 → 執行 → 檢查結果 → 修復問題 → 重新驗證。僅完成「修改程式碼」不算完成；必要修改完成、必要驗證通過且發現的錯誤已修復後，任務才算完成。
