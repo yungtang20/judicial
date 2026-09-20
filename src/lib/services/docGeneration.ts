@@ -14,6 +14,7 @@ type GeneratePetitionPayload = Parameters<typeof apiClient.generatePetition>[0];
 import {
   type GeneratedDocumentVerification,
   assertGeneratedDocumentVerified as _assertGeneratedDocumentVerified,
+  generateVerifiedDocument as _generateVerifiedDocument,
   verifyGeneratedDocument as _verifyGeneratedDocument,
   type VerifyDocumentOptions,
 } from '../generatedDocumentPipeline';
@@ -79,14 +80,13 @@ export function verifyAfterGeneration(
 
 /**
  * Full document generation + verification pipeline:
- * 1. Generate document via generator function
- * 2. Verify citations in generated text
- * 3. Return document with verification result attached
+ * 單一正規路徑：生成 → 驗證 → 斷言放行。
+ * 此處僅為正規管線的薄外觀，實際檢核邏輯集中於 generatedDocumentPipeline，
+ * 完整檢索增強路徑則由 server 端 LegalGenerationPipeline 負責。
  */
 export async function generateAndVerify(
   generatorFn: () => Promise<string> | string,
   verifier?: (text: string, options?: any) => any
 ): Promise<GeneratedDocumentVerification> {
-  const { generateVerifiedDocument } = await import('../generatedDocumentPipeline');
-  return generateVerifiedDocument(generatorFn, verifier);
+  return _generateVerifiedDocument(generatorFn, verifier);
 }
