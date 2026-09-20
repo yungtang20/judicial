@@ -34,8 +34,16 @@ const TAIL_CASES: TailCase[] = [
   { id: 'T13', group: '輸入邊界', text: '依民法第184條第1項前段及民法第999條規定，請求賠償。', expectBlocked: true },
   { id: 'T14', group: '輸入邊界', text: '依民事訴訟法第999條及民法第184條規定，提起訴訟。', expectBlocked: true },
   { id: 'T15', group: '輸入邊界', text: '本件已逾民法第125條時效，仍依民法第999條請求給付。', expectBlocked: true },
-  // 對照組：真實條文，應順利通過，避免過度攔截
+  // 幽靈裁判邊界：差一位/差一段——不追求全擋為 ghost，要求三層（前查核/驗證/管線）各自可歸因地擋下
+  { id: 'B01', group: '幽靈裁判', text: '依最高法院98年度台上字第1046號判決意旨，請求賠償。', expectBlocked: true },
+  { id: 'B02', group: '幽靈裁判', text: '依最高法院98年度台上字第1055號判決意旨，請求賠償。', expectBlocked: true },
+  { id: 'B03', group: '幽靈裁判', text: '依最高法院99年度台上字第1045號判決意旨，請求賠償。', expectBlocked: true },
+  { id: 'B04', group: '幽靈裁判', text: '依最高法院98年度上字第1045號判決意旨，請求賠償。', expectBlocked: true },
+  { id: 'B05', group: '幽靈裁判', text: '依最高法院98年度台上字第1號判決意旨，請求賠償。', expectBlocked: true },
+  { id: 'B07', group: '幽靈裁判', text: '依最高法院98年度台上字第6000號判決意旨，請求賠償。', expectBlocked: true },
+  // 對照組：真實條文與已驗證判例，應順利通過，避免過度攔截
   { id: 'C01', group: '對照組', text: '依民法第184條第1項前段規定，請求損害賠償。', expectBlocked: false },
+  { id: 'C06', group: '對照組', text: '依最高法院98年度台上字第1045號判決意旨，請求賠償。', expectBlocked: false },
   { id: 'C02', group: '對照組', text: '依民法第125條規定，主張時效抗辯。', expectBlocked: false },
   { id: 'C03', group: '對照組', text: '依民法第129條規定，主張時效中斷。', expectBlocked: false },
   { id: 'C04', group: '對照組', text: '依民法第767條規定，請求返還所有物。', expectBlocked: false },
@@ -111,5 +119,38 @@ describe('尾部風險評測集', () => {
         ).toBe(true);
       }
     }
+  });
+
+  it('幽靈裁判邊界（差一位/差一段）：前查核層 generation 模式一律 reject，並可歸因', () => {
+    const boundaryCases = TAIL_CASES.filter((c) => c.id.startsWith('B'));
+    expect(boundaryCases.length).toBeGreaterThanOrEqual(5);
+    for (const tailCase of boundaryCases) {
+      const precheck = precheckLegalInput(tailCase.text, 'generation');
+      expect(
+        precheck.status,
+        `${tailCase.id} 前查核層 generation 模式應 reject（unverified 即擋），實際為 ${precheck.status}`
+      ).toBe('reject');
+      const issue = precheck.issues.find((i) => i.citation && i.citation.includes('最高法院'));
+      expect(
+        issue?.code,
+        `${tailCase.id} 應產出可歸因的 issue code（MALFORMED 或 UNVERIFIED_CITATION），實際為 ${issue?.code}`
+      ).toMatch(/MALFORMED_CITATION|UNVERIFIED_CITATION/);
+    }
+  });
+
+  it('幽靈裁判邊界：驗證層明確區分 6001 以上（ghost REJECTED）與 6000 以下（NEEDS_REVIEW）', () => {
+    const high = verifyLegalCitations('依最高法院98年度台上字第6001號判決意旨，請求賠償。');
+    const highItem = high.results.find((item) => item.type === 'PRECEDENT');
+    expect(highItem, '6001 號應被驗證層標記為 PRECEDENT 項目').toBeDefined();
+    expect(highItem?.isGhostOrFake, '6001 號應判定為高度可疑（ghost）').toBe(true);
+
+    const lowBoundary = verifyLegalCitations('依最高法院98年度台上字第6000號判決意旨，請求賠償。');
+    const lowItem = lowBoundary.results.find((item) => item.type === 'PRECEDENT');
+    expect(lowItem?.verified, '6000 號未收錄，應未通過驗證').toBe(false);
+    expect(lowItem?.isGhostOrFake, '6000 號為邊界值，非 ghost（僅 NEEDS_REVIEW）').toBe(false);
+
+    const knownGood = verifyLegalCitations('依最高法院98年度台上字第1045號判決意旨，請求賠償。');
+    const goodItem = knownGood.results.find((item) => item.type === 'PRECEDENT');
+    expect(goodItem?.verified, '已驗證判例 98 年台上字 1045 號應通過').toBe(true);
   });
 });
