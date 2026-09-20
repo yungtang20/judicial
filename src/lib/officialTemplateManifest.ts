@@ -1,69 +1,34 @@
+/**
+ * Official Template Manifest Loader
+ * Loads the scraped manifest from data/official-templates/manifest.json
+ */
 import fs from 'node:fs';
 import path from 'node:path';
+import type { OfficialTemplate, OfficialTemplateManifest, TemplateStatus } from '../types/officialTemplate';
 
-export interface OfficialTemplateField {
-  key: string;
-  label: string;
-  type: string;
-  required: boolean;
-  placeholder?: string;
-  options?: Array<{ label: string; value: string }>;
-}
+const MANIFEST_PATH = path.resolve(process.cwd(), 'data', 'official-templates', 'manifest.json');
 
-export interface OfficialTemplate {
-  id: string;
-  category: string;
-  code: string;
-  name: string;
-  sourcePageUrl: string;
-  editableFileUrl?: string | null;
-  pdfFileUrl?: string | null;
-  officialUpdatedAt?: string;
-  localFilePath?: string;
-  localFileHash?: string;
-  templateStatus: string;
-  fields?: OfficialTemplateField[];
-  fieldMappings?: any[];
-  fieldMappingHash?: string;
-  downloadedAt?: string | null;
-}
-
-export interface OfficialTemplateManifest {
-  verifiedOn: string;
-  totalTemplates: number;
-  templates: OfficialTemplate[];
-}
-
-let cachedManifest: OfficialTemplateManifest | null = null;
+let _cache: OfficialTemplateManifest | null = null;
 
 export function loadManifest(): OfficialTemplateManifest {
-  if (cachedManifest) return cachedManifest;
+  if (_cache) return _cache;
 
-  const manifestPath = path.resolve(process.cwd(), 'data', 'official-templates', 'manifest.json');
-  if (!fs.existsSync(manifestPath)) {
-    return {
-      verifiedOn: '2026-09-15',
-      totalTemplates: 0,
-      templates: []
-    };
+  if (!fs.existsSync(MANIFEST_PATH)) {
+    throw new Error(`Manifest not found at ${MANIFEST_PATH}. Run the scraper first.`);
   }
 
-  const content = fs.readFileSync(manifestPath, 'utf8');
-  const raw = JSON.parse(content);
-  const templates: OfficialTemplate[] = Array.isArray(raw) ? raw : (raw.templates || []);
-
-  cachedManifest = {
-    verifiedOn: raw.verifiedOn || '2026-09-15',
-    totalTemplates: templates.length,
-    templates
+  const raw = JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf-8')) as OfficialTemplate[];
+  _cache = {
+    verifiedOn: null,
+    totalTemplates: raw.length,
+    templates: raw,
   };
-
-  return cachedManifest;
+  return _cache;
 }
 
-export function getTemplateById(id: string): OfficialTemplate | undefined {
+export function getTemplateById(id: string): OfficialTemplate | null {
   const manifest = loadManifest();
-  return manifest.templates.find(t => t.id === id);
+  return manifest.templates.find(t => t.id === id) || null;
 }
 
 export function getTemplatesByCategory(category: string): OfficialTemplate[] {
@@ -73,9 +38,15 @@ export function getTemplatesByCategory(category: string): OfficialTemplate[] {
 
 export function getAllCategories(): string[] {
   const manifest = loadManifest();
-  const categories = new Set<string>();
-  for (const t of manifest.templates) {
-    if (t.category) categories.add(t.category);
-  }
-  return Array.from(categories);
+  return [...new Set(manifest.templates.map(t => t.category))];
+}
+
+export function updateTemplateStatus(id: string, status: TemplateStatus, extra?: Partial<OfficialTemplate>): void {
+  const manifest = loadManifest();
+  const template = manifest.templates.find(t => t.id === id);
+  if (!template) throw new Error(`Template ${id} not found`);
+  template.templateStatus = status;
+  Object.assign(template, extra);
+  fs.writeFileSync(MANIFEST_PATH, JSON.stringify(manifest.templates, null, 2));
+  _cache = null; // invalidate cache
 }

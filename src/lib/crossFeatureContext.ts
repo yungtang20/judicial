@@ -24,14 +24,10 @@ export interface CrossFeatureContext {
   preselectedToolId?: string;
   /** 預選工作台分頁 ('toolbox' | 'defense' | 'issues' | 'evidence' | 'appeal' | 'deadline') */
   initialTab?: 'toolbox' | 'defense' | 'issues' | 'evidence' | 'appeal' | 'deadline';
-  /** 是否自動觸發產製 */
-  autoGenerate?: boolean;
   /** 來源功能ID */
   sourceTool?: string;
   /** 文書類型 */
   documentType?: string;
-  /** 來源分析的查驗狀態；不代表目標文件已通過查驗 */
-  verificationStatus?: 'PASS' | 'NEEDS_REVIEW' | 'FAIL';
   /** 時間戳 */
   timestamp: number;
 }

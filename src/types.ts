@@ -1,60 +1,188 @@
 /**
-/**
- * Global TypeScript definitions shared across the smart legal assistant.
+ * Core type definitions for Smart Appeal Assistant.
  */
 
 export interface IssueRow {
-  id: string;
-  originalHolding?: string;
-  judgmentPoint?: string;
-  appealedReason?: string;
-  targetPoint?: string;
-  statutes?: string;
-  precedentSupport?: string;
-  isCustom?: boolean;
+    id: string;
+    issueType?: string;
+    title: string;
+    originalHolding: string;
+    appealArgument: string;
+    relatedEvidenceCodes?: string;
+    legalBasis?: string;
+    legalStrength?: 'HIGH' | 'MEDIUM' | 'NEED_SUPPLEMENT';
 }
 
 export interface EvidenceRow {
-  id: string;
-  name: string;
-  source?: string;
-  proves?: string;
-  method?: string;
-  targetIssueId?: string;
+    id: string;
+    code: string;
+    relatedIssue: string;
+    investigationItem: string;
+    investigationTarget: string;
+    targetAddress: string;
+    provenFact: string;
+    type?: string;
+    target?: string;
+    method?: string;
+    holder?: string;
+    necessity?: string;
+    note?: string;
+    relatedIssueTitle?: string;
 }
 
 export interface PrecedentItem {
-  id: string;
-  court: string;
-  year: string;
-  caseWord: string;
-  caseNum: string;
-  title?: string;
-  fullCitation?: string;
-  summary?: string;
-  holding?: string;
-  officialJudicialUrl?: string;
-  confidenceScore?: number;
-  selected?: boolean;
+    id: string;
+    type: string;
+    citation: string;
+    summary: string;
+    applicationReason: string;
+    selected: boolean;
+    sourceProvider?: 'tw-legal-rag' | 'judicial-opendata' | 'local' | 'manual';
+    sourceUrl?: string;
+    sourceStatus?: 'RETRIEVED_UNREAD' | 'FULLTEXT_READ' | 'HUMAN_CONFIRMED' | 'REJECTED';
+  fetchedAt?: string;
+  sourceId?: string;
 }
 
-export type HallucinationRisk = 'SAFE_VERIFIED' | 'SUSPICIOUS_NUMBERING' | 'UNVERIFIABLE_CITATION' | 'GHOST_CITATION';
-export type VerificationStatus = 'VERIFIED' | 'REJECTED' | 'UNCHECKED' | 'WARNING';
+/**
+ * Types for AI Litigation Defense & Client Dual-Track Workflow
+ * (B-Point Triage -> Track 1 Lawyer Track vs Phase 2 Communication -> G-Point -> Phase 3 Personal Report Track with 6-Mine Scan)
+ */
+export type BPointDecision = 'TRACK_1_FACTS' | 'PHASE_2_COMMUNICATION';
+export type GPointDecision = 'COOPERATE' | 'INSIST_SUBMIT';
 
+export interface ConcreteFactItem {
+  id: string;
+  category: 'PEOPLE' | 'TIME' | 'LOCATION' | 'DOCUMENT' | 'ACTION';
+  factDescription: string;
+  involvedParties: string;
+  timeframe: string;
+  location: string;
+  evidenceClues: string;
+  pendingProof: string;
+  strategicValue: 'HIGH' | 'MEDIUM' | 'SUPPORTING';
+}
+
+export interface UnfruitfulPointItem {
+  id: string;
+  point: string;
+  issueType: 'EMOTIONAL_VENT' | 'LEGAL_COPYPASTE' | 'TRIVIAL_DISPUTE' | 'UNSUBSTANTIATED_ASSUMPTION';
+  whyUnfruitful: string;
+  judgePerspectiveRisk: string;
+}
+
+export interface QuestionnaireItem {
+  qId: number;
+  title: string;
+  question: string;
+  targetFact: string;
+  guideNote: string;
+  suggestedAttachment: string;
+  clientAnswer?: string;
+}
+
+export interface AdmissionMineItem {
+  id: string;
+  mineType: 
+    | 'DEBT_OR_PAYMENT_ADMISSION'       // 1. 誤認債務成立/未抗辯即認收受款項
+    | 'PRESCRIPTION_WAIVER_ADMISSION'   // 2. 時效完成前/後之無保留債務承認
+    | 'EXECUTION_OR_SIGNATURE_GENUINE'  // 3. 逕認簽名/印章真正而失卻爭執權
+    | 'PRESENCE_OR_CONCURRENCE'         // 4. 自認關鍵時點在場/共同參與
+    | 'DUTY_OR_BREACH_ADMISSION'        // 5. 誤認自身過失/違約事實
+    | 'NOTICE_OR_KNOWLEDGE_ADMISSION';  // 6. 自認受領通知/知悉情事逾除斥期間
+  mineName: string;
+  riskLevel: 'FATAL_ADMISSION' | 'HIGH_RISK' | 'TACTICAL_DEFECT';
+  triggerQuote: string;
+  legalTrap: string;
+  articleBasis: string;
+  potentialConsequence: string;
+  modificationSuggestion: string;
+}
+
+export interface DefenseTriageResult {
+  decision: BPointDecision;
+  confidenceScore: number;
+  decisionReason: string;
+  concreteFacts: ConcreteFactItem[];
+  unfruitfulPoints: UnfruitfulPointItem[];
+  summaryOverview: string;
+  // Phase 2 items
+  section1EvidenceRiskAssessment?: string;
+  section2LawyerAdvice?: string;
+  section3Questionnaire?: QuestionnaireItem[];
+  modelUsed?: string;
+  isFallback?: boolean;
+}
+
+export interface MineScanResult {
+  hasFatalMines: boolean;
+  totalMinesCount: number;
+  overallRiskSummary: string;
+  mines: AdmissionMineItem[];
+  cleanedTextSuggestion: string;
+  modelUsed?: string;
+  isFallback?: boolean;
+}
+
+export interface GeneratedPleadingResult {
+  pleadingType: 'LAWYER_PLEADING' | 'CLIENT_PERSONAL_REPORT';
+  title: string;
+  courtName: string;
+  caseNo: string;
+  submitter: string;
+  pleadingText: string;
+  disclaimer: string;
+  signatoryRole: string;
+  modelUsed?: string;
+  isFallback?: boolean;
+  antiGhostVerification?: {
+    totalCitationsChecked: number;
+    ghostCitationsFound: number;
+    verifiedCitations: CitationVerificationResult[];
+  };
+}
+
+/**
+ * Types for Legal Tools Hub & Anti-Hallucination Citation Verifier
+ */
 export interface CitationVerificationResult {
   verified: boolean;
   citationText: string;
-  type?: 'STATUTE' | 'PRECEDENT' | 'INTERPRETATION' | 'RESOLUTION' | 'OTHER';
-  legalClaim?: string;
-  claimSupportStatus?: 'SUPPORTED' | 'UNSUPPORTED' | 'NEEDS_REVIEW';
-  officialTitle?: string;
-  officialSourceUrl?: string;
+  type: 'STATUTE' | 'PRECEDENT' | 'SUPREME_COURT_RULING' | 'UNKNOWN';
+  officialTitle: string;
+  officialSourceUrl: string;
   isGhostOrFake: boolean;
-  hallucinationRisk?: HallucinationRisk;
-  verificationStatus?: VerificationStatus;
+  hallucinationRisk: 'SAFE_VERIFIED' | 'UNVERIFIED' | 'SUSPICIOUS_NUMBERING' | 'FAKE_GHOST_CITATION';
+  verificationStatus?: 'AUTHORITATIVE' | 'VERIFIED' | 'CANDIDATE' | 'UNVERIFIED' | 'NEEDS_REVIEW' | 'REJECTED';
+  legalClaim?: string;
+  claimSupportStatus?: 'SUPPORTED' | 'CONTRADICTED' | 'NEEDS_REVIEW' | 'UNVERIFIABLE';
   correctionSuggestion?: string;
   officialSnippet?: string;
-  holdingSummary?: string;
+}
+
+export interface LegalToolboxResult {
+  toolCategory: string;
+  title: string;
+  documentText: string;
+  calculationSummary?: Record<string, any>;
+  complianceChecklist: {
+    rule: string;
+    passed: boolean;
+    detail: string;
+  }[];
+  antiGhostVerification: {
+    totalCitationsChecked: number;
+    ghostCitationsFound: number;
+    verifiedCitations: CitationVerificationResult[];
+  };
+  disclaimer: string;
+  modelUsed?: string;
+  legalSources?: any;
+  isExternalRetrievalUsed?: boolean;
+  retrievalStatusMessage?: string;
+  allowedCitations?: string[];
+  /** Server-issued only after a READY P9 Final Gate; never accepted from request input. */
+  pleadingDeliveryAuthorization?: import('./lib/finalGate/pleadingExportGate').PleadingDeliveryAuthorization;
 }
 
 export interface RealStatuteDatabaseItem {
@@ -76,69 +204,3 @@ export interface RealPrecedentDatabaseItem {
   officialJudicialUrl: string;
 }
 
-export interface LegalToolboxResult {
-  documentText: string;
-  pleadingDeliveryAuthorization?: any;
-  verification?: {
-    totalCitationsChecked: number;
-    ghostCitationsFound: number;
-    verifiedCitations: CitationVerificationResult[];
-  };
-  metadata?: Record<string, any>;
-}
-
-export type BPointDecision = 'TRACK_1_FACTS' | 'TRACK_2_EMPTY';
-export type GPointDecision = 'G1_PROCEED' | 'G2_SUPPLEMENT' | 'G3_CLARIFY';
-
-export interface ConcreteFactItem {
-  id: string;
-  content: string;
-  relevance?: string;
-}
-
-export interface UnfruitfulPointItem {
-  id: string;
-  content: string;
-  flawReason?: string;
-}
-
-export interface DefenseTriageResult {
-  decision: BPointDecision;
-  reason: string;
-  concreteFacts: ConcreteFactItem[];
-  unfruitfulPoints: UnfruitfulPointItem[];
-}
-
-export interface AdmissionMineItem {
-  id: string;
-  quote: string;
-  riskLevel: 'HIGH' | 'MEDIUM' | 'LOW';
-  dangerReason: string;
-  mitigation: string;
-}
-
-export interface MineScanResult {
-  hasMines: boolean;
-  riskScore: number;
-  admissionMines: AdmissionMineItem[];
-  recommendations: string[];
-}
-
-export interface QuestionnaireItem {
-  id: string;
-  question: string;
-  answer?: string;
-  required?: boolean;
-}
-
-export interface GeneratedPleadingResult {
-  pleadingText: string;
-  metadata?: Record<string, any>;
-  verification?: {
-    totalCitationsChecked: number;
-    ghostCitationsFound: number;
-    verifiedCitations: CitationVerificationResult[];
-  };
-  deliveryAllowed?: boolean;
-  gatePassed?: boolean;
-}

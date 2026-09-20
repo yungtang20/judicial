@@ -4,7 +4,6 @@
  */
 
 import { EvidenceRow, IssueRow, PrecedentItem } from '../types';
-import { withJudgmentCache } from './cache/judgmentCache';
 
 export interface GeneratePetitionPayload {
   caseType: string;
@@ -35,12 +34,10 @@ export interface GeneratePetitionPayload {
 
 class ApiError extends Error {
   code?: string;
-  data?: any;
-  constructor(message: string, code?: string, data?: any) {
+  constructor(message: string, code?: string) {
     super(message);
     this.name = 'ApiError';
     this.code = code;
-    this.data = data;
   }
 }
 
@@ -72,7 +69,7 @@ async function fetchWithHandler(url: string, options: RequestInit) {
     } catch (e) {
       // Not JSON
     }
-    throw new ApiError(errData.error || `HTTP Error ${res.status}`, errData.code, errData);
+    throw new ApiError(errData.error || `HTTP Error ${res.status}`, errData.code);
   }
   return res.json();
 }
@@ -106,30 +103,20 @@ export const apiClient = {
     });
   },
   
-  searchTlr: async (query: string, searchType: string = 'all', bypassCache: boolean = false) => {
-    const res = await withJudgmentCache(
-      `api_searchTlr_${searchType}_${query}`,
-      () => fetchWithHandler('/api/tlr/search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, searchType })
-      }),
-      { bypassCache, ttlMs: 24 * 60 * 60 * 1000, namespace: 'tlr_search' }
-    );
-    return res.data;
+  searchTlr: async (query: string, searchType: string) => {
+    return fetchWithHandler('/api/tlr/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, searchType })
+    });
   },
   
-  fetchTlrFulltext: async (docId: string, system: string = 'judgment', bypassCache: boolean = false) => {
-    const res = await withJudgmentCache(
-      `api_fetchTlrFulltext_${system}_${docId}`,
-      () => fetchWithHandler('/api/tlr/fulltext', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ docId, system })
-      }),
-      { bypassCache, ttlMs: 7 * 24 * 60 * 60 * 1000, namespace: 'tlr_fulltext' }
-    );
-    return res.data;
+  fetchTlrFulltext: async (docId: string, system: string) => {
+    return fetchWithHandler('/api/tlr/fulltext', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ docId, system })
+    });
   },
   
   ocr: async (images: string[]) => {
@@ -140,17 +127,12 @@ export const apiClient = {
     });
   },
 
-  searchPrecedents: async (keywords: string, categoryName: string, courtName: string, reason: string, bypassCache: boolean = false) => {
-    const res = await withJudgmentCache(
-      `api_searchPrecedents_${keywords}_${categoryName}_${courtName}`,
-      () => fetchWithHandler('/api/search-precedents', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ keywords, categoryName, courtName, reason })
-      }),
-      { bypassCache, ttlMs: 24 * 60 * 60 * 1000, namespace: 'precedents' }
-    );
-    return res.data;
+  searchPrecedents: async (keywords: string, categoryName: string, courtName: string, reason: string) => {
+    return fetchWithHandler('/api/search-precedents', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ keywords, categoryName, courtName, reason })
+    });
   },
 
   judicialAuth: async (account: string, password: string) => {
@@ -210,15 +192,6 @@ export const apiClient = {
     triageData?: any;
     mineData?: any;
     caseInfo?: any;
-    answerDisposition?: string;
-    answerFactsAndReasons?: string;
-    opponentPosition?: string;
-    evidenceList?: string;
-    attachments?: string;
-    documentaryEvidenceCopies?: string;
-    directNotice?: string;
-    documentDate?: string;
-    signature?: string;
   }) => {
     return fetchWithHandler('/api/defense/generate-pleading', {
       method: 'POST',

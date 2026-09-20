@@ -1,58 +1,324 @@
-var __defProp=Object.defineProperty;var __name=(target,value)=>__defProp(target,"name",{value,configurable:true});function buildFallbackDefenseTriage(clientInput,caseType="civil",courtName="\u81FA\u7063\u81FA\u5317\u5730\u65B9\u6CD5\u9662",caseNo="113\u5E74\u5EA6\u8A34\u5B57\u7B2C1234\u865F"){const hasNumbers=/\d{2,}/.test(clientInput);const hasEvidenceKeywords=/匯款|對話|發票|簽名|照片|監視|合約|單據|存摺|LINE|證人|錄音|轉帳|借據/i.test(clientInput);const isEmotionalOnly=/生氣|黑心|法官不公|騙子|氣死|太扯|沒良心|天理不容|垃圾/i.test(clientInput)&&!hasEvidenceKeywords;const decision=hasEvidenceKeywords||hasNumbers&&!isEmotionalOnly?"TRACK_1_FACTS":"PHASE_2_COMMUNICATION";return{decision,confidenceScore:decision==="TRACK_1_FACTS"?88:82,decisionReason:decision==="TRACK_1_FACTS"?"\u7576\u4E8B\u4EBA\u9673\u8FF0\u4E2D\u5305\u542B\u5177\u9AD4\u4E4B\u91D1\u6D41\u3001\u901A\u8A0A\u5C0D\u8A71\u3001\u55AE\u64DA\u6216\u5BA2\u89C0\u6642\u9EDE\u7DDA\u7D22\uFF0C\u5177\u5099\u63D0\u7149\u70BA\u5BE6\u9AD4\u6297\u8FAF\u4E8B\u5BE6\u8207\u5F85\u8B49\u6E05\u55AE\u4E4B\u9AD8\u5EA6\u5BE6\u76CA\u3002":"\u7576\u4E8B\u4EBA\u9673\u8FF0\u76EE\u524D\u591A\u504F\u5411\u4E3B\u89C0\u63A8\u8AD6\u3001\u60C5\u7DD2\u8868\u9054\u6216\u7A7A\u6CDB\u722D\u57F7\uFF0C\u7F3A\u5C11\u5177\u9AD4\u55AE\u64DA\u8207\u5BA2\u89C0\u4EBA\u4E8B\u6642\u5730\u7269\uFF0C\u5EFA\u8B70\u5148\u555F\u52D5 Phase 2 \u6E9D\u901A\u8A71\u8853\u8207 7 \u5927\u554F\u5377\u5F15\u5C0E\u88DC\u5F37\u3002",summaryOverview:clientInput.slice(0,150)+(clientInput.length>150?"...":""),concreteFacts:[{id:"f1",category:"DOCUMENT",factDescription:"\u7576\u4E8B\u4EBA\u6240\u63D0\u53CA\u4E4B\u76F8\u95DC\u91D1\u6D41\u660E\u7D30\u3001\u5C0D\u8A71\u7D00\u9304\u6216\u5C65\u7D04\u6587\u4EF6\u7DDA\u7D22",involvedParties:"\u5169\u9020\u7576\u4E8B\u4EBA\u53CA\u76F8\u95DC\u627F\u8FA6\u4EBA\u54E1",timeframe:"\u722D\u7AEF\u767C\u751F\u671F\u9593",location:"\u96D9\u65B9\u7D04\u5B9A\u5C65\u7D04\u5730\u9EDE\u6216\u901A\u8A0A\u8EDF\u9AD4",evidenceClues:"\u9280\u884C\u8F49\u5E33\u6D41\u6C34\u865F\u3001LINE\u901A\u8A0A\u622A\u5716\u3001\u7C3D\u6536\u55AE\u64DA",pendingProof:"\u8B49\u660E\u96D9\u65B9\u771F\u5BE6\u6CD5\u5F8B\u95DC\u4FC2\u53CA\u5C65\u884C\u9032\u5EA6\uFF0C\u53CD\u99C1\u5C0D\u9020\u7247\u9762\u4E3B\u5F35",strategicValue:"HIGH"},{id:"f2",category:"ACTION",factDescription:"\u7576\u4E8B\u4EBA\u9593\u4E4B\u53E3\u982D\u7D04\u5B9A\u6216\u4E8B\u5F8C\u7570\u8B70\u901A\u77E5\u6D41\u7A0B",involvedParties:"\u7576\u4E8B\u4EBA\u8207\u5C0D\u9020\u7A97\u53E3",timeframe:"\u767C\u73FE\u7455\u75B5\u6216\u722D\u8B70\u7576\u65E5",location:"\u96FB\u8A71\u6216\u901A\u8A0A\u7D00\u9304",evidenceClues:"\u901A\u8A71\u7D00\u9304\u3001\u73FE\u5834\u7167\u7247\u3001\u50AC\u544A\u8A0A\u606F",pendingProof:"\u8B49\u660E\u5DF2\u53CA\u6642\u63D0\u51FA\u7570\u8B70\uFF0C\u4E14\u672A\u627F\u8A8D\u5C0D\u9020\u6240\u4E3B\u5F35\u4E4B\u50B5\u6B0A",strategicValue:"MEDIUM"}],unfruitfulPoints:[{id:"u1",point:"\u5C0D\u9020\u70BA\u4EBA\u4E0D\u8001\u5BE6\u3001\u8AA0\u4FE1\u7834\u7522\uFF0C\u5176\u6240\u8A00\u5747\u5C6C\u8B0A\u8A00",issueType:"EMOTIONAL_VENT",whyUnfruitful:"\u6C11\u4E8B\u5BE9\u5224\u63A1\u8B49\u64DA\u88C1\u5224\u539F\u5247\uFF08\u6C11\u8A34\xA7222\uFF09\uFF0C\u6CD5\u5B98\u50C5\u5C31\u5177\u9AD4\u5BA2\u89C0\u4E8B\u8B49\u5BE9\u67E5\uFF0C\u9053\u5FB7\u4EBA\u8EAB\u653B\u64CA\u7121\u6CD5\u5F62\u6210\u6709\u5229\u5FC3\u8B49\u3002",judgePerspectiveRisk:"\u6613\u4F7F\u6CD5\u5B98\u8A8D\u70BA\u6211\u65B9\u7F3A\u4E4F\u5BE6\u8CEA\u53CD\u8B49\u800C\u6D41\u65BC\u60C5\u7DD2\u6307\u8CAC\uFF0C\u964D\u4F4E\u66F8\u72C0\u5C08\u696D\u4FE1\u670D\u529B\u3002"},{id:"u2",point:"\u5F15\u7528\u591A\u689D\u6CD5\u689D\u5F37\u8ABF\u5C0D\u65B9\u884C\u70BA\u9055\u80CC\u8AA0\u4FE1\u8207\u6B63\u7FA9",issueType:"LEGAL_COPYPASTE",whyUnfruitful:"\u7F3A\u4E4F\u5177\u9AD4\u4E8B\u5BE6\u9A57\u8B49\u4E4B\u7A7A\u6CDB\u6CD5\u7406\u62FC\u8CBC\uFF0C\u5BE6\u52D9\u4E0A\u6703\u88AB\u8996\u70BA\u6B20\u7F3A\u5BE6\u8CEA\u722D\u9EDE\u653B\u9632\u3002",judgePerspectiveRisk:"\u6A21\u7CCA\u771F\u6B63\u95DC\u9375\u722D\u9EDE\uFF0C\u6D6A\u8CBB\u6CD5\u5B98\u95B1\u72C0\u6642\u9593\u3002"}],section1EvidenceRiskAssessment:`\u3010\u4E00\u3001\u95DC\u9375\u8B49\u64DA\u8A55\u4F30\u8207\u8A34\u8A1F\u98A8\u96AA\u8AAA\u660E\u3011
-\u60A8\u597D\uFF0C\u91DD\u5C0D\u60A8\u525B\u624D\u50B3\u9001\u7684\u6848\u4EF6\u8AAA\u660E\u8207\u7B46\u8A18\uFF0C\u6211\u5011\u975E\u5E38\u7406\u89E3\u60A8\u9762\u5C0D\u6B64\u6848\u6642\u6240\u627F\u53D7\u7684\u59D4\u5C48\u8207\u61A4\u6168\u3002
-\u7136\u800C\u5728\u6CD5\u9662\u5BE6\u52D9\u5BE9\u5224\u4E2D\uFF0C\u6CD5\u5B98\u6BCF\u5929\u5BE9\u7406\u6578\u5341\u4EF6\u6848\u5B50\uFF0C\u6975\u5EA6\u91CD\u8996\u300C\u5BA2\u89C0\u7269\u8B49\uFF08\u5982\u9280\u884C\u6D41\u6C34\u3001LINE\u5C0D\u8A71\u3001\u7C3D\u55AE\u5408\u7D04\uFF09\u300D\u8207\u300C\u6CD5\u5F8B\u8981\u4EF6\u4E8B\u5BE6\u300D\u3002\u82E5\u6211\u5011\u5728\u66F8\u72C0\u4E2D\u50C5\u8457\u91CD\u65BC\u60C5\u7DD2\u63CF\u8FF0\u6216\u6307\u8CAC\u5C0D\u9020\u9053\u5FB7\u4E0D\u5F70\uFF0C\u6CD5\u5B98\u975E\u4F46\u7121\u6CD5\u63A1\u70BA\u5224\u6C7A\u4F9D\u64DA\uFF0C\u66F4\u53EF\u80FD\u6A21\u7CCA\u6211\u65B9\u539F\u672C\u6709\u5229\u7684\u4E8B\u5BE6\u7126\u9EDE\u3002
+import { DefenseTriageResult, MineScanResult, GeneratedPleadingResult } from '../types';
 
-\u76EE\u524D\u672C\u6848\u7684\u6838\u5FC3\u98A8\u96AA\u5728\u65BC\uFF1A\u5C0D\u9020\u5DF2\u63D0\u51FA\u7247\u9762\u4E3B\u5F35\uFF0C\u82E5\u6211\u65B9\u672A\u80FD\u63D0\u51FA\u5177\u9AD4\u53CD\u8B49\u53CA\u7CBE\u78BA\u6642\u9EDE\u7D00\u9304\uFF0C\u6CD5\u9662\u5C07\u4F9D\u8209\u8B49\u8CAC\u4EFB\u5206\u914D\u539F\u5247\u505A\u51FA\u5C0D\u6211\u65B9\u4E0D\u5229\u4E4B\u8A8D\u5B9A\u3002\u56E0\u6B64\uFF0C\u6211\u5011\u5FC5\u9808\u5C07\u6230\u5834\u62C9\u56DE\u5BA2\u89C0\u8B49\u64DA\u7684\u5EFA\u7ACB\u3002`,section2LawyerAdvice:`\u3010\u4E8C\u3001\u5F8B\u5E2B\u5EFA\u8B70\u4E4B\u8A34\u8A1F\u65B9\u5411\u3011
-1. \u3010\u9396\u5B9A\u722D\u9EDE\u6297\u8FAF\u3011\uFF1A\u4E3B\u653B\u96D9\u65B9\u4E26\u672A\u9054\u6210\u5C0D\u9020\u6240\u4E3B\u5F35\u4E4B\u5408\u610F\uFF0C\u4E26\u6297\u8FAF\u5176\u8ACB\u6C42\u6B0A\u8981\u4EF6\u4E0D\u7B26\u3002
-2. \u3010\u88DC\u5F37\u5BA2\u89C0\u8B49\u64DA\u93C8\u3011\uFF1A\u900F\u904E\u60A8\u63D0\u4F9B\u4E4B\u91D1\u6D41\u8F49\u5E33\u6191\u8B49\u8207\u901A\u8A0A\u7D00\u9304\uFF0C\u7CBE\u78BA\u9084\u539F\u4EA4\u6613\u7576\u4E0B\u4E4B\u771F\u5BE6\u8108\u7D61\u3002
-3. \u3010\u8072\u8ACB\u8ABF\u67E5\u8B49\u64DA\u3011\uFF1A\u5411\u6709\u95DC\u91D1\u878D\u6A5F\u69CB\u6216\u96FB\u4FE1\u516C\u53F8\u51FD\u8ABF\u539F\u59CB\u8CC7\u6599\uFF0C\u4EE5\u7B2C\u4E09\u65B9\u6CD5\u4EBA\u7D00\u9304\u64CA\u7834\u5C0D\u9020\u4E0D\u5BE6\u9673\u8FF0\u3002`,section3Questionnaire:[{qId:1,title:"\u91D1\u6D41\u8207\u4EA4\u4ED8\u660E\u7D30\u6838\u5C0D",question:"\u91DD\u5C0D\u5C0D\u9020\u6240\u4E3B\u5F35\u4E4B\u6B3E\u9805\uFF0C\u60A8\u662F\u5426\u6709\u7576\u6642\u96D9\u65B9\u7684\u8F49\u5E33\u660E\u7D30\u3001\u5B58\u647A\u5167\u9801\u6216\u73FE\u5834\u7C3D\u6536\u55AE\uFF1F",targetFact:"\u91D0\u6E05\u6B3E\u9805\u4EA4\u4ED8\u4E4B\u6027\u8CEA\u8207\u78BA\u5207\u6642\u9593\u9EDE",guideNote:"\u8ACB\u7FFB\u67E5\u7DB2\u9280\u6216\u5B58\u647A\uFF0C\u63D0\u4F9B\u8F49\u5E33\u65E5\u671F\u3001\u91D1\u984D\u53CA\u5E33\u865F\u5F8C\u4E94\u78BC\u622A\u5716\u3002",suggestedAttachment:"\u5B58\u647A\u5F71\u672C\u3001\u7DB2\u9280\u4EA4\u6613\u660E\u7D30 PDF"},{qId:2,title:"\u901A\u8A0A\u5C0D\u8A71\u7D00\u9304\u8207\u95DC\u9375\u6642\u9EDE",question:"\u5728\u722D\u8B70\u767C\u751F\u524D\u5F8C 3 \u65E5\u5167\uFF0C\u96D9\u65B9\u662F\u5426\u6709 LINE\u3001\u5FAE\u4FE1\u3001\u7C21\u8A0A\u6216 Email \u5C0D\u8A71\uFF1F",targetFact:"\u8B49\u660E\u96D9\u65B9\u7576\u6642\u4E4B\u771F\u5BE6\u7D04\u5B9A\u8207\u50AC\u544A\u72C0\u6CC1",guideNote:"\u8ACB\u532F\u51FA\u5B8C\u6574\u5C0D\u8A71\u7D00\u9304\u6587\u5B57\u6A94\u53CA\u95DC\u9375\u622A\u5716\uFF0C\u5305\u542B\u9802\u90E8\u6642\u9593\u8207\u96D9\u65B9\u59D3\u540D\u3002",suggestedAttachment:"LINE \u5B8C\u6574\u5C0D\u8A71\u622A\u5716\uFF08\u9700\u5305\u542B\u65E5\u671F\u6642\u9593\uFF09"},{qId:3,title:"\u73FE\u5834\u5728\u5834\u8B49\u4EBA\u8207\u5BA2\u89C0\u76EE\u64CA",question:"\u96D9\u65B9\u6D3D\u8AC7\u6216\u4E8B\u767C\u7576\u6642\uFF0C\u73FE\u5834\u662F\u5426\u6709\u5176\u4ED6\u975E\u89AA\u5C6C\u7B2C\u4E09\u4EBA\u5728\u5834\u807D\u805E\uFF1F",targetFact:"\u4EE5\u5BA2\u89C0\u4EBA\u8B49\u88DC\u5F37\u81EA\u7531\u5FC3\u8B49",guideNote:"\u8ACB\u63D0\u4F9B\u8B49\u4EBA\u5168\u540D\u3001\u806F\u7D61\u65B9\u5F0F\u53CA\u7576\u6642\u6240\u898B\u6240\u805E\u4E4B\u7C21\u8981\u7B46\u8A18\u3002",suggestedAttachment:"\u8B49\u4EBA\u57FA\u672C\u8CC7\u6599\u8207\u806F\u7D61\u96FB\u8A71"},{qId:4,title:"\u66F8\u9762\u5951\u7D04\u3001\u5831\u50F9\u55AE\u8207\u9A57\u6536\u7C3D\u540D",question:"\u96D9\u65B9\u662F\u5426\u66FE\u7C3D\u7F72\u4EFB\u4F55\u4F30\u50F9\u55AE\u3001\u78BA\u8A8D\u55AE\u3001\u767C\u7968\u6216\u4EA4\u8CA8\u9A57\u6536\u7D00\u9304\uFF1F",targetFact:"\u78BA\u8A8D\u5951\u7D04\u6210\u7ACB\u8207\u5C65\u884C\u9032\u5EA6",guideNote:"\u4EFB\u4F55\u6709\u5C0D\u65B9\u7C3D\u5B57\u6216\u84CB\u7AE0\u4E4B\u7D19\u672C\u7686\u5177\u95DC\u9375\u6548\u529B\u3002",suggestedAttachment:"\u7D19\u672C\u6587\u4EF6\u5F69\u8272\u6383\u63CF\u6A94"},{qId:5,title:"\u7570\u8B70\u8207\u7455\u75B5\u901A\u77E5\u6642\u9EDE",question:"\u767C\u73FE\u554F\u984C\u5F8C\uFF0C\u60A8\u7B2C\u4E00\u6B21\u5411\u5C0D\u65B9\u63D0\u51FA\u6297\u8B70\u6216\u8981\u6C42\u4FEE\u6539\u7684\u5177\u9AD4\u65E5\u671F\u70BA\u4F55\uFF1F\u900F\u904E\u4F55\u7A2E\u65B9\u5F0F\uFF1F",targetFact:"\u8B49\u660E\u5DF2\u5728\u6C11\u6CD5\u898F\u5B9A\u671F\u9650\u5167\u5373\u6642\u901A\u77E5\uFF0C\u907F\u514D\u6B0A\u5229\u5931\u6548",guideNote:"\u8ACB\u7FFB\u627E\u7576\u6642\u7684\u767C\u6587\u65E5\u671F\u3001\u5B58\u8B49\u4FE1\u51FD\u639B\u865F\u6536\u4EF6\u56DE\u57F7\u6216\u8A0A\u606F\u6642\u9593\u3002",suggestedAttachment:"\u5B58\u8B49\u4FE1\u51FD\u56DE\u57F7\u3001\u767C\u4FE1\u5BC4\u9001\u7D00\u9304"},{qId:6,title:"\u5C0D\u9020\u4E3B\u5F35\u4E4B\u4E0D\u5BE6\u4E8B\u5BE6\u5177\u9AD4\u53CD\u99C1",question:"\u5C0D\u9020\u66F8\u72C0\u4E2D\u54EA\u4E00\u500B\u5177\u9AD4\u6BB5\u843D\uFF08\u4EBA\u4E8B\u6642\u5730\uFF09\u8207\u771F\u5BE6\u60C5\u6CC1\u5B8C\u5168\u76F8\u53CD\uFF1F\u6709\u4F55\u53CD\u8B49\uFF1F",targetFact:"\u91DD\u5C0D\u5C0D\u9020\u4E0D\u5BE6\u6307\u63A7\u9032\u884C\u7CBE\u6E96\u6253\u64CA",guideNote:"\u8ACB\u5217\u51FA\u5C0D\u9020\u6BB5\u843D\uFF0C\u4E26\u9010\u4E00\u5C0D\u7167\u6211\u65B9\u6240\u6301\u6709\u7684\u53CD\u5411\u8B49\u64DA\u3002",suggestedAttachment:"\u5C0D\u6BD4\u7167\u7247\u3001\u5B9A\u4F4D\u7D00\u9304\u6216\u51FA\u52E4\u6253\u5361\u7D00\u9304"},{qId:7,title:"\u4E3B\u7BA1\u6A5F\u95DC\u6216\u516C\u90E8\u9580\u76F8\u95DC\u7D00\u9304",question:"\u672C\u6848\u662F\u5426\u66FE\u5411\u6D88\u4FDD\u5B98\u3001\u8ABF\u89E3\u59D4\u54E1\u6703\u3001\u52DE\u5DE5\u5C40\u3001\u6D3E\u51FA\u6240\u6216\u5EFA\u7BA1\u8655\u5831\u6848\u6216\u7533\u8ACB\u8ABF\u89E3\uFF1F",targetFact:"\u8ABF\u53D6\u516C\u52D9\u6A5F\u95DC\u4E4B\u516C\u6587\u66F8\u4F5C\u70BA\u7121\u53EF\u722D\u8FAF\u4E4B\u5BA2\u89C0\u8B49\u64DA",guideNote:"\u8ACB\u63D0\u4F9B\u5831\u6848\u4E09\u806F\u55AE\u865F\u3001\u8ABF\u89E3\u4E0D\u6210\u7ACB\u8B49\u660E\u66F8\u6216\u884C\u653F\u88C1\u8655\u516C\u6587\u6848\u865F\u3002",suggestedAttachment:"\u8ABF\u89E3\u7D00\u9304\u3001\u5831\u6848\u8B49\u660E\u3001\u516C\u6587\u5F71\u672C"}],isFallback:true}}__name(buildFallbackDefenseTriage,"buildFallbackDefenseTriage");function buildFallbackMineScan(clientInput){const mines=[];if(/我確實有收到|我有拿錢|錢確實有進我戶頭|有拿去用|他有匯給我/i.test(clientInput)){mines.push({id:"m1",mineType:"DEBT_OR_PAYMENT_ADMISSION",mineName:"\u8AA4\u8A8D\u50B5\u52D9\u6210\u7ACB/\u672A\u6297\u8FAF\u5373\u8A8D\u6536\u53D7\u6B3E\u9805",riskLevel:"FATAL_ADMISSION",triggerQuote:"\u9673\u8FF0\u4E2D\u6D89\u53CA\u300C\u78BA\u5BE6\u6709\u6536\u5230\u6B3E\u9805 / \u9322\u6709\u9032\u6236\u982D\u300D\u7B49\u8A9E",legalTrap:"\u4F9D\u6C11\u4E8B\u8A34\u8A1F\u6CD5\u7B2C279\u689D\u81EA\u8A8D\u898F\u5B9A\uFF0C\u4E00\u65E6\u627F\u8A8D\u6536\u53D7\u6B3E\u9805\uFF0C\u5C0D\u9020\u5373\u514D\u9664\u4EA4\u4ED8\u91D1\u9322\u4E4B\u8209\u8B49\u8CAC\u4EFB\uFF0C\u8F49\u7531\u6211\u65B9\u627F\u64D4\u8209\u8B49\u8A72\u6B3E\u9805\u975E\u501F\u6B3E\u4E4B\u6975\u91CD\u8209\u8B49\u8CA0\u64D4\u3002",articleBasis:"\u6C11\u4E8B\u8A34\u8A1F\u6CD5\u7B2C 279 \u689D\u7B2C 1 \u9805\u3001\u6C11\u6CD5\u7B2C 474 \u689D",potentialConsequence:"\u6CD5\u5B98\u53EF\u80FD\u76F4\u63A5\u8A8D\u5B9A\u6D88\u8CBB\u501F\u8CB8\u4EA4\u4ED8\u4E8B\u5BE6\u6210\u7ACB\uFF0C\u9020\u6210\u6557\u8A34\u6975\u9AD8\u98A8\u96AA\u3002",modificationSuggestion:"\u61C9\u6539\u70BA\uFF1A\u300C\u5C0D\u9020\u96D6\u66FE\u6709\u6B3E\u9805\u532F\u5165\uFF0C\u7136\u8A72\u6B3E\u9805\u5BE6\u4FC2\u5169\u9020\u904E\u5F80\u696D\u52D9\u5F80\u4F86\u4E4B\u4EE3\u588A\u7D50\u7B97\uFF0C\u5169\u9020\u9593\u5F9E\u672A\u6709\u6210\u7ACB\u6D88\u8CBB\u501F\u8CB8\u4E4B\u5408\u610F\u3002\u300D"})}if(/不是不還|等我有錢|晚點再還|去年就說過要處理|手頭緊/i.test(clientInput)){mines.push({id:"m2",mineType:"PRESCRIPTION_WAIVER_ADMISSION",mineName:"\u6642\u6548\u5B8C\u6210\u524D/\u5F8C\u4E4B\u7121\u4FDD\u7559\u50B5\u52D9\u627F\u8A8D",riskLevel:"FATAL_ADMISSION",triggerQuote:"\u9673\u8FF0\u4E2D\u6D89\u53CA\u300C\u4E0D\u662F\u4E0D\u9084 / \u665A\u9EDE\u9084 / \u7B49\u6709\u9322\u518D\u8655\u7406\u300D\u7B49\u8A9E",legalTrap:"\u4F9D\u6C11\u6CD5\u7B2C129\u689D\u7B2C1\u9805\u7B2C2\u6B3E\uFF0C\u5C0D\u50B5\u52D9\u70BA\u627F\u8A8D\u5C07\u9020\u6210\u6D88\u6EC5\u6642\u6548\u4E2D\u65B7\uFF1B\u82E5\u6642\u6548\u5DF2\u5B8C\u6210\uFF0C\u66F4\u69CB\u6210\u62CB\u68C4\u6642\u6548\u5229\u76CA\uFF0C\u4F7F\u6211\u65B9\u55AA\u5931\u6642\u6548\u6297\u8FAF\u6B0A\u3002",articleBasis:"\u6C11\u6CD5\u7B2C 129 \u689D\u3001\u7B2C 144 \u689D",potentialConsequence:"\u5FB9\u5E95\u55AA\u5931\u6642\u6548\u6297\u8FAF\u9632\u7DDA\uFF0C\u5373\u4F7F\u5C0D\u9020\u50B5\u6B0A\u5DF2\u903E 5 \u5E74\u6216 15 \u5E74\uFF0C\u6CD5\u5B98\u4ECD\u5F97\u5224\u4EE4\u5168\u984D\u7D66\u4ED8\u3002",modificationSuggestion:"\u61C9\u522A\u9664\u4EFB\u4F55\u95DC\u65BC\u672A\u4F86\u511F\u9084\u4E4B\u627F\u8AFE\uFF0C\u7D14\u7CB9\u5C31\u5169\u9020\u50B5\u6B0A\u50B5\u52D9\u662F\u5426\u5B58\u5728\u8207\u7D50\u7B97\u722D\u9EDE\u9032\u884C\u6297\u8FAF\u3002"})}if(/名字是我簽的|簽名是真的|印章是我蓋的/i.test(clientInput)){mines.push({id:"m3",mineType:"EXECUTION_OR_SIGNATURE_GENUINE",mineName:"\u9015\u8A8D\u79C1\u6587\u66F8\u7C3D\u540D/\u5370\u7AE0\u771F\u6B63",riskLevel:"HIGH_RISK",triggerQuote:"\u9673\u8FF0\u4E2D\u63D0\u53CA\u300C\u7C3D\u540D\u78BA\u5BE6\u662F\u6211\u7C3D\u7684 / \u5370\u7AE0\u662F\u6211\u84CB\u7684\u300D\u7B49\u8A9E",legalTrap:"\u4F9D\u6C11\u4E8B\u8A34\u8A1F\u6CD5\u7B2C358\u689D\u7B2C1\u9805\uFF0C\u79C1\u6587\u66F8\u7D93\u672C\u4EBA\u7C3D\u540D\u84CB\u7AE0\u8005\u63A8\u5B9A\u70BA\u771F\u6B63\u3002\u4E00\u65E6\u627F\u8A8D\u7C3D\u540D\u771F\u6B63\uFF0C\u5373\u63A8\u5B9A\u6574\u4EFD\u6587\u4EF6\u5BE6\u8CEA\u6210\u7ACB\u3002",articleBasis:"\u6C11\u4E8B\u8A34\u8A1F\u6CD5\u7B2C 358 \u689D\u7B2C 1 \u9805",potentialConsequence:"\u6297\u8FAF\u6587\u4EF6\u5167\u5BB9\u906D\u8B8A\u9020\u6216\u88AB\u8A50\u6B3A\u7C3D\u7F72\u4E4B\u8209\u8B49\u9580\u6ABB\u5C07\u5927\u5E45\u63D0\u9AD8\u3002",modificationSuggestion:"\u61C9\u9673\u8FF0\uFF1A\u300C\u8A72\u79C1\u6587\u66F8\u7C3D\u7F72\u6642\u4E4B\u60C5\u5883\u8207\u5167\u5BB9\u5B58\u5728\u722D\u8B70\uFF0C\u4E14\u8A72\u6587\u66F8\u4E4B\u5BE6\u8CEA\u4F5C\u6210\u4E26\u672A\u5177\u5099\u5169\u9020\u771F\u5BE6\u5408\u610F\u3002\u300D"})}if(mines.length===0){mines.push({id:"m_general",mineType:"DUTY_OR_BREACH_ADMISSION",mineName:"\u5BE9\u614E\u6AA2\u8996\u904E\u5931\u6216\u9055\u7D04\u8CAC\u4EFB\u8868\u8FF0",riskLevel:"TACTICAL_DEFECT",triggerQuote:clientInput.slice(0,40)+"...",legalTrap:"\u672A\u7D93\u5F8B\u5E2B\u9632\u79A6\u4FEE\u98FE\u4E4B\u500B\u4EBA\u610F\u898B\uFF0C\u5BB9\u6613\u5728\u5B57\u88E1\u884C\u9593\u7121\u610F\u4E2D\u81EA\u8A8D\u4E0D\u5229\u65BC\u5DF1\u7684\u884C\u70BA\u7D30\u7BC0\u6216\u77E5\u6089\u6642\u9EDE\u3002",articleBasis:"\u6C11\u4E8B\u8A34\u8A1F\u6CD5\u7B2C 279 \u689D",potentialConsequence:"\u6CD5\u5B98\u53EF\u80FD\u5C07\u975E\u5FC5\u8981\u4E4B\u60C5\u7DD2\u63CF\u8FF0\u89E3\u8B80\u70BA\u5C0D\u90E8\u5206\u4E0D\u5229\u4E8B\u5BE6\u4E4B\u4E0D\u722D\u57F7\u3002",modificationSuggestion:"\u5EFA\u8B70\u4FDD\u7559\u7576\u4E8B\u4EBA\u60C5\u611F\u8207\u4E8B\u5BE6\u6838\u5FC3\uFF0C\u4F46\u5254\u9664\u4EFB\u4F55\u53EF\u80FD\u88AB\u66F2\u89E3\u70BA\u627F\u8A8D\u9055\u7D04\u4E4B\u5B57\u53E5\u3002"})}return{hasFatalMines:mines.some(m=>m.riskLevel==="FATAL_ADMISSION"),totalMinesCount:mines.length,overallRiskSummary:mines.some(m=>m.riskLevel==="FATAL_ADMISSION")?"\u3010\u{1F534} \u767C\u73FE\u81F4\u547D\u81EA\u8A8D\u5730\u96F7\uFF01\u3011\u9673\u8FF0\u4E2D\u5305\u542B\u5C0D\u6B3E\u9805\u6536\u53D7\u3001\u50B5\u52D9\u627F\u8A8D\u6216\u6587\u66F8\u7C3D\u7F72\u4E4B\u4E0D\u5229\u81EA\u8A8D\uFF0C\u82E5\u76F4\u63A5\u9673\u5831\u6CD5\u9662\u5C07\u76F4\u63A5\u514D\u9664\u5C0D\u9020\u8209\u8B49\u8CAC\u4EFB\uFF0C\u5C0E\u81F4\u6975\u9AD8\u6557\u8A34\u98A8\u96AA\uFF01":"\u3010\u{1F7E1} \u5075\u6E2C\u5230\u5E38\u898F\u6CD5\u5F8B\u98A8\u96AA\u3011\u9673\u8FF0\u4E2D\u5C1A\u7121\u76F4\u63A5\u81F4\u547D\u81EA\u8A8D\uFF0C\u4F46\u90E8\u5206\u6587\u53E5\u504F\u5411\u4E3B\u89C0\u63A8\u8AD6\uFF0C\u5EFA\u8B70\u7D93\u5B89\u5168\u4FEE\u98FE\u5F8C\u518D\u884C\u9673\u5831\u3002",mines,cleanedTextSuggestion:clientInput.replace(/我確實有收到[^，。]+[，。]?/g,"\u5C0D\u9020\u96D6\u6709\u532F\u6B3E\uFF0C\u7136\u5BE6\u70BA\u904E\u5F80\u4EE3\u588A\u7D50\u7B97\uFF0C\u975E\u501F\u8CB8\u3002").replace(/不是不還[^，。]+[，。]?/g,"\u96D9\u65B9\u50B5\u6B0A\u50B5\u52D9\u5C1A\u672A\u4F9D\u6CD5\u7D50\u7B97\u91D0\u6E05\u3002"),isFallback:true}}__name(buildFallbackMineScan,"buildFallbackMineScan");
-
-function buildFallbackDefensePleading(
-  pleadingType: string,
+export function buildFallbackDefenseTriage(
   clientInput: string,
-  caseInfo: any
-): { pleadingText: string; isFallback: true } {
-  const isLawyer = pleadingType === "LAWYER_PLEADING";
-  const caseNo = caseInfo?.caseNo || "113年度訴字第1234號";
-  const courtName = caseInfo?.courtName || "臺灣臺北地方法院";
-  const clientName = caseInfo?.clientName || "當事人";
-  const clientRole = caseInfo?.clientRole || "被告";
-  const opponentName = caseInfo?.opponentName || "對造";
-  const opponentRole = caseInfo?.opponentRole || "原告";
-  const title = isLawyer ? "民事答辯狀" : "民事陳報個人意見狀";
+  caseType: string = 'civil',
+  courtName: string = '臺灣臺北地方法院',
+  caseNo: string = '113年度訴字第1234號'
+): DefenseTriageResult {
+  // Check if input has concrete clues like numbers, dates, invoices, bank, line, etc.
+  const hasNumbers = /\d{2,}/.test(clientInput);
+  const hasEvidenceKeywords = /匯款|對話|發票|簽名|照片|監視|合約|單據|存摺|LINE|證人|錄音|轉帳|借據/i.test(clientInput);
+  const isEmotionalOnly = /生氣|黑心|法官不公|騙子|氣死|太扯|沒良心|天理不容|垃圾/i.test(clientInput) && !hasEvidenceKeywords;
 
-  const text = `${title}
-
-案號：${caseNo}
-股別：
-
-${clientRole}：${clientName}
-${opponentRole}：${opponentName}
-
-為就兩造間請求事件，依法提出答辯事：
-
-答辯聲明
-一、${opponentRole}之訴及假執行之聲請均駁回。
-二、訴訟費用由${opponentRole}負擔。
-
-事實及理由
-一、按當事人主張有利於己之事實者，就其事實有舉證之責任，民事訴訟法第277條定有明文。原告主張之權利發生事實，未盡舉證責任，自難採信。
-二、次按民法第184條第1項前段規定，侵權行為之成立，須以行為人有故意或過失，且有不法侵害他人權利之行為及損害為要件。被告並無原告所指之不法行為，原告之請求顯無理由。
-三、查本件具體抗辯事實：${clientInput || "被告未曾侵害原告之權益，原告之主張與事實不符"}。
-四、綜上所述，原告之請求顯無理由，懇請 鈞院明察，駁回原告之訴，以符法制。
-
-謹狀
-${courtName} 民事庭 公鑒
-
-${clientRole}：${clientName}
-中華民國 113 年 12 月 1 日`;
+  const decision = (hasEvidenceKeywords || (hasNumbers && !isEmotionalOnly)) 
+    ? 'TRACK_1_FACTS' 
+    : 'PHASE_2_COMMUNICATION';
 
   return {
-    pleadingText: text,
+    decision,
+    confidenceScore: decision === 'TRACK_1_FACTS' ? 88 : 82,
+    decisionReason: decision === 'TRACK_1_FACTS'
+      ? '當事人陳述中包含具體之金流、通訊對話、單據或客觀時點線索，具備提煉為實體抗辯事實與待證清單之高度實益。'
+      : '當事人陳述目前多偏向主觀推論、情緒表達或空泛爭執，缺少具體單據與客觀人事時地物，建議先啟動 Phase 2 溝通話術與 7 大問卷引導補強。',
+    summaryOverview: clientInput.slice(0, 150) + (clientInput.length > 150 ? '...' : ''),
+    concreteFacts: [
+      {
+        id: 'f1',
+        category: 'DOCUMENT',
+        factDescription: '當事人所提及之相關金流明細、對話紀錄或履約文件線索',
+        involvedParties: '兩造當事人及相關承辦人員',
+        timeframe: '爭端發生期間',
+        location: '雙方約定履約地點或通訊軟體',
+        evidenceClues: '銀行轉帳流水號、LINE通訊截圖、簽收單據',
+        pendingProof: '證明雙方真實法律關係及履行進度，反駁對造片面主張',
+        strategicValue: 'HIGH'
+      },
+      {
+        id: 'f2',
+        category: 'ACTION',
+        factDescription: '當事人間之口頭約定或事後異議通知流程',
+        involvedParties: '當事人與對造窗口',
+        timeframe: '發現瑕疵或爭議當日',
+        location: '電話或通訊紀錄',
+        evidenceClues: '通話紀錄、現場照片、催告訊息',
+        pendingProof: '證明已及時提出異議，且未承認對造所主張之債權',
+        strategicValue: 'MEDIUM'
+      }
+    ],
+    unfruitfulPoints: [
+      {
+        id: 'u1',
+        point: '對造為人不老實、誠信破產，其所言均屬謊言',
+        issueType: 'EMOTIONAL_VENT',
+        whyUnfruitful: '民事審判採證據裁判原則（民訴§222），法官僅就具體客觀事證審查，道德人身攻擊無法形成有利心證。',
+        judgePerspectiveRisk: '易使法官認為我方缺乏實質反證而流於情緒指責，降低書狀專業信服力。'
+      },
+      {
+        id: 'u2',
+        point: '引用多條法條強調對方行為違背誠信與正義',
+        issueType: 'LEGAL_COPYPASTE',
+        whyUnfruitful: '缺乏具體事實驗證之空泛法理拼貼，實務上會被視為欠缺實質爭點攻防。',
+        judgePerspectiveRisk: '模糊真正關鍵爭點，浪費法官閱狀時間。'
+      }
+    ],
+    section1EvidenceRiskAssessment: `【一、關鍵證據評估與訴訟風險說明】
+您好，針對您剛才傳送的案件說明與筆記，我們非常理解您面對此案時所承受的委屈與憤慨。
+然而在法院實務審判中，法官每天審理數十件案子，極度重視「客觀物證（如銀行流水、LINE對話、簽單合約）」與「法律要件事實」。若我們在書狀中僅著重於情緒描述或指責對造道德不彰，法官非但無法採為判決依據，更可能模糊我方原本有利的事實焦點。
+
+目前本案的核心風險在於：對造已提出片面主張，若我方未能提出具體反證及精確時點紀錄，法院將依舉證責任分配原則做出對我方不利之認定。因此，我們必須將戰場拉回客觀證據的建立。`,
+    section2LawyerAdvice: `【二、律師建議之訴訟方向】
+1. 【鎖定爭點抗辯】：主攻雙方並未達成對造所主張之合意，並抗辯其請求權要件不符。
+2. 【補強客觀證據鏈】：透過您提供之金流轉帳憑證與通訊紀錄，精確還原交易當下之真實脈絡。
+3. 【聲請調查證據】：向有關金融機構或電信公司函調原始資料，以第三方法人紀錄擊破對造不實陳述。`,
+    section3Questionnaire: [
+      {
+        qId: 1,
+        title: "金流與交付明細核對",
+        question: "針對對造所主張之款項，您是否有當時雙方的轉帳明細、存摺內頁或現場簽收單？",
+        targetFact: "釐清款項交付之性質與確切時間點",
+        guideNote: "請翻查網銀或存摺，提供轉帳日期、金額及帳號後五碼截圖。",
+        suggestedAttachment: "存摺影本、網銀交易明細 PDF"
+      },
+      {
+        qId: 2,
+        title: "通訊對話紀錄與關鍵時點",
+        question: "在爭議發生前後 3 日內，雙方是否有 LINE、微信、簡訊或 Email 對話？",
+        targetFact: "證明雙方當時之真實約定與催告狀況",
+        guideNote: "請匯出完整對話紀錄文字檔及關鍵截圖，包含頂部時間與雙方姓名。",
+        suggestedAttachment: "LINE 完整對話截圖（需包含日期時間）"
+      },
+      {
+        qId: 3,
+        title: "現場在場證人與客觀目擊",
+        question: "雙方洽談或事發當時，現場是否有其他非親屬第三人在場聽聞？",
+        targetFact: "以客觀人證補強自由心證",
+        guideNote: "請提供證人全名、聯絡方式及當時所見所聞之簡要筆記。",
+        suggestedAttachment: "證人基本資料與聯絡電話"
+      },
+      {
+        qId: 4,
+        title: "書面契約、報價單與驗收簽名",
+        question: "雙方是否曾簽署任何估價單、確認單、發票或交貨驗收紀錄？",
+        targetFact: "確認契約成立與履行進度",
+        guideNote: "任何有對方簽字或蓋章之紙本皆具關鍵效力。",
+        suggestedAttachment: "紙本文件彩色掃描檔"
+      },
+      {
+        qId: 5,
+        title: "異議與瑕疵通知時點",
+        question: "發現問題後，您第一次向對方提出抗議或要求修改的具體日期為何？透過何種方式？",
+        targetFact: "證明已在民法規定期限內即時通知，避免權利失效",
+        guideNote: "請翻找當時的發文日期、存證信函掛號收件回執或訊息時間。",
+        suggestedAttachment: "存證信函回執、發信寄送紀錄"
+      },
+      {
+        qId: 6,
+        title: "對造主張之不實事實具體反駁",
+        question: "對造書狀中哪一個具體段落（人事時地）與真實情況完全相反？有何反證？",
+        targetFact: "針對對造不實指控進行精準打擊",
+        guideNote: "請列出對造段落，並逐一對照我方所持有的反向證據。",
+        suggestedAttachment: "對比照片、定位紀錄或出勤打卡紀錄"
+      },
+      {
+        qId: 7,
+        title: "主管機關或公部門相關紀錄",
+        question: "本案是否曾向消保官、調解委員會、勞工局、派出所或建管處報案或申請調解？",
+        targetFact: "調取公務機關之公文書作為無可爭辯之客觀證據",
+        guideNote: "請提供報案三聯單號、調解不成立證明書或行政裁處公文案號。",
+        suggestedAttachment: "調解紀錄、報案證明、公文影本"
+      }
+    ],
     isFallback: true
   };
 }
-__name(buildFallbackDefensePleading, "buildFallbackDefensePleading");
 
-export { buildFallbackDefenseTriage, buildFallbackMineScan, buildFallbackDefensePleading };
+export function buildFallbackMineScan(clientInput: string): MineScanResult {
+  const mines: any[] = [];
+  
+  // Rule 1: Check for money/debt receipt admission
+  if (/我確實有收到|我有拿錢|錢確實有進我戶頭|有拿去用|他有匯給我/i.test(clientInput)) {
+    mines.push({
+      id: 'm1',
+      mineType: 'DEBT_OR_PAYMENT_ADMISSION',
+      mineName: '誤認債務成立/未抗辯即認收受款項',
+      riskLevel: 'FATAL_ADMISSION',
+      triggerQuote: '陳述中涉及「確實有收到款項 / 錢有進戶頭」等語',
+      legalTrap: '依民事訴訟法第279條自認規定，一旦承認收受款項，對造即免除交付金錢之舉證責任，轉由我方承擔舉證該款項非借款之極重舉證負擔。',
+      articleBasis: '民事訴訟法第 279 條第 1 項、民法第 474 條',
+      potentialConsequence: '法官可能直接認定消費借貸交付事實成立，造成敗訴極高風險。',
+      modificationSuggestion: '應改為：「對造雖曾有款項匯入，然該款項實係兩造過往業務往來之代墊結算，兩造間從未有成立消費借貸之合意。」'
+    });
+  }
 
+  // Rule 2: Check for prescription waiver / late repayment promise
+  if (/不是不還|等我有錢|晚點再還|去年就說過要處理|手頭緊/i.test(clientInput)) {
+    mines.push({
+      id: 'm2',
+      mineType: 'PRESCRIPTION_WAIVER_ADMISSION',
+      mineName: '時效完成前/後之無保留債務承認',
+      riskLevel: 'FATAL_ADMISSION',
+      triggerQuote: '陳述中涉及「不是不還 / 晚點還 / 等有錢再處理」等語',
+      legalTrap: '依民法第129條第1項第2款，對債務為承認將造成消滅時效中斷；若時效已完成，更構成拋棄時效利益，使我方喪失時效抗辯權。',
+      articleBasis: '民法第 129 條、第 144 條',
+      potentialConsequence: '徹底喪失時效抗辯防線，即使對造債權已逾 5 年或 15 年，法官仍得判令全額給付。',
+      modificationSuggestion: '應刪除任何關於未來償還之承諾，純粹就兩造債權債務是否存在與結算爭點進行抗辯。'
+    });
+  }
+
+  // Rule 3: Check for signature / seal admission
+  if (/名字是我簽的|簽名是真的|印章是我蓋的/i.test(clientInput)) {
+    mines.push({
+      id: 'm3',
+      mineType: 'EXECUTION_OR_SIGNATURE_GENUINE',
+      mineName: '逕認私文書簽名/印章真正',
+      riskLevel: 'HIGH_RISK',
+      triggerQuote: '陳述中提及「簽名確實是我簽的 / 印章是我蓋的」等語',
+      legalTrap: '依民事訴訟法第358條第1項，私文書經本人簽名蓋章者推定為真正。一旦承認簽名真正，即推定整份文件實質成立。',
+      articleBasis: '民事訴訟法第 358 條第 1 項',
+      potentialConsequence: '抗辯文件內容遭變造或被詐欺簽署之舉證門檻將大幅提高。',
+      modificationSuggestion: '應陳述：「該私文書簽署時之情境與內容存在爭議，且該文書之實質作成並未具備兩造真實合意。」'
+    });
+  }
+
+  // Fallback default warning if no specific keywords matched
+  if (mines.length === 0) {
+    mines.push({
+      id: 'm_general',
+      mineType: 'DUTY_OR_BREACH_ADMISSION',
+      mineName: '審慎檢視過失或違約責任表述',
+      riskLevel: 'TACTICAL_DEFECT',
+      triggerQuote: clientInput.slice(0, 40) + '...',
+      legalTrap: '未經律師防禦修飾之個人意見，容易在字裡行間無意中自認不利於己的行為細節或知悉時點。',
+      articleBasis: '民事訴訟法第 279 條',
+      potentialConsequence: '法官可能將非必要之情緒描述解讀為對部分不利事實之不爭執。',
+      modificationSuggestion: '建議保留當事人情感與事實核心，但剔除任何可能被曲解為承認違約之字句。'
+    });
+  }
+
+  return {
+    hasFatalMines: mines.some(m => m.riskLevel === 'FATAL_ADMISSION'),
+    totalMinesCount: mines.length,
+    overallRiskSummary: mines.some(m => m.riskLevel === 'FATAL_ADMISSION')
+      ? '【🔴 發現致命自認地雷！】陳述中包含對款項收受、債務承認或文書簽署之不利自認，若直接陳報法院將直接免除對造舉證責任，導致極高敗訴風險！'
+      : '【🟡 偵測到常規法律風險】陳述中尚無直接致命自認，但部分文句偏向主觀推論，建議經安全修飾後再行陳報。',
+    mines,
+    cleanedTextSuggestion: clientInput
+      .replace(/我確實有收到[^，。]+[，。]?/g, '對造雖有匯款，然實為過往代墊結算，非借貸。')
+      .replace(/不是不還[^，。]+[，。]?/g, '雙方債權債務尚未依法結算釐清。'),
+    isFallback: true
+  };
+}
+
+export function buildFallbackDefensePleading(
+  pleadingType: 'LAWYER_PLEADING' | 'CLIENT_PERSONAL_REPORT',
+  clientInput: string,
+  caseInfo: {
+    caseType: string;
+    courtName: string;
+    caseNo: string;
+    clientRole: string;
+    clientName: string;
+    opponentRole: string;
+    opponentName: string;
+    lawyerName?: string;
+  }
+): GeneratedPleadingResult {
+  const isLawyer = pleadingType === 'LAWYER_PLEADING';
+  const court = caseInfo.courtName || '臺灣臺北地方法院';
+  const caseNo = caseInfo.caseNo || '113年度訴字第1234號';
+  const clientName = caseInfo.clientName || '當事人';
+  const clientRole = caseInfo.clientRole || '被告';
+  const oppName = caseInfo.opponentName || '相對人';
+  const oppRole = caseInfo.opponentRole || '原告';
+  const lawyer = caseInfo.lawyerName || '訴訟代理人律師';
+
+  if (isLawyer) {
+    const text = `民事準備書狀
+案號：${caseNo}
+股別：平股
+原告：${oppName}
+被告（即具狀人）：${clientName}
+訴訟代理人：${lawyer}
+
+為就上述當事人間請求給付事件，依法提出民事準備書狀事：
+
+壹、答辯聲明
+一、原告之訴及假執行之聲請均駁回。
+二、訴訟費用由原告負擔。
+三、如受不利判決，願供擔保請准宣告免為假執行。
+
+貳、實體答辯理由
+一、原告主張兩造間成立消費借貸關係，顯屬無據，且未盡舉證責任：
+（一）按「當事人主張有利於己之事實者，就其事實有舉證之責任。」民事訴訟法第 277 條本文定有明文。又民法第 474 條規定，消費借貸契約之成立，須當事人間有借貸之「合意」及金錢之「交付」。
+（二）查被告雖曾收受款項，然此實係兩造過往業務合作代墊款之結算退款，兩造間從未就「消費借貸」達成任何意思表示之合致。原告單憑匯款單據即遽指兩造間有借貸關係，自屬無稽。
+
+二、被告從未承認原告主張之債權，原告請求權若屬實亦已罹於消滅時效：
+原告所指稱之款項發生迄今已逾法定請求權時效，被告依法行使消滅時效抗辯權，拒絕給付。
+
+參、聲請調查證據
+請  貴院依職權向相關金融機構函調兩造帳戶於爭端期間之完整往來交易明細，以釐清款項之真實法律關係。
+
+此  致
+${court}  公鑑
+
+具狀人即被告：${clientName}
+訴訟代理人：${lawyer}  （簽名蓋章）
+
+中華民國 115 年 ${new Date().getMonth() + 1} 月 ${new Date().getDate()} 日
+`;
+
+    return {
+      pleadingType: 'LAWYER_PLEADING',
+      title: '民事準備書狀',
+      courtName: court,
+      caseNo,
+      submitter: `被告 ${clientName}（訴訟代理人：${lawyer}）`,
+      pleadingText: text,
+      disclaimer: '本狀由訴訟代理人律師具狀簽章，代表專業訴訟代理責任。',
+      signatoryRole: `訴訟代理人：${lawyer}`,
+      isFallback: true
+    };
+  } else {
+    const text = `民事陳報個人意見狀
+案號：${caseNo}
+承辦股別：平股
+原告：${oppName}
+被告（陳報人）：${clientName}
+
+為就上述事件，陳報人本於個人認知與事實原委，如實向 鈞院陳報個人意見與心聲事：
+
+一、陳報人與原告往來之真實生活背景與事件原委：
+陳報人${clientName}面對本件訴訟，內心深感痛心與遺憾。回溯當初雙方之接觸，實係基於彼此信任之合作往來。陳報人秉持誠信原則處理各項事務，從未有任何欺瞞或惡意損害對造利益之意圖。
+
+二、針對對造起訴主張與事實出入之說明：
+（一）對造起訴所指稱之情節，有諸多關鍵時點與對話脈絡遭刻意忽略與曲解。
+（二）${clientInput ? clientInput.slice(0, 400) : '陳報人依個人記憶，當時雙方之約定與交付實情並非如對造所陳述。懇請 鈞院能體察全案之真實脈絡，而非僅依對造單方之說詞為斷。'}
+
+三、陳報人之個人心聲與請求：
+陳報人為一介平民，面對繁複之司法程序甚感惶恐。今日特具狀向 鈞院呈報個人內心之真實想法與經過，期盼 鈞院法官明察秋毫，體恤小民之困境與清白，賜予公正之裁判。
+
+【重要陳報聲明】
+本陳報狀係陳報人即當事人本人出於自由意志，本於個人之記憶與認知，向 貴院如實陳述本案糾葛之原委與個人意見。本陳報狀純屬當事人個人之主觀陳述與心聲表達，本案受任律師及訴訟代理人未參與本陳報狀之具名，亦不就本陳報內容予以法律背書。懇請 貴院惠予體察實情，明察秋毫。
+
+謹   狀
+${court}  公鑑
+
+陳報人即${clientRole}：${clientName} （親筆簽名捺印）
+
+中華民國 115 年 ${new Date().getMonth() + 1} 月 ${new Date().getDate()} 日
+`;
+
+    return {
+      pleadingType: 'CLIENT_PERSONAL_REPORT',
+      title: '民事陳報個人意見狀',
+      courtName: court,
+      caseNo,
+      submitter: `陳報人即${clientRole}：${clientName}（個人具名）`,
+      pleadingText: text,
+      disclaimer: '【責任隔離】本狀由當事人個人具名簽章陳報，律師不列名、不背書。',
+      signatoryRole: `陳報人：${clientName}（本人親簽）`,
+      isFallback: true
+    };
+  }
+}

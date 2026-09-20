@@ -48,8 +48,6 @@ export interface WorkflowRouterData {
   is_sensitive: boolean; // 是否涉及性侵害、家暴、跟蹤騷擾或隱私安全
   is_complete: boolean; // 人、事、時、地、證據要素是否充足
   missing_elements: string[]; // 缺少的要素清單
-  has_judgment?: boolean; // 案件情境檢查：是否有判決
-  is_new_case?: boolean; // 案件情境檢查：是否為新案
   legalBasis?: string[]; // 分流引擎判定的法條與罪名／請求權名稱
   statuteOfLimitations?: string;
   suggestedActions?: string[];
@@ -111,6 +109,7 @@ export interface LegalWorkflowState {
   updatedAt: number;
   currentStep: WorkflowStepId;
   userNarrative: string; // 用戶輸入或追加之案情文字
+  inputType?: 'facts' | 'judgment_document';
   factHistory: string[]; // 事實修訂與補充歷史
   router?: WorkflowRouterData;
   questioning?: WorkflowQuestioningData;

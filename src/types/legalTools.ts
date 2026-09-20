@@ -1,43 +1,59 @@
-export interface LegalCalculatorInput {
+/**
+ * 鼎川法律工具箱標準資料定義
+ * 整合：即時試算評估計算機 (Calculator) + 專業法律指引與法條說明 (Guide) + 標準契約書狀條款 (Generator)
+ */
+
+export type ToolType = 'calculator' | 'assessment' | 'generator';
+
+export type CategoryGroupId = 'FAMILY' | 'DEBT' | 'TRAFFIC' | 'LABOR_CRIMINAL_CONTRACT' | 'OFFICIAL_TEMPLATES';
+
+export interface ToolDefinition {
+  id: string;
+  categoryGroup: CategoryGroupId;
+  categoryLabel: string;
+  name: string;
+  shortDesc: string;
+  badge: string;
+  toolType: ToolType;
+  icon: any;
+  legalBasis: string;
+  officialSourceUrl?: string;
+  isNew?: boolean;
+}
+
+export interface CalculatorField {
   id: string;
   label: string;
-  type: 'select' | 'number' | 'text';
+  type: 'number' | 'select' | 'text' | 'currency' | 'date';
   defaultValue: any;
+  options?: { label: string; value: any; subtitle?: string }[];
+  helperText?: string;
   suffix?: string;
   min?: number;
   max?: number;
   step?: number;
-  options?: Array<{ label: string; value: any }>;
-  helperText?: string;
 }
 
-export interface LegalCalculatorResult {
-  summary: Array<{
-    label: string;
-    value: string;
-    isHighlight?: boolean;
-    note?: string;
-  }>;
-  breakdown?: Array<{
-    label: string;
-    value: string;
-  }>;
-  notice?: string;
-  legalClause: string;
-}
-
-export interface LegalCalculatorGuideSection {
+export interface LegalGuideSection {
   title: string;
   content: string;
-  statutes?: Array<{ name: string; content?: string }>;
+  statutes?: { title: string; article: string; text: string }[];
+  practicalTips?: string[];
+  risksToAvoid?: string[];
 }
 
 export interface LegalCalculatorConfig {
-  id: string;
-  categoryName: string;
+  toolId: string;
   title: string;
   subtitle: string;
-  inputs: LegalCalculatorInput[];
-  calculate: (inputs: Record<string, any>) => LegalCalculatorResult;
-  guide: LegalCalculatorGuideSection[];
+  category: CategoryGroupId;
+  categoryName: string;
+  inputs: CalculatorField[];
+  calculate: (inputs: Record<string, any>) => {
+    summary: { label: string; value: string; isHighlight?: boolean; note?: string }[];
+    breakdown?: { label: string; value: string }[];
+    legalClause: string;
+    notice?: string;
+  };
+  guide: LegalGuideSection[];
 }

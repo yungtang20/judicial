@@ -103,7 +103,7 @@ describe('verifyPleadingCompliance', () => {
       legalReferences
     });
 
-    expect(findings.find(item => item.ruleId === 'CIVIL_116_5')?.status).toBe('WARNING');
+    expect(findings.find(item => item.ruleId === 'CIVIL_116_5')?.status).toBe('MISSING');
   });
 
   it('marks complaint-only rules not applicable to an answer', () => {

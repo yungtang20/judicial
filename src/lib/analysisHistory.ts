@@ -1,67 +1,46 @@
-import { LegalWorkflowState } from './workflow/unifiedStateGraph';
+const STORAGE_KEY = 'judgment_analysis_history';
 
 export interface AnalysisRecord {
   id: string;
-  title: string;
   inputText: string;
+  workflowState: any;
   timestamp: number;
-  workflowState: LegalWorkflowState;
+  title: string;
 }
-
-const STORAGE_KEY = 'judicial_analysis_history';
 
 export function loadHistory(): AnalysisRecord[] {
   try {
-    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
+    const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (item): item is AnalysisRecord =>
+        Boolean(item && typeof item === 'object' && typeof item.id === 'string' && typeof item.title === 'string')
+    );
   } catch {
     return [];
   }
 }
 
-export function saveToHistory(entry: {
-  inputText: string;
-  workflowState: LegalWorkflowState;
-  title: string;
-}): AnalysisRecord {
-  const record: AnalysisRecord = {
-    id: 'hist_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
-    title: entry.title,
-    inputText: entry.inputText,
+export function saveToHistory(record: Omit<AnalysisRecord, 'id' | 'timestamp'>): AnalysisRecord {
+  const history = loadHistory();
+  const newRecord: AnalysisRecord = {
+    ...record,
+    id: crypto.randomUUID?.() || Date.now().toString(36),
     timestamp: Date.now(),
-    workflowState: entry.workflowState,
   };
-  try {
-    if (typeof localStorage !== 'undefined') {
-      const history = loadHistory();
-      const updated = [record, ...history.filter(h => h.id !== record.id)].slice(0, 50);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    }
-  } catch (err) {
-    console.warn('Failed to save history to localStorage', err);
-  }
-  return record;
+  history.unshift(newRecord);
+  // Keep max 50 records
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(history.slice(0, 50)));
+  return newRecord;
 }
 
-export function deleteFromHistory(id: string): void {
-  try {
-    if (typeof localStorage !== 'undefined') {
-      const history = loadHistory();
-      const updated = history.filter(h => h.id !== id);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    }
-  } catch (err) {
-    console.warn('Failed to delete history item', err);
-  }
+export function deleteFromHistory(id: string) {
+  const history = loadHistory().filter((r) => r.id !== id);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
 }
 
-export function clearHistory(): void {
-  try {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.removeItem(STORAGE_KEY);
-    }
-  } catch (err) {
-    console.warn('Failed to clear history', err);
-  }
+export function clearHistory() {
+  localStorage.removeItem(STORAGE_KEY);
 }

@@ -1,3 +1,447 @@
-import{Scale,ShieldCheck,Calculator,HeartHandshake,Mail,FileText,Home,Heart,Car,Clock,Landmark,FileSignature,FileSpreadsheet,Gavel,FileCheck2,DollarSign,Users,AlertCircle}from"lucide-react";const TOOLBOX_CATEGORIES=[{id:"FAMILY",name:"\u5BB6\u4E8B \xB7 \u96E2\u5A5A\uFF5C\u89AA\u6B0A\uFF5C\u8CA1\u7522",subtitle:"\u96E2\u5A5A\u3001\u76E3\u8B77\u6B0A\u3001\u6276\u990A\u8CBB\u3001\u5269\u9918\u8CA1\u7522\u3001\u7E7C\u627F"},{id:"DEBT",name:"\u8A0E\u50B5 \xB7 \u91D1\u9322\u7CFE\u7D1B",subtitle:"\u5B58\u8B49\u4FE1\u51FD\u3001\u501F\u64DA\u3001\u672C\u7968\u3001\u652F\u4ED8\u547D\u4EE4\u3001\u88C1\u5224\u8CBB"},{id:"TRAFFIC",name:"\u8ECA\u798D \xB7 \u4EA4\u901A\u4E8B\u6545",subtitle:"\u8ECA\u798D\u7406\u8CE0\u3001\u548C\u89E3\u66F8\u3001\u904E\u5931\u50B7\u5BB3\u3001\u7A0B\u5E8F\u8A55\u4F30"},{id:"LABOR_CRIMINAL_CONTRACT",name:"\u52DE\u8CC7 \xB7 \u5211\u4E8B \xB7 \u5951\u7D04",subtitle:"\u8CC7\u9063\u8CBB\u3001\u5211\u4E8B\u544A\u8A34\u3001\u79DF\u8CC3\u3001\u8CB7\u8CE3\u3001\u6D88\u6EC5\u6642\u6548"},{id:"OFFICIAL_TEMPLATES",name:"\u53F8\u6CD5\u9662\u5B98\u65B9\u7BC4\u672C",subtitle:"\u6C11\u4E8B\u3001\u5211\u4E8B\u3001\u884C\u653F\u3001\u5BB6\u4E8B\u3001\u5F37\u5236\u57F7\u884C\u7B49\u5B98\u65B9\u66F8\u72C0\u7522\u88FD"}];const LEGAL_TOOLS=[{id:"JUDICIAL_CIVIL_TEMPLATE",categoryGroup:"OFFICIAL_TEMPLATES",categoryLabel:"\u53F8\u6CD5\u9662\u5B98\u65B9\u7BC4\u672C",name:"\u6C11\u4E8B\u8A34\u8A1F\u66F8\u72C0\uFF08\u53F8\u6CD5\u9662\u6A19\u6E96\uFF09",shortDesc:"\u652F\u63F4\u6C11\u4E8B\u8D77\u8A34\u3001\u7B54\u8FAF\u3001\u8072\u8ACB\u3001\u9673\u5831\u3001\u4E0A\u8A34\u72C0\u7B49\uFF0C\u5167\u5EFA\u53F8\u6CD5\u9662\u6CD5\u5B9A\u5FC5\u5099\u8A18\u8F09\u4E8B\u9805\u8207\u683C\u5F0F\u3002",badge:"\u5B98\u65B9\u6574\u5408",toolType:"generator",icon:Scale,legalBasis:"\u6C11\u4E8B\u8A34\u8A1F\u6CD5\u7B2C116\u689D"},{id:"JUDICIAL_CRIMINAL_TEMPLATE",categoryGroup:"OFFICIAL_TEMPLATES",categoryLabel:"\u53F8\u6CD5\u9662\u5B98\u65B9\u7BC4\u672C",name:"\u5211\u4E8B\u8A34\u8A1F\u66F8\u72C0\uFF08\u53F8\u6CD5\u9662\u6A19\u6E96\uFF09",shortDesc:"\u652F\u63F4\u5211\u4E8B\u544A\u8A34\u3001\u7B54\u8FAF\u3001\u9644\u5E36\u6C11\u4E8B\u8D77\u8A34\u3001\u8072\u8ACB\u8ABF\u67E5\u8B49\u64DA\u7B49\u683C\u5F0F\uFF0C\u56B4\u683C\u9075\u5B88\u53F8\u6CD5\u72C0\u7D19\u8981\u9EDE\u3002",badge:"\u5B98\u65B9\u6574\u5408",toolType:"generator",icon:ShieldCheck,legalBasis:"\u5211\u4E8B\u8A34\u8A1F\u6CD5\u3001\u53F8\u6CD5\u72C0\u7D19\u8981\u9EDE"},{id:"JUDICIAL_ADMIN_TEMPLATE",categoryGroup:"OFFICIAL_TEMPLATES",categoryLabel:"\u53F8\u6CD5\u9662\u5B98\u65B9\u7BC4\u672C",name:"\u884C\u653F\u8A34\u8A1F\u66F8\u72C0\uFF08\u53F8\u6CD5\u9662\u6A19\u6E96\uFF09",shortDesc:"\u652F\u63F4\u64A4\u92B7\u8A34\u8A1F\u3001\u8AB2\u4E88\u7FA9\u52D9\u8A34\u8A1F\u3001\u78BA\u8A8D\u8A34\u8A1F\u53CA\u4EA4\u901A\u88C1\u6C7A\u4E8B\u4EF6\u8D77\u8A34\u72C0\u7B49\u884C\u653F\u8A34\u8A1F\u6CD5\u5B9A\u683C\u5F0F\u3002",badge:"\u5B98\u65B9\u6574\u5408",toolType:"generator",icon:FileCheck2,legalBasis:"\u884C\u653F\u8A34\u8A1F\u6CD5\u7B2C57\u689D"},{id:"JUDICIAL_FAMILY_TEMPLATE",categoryGroup:"OFFICIAL_TEMPLATES",categoryLabel:"\u53F8\u6CD5\u9662\u5B98\u65B9\u7BC4\u672C",name:"\u5BB6\u4E8B\u4E8B\u4EF6\u66F8\u72C0\uFF08\u53F8\u6CD5\u9662\u6A19\u6E96\uFF09",shortDesc:"\u652F\u63F4\u4FDD\u8B77\u4EE4\u8072\u8ACB\u3001\u672A\u6210\u5E74\u5B50\u5973\u89AA\u6B0A\u3001\u6276\u990A\u8CBB\u3001\u62CB\u68C4\u7E7C\u627F\u7B49\u5BB6\u4E8B\u8072\u8ACB\u72C0\u6CD5\u5B9A\u6A19\u6E96\u683C\u5F0F\u3002",badge:"\u5B98\u65B9\u6574\u5408",toolType:"generator",icon:Users,legalBasis:"\u5BB6\u4E8B\u4E8B\u4EF6\u6CD5"},{id:"JUDICIAL_EXECUTION_TEMPLATE",categoryGroup:"OFFICIAL_TEMPLATES",categoryLabel:"\u53F8\u6CD5\u9662\u5B98\u65B9\u7BC4\u672C",name:"\u5F37\u5236\u57F7\u884C\u66F8\u72C0\uFF08\u53F8\u6CD5\u9662\u6A19\u6E96\uFF09",shortDesc:"\u652F\u63F4\u8072\u8ACB\u5F37\u5236\u57F7\u884C\u3001\u67E5\u5C01\u3001\u62CD\u8CE3\u3001\u8072\u660E\u7570\u8B70\u3001\u53C3\u8207\u5206\u914D\u7B49\u5F37\u57F7\u6CD5\u5B9A\u8072\u660E\u683C\u5F0F\u3002",badge:"\u5B98\u65B9\u6574\u5408",toolType:"generator",icon:Gavel,legalBasis:"\u5F37\u5236\u57F7\u884C\u6CD5"},{id:"CHILD_CUSTODY_ASSESSMENT",categoryGroup:"FAMILY",categoryLabel:"\u5BB6\u4E8B \xB7 \u96E2\u5A5A\uFF5C\u89AA\u6B0A\uFF5C\u8CA1\u7522",name:"\u89AA\u6B0A\uFF08\u76E3\u8B77\u6B0A\uFF09\u8A55\u4F30\u5DE5\u5177",shortDesc:"\u4F9D\u5B50\u5973\u6700\u4F73\u5229\u76CA\u539F\u5247\uFF0C\u91CF\u5316\u8A55\u4F30\u4E3B\u8981\u7167\u9867\u8005\u3001\u73FE\u72C0\u7DAD\u6301\u3001\u5584\u610F\u7236\u6BCD\u8207\u89AA\u8077\u80FD\u529B\u3002",badge:"\u65B0 \xB7 \u8A55\u4F30",toolType:"assessment",icon:Users,legalBasis:"\u6C11\u6CD5\u7B2C1055\u689D\u4E4B1",isNew:true},{id:"INHERITANCE_PORTION_CALCULATOR",categoryGroup:"FAMILY",categoryLabel:"\u5BB6\u4E8B \xB7 \u96E2\u5A5A\uFF5C\u89AA\u6B0A\uFF5C\u8CA1\u7522",name:"\u907A\u7522\u5206\u914D\u8207\u7279\u7559\u5206\u8A66\u7B97\u5668",shortDesc:"\u8F38\u5165\u907A\u7522\u7E3D\u984D\u8207\u7E7C\u627F\u4EBA\u7D44\u6210\uFF0C\u8A66\u7B97\u6CD5\u5B9A\u61C9\u7E7C\u5206\u3001\u7279\u7559\u5206\u6263\u6E1B\u6BD4\u4F8B\u8207\u6700\u4F4E\u4FDD\u969C\u91D1\u984D\u3002",badge:"\u65B0 \xB7 \u8A66\u7B97",toolType:"calculator",icon:Landmark,legalBasis:"\u6C11\u6CD5\u7B2C1138\u689D\u3001\u7B2C1144\u689D\u3001\u7B2C1223\u689D",isNew:true},{id:"CHILD_SUPPORT_CALCULATOR",categoryGroup:"FAMILY",categoryLabel:"\u5BB6\u4E8B \xB7 \u96E2\u5A5A\uFF5C\u89AA\u6B0A\uFF5C\u8CA1\u7522",name:"\u672A\u6210\u5E74\u5B50\u5973\u6276\u990A\u8CBB\u8A66\u7B97",shortDesc:"\u4F9D\u4E3B\u8A08\u7E3D\u8655\u5404\u7E23\u5E02\u6BCF\u4EBA\u6708\u5747\u6D88\u8CBB\u652F\u51FA\u8207\u96D9\u65B9\u7D93\u6FDF\u80FD\u529B\u6BD4\u4F8B\uFF0C\u7CBE\u7B97\u6276\u990A\u8CBB\u8207\u7D04\u5B9A\u689D\u6B3E\u3002",badge:"\u8A66\u7B97 \xB7 \u8AAA\u660E",toolType:"calculator",icon:Calculator,legalBasis:"\u6C11\u6CD5\u7B2C1116\u689D\u4E4B2\u3001\u7B2C1119\u689D"},{id:"RESIDUAL_PROPERTY_CALCULATOR",categoryGroup:"FAMILY",categoryLabel:"\u5BB6\u4E8B \xB7 \u96E2\u5A5A\uFF5C\u89AA\u6B0A\uFF5C\u8CA1\u7522",name:"\u592B\u59BB\u5269\u9918\u8CA1\u7522\u5206\u914D\u8A66\u7B97",shortDesc:"\u7D50\u7B97\u96E2\u5A5A\u6216\u6B7B\u4EA1\u6642\u5A5A\u5F8C\u8CA1\u7522\u6263\u9664\u8CA0\u50B5\u4E4B\u5DEE\u984D\uFF0C\u81EA\u52D5\u6392\u9664\u7E7C\u627F\u3001\u53D7\u8D08\u8207\u6170\u64AB\u91D1\u3002",badge:"\u8A66\u7B97 \xB7 \u8AAA\u660E",toolType:"calculator",icon:DollarSign,legalBasis:"\u6C11\u6CD5\u7B2C1030\u689D\u4E4B1"},{id:"PROPERTY_VALUATION_ESTIMATOR",categoryGroup:"FAMILY",categoryLabel:"\u5BB6\u4E8B \xB7 \u96E2\u5A5A\uFF5C\u89AA\u6B0A\uFF5C\u8CA1\u7522",name:"\u4E0D\u52D5\u7522\u4F30\u50F9\u8207\u8CB8\u6B3E\u6982\u7B97\u5668",shortDesc:"\u4F9D\u5340\u57DF\u5BE6\u50F9\u884C\u60C5\u3001\u576A\u6578\u3001\u5C4B\u9F61\u8207\u8CB8\u6B3E\u689D\u4EF6\uFF0C\u6982\u4F30\u623F\u7522\u5E02\u503C\u3001\u6DE8\u503C\u8207\u53EF\u8CB8\u984D\u5EA6\u3002",badge:"\u65B0 \xB7 \u8A55\u4F30",toolType:"calculator",icon:Home,legalBasis:"\u571F\u5730\u6CD5\u3001\u4E0D\u52D5\u7522\u4F30\u50F9\u6280\u8853\u898F\u5247",isNew:true},{id:"DIVORCE_AGREEMENT",categoryGroup:"FAMILY",categoryLabel:"\u5BB6\u4E8B \xB7 \u96E2\u5A5A\uFF5C\u89AA\u6B0A\uFF5C\u8CA1\u7522",name:"\u5169\u9858\u96E2\u5A5A\u5354\u8B70\u66F8\u7522\u751F\u5668",shortDesc:"\u586B\u5165\u96D9\u65B9\u76E3\u8B77\u6B0A\u3001\u63A2\u8996\u4EA4\u5F80\u65B9\u6848\u3001\u6276\u990A\u8CBB\u52A0\u901F\u689D\u6B3E\u8207\u5269\u9918\u8CA1\u7522\u5206\u914D\u5354\u8B70\u3002",badge:"\u6587\u66F8\u7522\u751F",toolType:"generator",icon:FileSignature,legalBasis:"\u6C11\u6CD5\u7B2C1050\u689D"},{id:"SELF_WRITTEN_WILL",categoryGroup:"FAMILY",categoryLabel:"\u5BB6\u4E8B \xB7 \u96E2\u5A5A\uFF5C\u89AA\u6B0A\uFF5C\u8CA1\u7522",name:"\u81EA\u66F8\u907A\u56D1\u7522\u751F\u5668",shortDesc:"\u7B26\u5408\u6C11\u6CD5\xA71190\u6CD5\u5B9A5\u8981\u4EF6\uFF08\u81EA\u66F8\u5168\u6587\u3001\u8A18\u5E74/\u6708/\u65E5\u3001\u89AA\u81EA\u7C3D\u540D\uFF09\uFF0C\u9632\u7BC4\u7279\u7559\u5206\u722D\u8B70\u3002",badge:"\u6CD5\u5B9A\u907A\u56D1",toolType:"generator",icon:FileText,legalBasis:"\u6C11\u6CD5\u7B2C1190\u689D"},{id:"INHERITANCE_CALCULATOR",categoryGroup:"FAMILY",categoryLabel:"\u5BB6\u4E8B \xB7 \u96E2\u5A5A\uFF5C\u89AA\u6B0A\uFF5C\u8CA1\u7522",name:"\u7E7C\u627F\u7CFB\u7D71\u8868\u7522\u751F\u5668",shortDesc:"\u7522\u88FD\u6C11\u4E8B\u6CD5\u9662\u8207\u5730\u653F\u4E8B\u52D9\u6240\u6A19\u6E96\u683C\u5F0F\u4E4B\u89AA\u7B49\u7E7C\u627F\u7CFB\u7D71\u8868\u8207\u61C9\u7E7C\u5206\u540D\u518A\u3002",badge:"\u7CFB\u7D71\u8868",toolType:"generator",icon:FileSpreadsheet,legalBasis:"\u6C11\u6CD5\u7B2C1138\u689D\u81F3\u7B2C1140\u689D"},{id:"DIVORCE_PROCEDURE_ASSESSMENT",categoryGroup:"FAMILY",categoryLabel:"\u5BB6\u4E8B \xB7 \u96E2\u5A5A\uFF5C\u89AA\u6B0A\uFF5C\u8CA1\u7522",name:"\u96E2\u5A5A\u7A0B\u5E8F\u8A55\u4F30\u5668",shortDesc:"\u6AA2\u8996\u7B26\u5408\u5354\u8B70\u96E2\u5A5A\u3001\u6CD5\u9662\u5BB6\u4E8B\u8ABF\u89E3\u6216\u8A34\u8A1F\u88C1\u5224\u96E2\u5A5A\uFF08\u6C11\u6CD5\u7B2C1052\u689D\u5404\u6B3E\u91CD\u5927\u4E8B\u7531\uFF09\u3002",badge:"\u6D41\u7A0B\u8A55\u4F30",toolType:"assessment",icon:Scale,legalBasis:"\u6C11\u6CD5\u7B2C1052\u689D\u3001\u5BB6\u4E8B\u4E8B\u4EF6\u6CD5"},{id:"VISITATION_PLAN_GENERATOR",categoryGroup:"FAMILY",categoryLabel:"\u5BB6\u4E8B \xB7 \u96E2\u5A5A\uFF5C\u89AA\u6B0A\uFF5C\u8CA1\u7522",name:"\u63A2\u8996\u4EA4\u5F80\u65B9\u6848\u7522\u751F\u5668",shortDesc:"\u898F\u5283\u5E73\u65E5\u9694\u9031\u9031\u672B\u3001\u5BD2\u6691\u5047\u3001\u8FB2\u66C6\u6625\u7BC0\u8207\u91CD\u8981\u7BC0\u65E5\u4E4B\u672A\u6210\u5E74\u5B50\u5973\u6703\u9762\u4EA4\u5F80\u689D\u6B3E\u3002",badge:"\u689D\u6B3E\u65B9\u6848",toolType:"generator",icon:HeartHandshake,legalBasis:"\u6C11\u6CD5\u7B2C1055\u689D\u7B2C5\u9805"},{id:"SPOUSAL_RIGHT_INFRINGEMENT",categoryGroup:"FAMILY",categoryLabel:"\u5BB6\u4E8B \xB7 \u96E2\u5A5A\uFF5C\u89AA\u6B0A\uFF5C\u8CA1\u7522",name:"\u4FB5\u5BB3\u914D\u5076\u6B0A\u8207\u5916\u9047\u6C42\u511F\u8A55\u4F30\u5668",shortDesc:"\u6AA2\u6838\u4FB5\u5BB3\u8EAB\u5206\u6CD5\u76CA\u60C5\u7BC0\u91CD\u5927\u4E8B\u8B49\uFF0C\u8A66\u7B97\u9023\u5E36\u7CBE\u795E\u6170\u64AB\u91D1\u4E26\u7522\u88FD\u6C11\u4E8B\u8D77\u8A34\u72C0\u3002",badge:"\u6C42\u511F\u8A55\u4F30",toolType:"generator",icon:Heart,legalBasis:"\u6C11\u6CD5\u7B2C184\u689D\u3001\u7B2C195\u689D\u7B2C3\u9805"},{id:"DEMAND_LETTER_DEBT",categoryGroup:"DEBT",categoryLabel:"\u8A0E\u50B5 \xB7 \u91D1\u9322\u7CFE\u7D1B",name:"\u501F\u6B3E\u50AC\u544A\u5B58\u8B49\u4FE1\u51FD\u7522\u751F\u5668",shortDesc:"\u9650\u671F\u6E05\u511F\u50AC\u544A\u3001\u7D04\u5B9A\u5229\u606F\u6838\u7B97\uFF0C\u4F9D\u6CD5\u4E2D\u65B7\u6D88\u6EC5\u6642\u6548\uFF08\u90F5\u5C40\u90F5\u653F\u6A19\u6E96\u5B58\u8B49\u683C\u5F0F\uFF09\u3002",badge:"\u5B58\u8B49\u50AC\u544A",toolType:"generator",icon:Mail,legalBasis:"\u6C11\u6CD5\u7B2C478\u689D\u3001\u7B2C129\u689D"},{id:"IOU_PROMISSORY_NOTE_GENERATOR",categoryGroup:"DEBT",categoryLabel:"\u8A0E\u50B5 \xB7 \u91D1\u9322\u7CFE\u7D1B",name:"\u501F\u64DA\uFF0F\u672C\u7968 \u7DDA\u4E0A\u7522\u751F\u5668",shortDesc:"\u542B\u501F\u64DA\u8207\u672C\u7968\u6CD5\u5B9A\u61C9\u8A18\u8F09\u4E8B\u9805\uFF08\u53D7\u6B3E\u4EBA\u3001\u767C\u7968\u65E5\u3001\u5230\u671F\u65E5\u3001\u514D\u9664\u4F5C\u6210\u62D2\u7D55\u8B49\u66F8\uFF09\u3002",badge:"\u5951\u7D04\u7968\u64DA",toolType:"generator",icon:FileSignature,legalBasis:"\u7968\u64DA\u6CD5\u7B2C120\u689D\u3001\u6C11\u6CD5\u7B2C474\u689D"},{id:"PAYMENT_ORDER_PETITION",categoryGroup:"DEBT",categoryLabel:"\u8A0E\u50B5 \xB7 \u91D1\u9322\u7CFE\u7D1B",name:"\u652F\u4ED8\u547D\u4EE4\u8072\u8ACB\u72C0\u7522\u751F\u5668",shortDesc:"\u898F\u8CBB\u50C5 500 \u5143\uFF0C20 \u65E5\u5167\u50B5\u52D9\u4EBA\u672A\u7570\u8B70\u5373\u7372\u78BA\u5B9A\u57F7\u884C\u540D\u7FA9\uFF0C\u53EF\u76F4\u63A5\u67E5\u5C01\u5B58\u6B3E\u623F\u7522\u3002",badge:"\u7763\u4FC3\u7A0B\u5E8F",toolType:"generator",icon:Gavel,legalBasis:"\u6C11\u4E8B\u8A34\u8A1F\u6CD5\u7B2C508\u689D"},{id:"CIVIL_COMPLAINT_GENERAL",categoryGroup:"DEBT",categoryLabel:"\u8A0E\u50B5 \xB7 \u91D1\u9322\u7CFE\u7D1B",name:"\u6C11\u4E8B\u8D77\u8A34\u72C0\u7DDA\u4E0A\u7522\u751F\u5668",shortDesc:"\u5305\u542B\u8A34\u4E4B\u8072\u660E\u3001\u8A34\u8A1F\u6A19\u7684\u91D1\u984D\u3001\u4E8B\u5BE6\u53CA\u7406\u7531\u3001\u6CD5\u5B9A\u501F\u6B3E\u5229\u606F\u8207\u5047\u57F7\u884C\u5BA3\u544A\u3002",badge:"\u6CD5\u9662\u8D77\u8A34",toolType:"generator",icon:Scale,legalBasis:"\u6C11\u4E8B\u8A34\u8A1F\u6CD5\u7B2C244\u689D"},{id:"COURT_FEE_CALCULATOR",categoryGroup:"DEBT",categoryLabel:"\u8A0E\u50B5 \xB7 \u91D1\u9322\u7CFE\u7D1B",name:"\u6C11\u4E8B\u88C1\u5224\u8CBB\u7DDA\u4E0A\u8A66\u7B97",shortDesc:"\u4F9D\u6C11\u8A34\xA777-13\u7D2F\u9032\u8CBB\u7387\uFF0C\u8A66\u7B97\u7B2C\u4E00\u5BE9\u8D77\u8A34\u3001\u4E8C\u4E09\u5BE9\u4E0A\u8A34\u8207\u652F\u4ED8\u547D\u4EE4\u61C9\u7D0D\u898F\u8CBB\u3002",badge:"\u898F\u8CBB\u8A66\u7B97",toolType:"calculator",icon:Calculator,legalBasis:"\u6C11\u4E8B\u8A34\u8A1F\u6CD5\u7B2C77\u689D\u4E4B13\u3001\u7B2C77\u689D\u4E4B16"},{id:"DEBT_COLLECTION_SELECTOR",categoryGroup:"DEBT",categoryLabel:"\u8A0E\u50B5 \xB7 \u91D1\u9322\u7CFE\u7D1B",name:"\u50B5\u6B0A\u50AC\u6536\u7A0B\u5E8F\u9078\u64C7\u5668",shortDesc:"\u5206\u6790\u5B58\u8B49\u4FE1\u51FD\u3001\u652F\u4ED8\u547D\u4EE4\u3001\u672C\u7968\u88C1\u5B9A\u3001\u5047\u6263\u62BC\u6216\u6C11\u4E8B\u8D77\u8A34\u4E4B\u6210\u672C\u6642\u6548\u8207\u6700\u4F73\u8DEF\u5F91\u3002",badge:"\u7B56\u7565\u9078\u64C7",toolType:"assessment",icon:ShieldCheck,legalBasis:"\u6C11\u4E8B\u8A34\u8A1F\u6CD5\u3001\u5F37\u5236\u57F7\u884C\u6CD5"},{id:"TRAFFIC_COMPENSATION_CALCULATOR",categoryGroup:"TRAFFIC",categoryLabel:"\u8ECA\u798D \xB7 \u4EA4\u901A\u4E8B\u6545",name:"\u8ECA\u798D\u7406\u8CE0\u7DDA\u4E0A\u8A66\u7B97",shortDesc:"\u8A66\u7B97\u91AB\u85E5\u3001\u770B\u8B77\u3001\u5DE5\u4F5C\u640D\u5931\u3001\u6170\u64AB\u91D1\u8207\u96F6\u4EF6\u6298\u820A\uFF0C\u6263\u9664\u8087\u8CAC\u6BD4\u4F8B\u7522\u51FA\u8CE0\u511F\u660E\u7D30\u3002",badge:"\u7406\u8CE0\u8A66\u7B97",toolType:"calculator",icon:Calculator,legalBasis:"\u6C11\u6CD5\u7B2C184\u689D\u3001\u7B2C193\u689D\u3001\u7B2C217\u689D"},{id:"TRAFFIC_SETTLEMENT_GENERATOR",categoryGroup:"TRAFFIC",categoryLabel:"\u8ECA\u798D \xB7 \u4EA4\u901A\u4E8B\u6545",name:"\u4EA4\u901A\u4E8B\u6545\u548C\u89E3\u66F8\u7522\u751F\u5668",shortDesc:"\u7D04\u5B9A\u8CE0\u511F\u5206\u671F\u4ED8\u6B3E\u3001\u62CB\u68C4\u5176\u9918\u6C11\u4E8B\u8ACB\u6C42\u6B0A\u3001\u64A4\u56DE\u5211\u4E8B\u904E\u5931\u50B7\u5BB3\u544A\u8A34\u4E4B\u5408\u6CD5\u548C\u89E3\u66F8\u3002",badge:"\u548C\u89E3\u5354\u8B70",toolType:"generator",icon:HeartHandshake,legalBasis:"\u6C11\u6CD5\u7B2C736\u689D\u3001\u5211\u4E8B\u8A34\u8A1F\u6CD5\u7B2C238\u689D"},{id:"TRAFFIC_PROCEDURE_ASSESSMENT",categoryGroup:"TRAFFIC",categoryLabel:"\u8ECA\u798D \xB7 \u4EA4\u901A\u4E8B\u6545",name:"\u8ECA\u798D\u8655\u7406\u7A0B\u5E8F\u8A55\u4F30\u5668",shortDesc:"\u638C\u63E1\u5831\u8B66\u505A\u7B46\u9304\u3001\u521D\u5224\u8868\uFF0830\u5929\uFF09\u3001\u8ECA\u9451\u6703\u9451\u5B9A\u30016\u500B\u6708\u904E\u5931\u50B7\u5BB3\u544A\u8A34\u6642\u6548\u4E4B\u6D41\u7A0B\u3002",badge:"\u6D41\u7A0B\u6307\u5F15",toolType:"assessment",icon:AlertCircle,legalBasis:"\u9053\u8DEF\u4EA4\u901A\u4E8B\u6545\u8655\u7406\u8FA6\u6CD5\u3001\u5211\u8A34\xA7237"},{id:"VEHICLE_VALUATION_ESTIMATOR",categoryGroup:"TRAFFIC",categoryLabel:"\u8ECA\u798D \xB7 \u4EA4\u901A\u4E8B\u6545",name:"\u6C7D\u8ECA\u52D5\u7522\u4F30\u50F9\u8207\u96F6\u4EF6\u6298\u820A\u8A08\u7B97\u5668",shortDesc:"\u4F9D\u51FA\u5EE0\u8ECA\u9F61\u8207\u884C\u653F\u9662\u56FA\u5B9A\u8CC7\u7522\u8010\u7528\u5E74\u6578\u8868\uFF0C\u8A66\u7B97\u7DAD\u4FEE\u96F6\u4EF6\u6298\u820A\u8207\u8ECA\u640D\u73FE\u503C\u6B98\u503C\u3002",badge:"\u65B0 \xB7 \u6298\u820A\u4F30\u7B97",toolType:"calculator",icon:Car,legalBasis:"\u56FA\u5B9A\u8CC7\u7522\u8010\u7528\u5E74\u6578\u8868\u3001\u6C11\u6CD5\u7B2C196\u689D",isNew:true},{id:"SEVERANCE_PAY_CALCULATOR",categoryGroup:"LABOR_CRIMINAL_CONTRACT",categoryLabel:"\u52DE\u8CC7 \xB7 \u5211\u4E8B \xB7 \u5951\u7D04",name:"\u8CC7\u9063\u8CBB\u7DDA\u4E0A\u8A66\u7B97",shortDesc:"\u8A08\u7B97\u52DE\u9000\u65B0\u5236\u8CC7\u9063\u8CBB\u57FA\u6578\uFF08\u5E74\u8CC7\xD70.5\uFF09\u3001\u9810\u544A\u671F\u9593\u5DE5\u8CC7\u8207\u7279\u5225\u4F11\u5047\u672A\u4F11\u6298\u73FE\u3002",badge:"\u52DE\u52D5\u8A66\u7B97",toolType:"calculator",icon:Calculator,legalBasis:"\u52DE\u5DE5\u9000\u4F11\u91D1\u689D\u4F8B\u7B2C12\u689D\u3001\u52DE\u52D5\u57FA\u6E96\u6CD5\u7B2C16\u689D"},{id:"CRIMINAL_COMPLAINT_TRAFFIC",categoryGroup:"LABOR_CRIMINAL_CONTRACT",categoryLabel:"\u52DE\u8CC7 \xB7 \u5211\u4E8B \xB7 \u5951\u7D04",name:"\u5211\u4E8B\u544A\u8A34\u72C0\u7DDA\u4E0A\u7522\u751F\u5668",shortDesc:"\u8ECA\u798D\u904E\u5931\u50B7\u5BB3\u3001\u8A50\u6B3A\u53D6\u8CA1\u3001\u59A8\u5BB3\u540D\u8B7D\u3001\u6050\u5687\u7F6A\u5211\u4E8B\u544A\u8A34\u72C0\uFF0C\u81EA\u52D5\u6CE8\u5165\u6642\u6548\u6AA2\u6838\u3002",badge:"\u5211\u4E8B\u544A\u8A34",toolType:"generator",icon:Scale,legalBasis:"\u5211\u4E8B\u8A34\u8A1F\u6CD5\u7B2C242\u689D\u3001\u5211\u6CD5\u5404\u5206\u5247"},{id:"DEMAND_LETTER_GENERAL",categoryGroup:"LABOR_CRIMINAL_CONTRACT",categoryLabel:"\u52DE\u8CC7 \xB7 \u5211\u4E8B \xB7 \u5951\u7D04",name:"\u5B58\u8B49\u4FE1\u51FD\u7522\u751F\u5668\uFF08\u901A\u7528\u7248\uFF09",shortDesc:"\u79DF\u91D1\u6B20\u7E73\u7D42\u6B62\u79DF\u7D04\u3001\u5DE5\u7A0B\u7455\u75B5\u9650\u671F\u4FEE\u88DC\u3001\u52DE\u8CC7\u722D\u8B70\u7D42\u6B62\u5951\u7D04\u4E4B\u6A19\u6E96\u5B58\u8B49\u4FE1\u51FD\u3002",badge:"\u5B58\u8B49\u4FE1\u51FD",toolType:"generator",icon:Mail,legalBasis:"\u90F5\u653F\u6CD5\u7B2C31\u689D\u3001\u6C11\u6CD5\u50AC\u544A\u898F\u5B9A"},{id:"RESIDENTIAL_LEASE_CONTRACT",categoryGroup:"LABOR_CRIMINAL_CONTRACT",categoryLabel:"\u52DE\u8CC7 \xB7 \u5211\u4E8B \xB7 \u5951\u7D04",name:"\u4F4F\u5B85\u79DF\u8CC3\u5951\u7D04\u66F8\u7DDA\u4E0A\u7522\u751F\u5668",shortDesc:"\u56B4\u683C\u7B26\u5408\u5167\u653F\u90E8\u79DF\u8CC3\u5B9A\u578B\u5316\u5951\u7D04\u61C9\u8A18\u8F09\u53CA\u4E0D\u5F97\u8A18\u8F09\u4E8B\u9805\uFF08\u62BC\u91D1\u4E0A\u96502\u6708\u3001\u4E0D\u5F97\u7981\u9077\u6236\u7C4D\uFF09\u3002",badge:"\u6CD5\u5B9A\u79DF\u7D04",toolType:"generator",icon:Home,legalBasis:"\u79DF\u8CC3\u4F4F\u5B85\u5E02\u5834\u767C\u5C55\u53CA\u7BA1\u7406\u689D\u4F8B"},{id:"USED_CAR_SALE_CONTRACT",categoryGroup:"LABOR_CRIMINAL_CONTRACT",categoryLabel:"\u52DE\u8CC7 \xB7 \u5211\u4E8B \xB7 \u5951\u7D04",name:"\u4E2D\u53E4\u6C7D\u8ECA\u8CB7\u8CE3\u5951\u7D04\u7522\u751F\u5668",shortDesc:"\u660E\u5B9A\u91CD\u5927\u4E8B\u6545\u3001\u6CE1\u6C34\u3001\u91CC\u7A0B\u6578\u63ED\u9732\u8207\u73FE\u6CC1\u4EA4\u8ECA\u4E4B\u7269\u4E4B\u7455\u75B5\u64D4\u4FDD\u8CAC\u4EFB\u689D\u6B3E\u3002",badge:"\u8CB7\u8CE3\u5951\u7D04",toolType:"generator",icon:Car,legalBasis:"\u6C11\u6CD5\u7B2C345\u689D\u3001\u7B2C354\u689D\u7269\u4E4B\u7455\u75B5\u64D4\u4FDD"},{id:"STATUTE_LIMITATIONS_CALCULATOR",categoryGroup:"LABOR_CRIMINAL_CONTRACT",categoryLabel:"\u52DE\u8CC7 \xB7 \u5211\u4E8B \xB7 \u5951\u7D04",name:"\u8FFD\u8A34\u671F\uFF0F\u6CD5\u5F8B\u6642\u6548\u8A08\u7B97\u5668",shortDesc:"\u8A08\u7B97\u6C11\u6CD515\u5E74/5\u5E74/2\u5E74\u6D88\u6EC5\u6642\u6548\uFF0C\u4EE5\u53CA\u5211\u6CD580\u689D\u8207\u5211\u8A346\u500B\u6708\u8FFD\u8A34\u6B0A\u8207\u544A\u8A34\u671F\u3002",badge:"\u6642\u6548\u8A08\u7B97",toolType:"calculator",icon:Clock,legalBasis:"\u6C11\u6CD5\u7B2C125\u689D\u81F3\u7B2C127\u689D\u3001\u5211\u6CD5\u7B2C80\u689D"}];const TOOLBOX_VISIBLE_IDS=new Set(["INHERITANCE_CALCULATOR","FORCED_SHARE_CALCULATOR","SELF_WRITTEN_WILL","DIVORCE_AGREEMENT","PAYMENT_ORDER_PETITION","LOAN_AGREEMENT","RESIDENTIAL_LEASE_CONTRACT"]);const TOOLBOX_TOOLS=LEGAL_TOOLS.filter(tool=>TOOLBOX_VISIBLE_IDS.has(tool.id));export type CategoryGroupId = 'FAMILY' | 'DEBT' | 'TRAFFIC' | 'LABOR_CRIMINAL_CONTRACT' | 'OFFICIAL_TEMPLATES' | 'ALL';
-export type LegalTool = typeof LEGAL_TOOLS[number];
-export{LEGAL_TOOLS,TOOLBOX_CATEGORIES,TOOLBOX_TOOLS};
+import { 
+  Scale, 
+  ShieldCheck, 
+  Calculator, 
+  HeartHandshake, 
+  Mail, 
+  FileText, 
+  Home, 
+  Heart, 
+  Car, 
+  Briefcase, 
+  Clock, 
+  Landmark, 
+  FileSignature, 
+  FileSpreadsheet, 
+  Gavel, 
+  FileCheck2, 
+  DollarSign, 
+  Users, 
+  AlertCircle 
+} from 'lucide-react';
+import { ToolDefinition, CategoryGroupId } from '../types/legalTools';
+import { JUDICIAL_CRIMINAL_TEMPLATE_SOURCE } from './officialJudicialTemplates';
+
+export type { ToolDefinition, CategoryGroupId };
+
+/**
+ * 鼎川法律工具箱四大生活核心分類
+ */
+export const TOOLBOX_CATEGORIES: { id: CategoryGroupId; name: string; subtitle: string }[] = [
+  {
+    id: 'FAMILY',
+    name: '家事 · 離婚｜親權｜財產',
+    subtitle: '離婚、監護權、扶養費、剩餘財產、繼承'
+  },
+  {
+    id: 'DEBT',
+    name: '討債 · 金錢糾紛',
+    subtitle: '存證信函、借據、本票、支付命令、裁判費'
+  },
+  {
+    id: 'TRAFFIC',
+    name: '車禍 · 交通事故',
+    subtitle: '車禍理賠、和解書、過失傷害、程序評估'
+  },
+  {
+    id: 'LABOR_CRIMINAL_CONTRACT',
+    name: '勞資 · 刑事 · 契約',
+    subtitle: '資遣費、刑事告訴、租賃、買賣、消滅時效'
+  },
+  {
+    id: 'OFFICIAL_TEMPLATES',
+    name: '司法院官方範本',
+    subtitle: '民事、刑事、行政、家事、強制執行等官方書狀產製'
+  }
+];
+
+export const LEGAL_TOOLS: ToolDefinition[] = [
+  // ==========================================
+  // 分類五：司法院官方範本整合 (5項)
+  // ==========================================
+  {
+    id: 'JUDICIAL_CIVIL_TEMPLATE',
+    categoryGroup: 'OFFICIAL_TEMPLATES',
+    categoryLabel: '司法院官方範本',
+    name: '民事訴訟書狀（司法院標準）',
+    shortDesc: '支援民事起訴、答辯、聲請、陳報、上訴狀等，內建司法院法定必備記載事項與格式。',
+    badge: '官方整合',
+    toolType: 'generator',
+    icon: Scale,
+    legalBasis: '民事訴訟法第116條'
+  },
+  {
+    id: 'JUDICIAL_CRIMINAL_TEMPLATE',
+    categoryGroup: 'OFFICIAL_TEMPLATES',
+    categoryLabel: '司法院官方範本',
+    name: '刑事訴訟書狀（司法院標準）',
+    shortDesc: '支援刑事告訴、答辯、附帶民事起訴、聲請調查證據等格式，嚴格遵守司法狀紙要點。',
+    badge: '官方整合',
+    toolType: 'generator',
+    icon: ShieldCheck,
+    legalBasis: '刑事訴訟法、司法狀紙要點',
+    officialSourceUrl: JUDICIAL_CRIMINAL_TEMPLATE_SOURCE
+  },
+  {
+    id: 'JUDICIAL_ADMIN_TEMPLATE',
+    categoryGroup: 'OFFICIAL_TEMPLATES',
+    categoryLabel: '司法院官方範本',
+    name: '行政訴訟書狀（司法院標準）',
+    shortDesc: '支援撤銷訴訟、課予義務訴訟、確認訴訟及交通裁決事件起訴狀等行政訴訟法定格式。',
+    badge: '官方整合',
+    toolType: 'generator',
+    icon: FileCheck2,
+    legalBasis: '行政訴訟法第57條'
+  },
+  {
+    id: 'JUDICIAL_FAMILY_TEMPLATE',
+    categoryGroup: 'OFFICIAL_TEMPLATES',
+    categoryLabel: '司法院官方範本',
+    name: '家事事件書狀（司法院標準）',
+    shortDesc: '支援保護令聲請、未成年子女親權、扶養費、拋棄繼承等家事聲請狀法定標準格式。',
+    badge: '官方整合',
+    toolType: 'generator',
+    icon: Users,
+    legalBasis: '家事事件法'
+  },
+  {
+    id: 'JUDICIAL_EXECUTION_TEMPLATE',
+    categoryGroup: 'OFFICIAL_TEMPLATES',
+    categoryLabel: '司法院官方範本',
+    name: '強制執行書狀（司法院標準）',
+    shortDesc: '支援聲請強制執行、查封、拍賣、聲明異議、參與分配等強執法定聲明格式。',
+    badge: '官方整合',
+    toolType: 'generator',
+    icon: Gavel,
+    legalBasis: '強制執行法'
+  },
+
+  // ==========================================
+  // 分類一：家事 · 離婚｜親權｜財產 (11項)
+  // ==========================================
+  {
+    id: 'CHILD_CUSTODY_ASSESSMENT',
+    categoryGroup: 'FAMILY',
+    categoryLabel: '家事 · 離婚｜親權｜財產',
+    name: '親權（監護權）評估工具',
+    shortDesc: '依子女最佳利益原則，量化評估主要照顧者、現狀維持、善意父母與親職能力。',
+    badge: '新 · 評估',
+    toolType: 'assessment',
+    icon: Users,
+    legalBasis: '民法第1055條之1',
+    isNew: true
+  },
+  {
+    id: 'INHERITANCE_PORTION_CALCULATOR',
+    categoryGroup: 'FAMILY',
+    categoryLabel: '家事 · 離婚｜親權｜財產',
+    name: '遺產分配與特留分試算器',
+    shortDesc: '輸入遺產總額與繼承人組成，試算法定應繼分、特留分扣減比例與最低保障金額。',
+    badge: '新 · 試算',
+    toolType: 'calculator',
+    icon: Landmark,
+    legalBasis: '民法第1138條、第1144條、第1223條',
+    isNew: true
+  },
+  {
+    id: 'CHILD_SUPPORT_CALCULATOR',
+    categoryGroup: 'FAMILY',
+    categoryLabel: '家事 · 離婚｜親權｜財產',
+    name: '未成年子女扶養費試算',
+    shortDesc: '依主計總處各縣市每人月均消費支出與雙方經濟能力比例，精算扶養費與約定條款。',
+    badge: '試算 · 說明',
+    toolType: 'calculator',
+    icon: Calculator,
+    legalBasis: '民法第1116條之2、第1119條'
+  },
+  {
+    id: 'RESIDUAL_PROPERTY_CALCULATOR',
+    categoryGroup: 'FAMILY',
+    categoryLabel: '家事 · 離婚｜親權｜財產',
+    name: '夫妻剩餘財產分配試算',
+    shortDesc: '結算離婚或死亡時婚後財產扣除負債之差額，自動排除繼承、受贈與慰撫金。',
+    badge: '試算 · 說明',
+    toolType: 'calculator',
+    icon: DollarSign,
+    legalBasis: '民法第1030條之1'
+  },
+  {
+    id: 'PROPERTY_VALUATION_ESTIMATOR',
+    categoryGroup: 'FAMILY',
+    categoryLabel: '家事 · 離婚｜親權｜財產',
+    name: '不動產估價與貸款概算器',
+    shortDesc: '依區域實價行情、坪數、屋齡與貸款條件，概估房產市值、淨值與可貸額度。',
+    badge: '新 · 評估',
+    toolType: 'calculator',
+    icon: Home,
+    legalBasis: '土地法、不動產估價技術規則',
+    isNew: true
+  },
+  {
+    id: 'DIVORCE_AGREEMENT',
+    categoryGroup: 'FAMILY',
+    categoryLabel: '家事 · 離婚｜親權｜財產',
+    name: '兩願離婚協議書產生器',
+    shortDesc: '填入雙方監護權、探視交往方案、扶養費加速條款與剩餘財產分配協議。',
+    badge: '文書產生',
+    toolType: 'generator',
+    icon: FileSignature,
+    legalBasis: '民法第1050條'
+  },
+  {
+    id: 'SELF_WRITTEN_WILL',
+    categoryGroup: 'FAMILY',
+    categoryLabel: '家事 · 離婚｜親權｜財產',
+    name: '自書遺囑產生器',
+    shortDesc: '符合民法§1190法定5要件（自書全文、記年/月/日、親自簽名），防範特留分爭議。',
+    badge: '法定遺囑',
+    toolType: 'generator',
+    icon: FileText,
+    legalBasis: '民法第1190條'
+  },
+  {
+    id: 'INHERITANCE_CALCULATOR',
+    categoryGroup: 'FAMILY',
+    categoryLabel: '家事 · 離婚｜親權｜財產',
+    name: '繼承系統表產生器',
+    shortDesc: '產製民事法院與地政事務所標準格式之親等繼承系統表與應繼分名冊。',
+    badge: '系統表',
+    toolType: 'generator',
+    icon: FileSpreadsheet,
+    legalBasis: '民法第1138條至第1140條'
+  },
+  {
+    id: 'DIVORCE_PROCEDURE_ASSESSMENT',
+    categoryGroup: 'FAMILY',
+    categoryLabel: '家事 · 離婚｜親權｜財產',
+    name: '離婚程序評估器',
+    shortDesc: '檢視符合協議離婚、法院家事調解或訴訟裁判離婚（民法第1052條各款重大事由）。',
+    badge: '流程評估',
+    toolType: 'assessment',
+    icon: Scale,
+    legalBasis: '民法第1052條、家事事件法'
+  },
+  {
+    id: 'VISITATION_PLAN_GENERATOR',
+    categoryGroup: 'FAMILY',
+    categoryLabel: '家事 · 離婚｜親權｜財產',
+    name: '探視交往方案產生器',
+    shortDesc: '規劃平日隔週週末、寒暑假、農曆春節與重要節日之未成年子女會面交往條款。',
+    badge: '條款方案',
+    toolType: 'generator',
+    icon: HeartHandshake,
+    legalBasis: '民法第1055條第5項'
+  },
+  {
+    id: 'SPOUSAL_RIGHT_INFRINGEMENT',
+    categoryGroup: 'FAMILY',
+    categoryLabel: '家事 · 離婚｜親權｜財產',
+    name: '侵害配偶權與外遇求償評估器',
+    shortDesc: '檢核侵害身分法益情節重大事證，試算連帶精神慰撫金並產製民事起訴狀。',
+    badge: '求償評估',
+    toolType: 'generator',
+    icon: Heart,
+    legalBasis: '民法第184條、第195條第3項'
+  },
+
+  // ==========================================
+  // 分類二：討債 · 金錢糾紛 (6項)
+  // ==========================================
+  {
+    id: 'DEMAND_LETTER_DEBT',
+    categoryGroup: 'DEBT',
+    categoryLabel: '討債 · 金錢糾紛',
+    name: '借款催告存證信函產生器',
+    shortDesc: '限期清償催告、約定利息核算，依法中斷消滅時效（郵局郵政標準存證格式）。',
+    badge: '存證催告',
+    toolType: 'generator',
+    icon: Mail,
+    legalBasis: '民法第478條、第129條'
+  },
+  {
+    id: 'IOU_PROMISSORY_NOTE_GENERATOR',
+    categoryGroup: 'DEBT',
+    categoryLabel: '討債 · 金錢糾紛',
+    name: '借據／本票 線上產生器',
+    shortDesc: '含借據與本票法定應記載事項（受款人、發票日、到期日、免除作成拒絕證書）。',
+    badge: '契約票據',
+    toolType: 'generator',
+    icon: FileSignature,
+    legalBasis: '票據法第120條、民法第474條'
+  },
+  {
+    id: 'PAYMENT_ORDER_PETITION',
+    categoryGroup: 'DEBT',
+    categoryLabel: '討債 · 金錢糾紛',
+    name: '支付命令聲請狀產生器',
+    shortDesc: '規費僅 500 元，20 日內債務人未異議即獲確定執行名義，可直接查封存款房產。',
+    badge: '督促程序',
+    toolType: 'generator',
+    icon: Gavel,
+    legalBasis: '民事訴訟法第508條'
+  },
+  {
+    id: 'CIVIL_COMPLAINT_GENERAL',
+    categoryGroup: 'DEBT',
+    categoryLabel: '討債 · 金錢糾紛',
+    name: '民事起訴狀線上產生器',
+    shortDesc: '包含訴之聲明、訴訟標的金額、事實及理由、法定借款利息與假執行宣告。',
+    badge: '法院起訴',
+    toolType: 'generator',
+    icon: Scale,
+    legalBasis: '民事訴訟法第244條'
+  },
+  {
+    id: 'COURT_FEE_CALCULATOR',
+    categoryGroup: 'DEBT',
+    categoryLabel: '討債 · 金錢糾紛',
+    name: '民事裁判費線上試算',
+    shortDesc: '依民訴§77-13累進費率，試算第一審起訴、二三審上訴與支付命令應納規費。',
+    badge: '規費試算',
+    toolType: 'calculator',
+    icon: Calculator,
+    legalBasis: '民事訴訟法第77條之13、第77條之16'
+  },
+  {
+    id: 'DEBT_COLLECTION_SELECTOR',
+    categoryGroup: 'DEBT',
+    categoryLabel: '討債 · 金錢糾紛',
+    name: '債權催收程序選擇器',
+    shortDesc: '分析存證信函、支付命令、本票裁定、假扣押或民事起訴之成本時效與最佳路徑。',
+    badge: '策略選擇',
+    toolType: 'assessment',
+    icon: ShieldCheck,
+    legalBasis: '民事訴訟法、強制執行法'
+  },
+
+  // ==========================================
+  // 分類三：車禍 · 交通事故 (4項)
+  // ==========================================
+  {
+    id: 'TRAFFIC_COMPENSATION_CALCULATOR',
+    categoryGroup: 'TRAFFIC',
+    categoryLabel: '車禍 · 交通事故',
+    name: '車禍理賠線上試算',
+    shortDesc: '試算醫藥、看護、工作損失、慰撫金與零件折舊，扣除肇責比例產出賠償明細。',
+    badge: '理賠試算',
+    toolType: 'calculator',
+    icon: Calculator,
+    legalBasis: '民法第184條、第193條、第217條'
+  },
+  {
+    id: 'TRAFFIC_SETTLEMENT_GENERATOR',
+    categoryGroup: 'TRAFFIC',
+    categoryLabel: '車禍 · 交通事故',
+    name: '交通事故和解書產生器',
+    shortDesc: '約定賠償分期付款、拋棄其餘民事請求權、撤回刑事過失傷害告訴之合法和解書。',
+    badge: '和解協議',
+    toolType: 'generator',
+    icon: HeartHandshake,
+    legalBasis: '民法第736條、刑事訴訟法第238條'
+  },
+  {
+    id: 'TRAFFIC_PROCEDURE_ASSESSMENT',
+    categoryGroup: 'TRAFFIC',
+    categoryLabel: '車禍 · 交通事故',
+    name: '車禍處理程序評估器',
+    shortDesc: '掌握報警做筆錄、初判表（30天）、車鑑會鑑定、6個月過失傷害告訴時效之流程。',
+    badge: '流程指引',
+    toolType: 'assessment',
+    icon: AlertCircle,
+    legalBasis: '道路交通事故處理辦法、刑訴§237'
+  },
+  {
+    id: 'VEHICLE_VALUATION_ESTIMATOR',
+    categoryGroup: 'TRAFFIC',
+    categoryLabel: '車禍 · 交通事故',
+    name: '汽車動產估價與零件折舊計算器',
+    shortDesc: '依出廠車齡與行政院固定資產耐用年數表，試算維修零件折舊與車損現值殘值。',
+    badge: '新 · 折舊估算',
+    toolType: 'calculator',
+    icon: Car,
+    legalBasis: '固定資產耐用年數表、民法第196條',
+    isNew: true
+  },
+
+  // ==========================================
+  // 分類四：勞資 · 刑事 · 契約 (6項)
+  // ==========================================
+  {
+    id: 'SEVERANCE_PAY_CALCULATOR',
+    categoryGroup: 'LABOR_CRIMINAL_CONTRACT',
+    categoryLabel: '勞資 · 刑事 · 契約',
+    name: '資遣費線上試算',
+    shortDesc: '計算勞退新制資遣費基數（年資×0.5）、預告期間工資與特別休假未休折現。',
+    badge: '勞動試算',
+    toolType: 'calculator',
+    icon: Calculator,
+    legalBasis: '勞工退休金條例第12條、勞動基準法第16條'
+  },
+  {
+    id: 'CRIMINAL_COMPLAINT_TRAFFIC',
+    categoryGroup: 'LABOR_CRIMINAL_CONTRACT',
+    categoryLabel: '勞資 · 刑事 · 契約',
+    name: '刑事告訴狀線上產生器',
+    shortDesc: '車禍過失傷害、詐欺取財、妨害名譽、恐嚇罪刑事告訴狀，自動注入時效檢核。',
+    badge: '刑事告訴',
+    toolType: 'generator',
+    icon: Scale,
+    legalBasis: '刑事訴訟法第242條、刑法各分則'
+  },
+  {
+    id: 'DEMAND_LETTER_GENERAL',
+    categoryGroup: 'LABOR_CRIMINAL_CONTRACT',
+    categoryLabel: '勞資 · 刑事 · 契約',
+    name: '存證信函產生器（通用版）',
+    shortDesc: '租金欠繳終止租約、工程瑕疵限期修補、勞資爭議終止契約之標準存證信函。',
+    badge: '存證信函',
+    toolType: 'generator',
+    icon: Mail,
+    legalBasis: '郵政法第31條、民法催告規定'
+  },
+  {
+    id: 'RESIDENTIAL_LEASE_CONTRACT',
+    categoryGroup: 'LABOR_CRIMINAL_CONTRACT',
+    categoryLabel: '勞資 · 刑事 · 契約',
+    name: '住宅租賃契約書線上產生器',
+    shortDesc: '嚴格符合內政部租賃定型化契約應記載及不得記載事項（押金上限2月、不得禁遷戶籍）。',
+    badge: '法定租約',
+    toolType: 'generator',
+    icon: Home,
+    legalBasis: '租賃住宅市場發展及管理條例'
+  },
+  {
+    id: 'USED_CAR_SALE_CONTRACT',
+    categoryGroup: 'LABOR_CRIMINAL_CONTRACT',
+    categoryLabel: '勞資 · 刑事 · 契約',
+    name: '中古汽車買賣契約產生器',
+    shortDesc: '明定重大事故、泡水、里程數揭露與現況交車之物之瑕疵擔保責任條款。',
+    badge: '買賣契約',
+    toolType: 'generator',
+    icon: Car,
+    legalBasis: '民法第345條、第354條物之瑕疵擔保'
+  },
+  {
+    id: 'STATUTE_LIMITATIONS_CALCULATOR',
+    categoryGroup: 'LABOR_CRIMINAL_CONTRACT',
+    categoryLabel: '勞資 · 刑事 · 契約',
+    name: '追訴期／法律時效計算器',
+    shortDesc: '計算民法15年/5年/2年消滅時效，以及刑法80條與刑訴6個月追訴權與告訴期。',
+    badge: '時效計算',
+    toolType: 'calculator',
+    icon: Clock,
+    legalBasis: '民法第125條至第127條、刑法第80條'
+  },
+];
+
+const TOOLBOX_VISIBLE_IDS = new Set([
+  'INHERITANCE_CALCULATOR',
+  'FORCED_SHARE_CALCULATOR',
+  'SELF_WRITTEN_WILL',
+  'DIVORCE_AGREEMENT',
+  'PAYMENT_ORDER_PETITION',
+  'LOAN_AGREEMENT',
+  'RESIDENTIAL_LEASE_CONTRACT',
+]);
+
+export const TOOLBOX_TOOLS = LEGAL_TOOLS.filter(tool => TOOLBOX_VISIBLE_IDS.has(tool.id));
