@@ -1,12 +1,29 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useSmartAppealAssistant } from '../hooks/useSmartAppealAssistant';
+import { AppealWorkflowContext, useAppealStore } from '../store/useAppealStore';
 
 import { AppealStep1 } from './appeal/AppealStep1';
 import { AppealStep2 } from './appeal/AppealStep2';
 import { AppealStep3 } from './appeal/AppealStep3';
 import { AppealStep4 } from './appeal/AppealStep4';
 
-export default function SmartAppealAssistant() {
+interface SmartAppealAssistantProps {
+  initialFacts?: string;
+  workflowContext?: AppealWorkflowContext | null;
+}
+
+export default function SmartAppealAssistant({ initialFacts, workflowContext }: SmartAppealAssistantProps) {
+  const initializeFromWorkflowContext = useAppealStore(s => s.initializeFromWorkflowContext);
+  const contextFacts = initialFacts || workflowContext?.facts;
+
+  useEffect(() => {
+    if (!workflowContext && !initialFacts) return;
+    initializeFromWorkflowContext({
+      ...workflowContext,
+      ...(contextFacts ? { facts: contextFacts } : {})
+    });
+  }, [contextFacts, initializeFromWorkflowContext, initialFacts, workflowContext?.cause, workflowContext?.domain, workflowContext?.issuesSummary, workflowContext?.scenarioKeywords, workflowContext?.judgmentDeliveryDate]);
+
   const {
     ctx,
     deliveryDate,
@@ -59,6 +76,13 @@ export default function SmartAppealAssistant() {
           </div>
         </div>
       </div>
+
+      {contextFacts && (
+        <div className="bg-[var(--color-status-info-bg)] border border-[var(--color-status-info)]/30 rounded-xl p-4 mb-6 text-xs text-[var(--color-text-primary)]">
+          <div className="font-bold text-[var(--color-status-info)] mb-1">已帶入 Unified workflow 案情摘要</div>
+          <div className="whitespace-pre-line leading-relaxed">{contextFacts}</div>
+        </div>
+      )}
 
       {/* 步驟導引指示器 */}
       <div className="bg-[var(--color-surface-overlay)] rounded-xl shadow-xs p-3 mb-6 border border-[var(--color-border-subtle)] flex flex-wrap justify-between items-center text-xs md:text-sm font-bold">

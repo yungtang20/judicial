@@ -5,6 +5,7 @@ import {
   Gavel
 } from 'lucide-react';
 import { loadCrossFeatureContext } from '../lib/crossFeatureContext';
+import type { AppealWorkflowContext } from '../store/useAppealStore';
 
 const SmartAppealAssistant = React.lazy(() => import('./SmartAppealAssistant'));
 const DefenseWorkflowTool = React.lazy(() => import('./DefenseWorkflowTool').then(module => ({ default: module.DefenseWorkflowTool })));
@@ -26,6 +27,17 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initia
   const crossCtx = loadCrossFeatureContext();
   const effectiveInitialTab = initialTab || crossCtx?.initialTab || 'guide';
   const effectiveToolId = initialToolId || crossCtx?.preselectedToolId;
+  const appealContext: AppealWorkflowContext | null = crossCtx &&
+    crossCtx.sourceTool === 'unified' &&
+    (crossCtx.initialTab === 'appeal' || crossCtx.documentType === 'appeal')
+    ? {
+        scenarioKeywords: crossCtx.scenarioKeywords,
+        domain: crossCtx.domain,
+        cause: crossCtx.cause,
+        facts: crossCtx.facts,
+        issuesSummary: crossCtx.issuesSummary
+      }
+    : null;
 
   // Determine main tab from initial tab
   const getInitialMainTab = (tab: string) => {
@@ -137,7 +149,10 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({ initia
           {activeMainTab === 'appeal' && (
             <div className="p-3.5 sm:p-6 max-w-7xl mx-auto">
               <div className="rounded-xl border border-slate-800 overflow-hidden bg-slate-900/40">
-                <SmartAppealAssistant />
+                <SmartAppealAssistant
+                  initialFacts={initialFacts}
+                  workflowContext={appealContext}
+                />
               </div>
             </div>
           )}

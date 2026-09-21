@@ -6,6 +6,23 @@ const todayObj = new Date();
 const todayIso = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, '0')}-${String(todayObj.getDate()).padStart(2, '0')}`;
 const todayRoc = `${todayObj.getFullYear() - 1911}年${todayObj.getMonth() + 1}月${todayObj.getDate()}日`;
 
+export interface AppealWorkflowContext {
+  scenarioKeywords?: string;
+  domain?: string;
+  cause?: string;
+  facts?: string;
+  issuesSummary?: string;
+  judgmentDeliveryDate?: string;
+}
+
+export function mapWorkflowDomainToCaseType(
+  domain?: string
+): AppealState['caseType'] {
+  if (domain === '刑事') return 'criminal';
+  if (domain === '行政') return 'administrative';
+  return 'civil';
+}
+
 export interface AppealState {
   isFallbackMode: boolean;
   setIsFallbackMode: (val: boolean | ((prev: boolean) => boolean)) => void;
@@ -187,6 +204,8 @@ export interface AppealState {
   setIsAnalyzingSummaryOnly: (val: boolean | ((prev: boolean) => boolean)) => void;
   showSummaryInStep2: boolean;
   setShowSummaryInStep2: (val: boolean | ((prev: boolean) => boolean)) => void;
+  workflowContext: AppealWorkflowContext | null;
+  initializeFromWorkflowContext: (context: AppealWorkflowContext) => void;
 }
 
 export const useAppealStore = create<AppealState>((set) => ({
@@ -304,6 +323,7 @@ export const useAppealStore = create<AppealState>((set) => ({
   judgmentSummary: null,
   isAnalyzingSummaryOnly: false,
   showSummaryInStep2: true,
+  workflowContext: null,
 
   setIsFallbackMode: (val) => set((state) => ({ isFallbackMode: typeof val === 'function' ? (val as any)(state.isFallbackMode) : val })),
   setCurrentStep: (val) => set((state) => ({ currentStep: typeof val === 'function' ? (val as any)(state.currentStep) : val })),
@@ -377,5 +397,10 @@ export const useAppealStore = create<AppealState>((set) => ({
   setJudgmentSummary: (val) => set((state) => ({ judgmentSummary: typeof val === 'function' ? (val as any)(state.judgmentSummary) : val })),
   setIsAnalyzingSummaryOnly: (val) => set((state) => ({ isAnalyzingSummaryOnly: typeof val === 'function' ? (val as any)(state.isAnalyzingSummaryOnly) : val })),
   setShowSummaryInStep2: (val) => set((state) => ({ showSummaryInStep2: typeof val === 'function' ? (val as any)(state.showSummaryInStep2) : val })),
+  initializeFromWorkflowContext: (context) => set({
+    workflowContext: context,
+    ...(context.domain ? { caseType: mapWorkflowDomainToCaseType(context.domain) } : {}),
+    ...(context.judgmentDeliveryDate ? { deliveryDate: context.judgmentDeliveryDate } : {})
+  }),
 
 }));
