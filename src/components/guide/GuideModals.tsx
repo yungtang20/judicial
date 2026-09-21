@@ -2,6 +2,7 @@
 import React from 'react';
 import { LegalSourcesDisplay } from '../LegalSourcesDisplay';
 import { ScenarioDetailModal } from './ScenarioDetailModal';
+import { resolveDocumentTool } from '../../lib/documentSelectionRules';
 import {
   DollarSign, Clock, FileSignature,
   Scale, BookOpen, ShieldAlert, Sparkles, Phone, ArrowRight,
@@ -430,10 +431,14 @@ export const GuideModals: React.FC<GuideModalsProps> = (props) => {
                     </button>
                     <button
                       onClick={() => {
-                        const recTool = aiTriageResult.recommendedToolId || "UNIVERSAL_AI_PLEADING";
+                        const resolved = resolveDocumentTool({
+                          recommendedToolId: aiTriageResult.recommendedToolId,
+                          caseType: aiTriageResult.caseType,
+                          sensitive: aiTriageResult.isSensitive
+                        });
                         setShowAiTriageModal(false);
                         handleSelectTool("legalToolbox", undefined, { 
-                          preselectedToolId: recTool,
+                          preselectedToolId: resolved.toolId,
                           prefilledData: {
                             incidentDetails: searchQuery,
                             pleadingText: aiTriageResult.pleadingDraft

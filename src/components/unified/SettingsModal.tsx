@@ -8,6 +8,7 @@ import {
   ChevronUp, Star, Edit3, Plus, Bookmark, PenTool, LayoutTemplate, MessageSquare
 } from 'lucide-react';
 import { formatLegalChapter, formatVerificationStatus } from '../../lib/legalChapterLabels';
+import { resolveDocumentTool } from '../../lib/documentSelectionRules';
 
 export interface SettingsModalProps {
   [key: string]: any;
@@ -17,6 +18,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = (props) => {
   const { inputNarrative, setInputNarrative, isSubmitting, setIsSubmitting, workflowState, setWorkflowState, supplementInput, setSupplementInput, isCopied, setIsCopied, acknowledgeSafetyInSession, setAcknowledgeSafetyInSession, isNode2Open, setIsNode2Open, isNode4Open, setIsNode4Open, isNode5Open, setIsNode5Open, isNode6Open, setIsNode6Open, customPreset, setCustomPreset, showCustomPresetModal, setShowCustomPresetModal, editPresetTitle, setEditPresetTitle, editPresetNarrative, setEditPresetNarrative, fileInputRef, isDragOver, setIsDragOver, isParsingFiles, setIsParsingFiles, parsingStatus, setParsingStatus, batchQueue, setBatchQueue, batchIndex, setBatchIndex, isBatchRunning, setIsBatchRunning, showHistory, setShowHistory, historyList, setHistoryList, handleFiles, handleDrop, handleExecuteWorkflow, handleSupplementFact, handleProceedFromSafety, handleResetWorkflow, handleCopyAnalysis, loadFromHistory, handleBatchNext, handleBatchPrev, handleSaveCurrentAsCustomPreset, handleSelectSuggestedOption, handleSaveCustomPreset, handleToggleAllNodes, defaultSample, handleSelectTool, saveCrossFeatureContext, exportAsHtml, exportAsText, printReport, deleteFromHistory, clearHistory, loadHistory, showDocTypeModal, setShowDocTypeModal } = props;
   const hasJudgmentContext = workflowState?.inputType === 'judgment_document';
   const hasCriminalContext = workflowState?.router?.domain === '刑事';
+  const resolveIntent = (explicitIntent: string) => resolveDocumentTool({ explicitIntent, domain: workflowState?.router?.domain });
 
   return (
     <>
@@ -71,7 +73,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = (props) => {
                       cause: workflowState?.router?.cause,
                       sourceTool: 'unified'
                     });
-                    handleSelectTool('litigation', undefined, { initialTab: 'toolbox', preselectedToolId: 'DEMAND_LETTER_GENERAL', facts: workflowState?.userNarrative || '' });
+                    handleSelectTool('litigation', undefined, { initialTab: 'toolbox', preselectedToolId: resolveIntent('demand_letter').toolId, facts: workflowState?.userNarrative || '' });
                   }}
                   className="w-full text-left p-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors"
                 >
@@ -88,10 +90,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = (props) => {
                       domain: workflowState?.router?.domain,
                       cause: workflowState?.router?.cause,
                       sourceTool: 'unified',
-                      preselectedToolId: 'CIVIL_COMPLAINT_GENERAL',
+                      preselectedToolId: resolveIntent('civil_complaint').toolId,
                       initialTab: 'toolbox'
                     });
-                    handleSelectTool('litigation', undefined, { initialTab: 'toolbox', preselectedToolId: 'CIVIL_COMPLAINT_GENERAL', facts: workflowState?.userNarrative || '' });
+                    handleSelectTool('litigation', undefined, { initialTab: 'toolbox', preselectedToolId: resolveIntent('civil_complaint').toolId, facts: workflowState?.userNarrative || '' });
                   }}
                   className="w-full text-left p-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors"
                 >
@@ -108,10 +110,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = (props) => {
                       domain: workflowState?.router?.domain,
                       cause: workflowState?.router?.cause,
                       sourceTool: 'unified',
-                      preselectedToolId: 'CRIMINAL_COMPLAINT_TRAFFIC',
+                      preselectedToolId: resolveIntent('criminal_complaint').toolId,
                       initialTab: 'toolbox'
                     });
-                    handleSelectTool('litigation', undefined, { initialTab: 'toolbox', preselectedToolId: 'CRIMINAL_COMPLAINT_TRAFFIC', facts: workflowState?.userNarrative || '' });
+                    handleSelectTool('litigation', undefined, { initialTab: 'toolbox', preselectedToolId: resolveIntent('criminal_complaint').toolId, facts: workflowState?.userNarrative || '' });
                   }}
                   className="w-full text-left p-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors"
                 >
@@ -128,10 +130,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = (props) => {
                       domain: workflowState?.router?.domain,
                       cause: workflowState?.router?.cause,
                       sourceTool: 'unified',
-                      preselectedToolId: 'JUDICIAL_CRIMINAL_TEMPLATE',
+                      preselectedToolId: resolveIntent('criminal_supplementary_civil').toolId,
                       initialTab: 'toolbox'
                     });
-                    handleSelectTool('litigation', undefined, { initialTab: 'toolbox', preselectedToolId: 'JUDICIAL_CRIMINAL_TEMPLATE', facts: workflowState?.userNarrative || '' });
+                    handleSelectTool('litigation', undefined, { initialTab: 'toolbox', preselectedToolId: resolveIntent('criminal_supplementary_civil').toolId, facts: workflowState?.userNarrative || '' });
                   }}
                   className="w-full text-left p-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors"
                 >

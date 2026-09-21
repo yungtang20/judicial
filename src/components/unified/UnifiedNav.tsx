@@ -4,6 +4,7 @@ import {
   FileText, ArrowRight, Briefcase, Table, Scale, Compass
 } from 'lucide-react';
 import { canUseWorkflowResult } from './UnifiedResult';
+import { resolveDocumentTool } from '../../lib/documentSelectionRules';
 
 export interface UnifiedNavProps {
   [key: string]: any;
@@ -16,14 +17,16 @@ export const UnifiedNav: React.FC<UnifiedNavProps> = (props) => {
   const canUseResult = canUseWorkflowResult(workflowState);
   const canOpenNextStep = !workflowState.error;
   const hasJudgmentContext = workflowState.inputType === 'judgment_document';
-  const defaultDocumentTool = hasJudgmentContext
-    ? undefined
-    : workflowState.router?.domain === '刑事'
-      ? 'CRIMINAL_COMPLAINT_TRAFFIC'
-      : 'CIVIL_COMPLAINT_GENERAL';
+  const documentSelection = resolveDocumentTool({
+    inputType: workflowState.inputType,
+    domain: workflowState.router?.domain,
+    caseType: workflowState.router?.caseType,
+    sensitive: workflowState.router?.is_sensitive,
+    recommendedToolId: workflowState.router?.recommendedToolId
+  });
 
   const handleJumpToLitigation = (tab: 'toolbox' | 'issues' | 'appeal') => {
-    const prioritizedTab = hasJudgmentContext && tab === 'toolbox' ? 'appeal' : tab;
+    const prioritizedTab = tab === 'toolbox' && documentSelection.destination === 'appeal' ? 'appeal' : tab;
     saveCrossFeatureContext({
       scenarioKeywords: workflowState?.router?.cause || '',
       domain: workflowState?.router?.domain,
@@ -37,7 +40,7 @@ export const UnifiedNav: React.FC<UnifiedNavProps> = (props) => {
     handleSelectTool(prioritizedTab === 'appeal' ? 'appeal' : 'litigation', prioritizedTab, {
       initialTab: prioritizedTab,
       facts: workflowState?.userNarrative,
-      ...(prioritizedTab === 'toolbox' && defaultDocumentTool ? { preselectedToolId: defaultDocumentTool } : {})
+      ...(prioritizedTab === 'toolbox' && documentSelection.toolId ? { preselectedToolId: documentSelection.toolId } : {})
     });
   };
 

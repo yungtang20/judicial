@@ -21,6 +21,7 @@ import { InteractiveCalculatorView } from './toolbox/InteractiveCalculatorView';
 import { evaluatePleadingDelivery } from '../lib/finalGate/pleadingExportGate';
 import { TOOL_FIELD_SCHEMAS } from '../lib/toolFieldSchemas';
 import { OfficialTemplateDirectory } from './toolbox/OfficialTemplateDirectory';
+import { resolveDocumentTool } from '../lib/documentSelectionRules';
 
 type DocumentGenerationStage = 'input' | 'analyzing' | 'formatting' | 'ready' | 'error';
 
@@ -28,15 +29,16 @@ export const LegalToolbox: React.FC<{ initialToolId?: string; initialFacts?: str
   const { startLoading, stopLoading } = useGlobalUI();
   const activeCase = useCaseStore(getActiveCase);
   const addDocument = useCaseStore(state => state.addDocument);
-  const presetToolId = initialToolId;
+  const initialSelection = resolveDocumentTool({
+    explicitToolId: initialToolId,
+    fallbackToolId: 'CRIMINAL_COMPLAINT_TRAFFIC'
+  });
 
   const [activeToolId, setActiveToolId] = useState<string>(() =>
-    presetToolId && LEGAL_TOOLS.some(tool => tool.id === presetToolId)
-      ? presetToolId
-      : 'CRIMINAL_COMPLAINT_TRAFFIC'
+    initialSelection.toolId || 'CRIMINAL_COMPLAINT_TRAFFIC'
   );
   const [selectedGroup, setSelectedGroup] = useState<string>(
-    initialToolId === 'JUDICIAL_CRIMINAL_TEMPLATE' ? 'OFFICIAL_TEMPLATES' : 'ALL'
+    initialSelection.categoryGroup || 'ALL'
   );
   const [searchQuery, setSearchQuery] = useState('');
   
