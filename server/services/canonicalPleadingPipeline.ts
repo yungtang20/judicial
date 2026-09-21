@@ -7,7 +7,7 @@ import { independentlyReReviewUnchangedDraft } from '../../src/lib/reviewer/inde
 import { evaluateFinalGate } from '../../src/lib/finalGate/pleadingFinalGate.js';
 import { createPleadingDeliveryAuthorization } from '../../src/lib/finalGate/pleadingExportGate.js';
 import { getCourtPleadingConfig } from '../../src/lib/rules/courtPleadingRuleProfiles.js';
-import { verifyGeneratedDocument } from '../../src/lib/generatedDocumentPipeline.js';
+import { assertGeneratedDocumentVerified, verifyGeneratedDocument } from '../../src/lib/generatedDocumentPipeline.js';
 import { verifyGenerationTemplate } from '../../src/lib/compliance/generationTemplateVerifier.js';
 
 type CanonicalParams = Record<string, unknown>;
@@ -145,6 +145,7 @@ export async function executeCanonicalPleadingPipeline(categoryKey: string, rawP
   });
   const rawDocumentText = draft.sections.map(section => section.content).filter(Boolean).join('\n');
   const citationVerification = verifyGeneratedDocument(rawDocumentText);
+  assertGeneratedDocumentVerified(citationVerification);
   const formatFinding = verifyGenerationTemplate(config.caseType, config.formatProfile);
   const reviewReport = await reviewStructuredPleading({
     draft,

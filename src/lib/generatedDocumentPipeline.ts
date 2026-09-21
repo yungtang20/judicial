@@ -1,4 +1,5 @@
 import { verifyLegalCitations, VerifyCitationsOptions } from './citationVerifier.js';
+import { interceptVerifiedCitationResults } from './generation/ghostCitationInterceptor.js';
 
 export interface GeneratedDocumentVerification {
   documentText: string;
@@ -12,6 +13,7 @@ export interface GeneratedDocumentVerification {
 
 /** Fail closed so callers cannot accidentally return a document with unresolved citations. */
 export function assertGeneratedDocumentVerified(result: GeneratedDocumentVerification): GeneratedDocumentVerification {
+  interceptVerifiedCitationResults(result.antiGhostVerification.verifiedCitations);
   if (!result.antiGhostVerification.verificationPassed) {
     throw new Error('法律文件引用檢核未通過，拒絕回傳未確認引用文件');
   }

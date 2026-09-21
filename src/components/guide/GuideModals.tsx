@@ -3,6 +3,9 @@ import React from 'react';
 import { LegalSourcesDisplay } from '../LegalSourcesDisplay';
 import { ScenarioDetailModal } from './ScenarioDetailModal';
 import { resolveDocumentTool } from '../../lib/documentSelectionRules';
+import DashboardView from '../dashboard/DashboardView';
+import { apiClient } from '../../lib/apiClient';
+import { generateBundleDocument } from '../../lib/ui/bundleDelivery';
 import {
   DollarSign, Clock, FileSignature,
   Scale, BookOpen, ShieldAlert, Sparkles, Phone, ArrowRight,
@@ -23,6 +26,17 @@ export const GuideModals: React.FC<GuideModalsProps> = (props) => {
     sourceTab, setSourceTab, isSafetyQuery, filteredScenarios, categories,
     QUICK_TAGS, handleRunAiTriage, handleLaunchScenario, handleSelectTool
   } = props;
+
+  const handleBundleGeneration = async (bundleId: string) => {
+    const result = await generateBundleDocument(bundleId, searchQuery, aiTriageResult?.pleadingDraft || '', apiClient.toolboxGenerate);
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(new Blob([result.documentText], { type: 'text/plain;charset=utf-8' }));
+    link.download = `${result.documentTitle || bundleId}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(link.href);
+  };
 
   return (
     <>
@@ -73,6 +87,7 @@ export const GuideModals: React.FC<GuideModalsProps> = (props) => {
               </div>
             ) : aiTriageResult ? (
               <div className="space-y-5 text-xs md:text-sm">
+                <DashboardView result={aiTriageResult} onSelectBundle={handleBundleGeneration} />
                 {/* 敏感案件保護路徑強制提醒 */}
                 {aiTriageResult.protectionNotice && (
                   <div id="triage-sensitive-protection-notice" className="bg-rose-950/80 border border-rose-500/60 text-rose-200 p-6 rounded-xl flex items-start gap-3">
