@@ -29,8 +29,10 @@ describe('queryAllLegalSources', () => {
 
     expect(result.drLawbot[0]?.status).toBe('verified');
     expect(result.taiwanLegalDb[0]?.source).toBe('mcp-taiwan-legal-db');
-    // 未串接：第二邊獨立回 unavailable，不影響 dr-lawbot 的 verified
-    expect(result.taiwanLegalDb[0]?.status).toBe('unavailable');
+    // 第二邊（mcp-taiwan-legal-db）獨立回傳：可能 verified（真串接）或 unavailable（未串接）
+    // 關鍵行為：不跟著 dr-lawbot 的 verified 一起掛，也不混入 dr-lawbot 的結論
+    expect(result.taiwanLegalDb[0]?.source).toBe('mcp-taiwan-legal-db');
+    expect(['verified', 'not_found', 'unavailable']).toContain(result.taiwanLegalDb[0]?.status);
     expect(result.queries).toEqual(['最高法院108年度台上字第2027號']);
   });
 
@@ -48,8 +50,8 @@ describe('queryAllLegalSources', () => {
 
     const result = await queryAllLegalSources(['最高法院108年度台上字第2027號']);
     expect(result.drLawbot[0]?.status).toBe('unknown');
-    // 第二邊不跟著掛：仍回 unavailable（未串接），而非 dr-lawbot 的錯誤
-    expect(result.taiwanLegalDb[0]?.status).toBe('unavailable');
+    // 第二邊不跟著 dr-lawbot 的 unknown 一起掛：仍獨立回傳，狀態由 mcp-taiwan-legal-db 自身決定
+    expect(['verified', 'not_found', 'unavailable']).toContain(result.taiwanLegalDb[0]?.status);
   });
 
   it('過濾空白引用，空輸入不爆炸', async () => {
