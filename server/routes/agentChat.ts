@@ -121,6 +121,7 @@ router.post("/api/agent-chat", async (req: Request, res: Response) => {
       usedRetrieval: result.usedRetrieval,
       sourceProvider: result.sourceProvider,
       gateStatus: result.gateStatus,
+      followUpQuestions: result.followUpQuestions,
       requestId,
     });
   } catch (error: any) {

@@ -22,6 +22,8 @@ import {
 import { scrubPersonalInfo } from "../../src/lib/deidentifier.js";
 import { fetchFromOpenData } from "./judicialDataFetcher.js";
 import { isWithinServiceHours } from "./judicialServiceHours.js";
+import { OBJECTIVE_LEGAL_ANALYSIS_SYSTEM_PROMPT } from "../../src/prompts/objective-legal-analysis.js";
+import { buildTriageQuestions, type TriageQuestion } from "../../src/lib/ai/conversationalTriage.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -45,6 +47,7 @@ export interface AgentChatResponse {
   usedRetrieval?: boolean;
   sourceProvider?: "tlr" | "opendata" | "local" | "none";
   gateStatus?: "PASS" | "NEEDS_REVIEW" | "FAIL";
+  followUpQuestions?: TriageQuestion[];
   error?: string;
 }
 
@@ -104,6 +107,7 @@ export async function handleAgentChat(
   // 2. Triage (rule-based — no LLM cost)
   const baseTriage = buildIntelligentRuleBasedTriage(userText);
   const triage = enforceTriageConsistency(baseTriage, userText);
+  const followUpQuestions = buildTriageQuestions(triage.missingElements ?? []);
 
   // 3. Retrieve context (local vector store)
   let legalContext = "";
@@ -169,6 +173,7 @@ export async function handleAgentChat(
     .join("\n");
 
   const systemPrompt = [
+    OBJECTIVE_LEGAL_ANALYSIS_SYSTEM_PROMPT,
     "你是台灣法律輔助助理「法律小幫手」。",
     "你的職責是根據使用者提供的事實，結合已檢索到的法規與裁判資料，",
     "以繁體中文回覆簡潔、準確的法律分析與建議。",
@@ -180,6 +185,9 @@ export async function handleAgentChat(
     "- 末尾必須附上免責聲明。",
     triage.isSensitive
       ? "- 本案件涉及敏感類型（性別/家事），請特別注意保護當事人隱私。"
+      : "",
+    followUpQuestions.length > 0
+      ? `- 案情尚缺資料，請優先追問：${followUpQuestions.map((item) => item.question).join("；")}`
       : "",
   ]
     .filter(Boolean)
@@ -230,6 +238,7 @@ export async function handleAgentChat(
       usedRetrieval,
       sourceProvider,
       gateStatus: "FAIL",
+      followUpQuestions,
     };
   }
 
@@ -258,5 +267,6 @@ export async function handleAgentChat(
     usedRetrieval,
     sourceProvider,
     gateStatus,
+    followUpQuestions,
   };
 }

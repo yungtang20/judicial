@@ -158,6 +158,16 @@ describe("agentChat service", () => {
     expect(prompt).toContain("契約瑕疵怎麼辦？");
   });
 
+  it("returns follow-up questions when the narrative is incomplete", async () => {
+    setupHappyPath();
+    mockTriageConsistency.mockReturnValue({
+      caseType: "民事", category: "其他", isSensitive: false,
+      missingElements: ["具體發生時間（時）"], isComplete: false,
+    } as any);
+    const result = await handleAgentChat({ userInput: "請問怎麼辦" });
+    expect(result.followUpQuestions?.[0].question).toContain("具體發生時間（時）");
+  });
+
   it("uses low temperature for deterministic output", async () => {
     setupHappyPath();
     await handleAgentChat({ userInput: "test" });
