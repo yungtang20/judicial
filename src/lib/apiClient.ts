@@ -221,6 +221,14 @@ export const apiClient = {
     });
   },
 
+  draftRefine: async (payload: { draftText: string; instruction: string; allowedCitations: string[] }) => {
+    return fetchWithHandler('/api/draft-refine', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  },
+
   // AI 原生 SDLC (6 階段交付引擎)
   sdlcGetProject: async (projectId: string, title?: string, legalDomain?: string) => {
     return fetchWithHandler('/api/sdlc/project', {

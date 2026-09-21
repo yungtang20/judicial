@@ -43,6 +43,7 @@ const coreEntries: NavItem[] = [
     sublabel: '依情境選書狀 · 填資料 · 產製檢核',
     icon: Gavel,
     children: [
+      { label: '生活法律導診', badge: '導診', tab: 'guide' },
       { label: '書狀與法律文件製作', badge: '製作', tab: 'toolbox' },
     ],
   },
@@ -77,7 +78,8 @@ export default function Sidebar() {
         (activeTool === 'guide' ? 'guide' : (activeTool === 'litigation' ? 'toolbox' : undefined))));
 
   const handleNav = (id: string, tab?: string) => {
-    handleSelectTool(id, tab);
+    const targetId = id === 'litigation' && tab === 'guide' ? 'guide' : id;
+    handleSelectTool(targetId, targetId === 'guide' ? undefined : tab);
     setIsOpen(false);
   };
 
