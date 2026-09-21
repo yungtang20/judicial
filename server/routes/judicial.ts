@@ -1,10 +1,9 @@
 import { UNIVERSAL_SYLLOGISM_RULES } from "../../src/prompts/universal-syllogism.js";
 import { Router, Request, Response } from "express";
 import { defaultAIProvider as configuredAIProvider } from "../../src/ai/providers/providerRegistry.js";
-import { fetchJudicialHtml, parseJudicialJudgment, normalizeTaiwanCaseQuery } from "../services/judicialCrawler.js";
+import { normalizeTaiwanCaseQuery } from "../services/judicialCrawler.js";
 import { retrieve, defaultVectorStore } from "../services/legalRetrieval.js";
 import { ingestSeedCorpus } from "../services/corpusIngest.js";
-import { fetchFromOpenData } from "../services/judicialDataFetcher.js";
 import { RuntimeSchemaValidator } from "../../src/domain/workflow/runtimeSchemaValidator.js";
 import { scrubPersonalInfo } from "../../src/lib/deidentifier.js";
 import { searchOfficialJudgments } from "../services/officialCitationVerification.js";
@@ -23,54 +22,6 @@ async function ensureSeedCorpusLoaded() {
     isCorpusInitialized = true;
   }
 }
-
-// 1. Fetch & Parse Judicial OpenData URL
-router.post("/api/judicial/fetch-judgment", async (req: Request, res: Response) => {
-  const { url } = req.body;
-  if (!url) {
-    return res.status(400).json({ error: "請提供司法院裁判書連結" });
-  }
-
-  try {
-    const html = await fetchJudicialHtml(url);
-    const result = parseJudicialJudgment(html);
-    res.json(result);
-  } catch (err: any) {
-    console.error("[JudicialFetchError]:", err.message);
-    res.status(500).json({
-      error: "無法讀取裁判書頁面",
-      message: "無法讀取裁判書頁面，請確認連結有效性",
-      details: process.env.NODE_ENV === "production" ? undefined : err.message
-    });
-  }
-});
-
-// 1b. Fetch from Judicial OpenData (5-layer gated: feature toggle, service hours, circuit breaker, credentials, content validation)
-router.post("/api/judicial/fetch-opendata", async (req: Request, res: Response) => {
-  const { caseId } = req.body;
-  if (!caseId) {
-    return res.status(400).json({ error: "請提供 caseId 欄位" });
-  }
-
-  const result = await fetchFromOpenData(caseId, { timeoutMs: 5000 });
-
-  if (!result.success) {
-    return res.status(503).json({
-      error: result.error,
-      source: result.source,
-      fallback: "建議使用 /api/judicial/search-precedents 搜尋本地知識庫"
-    });
-  }
-
-  // Parse the HTML into structured judgment data
-  try {
-    const parsed = parseJudicialJudgment(result.html!);
-    res.json({ ...parsed, source: "opendata" });
-  } catch (err: any) {
-    console.error("[JudicialFetchOpenData] Parse error:", err.message);
-    res.status(500).json({ error: "無法解析裁判書 HTML", source: "opendata" });
-  }
-});
 
 // Handler for RAG-based Judicial Precedent Search
 async function handleSearchPrecedents(req: Request, res: Response) {
@@ -222,7 +173,6 @@ ${precedentContext}
 }
 
 // 2. Query Judicial Precedents with RAG System (support both paths)
-router.post("/api/judicial/search-precedents", handleSearchPrecedents);
 router.post("/api/search-precedents", handleSearchPrecedents);
 
 export default router;

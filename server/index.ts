@@ -11,7 +11,6 @@ import judicialRouter from "./routes/judicial.js";
 import healthRouter from "./routes/health.js";
 import { sdlcRouter } from "./routes/sdlc.js";
 import externalCitationRouter from "./routes/externalCitation.js";
-import legalSearchRouter from "./routes/legalSearch.js";
 import legalProcessRouter from "./routes/legalProcess.js";
 import unifiedWorkflowRouter from "./routes/unifiedWorkflow.js";
 import agentChatRouter from "./routes/agentChat.js";
@@ -78,7 +77,6 @@ export function createExpressApp(): Express {
   app.use(triageRouter);
   app.use(judicialRouter);
   app.use(externalCitationRouter);
-  app.use(legalSearchRouter);
   app.use(legalProcessRouter);
   app.use(unifiedWorkflowRouter);
   app.use(agentChatRouter);

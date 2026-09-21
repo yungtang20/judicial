@@ -7,7 +7,7 @@ import judicialRouter from "./judicial.js";
 import { defaultAIProvider } from "../../src/ai/providers/providerRegistry.js";
 import { searchOfficialJudgments } from "../services/officialCitationVerification.js";
 
-describe("Judicial Precedent Search RAG API (/api/judicial/search-precedents)", { timeout: 30000 }, () => {
+describe("Judicial Precedent Search RAG API (/api/search-precedents)", { timeout: 30000 }, () => {
   let server: http.Server;
   let baseUrl: string;
 
@@ -67,7 +67,7 @@ describe("Judicial Precedent Search RAG API (/api/judicial/search-precedents)", 
   });
 
   it("returns 400 Bad Request when query is empty or missing", async () => {
-    const res = await fetch(`${baseUrl}/api/judicial/search-precedents`, {
+    const res = await fetch(`${baseUrl}/api/search-precedents`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({})
@@ -80,7 +80,7 @@ describe("Judicial Precedent Search RAG API (/api/judicial/search-precedents)", 
 
   it("returns empty precedents without hallucination when no matches found", async () => {
     // A completely unrelated query that should not match any Taiwan legal precedent
-    const res = await fetch(`${baseUrl}/api/judicial/search-precedents`, {
+    const res = await fetch(`${baseUrl}/api/search-precedents`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ query: "qqwwxxzz998877noexistent_token_abc" })
@@ -112,7 +112,7 @@ describe("Judicial Precedent Search RAG API (/api/judicial/search-precedents)", 
       error: "TIMEOUT"
     });
 
-    const res = await fetch(`${baseUrl}/api/judicial/search-precedents`, {
+    const res = await fetch(`${baseUrl}/api/search-precedents`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ query: "租賃押金" })
@@ -126,7 +126,7 @@ describe("Judicial Precedent Search RAG API (/api/judicial/search-precedents)", 
   });
 
   it("retrieves real precedents with sourceUrl for valid legal queries", async () => {
-    const res = await fetch(`${baseUrl}/api/judicial/search-precedents`, {
+    const res = await fetch(`${baseUrl}/api/search-precedents`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
