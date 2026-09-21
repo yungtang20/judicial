@@ -3,6 +3,7 @@ import { buildIntelligentRuleBasedTriage, enforceTriageConsistency } from "../..
 import { precheckLegalInput } from "../../src/lib/legalInputPrecheck.js";
 import { LEGAL_TOOLS } from "../../src/lib/legalToolRegistry.js";
 import { defaultLegalGenerationPipeline } from "../services/legalGenerationPipeline.js";
+import { analyzeCaseScenario } from "../../src/lib/caseScenarioEngine.js";
 
 // Note: UNIVERSAL_SYLLOGISM_RULES and searchLegalSources are enforced centrally via defaultLegalGenerationPipeline
 
@@ -128,6 +129,21 @@ ${toolsSummary}
     finalPayload.isExternalRetrievalUsed = pipelineResult.isExternalRetrievalUsed;
     finalPayload.retrievalStatusMessage = pipelineResult.retrievalStatusMessage;
     finalPayload.allowedCitations = pipelineResult.allowedCitations;
+
+    const domainId = finalPayload.caseType?.startsWith("CRIMINAL")
+      ? "CRIMINAL"
+      : finalPayload.caseType === "ADMINISTRATIVE"
+        ? "ADMINISTRATIVE"
+        : /勞工|勞資|薪資|資遣/.test(rawInput)
+          ? "LABOR"
+          : /催收|債務|欠款|借款/.test(rawInput)
+            ? "DEBT_COLLECTION"
+            : "CIVIL";
+    finalPayload.analysisBundle = analyzeCaseScenario({
+      domainId,
+      facts: { narrative: rawInput, isDebtorSelf: role === "債務人本人" },
+      parties: []
+    });
 
     res.json(finalPayload);
   } catch (err: any) {
