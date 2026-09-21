@@ -1,4 +1,5 @@
 import { LEGAL_TOOLS, type CategoryGroupId } from './legalToolRegistry';
+import { DEFAULT_DOCUMENT_TOOL_ID, DOCUMENT_IDS } from './documentCatalog';
 
 export type DocumentSelectionDestination = 'appeal' | 'toolbox';
 
@@ -25,9 +26,9 @@ const toolById = new Map(LEGAL_TOOLS.map(tool => [tool.id, tool]));
 const EXPLICIT_INTENT_TO_TOOL: Record<string, string | undefined> = {
   appeal: undefined,
   demand_letter: 'DEMAND_LETTER_GENERAL',
-  civil_complaint: 'CIVIL_COMPLAINT_GENERAL',
-  criminal_complaint: 'CRIMINAL_COMPLAINT_TRAFFIC',
-  criminal_supplementary_civil: 'JUDICIAL_CRIMINAL_TEMPLATE'
+  civil_complaint: DOCUMENT_IDS.civilComplaint,
+  criminal_complaint: DOCUMENT_IDS.criminalComplaint,
+  criminal_supplementary_civil: DOCUMENT_IDS.criminalSupplementaryCivil
 };
 
 const structuredRules: Array<{
@@ -36,15 +37,15 @@ const structuredRules: Array<{
 }> = [
   {
     matches: context => context.domain === '刑事' || context.caseType?.startsWith('CRIMINAL') || context.sensitive === true,
-    toolId: 'CRIMINAL_COMPLAINT_TRAFFIC'
+    toolId: DOCUMENT_IDS.criminalComplaint
   },
   {
     matches: context => context.domain === '行政' || context.caseType === 'ADMINISTRATIVE',
-    toolId: 'JUDICIAL_ADMIN_TEMPLATE'
+    toolId: DOCUMENT_IDS.judicialAdminTemplate
   },
   {
     matches: context => context.domain === '民事' || context.caseType === 'CIVIL',
-    toolId: 'CIVIL_COMPLAINT_GENERAL'
+    toolId: DOCUMENT_IDS.civilComplaint
   }
 ];
 
@@ -91,5 +92,5 @@ export function resolveDocumentTool(context: DocumentSelectionContext = {}): Doc
     if (result) return result;
   }
 
-  return resultForTool(context.fallbackToolId || 'CIVIL_COMPLAINT_GENERAL', 'default')!;
+  return resultForTool(context.fallbackToolId || DEFAULT_DOCUMENT_TOOL_ID, 'default')!;
 }

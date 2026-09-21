@@ -21,8 +21,11 @@ import {
 } from 'lucide-react';
 import { ToolDefinition, CategoryGroupId } from '../types/legalTools';
 import { JUDICIAL_CRIMINAL_TEMPLATE_SOURCE } from './officialJudicialTemplates';
+import { DOCUMENT_IDS, getDocumentCatalogEntry } from './documentCatalog';
 
 export type { ToolDefinition, CategoryGroupId };
+
+const catalogName = (id: string, fallback: string) => getDocumentCatalogEntry(id)?.displayName || fallback;
 
 /**
  * 鼎川法律工具箱四大生活核心分類
@@ -60,10 +63,10 @@ export const LEGAL_TOOLS: ToolDefinition[] = [
   // 分類五：司法院官方範本整合 (5項)
   // ==========================================
   {
-    id: 'JUDICIAL_CIVIL_TEMPLATE',
+    id: DOCUMENT_IDS.judicialCivilTemplate,
     categoryGroup: 'OFFICIAL_TEMPLATES',
     categoryLabel: '司法院官方範本',
-    name: '民事訴訟書狀（司法院標準）',
+    name: catalogName(DOCUMENT_IDS.judicialCivilTemplate, '民事訴訟書狀（司法院標準）'),
     shortDesc: '支援民事起訴、答辯、聲請、陳報、上訴狀等，內建司法院法定必備記載事項與格式。',
     badge: '官方整合',
     toolType: 'generator',
@@ -71,10 +74,10 @@ export const LEGAL_TOOLS: ToolDefinition[] = [
     legalBasis: '民事訴訟法第116條'
   },
   {
-    id: 'JUDICIAL_CRIMINAL_TEMPLATE',
+    id: DOCUMENT_IDS.judicialCriminalTemplate,
     categoryGroup: 'OFFICIAL_TEMPLATES',
     categoryLabel: '司法院官方範本',
-    name: '刑事訴訟書狀（司法院標準）',
+    name: catalogName(DOCUMENT_IDS.judicialCriminalTemplate, '刑事訴訟書狀（司法院標準）'),
     shortDesc: '支援刑事告訴、答辯、附帶民事起訴、聲請調查證據等格式，嚴格遵守司法狀紙要點。',
     badge: '官方整合',
     toolType: 'generator',
@@ -83,10 +86,10 @@ export const LEGAL_TOOLS: ToolDefinition[] = [
     officialSourceUrl: JUDICIAL_CRIMINAL_TEMPLATE_SOURCE
   },
   {
-    id: 'JUDICIAL_ADMIN_TEMPLATE',
+    id: DOCUMENT_IDS.judicialAdminTemplate,
     categoryGroup: 'OFFICIAL_TEMPLATES',
     categoryLabel: '司法院官方範本',
-    name: '行政訴訟書狀（司法院標準）',
+    name: catalogName(DOCUMENT_IDS.judicialAdminTemplate, '行政訴訟書狀（司法院標準）'),
     shortDesc: '支援撤銷訴訟、課予義務訴訟、確認訴訟及交通裁決事件起訴狀等行政訴訟法定格式。',
     badge: '官方整合',
     toolType: 'generator',
@@ -94,10 +97,10 @@ export const LEGAL_TOOLS: ToolDefinition[] = [
     legalBasis: '行政訴訟法第57條'
   },
   {
-    id: 'JUDICIAL_FAMILY_TEMPLATE',
+    id: DOCUMENT_IDS.judicialFamilyTemplate,
     categoryGroup: 'OFFICIAL_TEMPLATES',
     categoryLabel: '司法院官方範本',
-    name: '家事事件書狀（司法院標準）',
+    name: catalogName(DOCUMENT_IDS.judicialFamilyTemplate, '家事事件書狀（司法院標準）'),
     shortDesc: '支援保護令聲請、未成年子女親權、扶養費、拋棄繼承等家事聲請狀法定標準格式。',
     badge: '官方整合',
     toolType: 'generator',
@@ -105,10 +108,10 @@ export const LEGAL_TOOLS: ToolDefinition[] = [
     legalBasis: '家事事件法'
   },
   {
-    id: 'JUDICIAL_EXECUTION_TEMPLATE',
+    id: DOCUMENT_IDS.judicialExecutionTemplate,
     categoryGroup: 'OFFICIAL_TEMPLATES',
     categoryLabel: '司法院官方範本',
-    name: '強制執行書狀（司法院標準）',
+    name: catalogName(DOCUMENT_IDS.judicialExecutionTemplate, '強制執行書狀（司法院標準）'),
     shortDesc: '支援聲請強制執行、查封、拍賣、聲明異議、參與分配等強執法定聲明格式。',
     badge: '官方整合',
     toolType: 'generator',
@@ -387,6 +390,17 @@ export const LEGAL_TOOLS: ToolDefinition[] = [
     toolType: 'generator',
     icon: Scale,
     legalBasis: '刑事訴訟法第242條、刑法各分則'
+  },
+  {
+    id: DOCUMENT_IDS.criminalSupplementaryCivil,
+    categoryGroup: 'LABOR_CRIMINAL_CONTRACT',
+    categoryLabel: '勞資 · 刑事 · 契約',
+    name: catalogName(DOCUMENT_IDS.criminalSupplementaryCivil, '刑事附帶民事訴訟起訴狀'),
+    shortDesc: '刑事案件已起訴後，向法院請求損害賠償之附帶民事起訴狀。',
+    badge: '附帶民事',
+    toolType: 'generator',
+    icon: Scale,
+    legalBasis: '刑事訴訟法第487條、第492條'
   },
   {
     id: 'DEMAND_LETTER_GENERAL',

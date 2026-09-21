@@ -56,9 +56,10 @@ describe('legal toolbox classification (Dingchuan 4-Core Categories)', () => {
 
     expect(screen.getByRole('heading', { name: /全方位實用法務工具箱/ })).toBeInTheDocument();
     
-    for (const cat of TOOLBOX_CATEGORIES) {
+    for (const cat of TOOLBOX_CATEGORIES.filter(cat => cat.id !== 'OFFICIAL_TEMPLATES')) {
       expect(screen.getByRole('button', { name: new RegExp(cat.name) })).toBeInTheDocument();
     }
+    expect(screen.getByRole('button', { name: /司法院官方範本/ })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /討債|金錢/ }));
     expect(onSelectGroup).toHaveBeenCalledWith('DEBT');

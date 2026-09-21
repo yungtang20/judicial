@@ -18,6 +18,7 @@ import {
   fingerprintReviewPayload,
   PLEADING_REVIEWER_VERSION,
   reviewStructuredPleading,
+  type OfficialTemplateFormatFinding,
   type PleadingReviewInput
 } from './pleadingReviewer';
 
@@ -39,6 +40,7 @@ export interface IndependentNoRevisionReviewInput {
   ruleProfile: PleadingRuleProfile;
   legalReferences: LegalReference[];
   originalReviewReport: PleadingReviewReport;
+  officialTemplateFormatFinding?: OfficialTemplateFormatFinding;
 }
 
 function isProblem(status: ComplianceStatus): boolean {
@@ -60,7 +62,8 @@ export function buildFreshReviewInput(
   draft: StructuredPleadingDraft,
   caseInput: CaseInput,
   ruleProfile: PleadingRuleProfile,
-  legalReferences: LegalReference[]
+  legalReferences: LegalReference[],
+  officialTemplateFormatFinding?: OfficialTemplateFormatFinding
 ): PleadingReviewInput {
   const documentText = draft.sections.map(section => section.content).filter(Boolean).join('\n');
   const appliedFormatProfile = FORMAT_PROFILES[ruleProfile.formatProfileId || caseInput.caseType];
@@ -71,7 +74,8 @@ export function buildFreshReviewInput(
     complianceFindings: verifyPleadingCompliance({ draft, caseInput, ruleProfile, legalReferences }),
     citationVerification: verifyGeneratedDocument(documentText),
     formatFinding: verifyGenerationTemplate(caseInput.caseType, appliedFormatProfile),
-    appliedFormatProfile
+    appliedFormatProfile,
+    officialTemplateFormatFinding
   };
 }
 
@@ -267,7 +271,11 @@ export async function independentlyReReviewUnchangedDraft(
 ): Promise<IndependentReReviewReport> {
   const input = structuredClone(rawInput);
   const revisedReviewReport = await reviewStructuredPleading(buildFreshReviewInput(
-    input.draft, input.caseInput, input.ruleProfile, input.legalReferences
+    input.draft,
+    input.caseInput,
+    input.ruleProfile,
+    input.legalReferences,
+    input.officialTemplateFormatFinding
   ));
   if (await fingerprintReviewPayload(revisedReviewReport) !== await fingerprintReviewPayload(input.originalReviewReport)) {
     throw new Error('Original Reviewer report does not match independently recomputed verifier evidence.');

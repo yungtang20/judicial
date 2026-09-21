@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ExternalLink, Download, FileText, ChevronRight, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react';
 import { fetchWithAuth } from '../../lib/apiClient';
+import { OFFICIAL_TEMPLATE_UI_ENABLED } from '../../lib/documentCatalog';
+import { OfficialTemplateResultPanel, type OfficialTemplateRenderResult } from './OfficialTemplateResultPanel';
 
 interface TemplateSummary {
   id: string;
@@ -10,6 +12,7 @@ interface TemplateSummary {
   sourcePageUrl: string;
   officialUpdatedAt: string;
   templateStatus: string;
+  p9Status: 'P9_NOT_CONFIGURED' | 'P9_BLOCKED' | 'P9_READY';
   hasEditableFile: boolean;
   hasPdf: boolean;
 }
@@ -47,6 +50,7 @@ export const OfficialTemplateDirectory: React.FC<OfficialTemplateDirectoryProps>
   const [renderError, setRenderError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [renderResult, setRenderResult] = useState<OfficialTemplateRenderResult | null>(null);
 
   // Load categories on mount
   useEffect(() => {
@@ -86,6 +90,7 @@ export const OfficialTemplateDirectory: React.FC<OfficialTemplateDirectoryProps>
       setSelectedTemplate(data);
       setFieldValues({});
       setRenderError(null);
+      setRenderResult(null);
     } catch {
       setRenderError('無法載入範本詳細資料，請稍後重試。');
     } finally {
@@ -97,6 +102,12 @@ export const OfficialTemplateDirectory: React.FC<OfficialTemplateDirectoryProps>
     if (!selectedTemplate) return;
     setIsRendering(true);
     setRenderError(null);
+    setRenderResult(null);
+    if (selectedTemplate.p9Status !== 'P9_READY') {
+      setRenderError('此模板尚未通過 P9 Final Gate，禁止產生或下載 ODT。');
+      setIsRendering(false);
+      return;
+    }
     try {
       const res = await fetchWithAuth(`/api/official-templates/${selectedTemplate.id}/render`, {
         method: 'POST',
@@ -105,22 +116,10 @@ export const OfficialTemplateDirectory: React.FC<OfficialTemplateDirectoryProps>
       });
       const data = await res.json();
       if (!res.ok) {
-        setRenderError(data.error || `HTTP ${res.status}`);
+        setRenderError(`${data.error || `HTTP ${res.status}`}（${data.code || `HTTP_${res.status}`}）`);
         return;
       }
-      // Download the file
-      if (data.documentBase64) {
-        const binary = atob(data.documentBase64);
-        const bytes = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-        const blob = new Blob([bytes], { type: data.mimeType || 'application/vnd.oasis.opendocument.text' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = data.fileName || `${selectedTemplate.name}.odt`;
-        a.click();
-        URL.revokeObjectURL(url);
-      }
+      setRenderResult(data as OfficialTemplateRenderResult);
     } catch (err: any) {
       setRenderError(err.message || 'Render failed');
     } finally {
@@ -167,6 +166,14 @@ export const OfficialTemplateDirectory: React.FC<OfficialTemplateDirectoryProps>
     }
   };
 
+  const p9StatusLabel = (s: TemplateDetail['p9Status']) => {
+    switch (s) {
+      case 'P9_READY': return <span className="text-emerald-400">P9_READY（可下載）</span>;
+      case 'P9_BLOCKED': return <span className="text-amber-400">P9_BLOCKED（不可下載）</span>;
+      default: return <span className="text-slate-500">P9_NOT_CONFIGURED（不可下載）</span>;
+    }
+  };
+
   // Step 3: Show template detail + field form
   if (selectedTemplate) {
     return (
@@ -181,6 +188,7 @@ export const OfficialTemplateDirectory: React.FC<OfficialTemplateDirectoryProps>
             <span>代碼：{selectedTemplate.code}</span>
             <span>官方更新：{selectedTemplate.officialUpdatedAt}</span>
             <span>狀態：{statusLabel(selectedTemplate.templateStatus)}</span>
+            <span>交付狀態：{p9StatusLabel(selectedTemplate.p9Status)}</span>
           </div>
           <div className="mt-2 flex gap-3">
             <a href={selectedTemplate.sourcePageUrl} target="_blank" rel="noreferrer"
@@ -206,13 +214,19 @@ export const OfficialTemplateDirectory: React.FC<OfficialTemplateDirectoryProps>
           )}
         </div>
 
-        {selectedTemplate.templateStatus === 'SOURCE_ONLY' ? (
+        {(!OFFICIAL_TEMPLATE_UI_ENABLED || selectedTemplate.p9Status !== 'P9_READY') ? (
+          <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-300">
+            <AlertTriangle className="w-4 h-4 inline mr-2" />
+            此模板目前尚未取得 P9 Final Gate 交付授權，禁止產生或下載 ODT；請使用上方官方來源連結或下載本站驗證的原始檔。
+          </div>
+        ) : selectedTemplate.templateStatus === 'SOURCE_ONLY' ? (
           <div className="rounded-2xl border border-yellow-500/30 bg-yellow-500/10 p-4 text-sm text-yellow-300">
             <AlertTriangle className="w-4 h-4 inline mr-2" />
             此模板目前僅提供官方來源下載，無法線上套版。請點選上方「官方詳細頁」連結至司法院下載原始檔案。
           </div>
         ) : selectedTemplate.templateStatus === 'READY_FOR_MERGE' ? (
           <div className="space-y-4">
+            {renderResult && <OfficialTemplateResultPanel result={renderResult} onError={setRenderError} />}
             {selectedTemplate.fields.length > 0 ? (
               <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4 space-y-3">
                 <h3 className="text-sm font-bold text-white">填寫資料</h3>

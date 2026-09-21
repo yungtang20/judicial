@@ -53,6 +53,35 @@ describe('OfficialTemplateDirectory', () => {
     expect(screen.queryByRole('button', { name: /下載套版文件/ })).not.toBeInTheDocument();
   });
 
+  it('keeps official template rendering disabled until the P9 flow exists', async () => {
+    fetchWithAuth.mockImplementation((url: string) => {
+      if (url === '/api/official-templates') {
+        return response({ categories: [{ name: '刑事', total: 1, readyForMerge: 1, needsFieldMapping: 0, downloaded: 1, sourceOnly: 0, sourceLinks: 1 }] });
+      }
+      if (url.includes('?category=')) {
+        return response({ templates: [{
+          id: 'judicial-0202-1', code: '0202', name: '答辯狀', category: '刑事',
+          sourcePageUrl: 'https://www.judicial.gov.tw/example', officialUpdatedAt: '110-12-23',
+          templateStatus: 'READY_FOR_MERGE', hasEditableFile: true, hasPdf: true,
+        }] });
+      }
+      return response({
+        id: 'judicial-0202-1', code: '0202', name: '答辯狀', category: '刑事',
+        sourcePageUrl: 'https://www.judicial.gov.tw/example', editableFileUrl: 'https://www.judicial.gov.tw/editable',
+        pdfFileUrl: 'https://www.judicial.gov.tw/pdf', officialUpdatedAt: '110-12-23',
+        templateStatus: 'READY_FOR_MERGE', hasEditableFile: true, hasPdf: true,
+        localFileHash: 'hash', downloadedAt: '2026-09-15', fields: [{ key: 'name', label: '姓名', type: 'text', required: true }],
+      });
+    });
+
+    render(<OfficialTemplateDirectory />);
+    fireEvent.click(await screen.findByRole('button', { name: /刑事/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /答辯狀/ }));
+
+    expect(await screen.findByText(/尚未取得 P9 Final Gate/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /下載套版文件/ })).not.toBeInTheDocument();
+  });
+
   it('downloads the verified original without enabling template rendering', async () => {
     const createObjectURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:official-source');
     const revokeObjectURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);

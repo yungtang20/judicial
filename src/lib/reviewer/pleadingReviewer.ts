@@ -51,6 +51,13 @@ export interface CitationReviewEvidence {
   };
 }
 
+export interface OfficialTemplateFormatFinding extends ComplianceFinding {
+  templateId: string;
+  sourceHash: string;
+  artifactHash: string;
+  mappingVersion: string;
+}
+
 export interface PleadingReviewInput {
   draft: StructuredPleadingDraft;
   caseInput: CaseInput;
@@ -59,6 +66,7 @@ export interface PleadingReviewInput {
   citationVerification?: CitationReviewEvidence;
   formatFinding?: ComplianceFinding;
   appliedFormatProfile?: FormatProfile;
+  officialTemplateFormatFinding?: OfficialTemplateFormatFinding;
 }
 
 export const REVIEWER_OBJECTIVE_CHECKS: ReviewerObjectiveCheck[] = [
@@ -486,55 +494,77 @@ function formatReview(input: PleadingReviewInput): ReviewFinding[] {
   const basis = ['P6.FORMAT', 'P5 verifyGenerationTemplate finding'];
   const finding = input.formatFinding;
   const applied = input.appliedFormatProfile;
+  const reviews: ReviewFinding[] = [];
   if (!finding || !applied) {
-    return [reviewFinding(
+    reviews.push(reviewFinding(
       'P6.FORMAT.MISSING_EVIDENCE',
       'FORMAT',
       'UNVERIFIED',
       '未提供生成範本格式驗證結果或實際套用的 FormatProfile。',
       basis
-    )];
+    ));
+  } else {
+    const expectedRuleId = `FORMAT_PROFILE.${input.caseInput.caseType}`;
+    const expected = FORMAT_PROFILES[input.ruleProfile.formatProfileId || input.caseInput.caseType];
+    const signature = (profile: FormatProfile) => JSON.stringify([
+      profile.caseType,
+      profile.formatRuleSource,
+      profile.formatConfirmed,
+      profile.paperSize,
+      profile.writingDirection,
+      profile.marginsCm?.top ?? null,
+      profile.marginsCm?.bottom ?? null,
+      profile.marginsCm?.left ?? null,
+      profile.marginsCm?.right ?? null,
+      profile.fontSizePt?.min ?? null,
+      profile.fontSizePt?.max ?? null,
+      profile.lineSpacingPt?.mode ?? null,
+      profile.lineSpacingPt?.min ?? null,
+      profile.lineSpacingPt?.max ?? null,
+      profile.pageNumbering,
+      profile.tocThresholdPages ?? null,
+      profile.doubleSidedPrint
+    ]);
+    const independentlyVerifiedStatus: ComplianceFinding['status'] =
+      !expected.formatConfirmed || !applied.formatConfirmed
+        ? 'UNVERIFIED'
+        : signature(applied) === signature(expected) ? 'COMPLIANT' : 'CONFLICT';
+    const evidenceMatches = finding.ruleId === expectedRuleId && finding.status === independentlyVerifiedStatus;
+    reviews.push(reviewFinding(
+      'P6.FORMAT.RESULT',
+      'FORMAT',
+      evidenceMatches ? independentlyVerifiedStatus : 'CONFLICT',
+      evidenceMatches
+        ? finding.note || '格式驗證器未提供說明。'
+        : '格式 finding、實際 FormatProfile 或目前案件類型互相衝突。',
+      ['P6.FORMAT', 'P5 verifyGenerationTemplate finding'],
+      'FORMAT_VERIFIER',
+      finding.evidenceLocation,
+      finding.ruleId
+    ));
   }
-  const expectedRuleId = `FORMAT_PROFILE.${input.caseInput.caseType}`;
-  const expected = FORMAT_PROFILES[input.ruleProfile.formatProfileId || input.caseInput.caseType];
-  const signature = (profile: FormatProfile) => JSON.stringify([
-    profile.caseType,
-    profile.formatRuleSource,
-    profile.formatConfirmed,
-    profile.paperSize,
-    profile.writingDirection,
-    profile.marginsCm?.top ?? null,
-    profile.marginsCm?.bottom ?? null,
-    profile.marginsCm?.left ?? null,
-    profile.marginsCm?.right ?? null,
-    profile.fontSizePt?.min ?? null,
-    profile.fontSizePt?.max ?? null,
-    profile.lineSpacingPt?.mode ?? null,
-    profile.lineSpacingPt?.min ?? null,
-    profile.lineSpacingPt?.max ?? null,
-    profile.pageNumbering,
-    profile.tocThresholdPages ?? null,
-    profile.doubleSidedPrint
-  ]);
-  const independentlyVerifiedStatus: ComplianceFinding['status'] =
-    !expected.formatConfirmed || !applied.formatConfirmed
-      ? 'UNVERIFIED'
-      : signature(applied) === signature(expected) ? 'COMPLIANT' : 'CONFLICT';
-  const evidenceMatches =
-    finding.ruleId === expectedRuleId &&
-    finding.status === independentlyVerifiedStatus;
-  return [reviewFinding(
-    'P6.FORMAT.RESULT',
-    'FORMAT',
-    evidenceMatches ? independentlyVerifiedStatus : 'CONFLICT',
-    evidenceMatches
-      ? finding.note || '格式驗證器未提供說明。'
-      : '格式 finding、實際 FormatProfile 或目前案件類型互相衝突。',
-    basis,
-    'FORMAT_VERIFIER',
-    finding.evidenceLocation,
-    finding.ruleId
-  )];
+  const official = input.officialTemplateFormatFinding;
+  if (official) {
+    const metadataPresent = Boolean(
+      official.templateId.trim() &&
+      official.sourceHash.trim() &&
+      official.artifactHash.trim() &&
+      official.mappingVersion.trim()
+    );
+    reviews.push(reviewFinding(
+      'P6.FORMAT.OFFICIAL_TEMPLATE',
+      'FORMAT',
+      metadataPresent ? official.status : 'UNVERIFIED',
+      metadataPresent
+        ? `官方範本 ${official.templateId} 的 source/artifact hash 與 mapping version 已綁定。`
+        : '官方範本格式 finding 缺少 template ID、source hash、artifact hash 或 mapping version。',
+      ['P6.FORMAT', 'Official template artifact integrity', 'Official template field mapping'],
+      'FORMAT_VERIFIER',
+      official.evidenceLocation,
+      official.ruleId
+    ));
+  }
+  return reviews;
 }
 
 export async function reviewStructuredPleading(input: PleadingReviewInput): Promise<PleadingReviewReport> {

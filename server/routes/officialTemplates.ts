@@ -15,7 +15,7 @@ import {
   getAllCategories,
 } from '../../src/lib/officialTemplateManifest';
 import { extractTemplateFields, renderTemplate } from '../../src/lib/officialTemplateRenderer';
-import { assertGeneratedDocumentVerified, verifyGeneratedDocument } from '../../src/lib/generatedDocumentPipeline';
+import { executeOfficialTemplatePleadingPipeline, OfficialTemplatePleadingPipelineError } from '../services/officialTemplatePleadingPipeline';
 import { requireAuth } from '../middleware/auth';
 
 const router = Router();
@@ -42,6 +42,7 @@ router.get('/api/official-templates', (req: Request, res: Response) => {
           sourcePageUrl: t.sourcePageUrl,
           officialUpdatedAt: t.officialUpdatedAt,
           templateStatus: t.templateStatus,
+          p9Status: t.p9Status,
           hasEditableFile: !!t.editableFileUrl,
           hasPdf: !!t.pdfFileUrl,
         })),
@@ -96,6 +97,7 @@ router.get('/api/official-templates/:id', (req: Request, res: Response) => {
       pdfFileUrl: template.pdfFileUrl,
       officialUpdatedAt: template.officialUpdatedAt,
       templateStatus: template.templateStatus,
+      p9Status: template.p9Status,
       hasEditableFile: !!template.editableFileUrl,
       hasPdf: !!template.pdfFileUrl,
       localFileHash: template.localFileHash,
@@ -164,6 +166,14 @@ router.post('/api/official-templates/:id/render', requireAuth(), async (req: Req
       return res.status(404).json({ error: 'Template not found', code: 'TEMPLATE_NOT_FOUND' });
     }
 
+    if (template.p9Status !== 'P9_READY') {
+      return res.status(409).json({
+        error: '官方範本尚未通過 P9 Final Gate，禁止產生或下載 ODT。',
+        code: 'P9_FINAL_GATE_REQUIRED',
+        p9Status: template.p9Status || 'P9_NOT_CONFIGURED',
+      });
+    }
+
     if (template.templateStatus === 'SOURCE_ONLY') {
       return res.status(422).json({
         error: 'This template is SOURCE_ONLY and cannot be rendered. Use the official link to download directly.',
@@ -208,23 +218,42 @@ router.post('/api/official-templates/:id/render', requireAuth(), async (req: Req
       });
     }
 
-    try {
-      assertGeneratedDocumentVerified(verifyGeneratedDocument(result.documentText || ''));
-    } catch (error: any) {
-      return res.status(422).json({
-        error: error?.message || 'Generated document verification failed',
-        code: 'DOCUMENT_VERIFICATION_FAILED',
-      });
+    const resolved = path.resolve(process.cwd(), template.localFilePath || '');
+    const relative = path.relative(TEMPLATE_FILES_DIR, resolved);
+    if (!template.localFilePath || !template.localFileHash || !relative || relative.startsWith('..') || path.isAbsolute(relative) || !fs.existsSync(resolved)) {
+      return res.status(422).json({ error: 'Official source file is unavailable', code: 'TEMPLATE_SOURCE_UNAVAILABLE' });
     }
 
-    // This route has no trusted CaseInput/P8/P9 report yet. Client-provided
-    // approval data must never authorize delivery of a court pleading.
-    res.setHeader('Cache-Control', 'no-store');
-    return res.status(409).json({
-      error: '法院書狀尚未取得 P9 Final Gate 的 READY 授權，禁止回傳或下載。',
-      code: 'P9_FINAL_GATE_REQUIRED',
+    if (!result.documentBase64) {
+      return res.status(422).json({ error: 'Rendered ODT artifact is unavailable', code: 'TEMPLATE_ARTIFACT_UNAVAILABLE' });
+    }
+
+    const pipeline = await executeOfficialTemplatePleadingPipeline({
+      template,
+      values: fields,
+      artifact: Buffer.from(result.documentBase64, 'base64'),
+      sourceArtifact: fs.readFileSync(resolved),
     });
-  } catch {
+
+    res.setHeader('Cache-Control', 'no-store');
+    return res.json({
+      success: true,
+      templateId: template.id,
+      p9Status: template.p9Status,
+      documentBase64: result.documentBase64,
+      documentText: pipeline.documentText,
+      fileName: result.fileName,
+      mimeType: result.mimeType,
+      artifactFingerprint: pipeline.artifactHash,
+      authorization: pipeline.deliveryAuthorization,
+    });
+  } catch (error: any) {
+    if (error instanceof OfficialTemplatePleadingPipelineError) {
+      const status = error.code === 'REQUIRED_FIELD_MISSING' || error.code === 'ARTIFACT_OR_MAPPING_BLOCKED'
+        ? 422
+        : 409;
+      return res.status(status).json({ error: error.message, code: error.code, fields: error.fields });
+    }
     res.status(500).json({ error: 'Unable to render official template', code: 'TEMPLATE_RENDER_ERROR' });
   }
 });

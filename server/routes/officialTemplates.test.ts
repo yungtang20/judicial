@@ -55,8 +55,8 @@ describe('official template routes', () => {
       } }),
     });
 
-    expect(blocked.status).toBe(422);
-    await expect(blocked.json()).resolves.toMatchObject({ code: 'TEMPLATE_MAPPING_INCOMPLETE' });
+    expect(blocked.status).toBe(409);
+    await expect(blocked.json()).resolves.toMatchObject({ code: 'P9_FINAL_GATE_REQUIRED' });
   });
 
   it('downloads only the unchanged hash-verified official source', async () => {

@@ -20,8 +20,8 @@ import { getCalculatorConfig } from '../lib/calculatorEngines';
 import { InteractiveCalculatorView } from './toolbox/InteractiveCalculatorView';
 import { evaluatePleadingDelivery } from '../lib/finalGate/pleadingExportGate';
 import { TOOL_FIELD_SCHEMAS } from '../lib/toolFieldSchemas';
-import { OfficialTemplateDirectory } from './toolbox/OfficialTemplateDirectory';
 import { resolveDocumentTool } from '../lib/documentSelectionRules';
+import { DEFAULT_DOCUMENT_TOOL_ID, OFFICIAL_TEMPLATE_UI_ENABLED } from '../lib/documentCatalog';
 
 type DocumentGenerationStage = 'input' | 'analyzing' | 'formatting' | 'ready' | 'error';
 
@@ -29,13 +29,16 @@ export const LegalToolbox: React.FC<{ initialToolId?: string; initialFacts?: str
   const { startLoading, stopLoading } = useGlobalUI();
   const activeCase = useCaseStore(getActiveCase);
   const addDocument = useCaseStore(state => state.addDocument);
-  const initialSelection = resolveDocumentTool({
+  const requestedSelection = resolveDocumentTool({
     explicitToolId: initialToolId,
-    fallbackToolId: 'CRIMINAL_COMPLAINT_TRAFFIC'
+    fallbackToolId: DEFAULT_DOCUMENT_TOOL_ID
   });
+  const initialSelection = requestedSelection.categoryGroup === 'OFFICIAL_TEMPLATES' && !OFFICIAL_TEMPLATE_UI_ENABLED
+    ? resolveDocumentTool({ fallbackToolId: DEFAULT_DOCUMENT_TOOL_ID })
+    : requestedSelection;
 
   const [activeToolId, setActiveToolId] = useState<string>(() =>
-    initialSelection.toolId || 'CRIMINAL_COMPLAINT_TRAFFIC'
+    initialSelection.toolId || DEFAULT_DOCUMENT_TOOL_ID
   );
   const [selectedGroup, setSelectedGroup] = useState<string>(
     initialSelection.categoryGroup || 'ALL'
@@ -282,9 +285,7 @@ export const LegalToolbox: React.FC<{ initialToolId?: string; initialFacts?: str
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
         />
-        {selectedGroup === 'OFFICIAL_TEMPLATES' ? (
-          <OfficialTemplateDirectory searchQuery={searchQuery} />
-        ) : <section aria-labelledby="tool-list-heading">
+        <section aria-labelledby="tool-list-heading">
           <div className="mb-3 flex items-end justify-between gap-3">
             <div>
               <h2 id="tool-list-heading" className="text-lg font-bold text-white">{selectedGroupLabel}</h2>
@@ -302,10 +303,10 @@ export const LegalToolbox: React.FC<{ initialToolId?: string; initialFacts?: str
               document.getElementById('tool-workspace-section')?.scrollIntoView({ behavior: 'smooth' });
             }}
           />
-        </section>}
+        </section>
       </div>
 
-      {selectedGroup !== 'OFFICIAL_TEMPLATES' && <div id="tool-workspace-section" className="scroll-mt-6">
+      <div id="tool-workspace-section" className="scroll-mt-6">
         {activeCalculatorConfig ? (
           <div className="bg-slate-950/70 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl">
             <InteractiveCalculatorView 
@@ -385,7 +386,7 @@ export const LegalToolbox: React.FC<{ initialToolId?: string; initialFacts?: str
             </div>
           </div>
         )}
-      </div>}
+      </div>
     </div>
   );
 };

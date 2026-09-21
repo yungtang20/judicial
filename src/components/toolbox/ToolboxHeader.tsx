@@ -2,6 +2,7 @@ import React from 'react';
 import { Search } from 'lucide-react';
 import { LEGAL_TOOLS, TOOLBOX_CATEGORIES, CategoryGroupId } from '../../lib/legalToolRegistry';
 import { JUDICIAL_TEMPLATE_CATEGORIES } from '../../lib/officialJudicialTemplates';
+import { OFFICIAL_TEMPLATE_UI_ENABLED } from '../../lib/documentCatalog';
 
 export interface ToolboxHeaderProps {
   selectedGroup: string;
@@ -12,7 +13,7 @@ export interface ToolboxHeaderProps {
 
 export const TOOLBOX_GROUPS = [
   { id: 'ALL', label: '全部工具與試算' },
-  ...TOOLBOX_CATEGORIES.map(cat => ({
+  ...TOOLBOX_CATEGORIES.filter(cat => cat.id !== 'OFFICIAL_TEMPLATES' || OFFICIAL_TEMPLATE_UI_ENABLED).map(cat => ({
     id: cat.id,
     label: cat.name
   }))

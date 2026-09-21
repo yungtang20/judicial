@@ -7,6 +7,7 @@ import type {
   StyleProfile
 } from '../../types/compliance';
 import { CIVIL_CONTENT_RULE_PROFILE, FORMAT_PROFILES } from './civilPleadingRuleProfile';
+import { getDocumentCatalogEntry } from '../documentCatalog';
 
 export const CIVIL_PROCEDURE_116 = 'legal_references/civil_procedure_116.md';
 export const CIVIL_PROCEDURE_117 = 'legal_references/civil_procedure_117.md';
@@ -101,6 +102,10 @@ function civilComplaintConfig(
 
 export function getCourtPleadingConfig(categoryKey: string): CategoryPleadingConfig | null {
   const normalized = categoryKey.trim().toUpperCase();
+  const catalogEntry = getDocumentCatalogEntry(normalized);
+  if (!catalogEntry || catalogEntry.generationPath !== 'CANONICAL_P4_P9' || !catalogEntry.canonicalConfigKey) {
+    return null;
+  }
 
   switch (normalized) {
     case 'CIVIL_COMPLAINT_GENERAL':

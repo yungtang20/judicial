@@ -1,5 +1,8 @@
+import crypto from 'node:crypto';
+import path from 'node:path';
 import type { FinalGateReport } from '../../types/compliance';
 import { fingerprintReviewPayload } from '../reviewer/pleadingReviewer';
+import { isP9ProtectedDocument } from '../documentCatalog';
 
 export type PleadingDeliveryAction =
   | 'RETURN'
@@ -19,6 +22,28 @@ export interface PleadingDeliveryAuthorization {
   ruleProfileId: string;
   ruleProfileVersion: string;
   authorizedActions: PleadingDeliveryAction[];
+  templateId?: string;
+  templateSourceHash?: string;
+  artifactFingerprint?: string;
+  artifactMimeType?: string;
+  artifactFileName?: string;
+}
+
+export interface OfficialTemplateAuthorizationBinding {
+  templateId: string;
+  templateSourceHash: string;
+  artifactFingerprint: string;
+  artifactMimeType: string;
+  artifactFileName: string;
+}
+
+export interface OfficialTemplateDeliveryArtifact {
+  templateId: string;
+  templateSourceHash: string;
+  buffer: Buffer;
+  mimeType: string;
+  fileName: string;
+  normalizedText?: string;
 }
 
 export interface PleadingDeliveryDecision {
@@ -45,47 +70,13 @@ const ALL_DELIVERY_ACTIONS: PleadingDeliveryAction[] = [
  * filing with a court or prosecutors office. Classification must never rely on
  * an AI response, title, or text heuristic.
  */
-const COURT_PLEADING_TOOL_CATEGORIES: ReadonlySet<string> = new Set([
-  'JUDICIAL_CIVIL_TEMPLATE',
-  'JUDICIAL_CRIMINAL_TEMPLATE',
-  'JUDICIAL_ADMIN_TEMPLATE',
-  'JUDICIAL_FAMILY_TEMPLATE',
-  'JUDICIAL_EXECUTION_TEMPLATE',
-  'PAYMENT_ORDER_PETITION',
-  'CIVIL_COMPLAINT_GENERAL',
-  'CRIMINAL_COMPLAINT_TRAFFIC',
-  'SPOUSAL_RIGHT_INFRINGEMENT',
-  // Legacy API aliases retained only so they cannot bypass the P9 gate.
-  'CRIMINAL_COMPLAINT',
-  'CRIMINAL_COMPLAINT_FRAUD',
-  'CRIMINAL_COMPLAINT_DEFAMATION',
-  'CRIMINAL_COMPLAINT_SEXUAL_ASSAULT',
-  'CRIMINAL_COMPLAINT_THEFT',
-  'CRIMINAL_COMPLAINT_ASSAULT',
-  'CRIMINAL_COMPLAINT_INTIMIDATION',
-  'CRIMINAL_COMPLAINT_PRIVACY',
-  'CRIMINAL_SUPPLEMENTARY_CIVIL',
-  'DOMESTIC_VIOLENCE_PROTECTION_ORDER',
-  'CIVIL_TORT_SEXUAL_ASSAULT',
-  'CIVIL_PET_DISPUTE',
-  'CIVIL_TORT_GENERAL',
-  'UNIVERSAL_AI_PLEADING',
-  'WAIVER_OF_INHERITANCE',
-  'GUARDIANSHIP_PETITION',
-  'ASSISTANCE_PETITION',
-  'PROMISSORY_NOTE_RULING',
-  'EXECUTION_SALARY_ATTACHMENT',
-  'EXECUTION_BANK_REAL_ESTATE',
-  'PROVISIONAL_ATTACHMENT'
-]);
-
 const REQUIRED_AUDIT_IDS: Array<`Q${string}`> = Array.from(
   { length: 20 },
   (_, index) => `Q${String(index + 1).padStart(2, '0')}` as `Q${string}`
 );
 
 export function isCourtPleadingToolCategory(category: string): boolean {
-  return COURT_PLEADING_TOOL_CATEGORIES.has(category.trim().toUpperCase());
+  return isP9ProtectedDocument(category);
 }
 
 /**
@@ -95,7 +86,8 @@ export function isCourtPleadingToolCategory(category: string): boolean {
  */
 export async function createPleadingDeliveryAuthorization(
   report: FinalGateReport,
-  documentText: string
+  documentText: string,
+  officialTemplate?: OfficialTemplateAuthorizationBinding
 ): Promise<PleadingDeliveryAuthorization> {
   const answeredIds = new Set(
     report.auditItems
@@ -124,7 +116,14 @@ export async function createPleadingDeliveryAuthorization(
     !report.reviewerReport.caseInputId?.trim() ||
     !report.reviewerReport.draftId?.trim() ||
     !report.reviewerReport.ruleProfileId?.trim() ||
-    !report.reviewerReport.ruleProfileVersion?.trim()
+    !report.reviewerReport.ruleProfileVersion?.trim() ||
+    (officialTemplate && (
+      !officialTemplate.templateId.trim() ||
+      !/^[a-f0-9]{64}$/.test(officialTemplate.templateSourceHash) ||
+      !/^[a-f0-9]{64}$/.test(officialTemplate.artifactFingerprint) ||
+      !officialTemplate.artifactMimeType.trim() ||
+      !officialTemplate.artifactFileName.trim()
+    ))
   ) {
     throw new Error('P9 Final Gate is not READY for ordinary toolbox delivery.');
   }
@@ -139,8 +138,22 @@ export async function createPleadingDeliveryAuthorization(
     draftId: report.reviewerReport.draftId,
     ruleProfileId: report.reviewerReport.ruleProfileId,
     ruleProfileVersion: report.reviewerReport.ruleProfileVersion,
-    authorizedActions: [...ALL_DELIVERY_ACTIONS]
+    authorizedActions: [...ALL_DELIVERY_ACTIONS],
+    ...(officialTemplate || {})
   };
+}
+
+function hasCompleteOfficialTemplateBinding(authorization: PleadingDeliveryAuthorization): boolean {
+  const fields = [
+    authorization.templateId,
+    authorization.templateSourceHash,
+    authorization.artifactFingerprint,
+    authorization.artifactMimeType,
+    authorization.artifactFileName
+  ];
+  return fields.every(field => Boolean(field?.trim())) &&
+    /^[a-f0-9]{64}$/.test(authorization.templateSourceHash || '') &&
+    /^[a-f0-9]{64}$/.test(authorization.artifactFingerprint || '');
 }
 
 function isValidAuthorization(
@@ -158,6 +171,7 @@ function isValidAuthorization(
     authorization.draftId.trim() &&
     authorization.ruleProfileId.trim() &&
     authorization.ruleProfileVersion.trim() &&
+    (!authorization.templateId || hasCompleteOfficialTemplateBinding(authorization)) &&
     authorization.authorizedActions.includes(action)
   );
 }
@@ -204,7 +218,8 @@ export async function verifyPleadingDeliveryAuthorization(
   category: string,
   authorization: PleadingDeliveryAuthorization | undefined,
   action: PleadingDeliveryAction,
-  documentText: string
+  documentText: string,
+  artifact?: OfficialTemplateDeliveryArtifact
 ): Promise<PleadingDeliveryDecision> {
   // This verifies payload binding for browser defense-in-depth. Server routes
   // must still derive authorization from their own P9 report and must never
@@ -213,22 +228,55 @@ export async function verifyPleadingDeliveryAuthorization(
   if (!decision.allowed || !decision.required) return decision;
 
   const actualFingerprint = await fingerprintReviewPayload(documentText);
-  return actualFingerprint === authorization?.documentFingerprint
-    ? decision
-    : {
+  if (actualFingerprint !== authorization?.documentFingerprint) {
+    return {
         required: true,
         allowed: false,
         code: 'P9_FINAL_GATE_NOT_READY',
         message: '文件內容與 P9 授權 fingerprint 不一致，拒絕交付。'
       };
+  }
+  if (!authorization?.templateId) return decision;
+  if (!artifact ||
+      artifact.templateId !== authorization.templateId ||
+      artifact.templateSourceHash !== authorization.templateSourceHash ||
+      artifact.mimeType !== authorization.artifactMimeType ||
+      path.basename(artifact.fileName) !== path.basename(authorization.artifactFileName)) {
+    return {
+      required: true,
+      allowed: false,
+      code: 'P9_FINAL_GATE_NOT_READY',
+      message: 'ODT artifact metadata 與 P9 授權不一致，拒絕交付。'
+    };
+  }
+  const artifactFingerprint = crypto.createHash('sha256').update(artifact.buffer).digest('hex');
+  if (artifactFingerprint !== authorization.artifactFingerprint) {
+    return {
+      required: true,
+      allowed: false,
+      code: 'P9_FINAL_GATE_NOT_READY',
+      message: 'ODT binary 與 P9 授權 artifact fingerprint 不一致，拒絕交付。'
+    };
+  }
+  if (artifact.normalizedText === undefined ||
+      await fingerprintReviewPayload(artifact.normalizedText) !== authorization.documentFingerprint) {
+    return {
+      required: true,
+      allowed: false,
+      code: 'P9_FINAL_GATE_NOT_READY',
+      message: 'ODT normalized text 與 P9 授權文件 fingerprint 不一致，拒絕交付。'
+    };
+  }
+  return decision;
 }
 
 export async function assertPleadingDocumentDeliveryAllowed(
   category: string,
   authorization: PleadingDeliveryAuthorization | undefined,
   action: PleadingDeliveryAction,
-  documentText: string
+  documentText: string,
+  artifact?: OfficialTemplateDeliveryArtifact
 ): Promise<void> {
-  const decision = await verifyPleadingDeliveryAuthorization(category, authorization, action, documentText);
+  const decision = await verifyPleadingDeliveryAuthorization(category, authorization, action, documentText, artifact);
   if (!decision.allowed) throw new Error(`${decision.code}: ${decision.message}`);
 }

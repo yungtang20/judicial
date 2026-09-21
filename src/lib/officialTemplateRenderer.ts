@@ -96,7 +96,7 @@ export function extractTemplateFields(template: OfficialTemplate): OfficialTempl
 /**
  * Extract content.xml from an ODT (ZIP) buffer
  */
-function extractContentXml(zipBuf: Buffer): string | null {
+export function extractContentXml(zipBuf: Buffer): string | null {
   // ODT is a ZIP file. Use minimal ZIP parsing.
   // Find content.xml entry
   const signature = Buffer.from('PK');
@@ -418,7 +418,7 @@ export function renderTemplate(
 
     // Create output file
     ensureDir(OUTPUT_DIR);
-    const outputFileName = `${templateId}-${Date.now()}.odt`;
+    const outputFileName = `${templateId}-${Date.now()}-${crypto.randomUUID()}.odt`;
     const outputPath = path.join(OUTPUT_DIR, outputFileName);
 
     // Simple approach: rebuild ODT with modified content.xml

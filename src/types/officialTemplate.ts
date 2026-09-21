@@ -10,6 +10,11 @@ export type TemplateStatus =
   | 'OUTDATED'
   | 'DOWNLOAD_FAILED';
 
+export type OfficialTemplateP9Status =
+  | 'P9_NOT_CONFIGURED'
+  | 'P9_BLOCKED'
+  | 'P9_READY';
+
 export interface OfficialTemplateField {
   key: string;
   label: string;
@@ -32,6 +37,14 @@ export interface OfficialTemplate {
   localFilePath: string | null;
   localFileHash: string | null;
   templateStatus: TemplateStatus;
+  /** Version of the official source captured by the manifest. */
+  templateVersion?: string;
+  p9Status?: OfficialTemplateP9Status;
+  p9ProfileId?: string;
+  p9ProfileVersion?: string;
+  p9SourceHash?: string;
+  p9SourceOfficialUpdatedAt?: string;
+  p9VerifiedAt?: string;
   fields: OfficialTemplateField[];
   downloadedAt: string | null;
 }
@@ -56,6 +69,7 @@ export interface RenderTemplateResponse {
     totalCitationsChecked: number;
     ghostCitationsFound: number;
   };
+  artifactFingerprint?: string;
   error?: string;
   code?: string;
   missingFields?: string[];

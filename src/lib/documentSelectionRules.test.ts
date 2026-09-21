@@ -14,7 +14,7 @@ describe('resolveDocumentTool', () => {
     expect(resolveDocumentTool({
       explicitIntent: 'criminal_supplementary_civil',
       domain: '刑事'
-    })).toMatchObject({ toolId: 'JUDICIAL_CRIMINAL_TEMPLATE', source: 'explicitIntent' });
+    })).toMatchObject({ toolId: 'CRIMINAL_SUPPLEMENTARY_CIVIL', source: 'explicitIntent' });
   });
 
   it.each([

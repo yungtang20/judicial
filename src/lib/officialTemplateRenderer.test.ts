@@ -525,7 +525,7 @@ describe('renderTemplate — success path (stored ODT)', () => {
 
     expect(r.success).toBe(true);
     expect(r.documentBase64).toBeDefined();
-    expect(r.fileName).toMatch(/^t8-\d+\.odt$/);
+    expect(r.fileName).toMatch(/^t8-\d+-[0-9a-f-]+\.odt$/);
     expect(r.mimeType).toBe('application/vnd.oasis.opendocument.text');
 
     // Verify output is valid ZIP with replaced content
@@ -589,11 +589,30 @@ describe('renderTemplate — success path (deflated ODT)', () => {
 
     expect(r.success).toBe(true);
     expect(r.documentBase64).toBeDefined();
-    expect(r.fileName).toMatch(/^t9-\d+\.odt$/);
+    expect(r.fileName).toMatch(/^t9-\d+-[0-9a-f-]+\.odt$/);
 
     const outBuf = Buffer.from(r.documentBase64!, 'base64');
     expect(outBuf[0]).toBe(0x50);
     expect(outBuf[1]).toBe(0x4B);
+  });
+
+  it('uses unique artifact names for concurrent renders', async () => {
+    const abs = writeFile('test-render-concurrent.odt', buildTwoEntryOdt(contentXml()));
+    mockTemplates.set('concurrent', makeTemplate({
+      id: 'concurrent', templateStatus: 'READY_FOR_MERGE', localFilePath: abs,
+      fields: [
+        { key: 'caseNumber', label: '案號', type: 'text', required: true },
+        { key: 'defendantName', label: '被告', type: 'text', required: true },
+        { key: 'defenseFacts', label: '答辯', type: 'textarea', required: true },
+      ],
+    }));
+
+    const results = await Promise.all(Array.from({ length: 8 }, (_, index) => Promise.resolve(renderTemplate('concurrent', {
+      caseNumber: `113年度訴字第${index}號`, defendantName: `被告${index}`, defenseFacts: `答辯${index}`,
+    }))));
+    const names = results.map(result => result.fileName);
+    expect(results.every(result => result.success)).toBe(true);
+    expect(new Set(names).size).toBe(results.length);
   });
 });
 
