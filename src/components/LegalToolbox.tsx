@@ -35,7 +35,9 @@ export const LegalToolbox: React.FC<{ initialToolId?: string; initialFacts?: str
       ? presetToolId
       : 'CRIMINAL_COMPLAINT_TRAFFIC'
   );
-  const [selectedGroup, setSelectedGroup] = useState<string>('ALL');
+  const [selectedGroup, setSelectedGroup] = useState<string>(
+    initialToolId === 'JUDICIAL_CRIMINAL_TEMPLATE' ? 'OFFICIAL_TEMPLATES' : 'ALL'
+  );
   const [searchQuery, setSearchQuery] = useState('');
   
   const [formInputs, setFormInputs] = useState<Record<string, any>>(() => ({

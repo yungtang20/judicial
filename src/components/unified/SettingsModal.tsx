@@ -15,6 +15,8 @@ export interface SettingsModalProps {
 
 export const SettingsModal: React.FC<SettingsModalProps> = (props) => {
   const { inputNarrative, setInputNarrative, isSubmitting, setIsSubmitting, workflowState, setWorkflowState, supplementInput, setSupplementInput, isCopied, setIsCopied, acknowledgeSafetyInSession, setAcknowledgeSafetyInSession, isNode2Open, setIsNode2Open, isNode4Open, setIsNode4Open, isNode5Open, setIsNode5Open, isNode6Open, setIsNode6Open, customPreset, setCustomPreset, showCustomPresetModal, setShowCustomPresetModal, editPresetTitle, setEditPresetTitle, editPresetNarrative, setEditPresetNarrative, fileInputRef, isDragOver, setIsDragOver, isParsingFiles, setIsParsingFiles, parsingStatus, setParsingStatus, batchQueue, setBatchQueue, batchIndex, setBatchIndex, isBatchRunning, setIsBatchRunning, showHistory, setShowHistory, historyList, setHistoryList, handleFiles, handleDrop, handleExecuteWorkflow, handleSupplementFact, handleProceedFromSafety, handleResetWorkflow, handleCopyAnalysis, loadFromHistory, handleBatchNext, handleBatchPrev, handleSaveCurrentAsCustomPreset, handleSelectSuggestedOption, handleSaveCustomPreset, handleToggleAllNodes, defaultSample, handleSelectTool, saveCrossFeatureContext, exportAsHtml, exportAsText, printReport, deleteFromHistory, clearHistory, loadHistory, showDocTypeModal, setShowDocTypeModal } = props;
+  const hasJudgmentContext = workflowState?.inputType === 'judgment_document';
+  const hasCriminalContext = workflowState?.router?.domain === '刑事';
 
   return (
     <>
@@ -23,9 +25,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = (props) => {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
             <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 w-[380px] space-y-4">
               <h3 className="text-base font-bold text-white">選擇文書類型</h3>
-              <p className="text-xs text-[var(--color-text-muted)]">根據您的案件類型，推薦以下文書：</p>
+              <p className="text-xs text-[var(--color-text-muted)]">
+                {hasJudgmentContext
+                  ? '您輸入的是判決書，建議優先處理上訴；一般上訴有 20 日不變期間，請先確認送達日期。'
+                  : '尚未起訴請選「刑事告訴狀」；已有刑事案件並要請求賠償，請選「刑事附帶民事訴訟起訴狀」。'}
+              </p>
               <div className="space-y-2">
-                <button
+                {hasJudgmentContext && <button
                   onClick={() => {
                     setShowDocTypeModal(false);
                     saveCrossFeatureContext({
@@ -35,16 +41,25 @@ export const SettingsModal: React.FC<SettingsModalProps> = (props) => {
                       scenarioKeywords: workflowState?.router?.cause || '',
                       domain: workflowState?.router?.domain,
                       cause: workflowState?.router?.cause,
+                      issuesSummary: workflowState?.syllogism?.majorPremise || '',
                       sourceTool: 'unified'
                     });
-                    handleSelectTool('appeal', 'appeal', { initialTab: 'appeal' });
+                    handleSelectTool('appeal', 'appeal', {
+                      initialTab: 'appeal',
+                      facts: workflowState?.userNarrative || '',
+                      domain: workflowState?.router?.domain,
+                      cause: workflowState?.router?.cause,
+                      scenarioKeywords: workflowState?.router?.cause || '',
+                      issuesSummary: workflowState?.syllogism?.majorPremise || '',
+                      sourceTool: 'unified'
+                    });
                   }}
                   className="w-full text-left p-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors"
                 >
                   <div className="font-bold text-sm text-white">上訴狀</div>
                   <div className="text-xs text-[var(--color-text-muted)] mt-1">不服地方法院判決，向上級法院提起上訴</div>
-                </button>
-                <button
+                </button>}
+                {!hasJudgmentContext && <button
                   onClick={() => {
                     setShowDocTypeModal(false);
                     saveCrossFeatureContext({
@@ -62,8 +77,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = (props) => {
                 >
                   <div className="font-bold text-sm text-white">存證信函</div>
                   <div className="text-xs text-[var(--color-text-muted)] mt-1">以正式書面通知對方，留存法律證據</div>
-                </button>
-                <button
+                </button>}
+                {!hasJudgmentContext && <button
                   onClick={() => {
                     setShowDocTypeModal(false);
                     saveCrossFeatureContext({
@@ -82,7 +97,47 @@ export const SettingsModal: React.FC<SettingsModalProps> = (props) => {
                 >
                   <div className="font-bold text-sm text-white">民事起訴狀</div>
                   <div className="text-xs text-[var(--color-text-muted)] mt-1">依案件事實提出民事損害賠償或給付請求</div>
-                </button>
+                </button>}
+                {hasCriminalContext && !hasJudgmentContext && <button
+                  onClick={() => {
+                    setShowDocTypeModal(false);
+                    saveCrossFeatureContext({
+                      documentType: 'criminal_complaint',
+                      facts: workflowState?.userNarrative || '',
+                      scenarioKeywords: workflowState?.router?.cause || '',
+                      domain: workflowState?.router?.domain,
+                      cause: workflowState?.router?.cause,
+                      sourceTool: 'unified',
+                      preselectedToolId: 'CRIMINAL_COMPLAINT_TRAFFIC',
+                      initialTab: 'toolbox'
+                    });
+                    handleSelectTool('litigation', undefined, { initialTab: 'toolbox', preselectedToolId: 'CRIMINAL_COMPLAINT_TRAFFIC', facts: workflowState?.userNarrative || '' });
+                  }}
+                  className="w-full text-left p-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors"
+                >
+                  <div className="font-bold text-sm text-white">刑事告訴狀</div>
+                  <div className="text-xs text-[var(--color-text-muted)] mt-1">尚未起訴時，向警察或檢察官提出告訴</div>
+                </button>}
+                {hasCriminalContext && !hasJudgmentContext && <button
+                  onClick={() => {
+                    setShowDocTypeModal(false);
+                    saveCrossFeatureContext({
+                      documentType: 'criminal_supplementary_civil',
+                      facts: workflowState?.userNarrative || '',
+                      scenarioKeywords: workflowState?.router?.cause || '',
+                      domain: workflowState?.router?.domain,
+                      cause: workflowState?.router?.cause,
+                      sourceTool: 'unified',
+                      preselectedToolId: 'JUDICIAL_CRIMINAL_TEMPLATE',
+                      initialTab: 'toolbox'
+                    });
+                    handleSelectTool('litigation', undefined, { initialTab: 'toolbox', preselectedToolId: 'JUDICIAL_CRIMINAL_TEMPLATE', facts: workflowState?.userNarrative || '' });
+                  }}
+                  className="w-full text-left p-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors"
+                >
+                  <div className="font-bold text-sm text-white">刑事附帶民事訴訟起訴狀</div>
+                  <div className="text-xs text-[var(--color-text-muted)] mt-1">刑事案件已起訴後，向法院請求損害賠償</div>
+                </button>}
               </div>
               <button
                 onClick={() => setShowDocTypeModal(false)}
