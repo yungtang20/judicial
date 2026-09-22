@@ -1,5 +1,7 @@
 # Smart Legal Assistant
 
+[![CI](https://github.com/yungtang20/judicial/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/yungtang20/judicial/actions/workflows/ci.yml)
+
 面向臺灣使用者的法律情境導診、客觀法理分析與法律文件生成系統。系統協助整理事實、證據、法律爭點與程序風險；不取代律師、法院或其他權責機關的判斷。
 
 ## 核心能力
