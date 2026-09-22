@@ -28,7 +28,7 @@ export const GuideModals: React.FC<GuideModalsProps> = (props) => {
   } = props;
 
   const handleBundleGeneration = async (bundleId: string) => {
-    const result = await generateBundleDocument(bundleId, searchQuery, aiTriageResult?.pleadingDraft || '', apiClient.toolboxGenerate);
+    const result = await generateBundleDocument(bundleId, searchQuery, aiTriageResult?.pleadingDraft || '', apiClient.toolboxGenerate, aiTriageResult?.generationParams || {});
     const link = document.createElement('a');
     link.href = URL.createObjectURL(new Blob([result.documentText], { type: 'text/plain;charset=utf-8' }));
     link.download = `${result.documentTitle || bundleId}.txt`;

@@ -131,6 +131,9 @@ export const LegalGuideHome: React.FC = () => {
         evidenceChecklist: Array.isArray(data.evidenceChecklist)
           ? data.evidenceChecklist
           : ['相關證據單據與對話截圖', '身分憑證'],
+        generationParams: data.generationParams && typeof data.generationParams === 'object'
+          ? data.generationParams
+          : {},
         pleadingDraft: data.pleadingDraft || data.readyDocumentText || '',
         isSyllogismComplete: data.isSyllogismComplete !== false,
         missingQuestions: data.missingQuestions || [],

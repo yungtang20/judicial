@@ -11,11 +11,13 @@ export async function generateBundleDocument(
   bundleId: string,
   narrative: string,
   draft: string,
-  generate: BundleGenerator
+  generate: BundleGenerator,
+  extraParams: Record<string, string> = {}
 ): Promise<any> {
   const result = await generate({
     toolCategory: bundleId,
     params: {
+      ...extraParams,
       incidentDetails: narrative,
       facts: narrative,
       caseContext: narrative,
