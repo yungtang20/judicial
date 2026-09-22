@@ -1,136 +1,117 @@
 # Smart Legal Assistant
 
-臺灣法律分析、法律文件生成與外部文件引用檢查工具。
+面向臺灣使用者的法律情境導診、客觀法理分析與法律文件生成系統。系統協助整理事實、證據、法律爭點與程序風險；不取代律師、法院或其他權責機關的判斷。
 
-## 主要功能
+## 核心能力
 
-- 智能裁判分析與比對（Smart Appeal Assistant / Judgment Analysis）
-- LegalToolbox：依實際 `LEGAL_TOOLS` registry 動態顯示可用工具，不使用固定工具數量文案
-- 雙軌訴訟防禦（DefenseWorkflowTool）
-- 證據清單、時序與爭點整理
-- 實務見解與裁判檢索
-- 司法院資料開放平台連線
-- 外部法律文件 AI 檢核器（External Legal Document Checker）
-- 生活情境導診的法規／裁判／函釋分組檢索（可選 `tw-legal-rag`）
-- 司法院官方書狀範本系統（ODT 下載、欄位映射、渲染產檔）
-- 格式檢查器（FormatChecker）自動驗證書狀結構與必填欄位
+- 白話案情輸入、文件上傳入口與語音輸入 hook。
+- 客觀法理分析：三段論、請求權／權利主體分離、構成要件證據狀態與領域適配器。
+- 法規、裁判與函釋的受控引用；未經查核的引用不得進入交付文件。
+- 案件 Dashboard：安全資源、白話摘要、證據清單、文件組合包、立案指引與進階底稿。
+- Draft Refiner：在既有白名單範圍內微調草稿，微調後重新執行引用檢核。
+- 官方書狀範本、格式檢查、程序合規與 P4–P9 文件交付管線。
 
-## 全法規通用法律分析
+## 安全與治理邊界
 
-所有法律分析與文件生成工具共用 `UNIVERSAL_SYLLOGISM_RULES`，適用於民事、刑事、行政、家事、勞動、程序法、強制執行、上訴、時效及其他法律問題，並依下列順序分析：
-
-1. 大前提：法規、法律原則與完整構成要件
-2. 小前提：案件事實與證據
-3. 涵攝：逐項比對事實、證據與構成要件
-4. 結論：法律效果、程序、時效及待補事實
-
-## SDLC 雙重模型驗證狀態與已知限制 (Dual Model Verification Gap)
-
-本系統（P4-P9 管線）目前實作了「雙重模型驗證機制」，要求審查者 (Reviewer) 與重新審查者 (Re-reviewer) 應獨立作業以防止共謀。然而，目前系統仍有以下已知限制（風險與驗證缺口）：
-
-1. **運行時身分證明 (Runtime Identity Verification) 缺口**：SDLC 治理系統目前無法在運行時取得模型執行環境的可驗證身分（如 TLS attestation 或硬體層級證明）。
-2. **共謀風險 (Collusion Risk)**：由於缺乏密碼學層級的身分隔離，系統無法保證 P6 (Reviewer) 與 P8 (Re-Reviewer) 在底層不是由同一個模型端點（或被同一個上游負載平衡器）處理，這意味著「雙模型獨立驗證」在架構上尚未能完全防範單點失效或隱性共謀。
-3. **狀態**：目前的雙重驗證機制標記為 **UNVERIFIED**。開發者與使用者不應將此機制視為絕對安全的防護網，而應將其視為深層防禦 (Defense in Depth) 的初步實作。在真正的嚴格法遵環境中，仍需加入如簽章驗證、獨立隔離網路的 AI Provider 等實體隔離措施。
-
-本系統生成的書狀、起訴狀、告訴狀、答辯狀、上訴狀、聲請狀、存證信函及 AI 導診文件，會自動執行：
+所有法律文件均須通過下列單一路徑：
 
 ```text
-法律分析
-→ 引用候選法條／裁判
-→ PRE-CHECK 輸入與明示引用檢查
-→ 生成法律文件
-→ POST-CHECK 全文引用掃描
-→ 檢查通過後回傳文件
+案情／導診
+  → 法律分析與受控引用
+  → ghost citation 攔截
+  → executeCanonicalPleadingPipeline
+  → P4 Compliance
+  → P6 Reviewer
+  → P8 Re-review
+  → P9 Final Gate
+  → 授權後下載
 ```
 
-引用檢查屬本機 heuristic 與索引比對，不等同司法院或其他官方機關核實；未索引或重要引用仍應人工查證。
+硬性原則：
 
-統一工作流節點 4 會以法律爭點與法條（不含完整案情）查詢全國法規資料庫及司法院裁判書系統，並逐筆讀取官方明細頁；節點 6 再把每一項法律主張綁定至官方內容。系統保存 `status`、來源網址、查詢字串、比對策略、內容雜湊與查證時間。官方回傳查無資料、主張無法由來源支持或服務不可用時，節點 6 會 `fail-closed`（`NEEDS_REVIEW`），前端會顯示每筆官方證據。裁判只有具備司法院 `FJUD/data.aspx` 明細網址、查證時間及 SHA-256 內容雜湊時才能進入可信索引；靜態範例或只有 `allowed_citations` 的結果不會冒充官方查證。
+- 未驗證、引用來源不足或安全檢查失敗時，一律 fail-closed。
+- `ghostCitationInterceptor` 會阻擋不在白名單、無效法條或缺少來源雜湊的引用。
+- `INSUFFICIENT_EVIDENCE` 會保留可能適用的 claim，標記待補證據，不以刪除法源掩蓋不確定性。
+- `standingAnalyzer` 分離通知受領人與適格權利主體，避免把非本人直接當作權利人。
+- AI 不得執行 `APPROVE`、`DEPLOY` 或 `ADMIN`；最終法律與部署決策由授權人員負責。
+- 系統輸出不是勝訴保證，也不是正式法律意見；重要事實、法條與裁判仍須人工確認。
 
-動態追問會標示 `AI 動態生成` 或 `規則式安全備援`。AI provider 失敗、逾時或回應格式不符時，備援問題會依 Router 實際判定的缺失要素產生，不會套用與案件無關的固定家暴模板。
+## 主要模組
 
-Production 固定強制 CSP 與 authentication；CSP 不接受 production report-only 降級。Production Guest token 預設停用，只有明確設定 `ALLOW_GUEST_MODE=true` 才會啟用；目前公開 Render demo 已明確啟用，瀏覽器會取得短效簽章 token，且每個 Guest 使用獨立 tenant。可設定 `JWT_ISSUER`／`JWT_AUDIENCE` 強制驗證 token claims。審計 SQLite 為單機短期診斷儲存，Render 無 persistent disk 時不視為永久合規備份。
+| 區域 | 內容 |
+| --- | --- |
+| `src/lib/mcp/` | MCP 法源 registry、引用白名單與來源證據 |
+| `src/lib/reasoning/` | 三段論、權利主體、claim、構成要件與領域適配 |
+| `src/lib/generation/` | ghost citation 攔截、草稿生成與微調檢核 |
+| `src/lib/caseScenarioEngine.ts` | 案件情境分析與文件 Bundle 生成 |
+| `src/lib/generatedDocumentPipeline.ts` | 文件驗證與 P4–P9 交付前檢查 |
+| `src/components/dashboard/` | Dashboard、StorytellingInput、FilingGuideModal、DraftRefiner |
+| `server/routes/` | toolbox 生成、Agent Chat、導診與草稿微調 API |
+| `official-template/` | 官方範本來源與產物驗證相關檔案 |
 
-`/api/health` 會回報 `auditPersistence.mode` 與 `durable`。若正式環境要求審計持久化，請設定 persistent `AUDIT_DB_PATH` 並啟用 `AUDIT_PERSISTENCE_REQUIRED=true`；初始化失敗時服務會 fail-closed。
+完整模組邊界與資料流請見 [`ARCHITECTURE.md`](ARCHITECTURE.md)。
 
-External Legal Document Checker 僅供獨立檢查對造書狀、外部律師文件、ChatGPT／Claude 等 AI 文件、網路法律文章及使用者自行匯入文件。系統自行生成的文件不需要使用者再次手動貼入檢核器。
+## 本機啟動
 
-外部文件檢核器另提供可選的裁判字號存在性交叉檢查：使用者明確同意後，僅將擷取出的裁判字號送至第三方 `dr-lawbot` 查詢，不會傳送完整文件。結果僅表示該資料源是否回傳完全吻合字號，並非官方核實，也不判斷裁判內容是否支持引用主張；查無結果、涵蓋範圍不足或服務失敗都必須人工至權威來源確認。
-
-生活情境導診完成 AI 分析後，可在結果視窗分開查看法規、裁判、函釋與論著。啟用 `TLR_ENABLED=true` 後，server 會以 `tw-legal-rag` 的 retrieval-only 服務查詢判決與函釋；`allowed_citations` 只作為可引用候選提示，未讀候選不得直接當作權威依據。Lawbank 目前僅提供外部搜尋連結，未直接爬取其網站。
-
-## 啟動方式
+需求：Node.js `>=22.23.2 <23`。
 
 ```bash
 npm install
 npm run dev
 ```
 
-## Render 部署
+開發伺服器啟動後，依終端機顯示的網址開啟瀏覽器。Production 建置：
 
-Production 服務目前部署於 Render：
-
-- 網址：[https://judicial-prod.onrender.com](https://judicial-prod.onrender.com)
-- Runtime：Node.js 22.23.2（由 `.node-version` 與 Blueprint 固定）
-- Build command：`npm ci --include=dev && npm run build`
-- Start command：`npm start`
-
-Render 部署設定位於根目錄的 `render.yaml`。部署時必須在 Render Environment Variables 設定：
-
-```text
-JWT_SECRET       # 至少 32 字元且具足夠熵值
-AGNES_API_KEY    # 使用 Agnes AI provider 時必要，僅存於 Render Environment
-AGNES_MODEL      # Agnes AI 官方模型 ID；目前預設 agnes-3.0-flash
-APP_URL          # Production 公開網址
+```bash
+npm run build
+npm start
 ```
 
-目前 Render 設定 `AI_PROVIDER=agnes`，使用 Agnes AI 的 OpenAI 相容端點 `https://apihub.agnes-ai.com/v1/chat/completions`。金鑰不得放在前端、README、commit 或公開設定檔；請只透過 Render Environment 設定。HCNSEC 與 Gemini adapter 仍保留，供明確切換及回復使用，不會在 Agnes 失敗時靜默跨供應商傳送法律文件。
-
-統一工作流頁面提供 `Custom Provider` 測試欄位（Base URL、API Key、模型）。欄位只存在目前瀏覽器分頁並以單次 HTTPS 請求傳送；API Key 留空時使用 Render 的 `AGNES_API_KEY`。Custom Provider 的 Base URL 必須是 HTTPS 且不可解析至本機或私有網路；系統不會將設定存入 localStorage、歷史紀錄或 audit log。
-
-Production 的首頁、前端 assets 與 `/api/health` 可公開存取；所有 `/api` 請求及非 GET 請求仍須提供有效的 Bearer Token 或 `X-API-Key`。
-
-## Vercel 部署（Preview）
-
-PR 分支會自動觸發 Vercel Preview 部署，用於前端預覽與整合測試。Production 仍以 Render 為主。
+若使用 AI provider 或外部法律檢索服務，請透過環境變數設定；金鑰不得放入前端、README、Git history 或 audit log。Production 必須確認 authentication、CSP、MCP／官方來源連線與 audit persistence 設定，服務不可用時應維持 fail-closed。
 
 ## 驗證指令
 
-CI 門檻（全部通過才算可上線）：
-
-> Windows 注意：路徑與測試名稱含繁體中文，執行前先將命令提示字元切換為 UTF-8
->（程式碼頁 65001、輸出編碼 UTF-8、`PYTHONUTF8=1`、`LANG`／`LC_ALL` 設為 UTF-8），
->避免輸出亂碼後再判讀結果。詳見 `AGENTS.md`「執行環境編碼」一節。
+Windows 執行測試前，請使用 UTF-8 編碼環境，以免繁體中文路徑或測試名稱造成誤判。
 
 ```bash
-npm run lint            # TypeScript 型別檢查
-npm test                # 全測試（703 項 / 95 檔，含尾部評測與飛輪）
-npm run test:coverage   # 覆蓋率（stmts ≥85%, lines ≥85%, branches ≥75%, funcs ≥90%）
-npm run test:eval       # 法治治理回歸（13 項）
-npm run test:e2e        # 生命週期端到端（2 項）
-npm run test:ssrf       # SSRF 防禦（21 高風險網址阻擋）
-npm run build           # Vite + esbuild 產檔
+npm run lint          # TypeScript 型別檢查
+npm test              # 單元與整合測試
+npm run test:eval     # 法治治理回歸
+npm run test:ssrf     # SSRF 防禦
+npm run test:e2e      # Playwright／生命週期 E2E 測試
+npm run build         # Vite + esbuild 建置
 ```
 
-## 資料飛輪週報（每週一次，每次只修第一名）
+覆蓋率與完整 CI 相關設定請以 `package.json`、`.github/workflows/ci.yml` 及 `docs/architecture/AUDIT.md` 為準。不要以固定測試數字判斷版本狀態，應以當次命令輸出為準。
 
-1. 以有權限帳號查詢稽核紀錄（依租戶隔離分頁取得，僅取動作、資源、狀態與狀態碼，不取個資欄位）。
-2. 將結果送入 `summarizeAuditFailures` 排出失敗名次，用 `formatFlywheelReport` 產出週報。
-3. 只修第一名：該群組對應的提示詞或規則修一處，下週再看名次是否下降。
+## Bundle 交付鏈
 
-## 上線前壓力測試紀錄（2026-09-19）
+Dashboard 的文件卡片會復用既有 `/api/toolbox/generate` 路徑，不建立第二條 P9 管線。只有在回應明確通過 P9 且取得 `DOWNLOAD_TEXT` 授權後，前端才允許下載。
 
-Production 模式本機實測（`NODE_ENV=production`、`AUDIT_DB_PATH=:memory:`、無 AI 金鑰）：
+Bundle 交付的瀏覽器／後端驗證工具位於：
 
-| 測試 | 結果 |
-|---|---|
-| `tsx scripts/stress-official-template-source.mjs`（685 範本、120 併發、8 項 adversarial） | PASS：p50 195ms / p95 222ms / max 223ms，manifest 雜湊無漂移 |
-| 15 併發、235 請求混載（triage / verify-citations / defense / workflow / fetch-url / audit） | PASS：0 個 5xx、0 個連線失敗；429 為速率限制器預期行為（300 次／15 分／IP） |
-| 4 worker × 30 秒持續負載（32,095 請求、≈1070 rps） | PASS：0 個 5xx、0 個連線失敗；429 皆為速率限制器生效 |
-| 全端點人類模擬（auth→triage→toolbox P9 起訴狀→workflow→analyze-judgment→judicial fetch→external-citations→audit） | PASS：所有端點回傳預期結構；`fetch-url` 對 `169.254.169.254` 回 400 `SSRF_BLOCKED`；跨 tenant 審日誌隔離驗證通過 |
+```text
+scripts/bundleDelivery.playwright.py
+```
 
-已知環境限制（非程式 bug）：
+此工具可驗證真實 server 的 Bundle → canonical P4–P9 → 下載與 P9 未授權時禁止下載；導診輸入若使用 fixture，必須在報告中明確標示。
 
-- 未設定 AI 金鑰時，`agent-chat`／`suggest-field` 回 503、toolbox 生成走規則式備援或 `PRODUCTION_TOOLBOX_FALLBACK_BLOCKED`（fail-closed 設計）；部署時於 Render 設定 `AGNES_API_KEY` 即恢復。
-- `legal-search` 於 `TLR_ENABLED` 未開時回 `enabled:false`（预期）。
-- 共享速率限制 300 次／15 分／IP 為防濫用常數；高併發情境 429 属正常，非故障。
+## 上線 Gate
+
+上線前必須由授權人員在本機或 staging 執行 [`SMOKE_TEST.md`](SMOKE_TEST.md) 的五項人工情境：
+
+1. 債務案件：Dashboard → Bundle → `/api/toolbox/generate` → P4–P9 → 下載。
+2. 催收張貼：顯示 `SUBJECT_MISMATCH` 並保留適格主體分離結果。
+3. 家暴／性騷／立即危險：`SafetyAndResourcePanel` 置頂。
+4. 逾期上訴：顯示紅色逾期與不變期間警告。
+5. Draft Refiner：新增未白名單法條時回傳 `GHOST_CITATION_BLOCKED`，不得更新或下載。
+
+任何 `UNKNOWN`、P9 失敗、MCP 不可用或人工情境未驗證，均停止部署並交由人工決定。AI 不得代替人工 `APPROVE` 或 `DEPLOY`。
+
+## 相關文件
+
+- [`ARCHITECTURE.md`](ARCHITECTURE.md)：系統架構、模組與安全原則。
+- [`SMOKE_TEST.md`](SMOKE_TEST.md)：staging／production 前人工驗收標準。
+- [`AGENTS.md`](AGENTS.md)：開發、測試、Git 與治理規則。
+- [`docs/architecture/AUDIT.md`](docs/architecture/AUDIT.md)：架構與 CI 審查資料。
+- [`docs/governance/LEGAL_GOVERNANCE.md`](docs/governance/LEGAL_GOVERNANCE.md)：法律文件生成治理規範。
