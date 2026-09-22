@@ -77,6 +77,12 @@ export async function getAuthToken(
   account: string,
   password: string
 ): Promise<string | null> {
+  // Credentials are configured at the service boundary. Never make an
+  // external login request when the deployment has no OpenData credentials.
+  if (!process.env.JUDICIAL_OPENDATA_ACCOUNT || !process.env.JUDICIAL_OPENDATA_PASSWORD) {
+    return null;
+  }
+
   // Circuit breaker check
   if (isCircuitOpen()) {
     console.warn("[JudicialAuth] Circuit breaker OPEN — refusing request");
