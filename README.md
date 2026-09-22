@@ -69,16 +69,11 @@ npm run build
 npm start
 ```
 
+## 正式服務
+
+唯一正式服務網址：[https://judicial-prod.onrender.com/](https://judicial-prod.onrender.com/)
+
 若使用 AI provider 或外部法律檢索服務，請透過環境變數設定；金鑰不得放入前端、README、Git history 或 audit log。Production 必須確認 authentication、CSP、MCP／官方來源連線與 audit persistence 設定，服務不可用時應維持 fail-closed。
-
-## Vercel 前端預覽
-
-Vercel 僅提供 Vite 前端；完整 Express API、AI provider、稽核儲存與 P4–P9 管線由 Render 服務提供。`vercel.json` 會將 `/api/*` 請求 proxy 至目前 Render backend，因此 Vercel 環境不應設定 `npm start` 作為長駐伺服器。
-
-- Production／主要使用網址：[https://judicial-prod.onrender.com/](https://judicial-prod.onrender.com/)
-- Vercel 前端預覽網址：[https://judicial-one.vercel.app/](https://judicial-one.vercel.app/)
-
-若 Render backend 網址變更，必須同步更新 `vercel.json` 的 API rewrite，並重新執行首頁、`/api/health`、導診與文件 Bundle Smoke Test。Vercel 站點回應 500 時，先查看 Vercel deployment log 與 Render `/api/health`，不要把前端錯誤誤判為 P4–P9 通過。
 
 ## 驗證指令
 
