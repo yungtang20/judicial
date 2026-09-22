@@ -31,6 +31,10 @@
 - `src/lib/rules/proceduralLawEngine.ts`、`proceduralStrategyEngine.ts`：程序必備事項、期間與證據缺口提示。
 - `src/lib/resources/protectionResourceEngine.ts`、`src/lib/filingGuide.ts`：安全資源、防詐、PII 遮蔽與立案提示。
 - `src/lib/ui/dashboardGenerator.ts`、`src/components/dashboard/DashboardView.tsx`：導診結果的安全、摘要、證據、Bundle、立案與進階底稿區塊。
+- `src/components/dashboard/FilingGuideModal.tsx`：獨立立案指引，顯示規費、繕本、證物編碼與 AI 免責聲明。
+- `src/components/dashboard/StorytellingInput.tsx`：首頁白話案情輸入，提供 PDF／圖片上傳入口與語音輸入 hook。
+- `src/components/dashboard/DraftRefiner.tsx`、`src/lib/generation/draftRefiner.ts`、`server/routes/draftRefiner.ts`：對話式草稿微調；微調結果重新經白名單與 ghost interceptor 檢核。
+- `src/lib/ui/bundleDelivery.ts`、`server/routes/toolbox.ts`：Document Bundle 復用 `/api/toolbox/generate` 與 canonical P4-P9／P9 交付路徑。
 - `src/prompts/objective-legal-analysis.ts` 與 `server/services/agentChat.ts`：客觀法理分析提示詞注入既有 Agent Chat。
 
 ## 分階段狀態
@@ -39,6 +43,7 @@
 - **Phase 2：完成** — 客觀法理分析、權利主體、構成要件狀態、領域適配器與案件 Bundle。
 - **Phase 3：完成** — 程序與證據提示、保護資源、防詐、格式／立案基礎。
 - **Phase 4：完成** — Agent Chat 提示詞、triage `analysisBundle` 串接與導診 Dashboard。
+- **P2 UX／交付補強：完成** — FilingGuideModal、StorytellingInput、Draft Refiner、Bundle request integration 與 Playwright browser coverage。
 
 本藍圖不宣稱已完成官方資料庫連線或法律判斷自動化；registry 是 MCP 回應的受控邊界。所有法律文件仍須經既有 P4-P9 與 `verifyGeneratedDocument` 驗證後才能交付。
 
