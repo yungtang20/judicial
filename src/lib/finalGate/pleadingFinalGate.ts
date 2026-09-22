@@ -18,11 +18,7 @@ import {
   buildFreshReviewInput,
   INDEPENDENT_RE_REVIEWER_VERSION
 } from '../reviewer/independentReReviewer';
-import {
-  fingerprintReviewPayload,
-  reviewStructuredPleading,
-  type OfficialTemplateFormatFinding
-} from '../reviewer/pleadingReviewer';
+import { fingerprintReviewPayload, reviewStructuredPleading } from '../reviewer/pleadingReviewer';
 
 export const PLEADING_FINAL_GATE_VERSION = '1.0.0';
 
@@ -42,7 +38,6 @@ export interface PleadingFinalGateInput {
   independentReReviewReport: IndependentReReviewReport;
   humanEditRecord?: HumanEditRecord;
   humanOverride?: FinalGateHumanOverrideRequest;
-  officialTemplateFormatFinding?: OfficialTemplateFormatFinding;
 }
 
 type RawBlocker = Omit<FinalGateBlocker, 'fingerprint'>;
@@ -103,11 +98,7 @@ export async function evaluateFinalGate(rawInput: PleadingFinalGateInput): Promi
     humanEditRecord: input.humanEditRecord
   });
   const freshReviewInput = buildFreshReviewInput(
-    input.draft,
-    input.caseInput,
-    input.ruleProfile,
-    input.legalReferences,
-    input.officialTemplateFormatFinding
+    input.draft, input.caseInput, input.ruleProfile, input.legalReferences
   );
   const complianceFindings = freshReviewInput.complianceFindings || [];
   const reviewerReport = await reviewStructuredPleading(freshReviewInput);

@@ -1,135 +1,122 @@
 import { LegalWorkflowState } from './workflow/unifiedStateGraph';
-import { formatLegalChapter } from './legalChapterLabels';
 
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+function triggerDownload(content: string, filename: string, mimeType: string) {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return;
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
-function buildHtmlReport(state: LegalWorkflowState): string {
-  const router = state.router;
-  const rag = state.rag;
-  const syllogism = state.syllogism;
-  const verification = state.verification;
-  const now = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
+export function exportAsText(state?: LegalWorkflowState | null): void {
+  if (!state) return;
+  const lines: string[] = [];
+  lines.push('====================================');
+  lines.push('          智慧法律分析報告');
+  lines.push('====================================\n');
 
-  return `<!DOCTYPE html>
+  if (state.userNarrative) {
+    lines.push('【當事人陳述與事實事實】');
+    lines.push(state.userNarrative);
+    lines.push('');
+  }
+
+  if (state.router) {
+    lines.push('【領域分流與主責法條】');
+    lines.push(`領域：${state.router.domain || '一般法律'}`);
+    if (state.router.chapter) lines.push(`章節：${state.router.chapter}`);
+    if (state.router.cause) lines.push(`案由案由：${state.router.cause}`);
+    lines.push('');
+  }
+
+  if (state.citations && state.citations.length > 0) {
+    lines.push('【法規與裁判檢索依據】');
+    state.citations.forEach((c, idx) => {
+      lines.push(`${idx + 1}. [${c.type || '法規'}] ${c.title || c.article || ''}`);
+      if (c.holding || c.summary) lines.push(`   重點：${c.holding || c.summary}`);
+    });
+    lines.push('');
+  }
+
+  if (state.syllogism) {
+    lines.push('【三段論法法律論證分析】');
+    if (state.syllogism.majorPremise) {
+      lines.push('一、大前提（法律原則與構成要件）：');
+      lines.push(state.syllogism.majorPremise);
+    }
+    if (state.syllogism.minorPremise) {
+      lines.push('\n二、小前提（具體事實涵攝核實）：');
+      lines.push(state.syllogism.minorPremise);
+    }
+    if (state.syllogism.subsumption) {
+      lines.push('\n三、涵攝分析（事實如何該當要件）：');
+      lines.push(state.syllogism.subsumption);
+    }
+    if (state.syllogism.conclusion) {
+      lines.push('\n四、結論（法律效果與具體救濟途徑）：');
+      lines.push(state.syllogism.conclusion);
+    }
+    lines.push('');
+  }
+
+  triggerDownload(lines.join('\n'), `法律分析報告_${new Date().toISOString().slice(0, 10)}.txt`, 'text/plain;charset=utf-8');
+}
+
+export function exportAsHtml(state?: LegalWorkflowState | null): void {
+  if (!state) return;
+  const title = `法律分析報告 - ${state.router?.cause || '智能法務'}`;
+  const html = `<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-<meta charset="UTF-8">
-<title>智慧法律分析報告 — ${escapeHtml(router?.cause || '未分類')}</title>
-<style>
-  body { font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; color: #292219; line-height: 1.8; }
-  h1 { color: #352d22; border-bottom: 3px solid #956018; padding-bottom: 8px; }
-  h2 { color: #704714; margin-top: 28px; }
-  .meta { color: #666; font-size: 13px; margin-bottom: 24px; }
-  .section { background: #faf7f0; border-left: 4px solid #956018; padding: 16px 20px; margin: 16px 0; border-radius: 0 8px 8px 0; }
-  .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; margin-right: 8px; }
-  .badge-blue { background: #fef3c7; color: #704714; }
-  .badge-amber { background: #fef3cd; color: #856404; }
-  .badge-green { background: #d4edda; color: #155724; }
-  .full-analysis { white-space: pre-wrap; background: #fff; border: 1px solid #dee2e6; padding: 16px; border-radius: 8px; font-size: 14px; }
-  .footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid #dee2e6; font-size: 12px; color: #999; text-align: center; }
-  @media print { body { margin: 20px; } }
-</style>
+  <meta charset="utf-8" />
+  <title>${title}</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; color: #1e293b; max-width: 800px; margin: 40px auto; padding: 0 20px; }
+    h1 { color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; }
+    h2 { color: #334155; margin-top: 28px; }
+    .box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 12px 0; }
+    .tag { display: inline-block; background: #e0e7ff; color: #3730a3; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; margin-right: 6px; }
+    ul { padding-left: 20px; }
+    li { margin-bottom: 8px; }
+  </style>
 </head>
 <body>
-<h1>智慧法律分析報告</h1>
-<div class="meta">生成時間：${now} | 分析工具：智慧法律書狀系統 v2.5</div>
+  <h1>智慧法律分析報告</h1>
+  <p><strong>產出日期：</strong>${new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })}</p>
 
-<h2>一、案件事實</h2>
-<div class="section">${escapeHtml(state.userNarrative)}</div>
+  ${state.userNarrative ? `<h2>一、當事人陳述事實</h2><div class="box">${escapeHtml(state.userNarrative)}</div>` : ''}
 
-<h2>二、分流結果</h2>
-<div class="section">
-  <span class="badge badge-blue">${escapeHtml(router?.domain || '—')}</span>
-  <span class="badge badge-blue">${escapeHtml(formatLegalChapter(router?.chapter) || '—')}</span>
-  <span class="badge badge-amber">${escapeHtml(router?.cause || '—')}</span>
-  ${router?.is_sensitive ? '<span class="badge badge-amber">⚠ 敏感案件</span>' : '<span class="badge badge-green">一般案件</span>'}
-</div>
+  ${state.router ? `<h2>二、案件分流分析</h2><div class="box">
+    <p><strong>法律領域：</strong>${escapeHtml(state.router.domain || '一般法律')}</p>
+    ${state.router.cause ? `<p><strong>案由案號：</strong>${escapeHtml(state.router.cause)}</p>` : ''}
+  </div>` : ''}
 
-<h2>三、法規要件</h2>
-<div class="section">
-${rag?.legalElements ? `<p>${escapeHtml(rag.legalElements)}</p>` : '<p>（尚無法規要件）</p>'}
-${rag?.statuteCitations?.length ? `<p><strong>法規引用：</strong>${rag.statuteCitations.map((c: string) => escapeHtml(c)).join('、')}</p>` : ''}
-${rag?.precedents?.length ? rag.precedents.map((p: any) => `<p><strong>${escapeHtml(p.caseNumber)}</strong>（${escapeHtml(p.courtName)}）${escapeHtml(p.summary)}</p>`).join('') : ''}
-</div>
+  ${state.citations && state.citations.length > 0 ? `<h2>三、法律依據與裁判引註</h2><div class="box"><ul>
+    ${state.citations.map(c => `<li><span class="tag">${escapeHtml(c.type || '法規')}</span><strong>${escapeHtml(c.title || c.article || '')}</strong>${c.holding || c.summary ? `<br/><small>${escapeHtml(c.holding || c.summary || '')}</small>` : ''}</li>`).join('')}
+  </ul></div>` : ''}
 
-<h2>四、三段論涵攝分析</h2>
-<div class="full-analysis">${escapeHtml(syllogism?.fullAnalysis || '（尚未完成分析）')}</div>
-
-${verification?.passGate ? `
-<h2>五、真確性檢核</h2>
-<div class="section">
-  <span class="badge badge-green">✓ 通過真確性閘門</span>
-  <p>${escapeHtml(verification.warningNotice || '')}</p>
-</div>
-` : ''}
-
-<div class="footer">
-  本報告由智慧法律書狀系統自動生成，僅供參考，不構成法律意見。<br>
-  如需專業法律諮詢，請聯繫執業律師。
-</div>
+  ${state.syllogism ? `<h2>四、三段論法論述結果</h2><div class="box">
+    ${state.syllogism.majorPremise ? `<h3>大前提（法律要件）</h3><p>${escapeHtml(state.syllogism.majorPremise)}</p>` : ''}
+    ${state.syllogism.minorPremise ? `<h3>小前提（事實查核）</h3><p>${escapeHtml(state.syllogism.minorPremise)}</p>` : ''}
+    ${state.syllogism.subsumption ? `<h3>涵攝分析</h3><p>${escapeHtml(state.syllogism.subsumption)}</p>` : ''}
+    ${state.syllogism.conclusion ? `<h3>結論與救濟</h3><p>${escapeHtml(state.syllogism.conclusion)}</p>` : ''}
+  </div>` : ''}
 </body>
 </html>`;
+
+  triggerDownload(html, `法律分析報告_${new Date().toISOString().slice(0, 10)}.html`, 'text/html;charset=utf-8');
 }
 
-export function exportAsHtml(state: LegalWorkflowState) {
-  const html = buildHtmlReport(state);
-  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `法律分析報告_${new Date().toISOString().slice(0, 10)}.html`;
-  a.click();
-  URL.revokeObjectURL(url);
+function escapeHtml(str: string): string {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/\n/g, '<br/>');
 }
 
-export function exportAsText(state: LegalWorkflowState) {
-  const router = state.router;
-  const syllogism = state.syllogism;
-  const now = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
-
-  const lines = [
-    '═══════════════════════════════════════',
-    '       智慧法律分析報告',
-    '═══════════════════════════════════════',
-    `生成時間：${now}`,
-    '',
-    '【案件事實】',
-    state.userNarrative,
-    '',
-    '【分流結果】',
-    `法律領域：${router?.domain || '—'}`,
-    `罪章：${formatLegalChapter(router?.chapter) || '—'}`,
-    `案由：${router?.cause || '—'}`,
-    `敏感案件：${router?.is_sensitive ? '是' : '否'}`,
-    '',
-    '【三段論涵攝分析】',
-    syllogism?.fullAnalysis || '（尚未完成分析）',
-    '',
-    '═══════════════════════════════════════',
-    '本報告由智慧法律書狀系統自動生成，僅供參考。',
-  ];
-
-  const text = lines.join('\n');
-  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `法律分析報告_${new Date().toISOString().slice(0, 10)}.txt`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-export function printReport(state: LegalWorkflowState) {
-  const html = buildHtmlReport(state);
-  const win = window.open('', '_blank');
-  if (win) {
-    win.document.write(html);
-    win.document.close();
-    win.print();
-  }
+export function printReport(state?: LegalWorkflowState | null): void {
+  if (typeof window === 'undefined') return;
+  window.print();
 }

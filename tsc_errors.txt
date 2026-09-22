@@ -1,0 +1,369 @@
+server/knowledge-base/judgmentKnowledgeBase.test.ts(83,20): error TS2339: Property 'hasCitations' does not exist on type 'RetrievalResult'.
+server/knowledge-base/judgmentKnowledgeBase.test.ts(84,20): error TS2339: Property 'promptBlock' does not exist on type 'RetrievalResult'.
+server/knowledge-base/judgmentKnowledgeBase.test.ts(85,20): error TS2339: Property 'promptBlock' does not exist on type 'RetrievalResult'.
+server/knowledge-base/judgmentKnowledgeBase.test.ts(86,20): error TS2339: Property 'allowedCitations' does not exist on type 'RetrievalResult'.
+server/knowledge-base/judgmentKnowledgeBase.ts(7,10): error TS2305: Module '"../../src/lib/twLegalRagClient.js"' has no exported member 'LegalSearchSources'.
+server/knowledge-base/judgmentKnowledgeBase.ts(7,30): error TS2305: Module '"../../src/lib/twLegalRagClient.js"' has no exported member 'LegalSourceItem'.
+server/knowledge-base/localKnowledgeBase.test.ts(83,28): error TS2339: Property 'promptBlock' does not exist on type 'RetrievalResult'.
+server/knowledge-base/localKnowledgeBase.test.ts(84,28): error TS2339: Property 'allowedCitations' does not exist on type 'RetrievalResult'.
+server/knowledge-base/localKnowledgeBase.ts(9,3): error TS2305: Module '"../../src/lib/twLegalRagClient.js"' has no exported member 'LegalSearchSources'.
+server/knowledge-base/localKnowledgeBase.ts(10,3): error TS2305: Module '"../../src/lib/twLegalRagClient.js"' has no exported member 'LegalPromptContext'.
+server/knowledge-base/types.ts(1,10): error TS2305: Module '"../../src/lib/twLegalRagClient.js"' has no exported member 'LegalSourceItem'.
+server/knowledge-base/types.ts(1,27): error TS2305: Module '"../../src/lib/twLegalRagClient.js"' has no exported member 'LegalSearchSources'.
+server/routes/appeal.ts(74,149): error TS2339: Property 'citation' does not exist on type 'PrecedentItem'.
+server/routes/defense.ts(30,51): error TS2339: Property 'promptBlock' does not exist on type 'RetrievalResult'.
+server/routes/defense.ts(41,40): error TS2339: Property 'sources' does not exist on type 'RetrievalResult'.
+server/routes/defense.ts(48,42): error TS2339: Property 'sources' does not exist on type 'RetrievalResult'.
+server/routes/defense.ts(71,51): error TS2339: Property 'promptBlock' does not exist on type 'RetrievalResult'.
+server/routes/defense.ts(82,40): error TS2339: Property 'sources' does not exist on type 'RetrievalResult'.
+server/routes/defense.ts(89,42): error TS2339: Property 'sources' does not exist on type 'RetrievalResult'.
+server/routes/fallbackBypass.adversarial.test.ts(30,9): error TS2353: Object literal may only specify known properties, and 'allowedCitations' does not exist in type '(text: string, options?: VerifyCitationsOptions) => { totalChecked: number; ghostCount: number; results: CitationVerificationResult[]; sanitizedText: string; }'.
+server/routes/legalProcess.ts(223,21): error TS2339: Property 'promptBlock' does not exist on type 'RetrievalResult'.
+server/routes/legalProcess.ts(223,46): error TS2339: Property 'promptBlock' does not exist on type 'RetrievalResult'.
+server/routes/legalProcess.ts(224,35): error TS2339: Property 'promptBlock' does not exist on type 'RetrievalResult'.
+server/routes/toolbox.ts(50,149): error TS2339: Property 'citation' does not exist on type 'PrecedentItem'.
+server/routes/toolbox.ts(64,28): error TS2554: Expected 2-3 arguments, but got 1.
+server/routes/toolbox.ts(117,7): error TS2322: Type '() => void' is not assignable to type '(retrieval: RetrievalResult, error: Error) => { documentText: string; payload?: any; }'.
+  Type 'void' is not assignable to type '{ documentText: string; payload?: any; }'.
+server/routes/unifiedWorkflow.ts(352,19): error TS2339: Property 'promptBlock' does not exist on type 'RetrievalResult'.
+server/routes/unifiedWorkflow.ts(352,44): error TS2339: Property 'promptBlock' does not exist on type 'RetrievalResult'.
+server/routes/unifiedWorkflow.ts(353,33): error TS2339: Property 'promptBlock' does not exist on type 'RetrievalResult'.
+server/routes/unifiedWorkflow.ts(355,62): error TS2339: Property 'sources' does not exist on type 'RetrievalResult'.
+server/routes/unifiedWorkflow.ts(359,23): error TS2339: Property 'sourceUrl' does not exist on type '{ citation: string; title: string; excerpt?: string; }'.
+server/routes/unifiedWorkflow.ts(614,11): error TS2339: Property 'inputType' does not exist on type 'LegalWorkflowState'.
+server/services/agentChat.ts(132,21): error TS2339: Property 'promptBlock' does not exist on type 'RetrievalResult'.
+server/services/agentChat.ts(132,46): error TS2339: Property 'promptBlock' does not exist on type 'RetrievalResult'.
+server/services/agentChat.ts(133,34): error TS2339: Property 'promptBlock' does not exist on type 'RetrievalResult'.
+server/services/canonicalPleadingPipeline.ts(2,26): error TS2305: Module '"../../src/types/compliance.js"' has no exported member 'Evidence'.
+server/services/canonicalPleadingPipeline.ts(125,14): error TS2339: Property 'requiresFixedQuantityClaim' does not exist on type '{ categoryKey: any; documentTitle: any; caseType: any; pleadingType: any; styleProfile: any; claimantRole: string; respondentRole: string; proceeding: string; claimLabel: string; factsLabel: string; ruleProfile: any; legalReferences: any[]; formatProfile: any; sectionFieldMap: any; } | { ...; } | { ...; }'.
+  Property 'requiresFixedQuantityClaim' does not exist on type '{ categoryKey: any; documentTitle: any; caseType: any; pleadingType: any; styleProfile: any; claimantRole: string; respondentRole: string; proceeding: string; claimLabel: string; factsLabel: string; ruleProfile: any; legalReferences: any[]; formatProfile: any; sectionFieldMap: any; }'.
+server/services/canonicalPleadingPipeline.ts(128,7): error TS2322: Type 'MissingInput | { field: string; reason: string; severity: string; requiredFor: any[]; sourceRequirement: string; category: string; }' is not assignable to type 'MissingInput'.
+  Object literal may only specify known properties, and 'reason' does not exist in type 'MissingInput'.
+server/services/canonicalPleadingPipeline.ts(128,7): error TS2353: Object literal may only specify known properties, and 'reason' does not exist in type 'MissingInput'.
+server/services/canonicalPleadingPipeline.ts(136,18): error TS2339: Property 'severity' does not exist on type 'MissingInput'.
+server/services/canonicalPleadingPipeline.ts(136,50): error TS2339: Property 'severity' does not exist on type 'MissingInput'.
+server/services/legalGenerationPipeline.test.ts(54,62): error TS2339: Property 'allowedCitations' does not exist on type 'RetrievalResult'.
+server/services/legalGenerationPipeline.ts(2,3): error TS2305: Module '"../../src/lib/twLegalRagClient.js"' has no exported member 'LegalSearchSources'.
+server/services/legalGenerationPipeline.ts(5,3): error TS2305: Module '"../../src/lib/twLegalRagClient.js"' has no exported member 'LegalPromptContext'.
+server/services/legalGenerationPipeline.ts(10,3): error TS2305: Module '"../../src/lib/generatedDocumentPipeline.js"' has no exported member 'GeneratedDocumentVerification'.
+server/services/legalGenerationPipeline.ts(128,7): error TS2353: Object literal may only specify known properties, and 'sources' does not exist in type 'RetrievalResult'.
+server/services/legalGenerationPipeline.ts(204,39): error TS2339: Property 'promptBlock' does not exist on type 'RetrievalResult'.
+server/services/legalGenerationPipeline.ts(205,39): error TS2339: Property 'promptBlock' does not exist on type 'RetrievalResult'.
+server/services/legalGenerationPipeline.ts(231,7): error TS2353: Object literal may only specify known properties, and 'allowedCitations' does not exist in type '(text: string, options?: VerifyCitationsOptions) => { totalChecked: number; ghostCount: number; results: CitationVerificationResult[]; sanitizedText: string; }'.
+server/services/legalGenerationPipeline.ts(231,35): error TS2339: Property 'allowedCitations' does not exist on type 'RetrievalResult'.
+server/services/legalGenerationPipeline.ts(240,31): error TS2339: Property 'sources' does not exist on type 'RetrievalResult'.
+server/services/legalGenerationPipeline.ts(243,38): error TS2339: Property 'disclaimer' does not exist on type 'RetrievalResult'.
+server/services/legalGenerationPipeline.ts(244,35): error TS2339: Property 'allowedCitations' does not exist on type 'RetrievalResult'.
+src/components/DefenseWorkflowTool.tsx(51,32): error TS2306: File '/app/applet/src/store/useAppealStore.ts' is not a module.
+src/components/DefenseWorkflowTool.tsx(179,25): error TS2554: Expected 1 arguments, but got 2.
+src/components/EvidenceListGenerator.tsx(32,16): error TS2339: Property 'code' does not exist on type 'EvidenceRow'.
+src/components/EvidenceListGenerator.tsx(33,24): error TS2339: Property 'relatedIssue' does not exist on type 'EvidenceRow'.
+src/components/EvidenceListGenerator.tsx(34,29): error TS2339: Property 'investigationItem' does not exist on type 'EvidenceRow'.
+src/components/EvidenceListGenerator.tsx(35,31): error TS2339: Property 'investigationTarget' does not exist on type 'EvidenceRow'.
+src/components/EvidenceListGenerator.tsx(36,25): error TS2339: Property 'targetAddress' does not exist on type 'EvidenceRow'.
+src/components/EvidenceListGenerator.tsx(37,22): error TS2339: Property 'provenFact' does not exist on type 'EvidenceRow'.
+src/components/EvidenceListGenerator.tsx(64,25): error TS2345: Argument of type '{ id: any; code: any; relatedIssue: any; investigationItem: any; investigationTarget: any; targetAddress: any; provenFact: any; }[]' is not assignable to parameter of type 'EvidenceRow[]'.
+  Property 'name' is missing in type '{ id: any; code: any; relatedIssue: any; investigationItem: any; investigationTarget: any; targetAddress: any; provenFact: any; }' but required in type 'EvidenceRow'.
+src/components/IssueTableGenerator.tsx(36,18): error TS2339: Property 'title' does not exist on type 'IssueRow'.
+src/components/IssueTableGenerator.tsx(38,27): error TS2339: Property 'appealArgument' does not exist on type 'IssueRow'.
+src/components/IssueTableGenerator.tsx(39,29): error TS2339: Property 'relatedEvidenceCodes' does not exist on type 'IssueRow'.
+src/components/IssueTableGenerator.tsx(40,23): error TS2339: Property 'legalBasis' does not exist on type 'IssueRow'.
+src/components/IssueTableGenerator.tsx(41,26): error TS2339: Property 'legalStrength' does not exist on type 'IssueRow'.
+src/components/LegalDocAiChecker.test.tsx(15,64): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/LegalDocAiChecker.test.tsx(16,52): error TS2339: Property 'toHaveValue' does not exist on type 'Assertion<HTMLElement>'.
+src/components/LegalGuideHome.test.tsx(12,40): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/LegalGuideHome.test.tsx(13,63): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/LegalGuideHome.test.tsx(14,60): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/LegalGuideHome.test.tsx(15,64): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/LegalGuideHome.test.tsx(16,50): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/LegalGuideHome.test.tsx(17,54): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/LegalGuideHome.tsx(71,36): error TS2554: Expected 1 arguments, but got 2.
+src/components/LegalProcessGuide.tsx(30,3): error TS2305: Module '"../lib/legalProcessClassifier"' has no exported member 'ProcessGuideInput'.
+src/components/LegalProcessGuide.tsx(31,3): error TS2305: Module '"../lib/legalProcessClassifier"' has no exported member 'ProcessGuideResult'.
+src/components/LegalSourcesDisplay.tsx(3,36): error TS2307: Cannot find module '../lib/services/legalSearch' or its corresponding type declarations.
+src/components/LegalToolbox.tsx(52,59): error TS2339: Property 'title' does not exist on type 'IssueRow'.
+src/components/LegalToolbox.tsx(53,68): error TS2339: Property 'provenFact' does not exist on type 'EvidenceRow'.
+src/components/LitigationWorkspace.test.tsx(19,46): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/LitigationWorkspace.test.tsx(20,66): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/LitigationWorkspace.test.tsx(21,67): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/LitigationWorkspace.test.tsx(27,57): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/LitigationWorkspace.test.tsx(38,43): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/LitigationWorkspace.test.tsx(39,46): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/LitigationWorkspace.test.tsx(40,68): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/Sidebar.test.tsx(14,55): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/Sidebar.test.tsx(28,48): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/Sidebar.test.tsx(30,52): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/UnifiedEntry.test.tsx(32,64): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/UnifiedEntry.test.tsx(33,40): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/UnifiedEntry.test.tsx(34,51): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/UnifiedEntry.test.tsx(35,58): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/UnifiedEntry.test.tsx(36,62): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<Element>'.
+src/components/UnifiedEntry.test.tsx(37,45): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/UnifiedEntry.tsx(150,11): error TS2339: Property 'inputType' does not exist on type 'LegalWorkflowState'.
+src/components/toolbox/ClauseInjection.test.tsx(23,21): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/toolbox/ClauseInjection.test.tsx(46,42): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/toolbox/ClauseInjection.test.tsx(48,22): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/toolbox/ClauseInjection.test.tsx(65,48): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/toolbox/DocumentToolGuideAccordion.test.tsx(5,32): error TS2724: '"../../lib/documentToolGuides"' has no exported member named 'DOCUMENT_TOOL_GUIDES'. Did you mean 'DocumentToolGuide'?
+src/components/toolbox/DocumentToolGuideAccordion.test.tsx(33,38): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/toolbox/DocumentToolGuideAccordion.test.tsx(34,49): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/toolbox/DocumentToolGuideAccordion.test.tsx(41,38): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/toolbox/DocumentToolGuideAccordion.test.tsx(42,43): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/toolbox/DocumentToolGuideAccordion.test.tsx(43,40): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/toolbox/DocumentToolGuideAccordion.test.tsx(44,42): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/toolbox/DocumentToolGuideAccordion.test.tsx(45,51): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/toolbox/DocumentToolGuideAccordion.test.tsx(58,52): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/toolbox/DynamicToolForm.tsx(28,75): error TS2339: Property 'officialSourceUrl' does not exist on type '{ id: string; categoryGroup: string; categoryLabel: string; name: string; shortDesc: string; badge: string; toolType: string; icon: react.ForwardRefExoticComponent<any>; legalBasis: string; isNew?: undefined; } | { id: string; categoryGroup: string; ... 7 more ...; isNew: boolean; }'.
+  Property 'officialSourceUrl' does not exist on type '{ id: string; categoryGroup: string; categoryLabel: string; name: string; shortDesc: string; badge: string; toolType: string; icon: react.ForwardRefExoticComponent<any>; legalBasis: string; isNew?: undefined; }'.
+src/components/toolbox/OfficialTemplateDirectory.test.tsx(46,49): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/toolbox/OfficialTemplateDirectory.test.tsx(47,43): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/toolbox/OfficialTemplateDirectory.test.tsx(52,46): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/toolbox/OfficialTemplateDirectory.test.tsx(53,66): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/toolbox/OfficialTemplateDirectory.test.tsx(75,47): error TS2339: Property 'toHaveTextContent' does not exist on type 'Assertion<HTMLElement>'.
+src/components/toolbox/OfficialTemplateDirectory.test.tsx(81,46): error TS2339: Property 'toHaveTextContent' does not exist on type 'Assertion<HTMLElement>'.
+src/components/toolbox/ToolResultPanel.test.tsx(6,15): error TS2724: '"../../lib/finalGate/pleadingExportGate"' has no exported member named 'PleadingDeliveryAuthorization'. Did you mean 'createPleadingDeliveryAuthorization'?
+src/components/toolbox/ToolResultPanel.tsx(3,10): error TS2305: Module '"../../lib/legalToolRegistry"' has no exported member 'ToolDefinition'.
+src/components/toolbox/ToolSelectorGrid.tsx(3,10): error TS2305: Module '"../../lib/legalToolRegistry"' has no exported member 'ToolDefinition'.
+src/components/toolbox/ToolboxClassification.test.tsx(57,65): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/toolbox/ToolboxClassification.test.tsx(60,74): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/toolbox/ToolboxClassification.test.tsx(96,64): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/toolbox/ToolboxClassification.test.tsx(104,41): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/toolbox/ToolboxClassification.test.tsx(105,46): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/toolbox/ToolboxClassification.test.tsx(106,55): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/ui/uiComponents.test.tsx(16,20): error TS2339: Property 'toHaveAttribute' does not exist on type 'Assertion<HTMLElement>'.
+src/components/ui/uiComponents.test.tsx(17,20): error TS2339: Property 'toBeDisabled' does not exist on type 'Assertion<HTMLElement>'.
+src/components/ui/uiComponents.test.tsx(22,36): error TS2339: Property 'toHaveStyle' does not exist on type 'Assertion<HTMLElement>'.
+src/components/ui/uiComponents.test.tsx(30,40): error TS2339: Property 'toHaveTextContent' does not exist on type 'Assertion<HTMLElement>'.
+src/components/ui/uiComponents.test.tsx(31,52): error TS2339: Property 'toHaveAttribute' does not exist on type 'Assertion<HTMLDetailsElement>'.
+src/components/ui/uiComponents.test.tsx(42,39): error TS2339: Property 'toHaveTextContent' does not exist on type 'Assertion<HTMLElement>'.
+src/components/unified/UnifiedResult.test.tsx(45,38): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/unified/UnifiedResult.test.tsx(46,48): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/unified/UnifiedResult.test.tsx(48,40): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/unified/UnifiedResult.test.tsx(49,44): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/unified/UnifiedResult.test.tsx(50,38): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/unified/UnifiedResult.test.tsx(51,38): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/unified/UnifiedResult.test.tsx(52,38): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/unified/UnifiedResult.test.tsx(53,39): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/unified/UnifiedResult.test.tsx(54,38): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/unified/UnifiedResult.test.tsx(58,51): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/unified/UnifiedResult.test.tsx(59,51): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/unified/UnifiedResult.test.tsx(60,42): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/unified/UnifiedResult.test.tsx(61,42): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/unified/UnifiedResult.test.tsx(62,41): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/unified/UnifiedResult.test.tsx(64,54): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/unified/UnifiedResult.test.tsx(67,39): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/unified/UnifiedResult.test.tsx(68,51): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/unified/UnifiedResult.test.tsx(73,56): error TS2339: Property 'toBeEnabled' does not exist on type 'Assertion<HTMLElement>'.
+src/components/unified/UnifiedResult.test.tsx(81,144): error TS2820: Type '"FAKE_GHOST_CITATION"' is not assignable to type 'HallucinationRisk'. Did you mean '"GHOST_CITATION"'?
+src/components/unified/UnifiedResult.test.tsx(88,41): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/unified/UnifiedResult.test.tsx(89,42): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/unified/UnifiedResult.test.tsx(90,51): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/unified/UnifiedResult.test.tsx(91,57): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/unified/UnifiedResult.test.tsx(92,51): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+src/components/unified/UnifiedResult.test.tsx(93,56): error TS2339: Property 'toBeDisabled' does not exist on type 'Assertion<HTMLElement>'.
+src/domain/case/citationGate.ts(8,21): error TS2339: Property 'sourceProvider' does not exist on type 'PrecedentItem'.
+src/domain/case/citationGate.ts(8,114): error TS2339: Property 'sourceStatus' does not exist on type 'PrecedentItem'.
+src/features/appeal/hooks/useAppealWorkflow.ts(2,32): error TS2306: File '/app/applet/src/store/useAppealStore.ts' is not a module.
+src/hooks/useSmartAppealAssistant.ts(124,38): error TS2503: Cannot find namespace 'React'.
+src/lib/citationVerifier.ts(903,9): error TS2322: Type '"UNVERIFIED"' is not assignable to type 'HallucinationRisk'.
+src/lib/citationVerifier.ts(904,9): error TS2322: Type '"NEEDS_REVIEW"' is not assignable to type 'VerificationStatus'.
+src/lib/citationVerifier.ts(991,9): error TS2322: Type '"UNVERIFIED" | "FAKE_GHOST_CITATION"' is not assignable to type 'HallucinationRisk'.
+  Type '"UNVERIFIED"' is not assignable to type 'HallucinationRisk'.
+src/lib/citationVerifier.ts(992,9): error TS2322: Type '"REJECTED" | "NEEDS_REVIEW"' is not assignable to type 'VerificationStatus'.
+  Type '"NEEDS_REVIEW"' is not assignable to type 'VerificationStatus'.
+src/lib/compliance/pleadingComplianceEngine.test.ts(61,5): error TS2322: Type '{ id: string; version: string; caseType: string; supportedPleadingTypes: string[]; formatProfileId: string; sourceAuthority: string; sourceReference: string; verificationStatus: string; rules: { ...; }[]; }' is not assignable to type 'PleadingRuleProfile'.
+  Types of property 'rules' are incompatible.
+    Type '{ sourceReferences: any[]; }[]' is not assignable to type 'ContentRule[]'.
+      Type '{ sourceReferences: any[]; }' is missing the following properties from type 'ContentRule': id, level, appliesTo, targetSection, description
+src/lib/compliance/pleadingComplianceEngine.test.ts(86,7): error TS2322: Type '{ id: string; version: string; caseType: string; supportedPleadingTypes: string[]; formatProfileId: string; sourceAuthority: string; sourceReference: string; verificationStatus: string; rules: { ...; }[]; }' is not assignable to type 'PleadingRuleProfile'.
+  Types of property 'rules' are incompatible.
+    Type '{ sourceReferences: any[]; }[]' is not assignable to type 'ContentRule[]'.
+      Type '{ sourceReferences: any[]; }' is missing the following properties from type 'ContentRule': id, level, appliesTo, targetSection, description
+src/lib/compliance/pleadingComplianceEngine.test.ts(102,7): error TS2322: Type '{ id: string; version: string; caseType: string; supportedPleadingTypes: string[]; formatProfileId: string; sourceAuthority: string; sourceReference: string; verificationStatus: string; rules: { ...; }[]; }' is not assignable to type 'PleadingRuleProfile'.
+  Types of property 'rules' are incompatible.
+    Type '{ sourceReferences: any[]; }[]' is not assignable to type 'ContentRule[]'.
+      Type '{ sourceReferences: any[]; }' is missing the following properties from type 'ContentRule': id, level, appliesTo, targetSection, description
+src/lib/compliance/pleadingComplianceEngine.test.ts(121,7): error TS2322: Type '{ id: string; version: string; caseType: string; supportedPleadingTypes: string[]; formatProfileId: string; sourceAuthority: string; sourceReference: string; verificationStatus: string; rules: { ...; }[]; }' is not assignable to type 'PleadingRuleProfile'.
+  Types of property 'rules' are incompatible.
+    Type '{ sourceReferences: any[]; }[]' is not assignable to type 'ContentRule[]'.
+      Type '{ sourceReferences: any[]; }' is missing the following properties from type 'ContentRule': id, level, appliesTo, targetSection, description
+src/lib/compliance/pleadingComplianceEngine.test.ts(131,7): error TS2322: Type '{ id: string; version: string; caseType: string; supportedPleadingTypes: string[]; formatProfileId: string; sourceAuthority: string; sourceReference: string; verificationStatus: string; rules: { ...; }[]; }' is not assignable to type 'PleadingRuleProfile'.
+  Types of property 'rules' are incompatible.
+    Type '{ sourceReferences: any[]; }[]' is not assignable to type 'ContentRule[]'.
+      Type '{ sourceReferences: any[]; }' is missing the following properties from type 'ContentRule': id, level, appliesTo, targetSection, description
+src/lib/compliance/pleadingComplianceEngine.test.ts(140,7): error TS2322: Type '{ id: string; version: string; caseType: string; supportedPleadingTypes: string[]; formatProfileId: string; sourceAuthority: string; sourceReference: string; verificationStatus: string; rules: { ...; }[]; }' is not assignable to type 'PleadingRuleProfile'.
+  Types of property 'rules' are incompatible.
+    Type '{ sourceReferences: any[]; }[]' is not assignable to type 'ContentRule[]'.
+      Type '{ sourceReferences: any[]; }' is missing the following properties from type 'ContentRule': id, level, appliesTo, targetSection, description
+src/lib/compliance/pleadingComplianceEngine.test.ts(152,7): error TS2322: Type '{ id: string; version: string; caseType: string; supportedPleadingTypes: string[]; formatProfileId: string; sourceAuthority: string; sourceReference: string; verificationStatus: string; rules: { ...; }[]; }' is not assignable to type 'PleadingRuleProfile'.
+  Types of property 'rules' are incompatible.
+    Type '{ sourceReferences: any[]; }[]' is not assignable to type 'ContentRule[]'.
+      Type '{ sourceReferences: any[]; }' is missing the following properties from type 'ContentRule': id, level, appliesTo, targetSection, description
+src/lib/compliance/pleadingComplianceEngine.test.ts(163,7): error TS2322: Type '{ rules: { sourceReferences: any[]; }[]; id: string; version: string; caseType: string; supportedPleadingTypes: string[]; formatProfileId: string; sourceAuthority: string; sourceReference: string; verificationStatus: string; }' is not assignable to type 'PleadingRuleProfile'.
+  Types of property 'rules' are incompatible.
+    Type '{ sourceReferences: any[]; }[]' is not assignable to type 'ContentRule[]'.
+      Type '{ sourceReferences: any[]; }' is missing the following properties from type 'ContentRule': id, level, appliesTo, targetSection, description
+src/lib/compliance/pleadingComplianceEngine.test.ts(177,11): error TS2353: Object literal may only specify known properties, and 'serviceAddress' does not exist in type '{ requested?: boolean; actualAddressStorage?: string; }'.
+src/lib/compliance/pleadingComplianceEngine.test.ts(189,7): error TS2322: Type '{ id: string; version: string; caseType: string; supportedPleadingTypes: string[]; formatProfileId: string; sourceAuthority: string; sourceReference: string; verificationStatus: string; rules: { ...; }[]; }' is not assignable to type 'PleadingRuleProfile'.
+  Types of property 'rules' are incompatible.
+    Type '{ sourceReferences: any[]; }[]' is not assignable to type 'ContentRule[]'.
+      Type '{ sourceReferences: any[]; }' is missing the following properties from type 'ContentRule': id, level, appliesTo, targetSection, description
+src/lib/compliance/pleadingComplianceEngine.ts(51,28): error TS2339: Property 'publicDocumentAddress' does not exist on type '{ requested?: boolean; actualAddressStorage?: string; }'.
+src/lib/compliance/pleadingComplianceEngine.ts(51,70): error TS2339: Property 'serviceAddress' does not exist on type '{ requested?: boolean; actualAddressStorage?: string; }'.
+src/lib/compliance/pleadingComplianceEngine.ts(53,50): error TS2339: Property 'publicDocumentAddress' does not exist on type '{ requested?: boolean; actualAddressStorage?: string; }'.
+src/lib/compliance/pleadingComplianceEngine.ts(261,11): error TS2339: Property 'caseType' does not exist on type 'StructuredPleadingDraft'.
+src/lib/compliance/pleadingComplianceEngine.ts(262,11): error TS2339: Property 'pleadingType' does not exist on type 'StructuredPleadingDraft'.
+src/lib/compliance/pleadingComplianceEngine.ts(263,11): error TS2339: Property 'structure' does not exist on type 'StructuredPleadingDraft'.
+src/lib/compliance/pleadingComplianceEngine.ts(279,7): error TS2367: This comparison appears to be unintentional because the types 'RequirementLevel' and '"UNVERIFIED"' have no overlap.
+src/lib/compliance/pleadingComplianceEngine.ts(280,7): error TS2367: This comparison appears to be unintentional because the types 'RequirementLevel' and '"RECOMMENDED_CANDIDATE"' have no overlap.
+src/lib/compliance/pleadingComplianceEngine.ts(305,63): error TS2339: Property 'ruleIds' does not exist on type 'DraftSection'.
+src/lib/compliance/pleadingComplianceEngine.ts(315,36): error TS2339: Property 'structure' does not exist on type 'StructuredPleadingDraft'.
+src/lib/compliance/pleadingComplianceEngine.ts(320,15): error TS2339: Property 'sectionType' does not exist on type 'DraftSection'.
+src/lib/compliance/pleadingComplianceEngine.ts(321,16): error TS2339: Property 'requirementLevels' does not exist on type 'DraftSection'.
+src/lib/compliance/pleadingComplianceEngine.ts(323,23): error TS2339: Property 'ruleIds' does not exist on type 'DraftSection'.
+src/lib/compliance/pleadingComplianceEngine.ts(323,49): error TS2339: Property 'ruleIds' does not exist on type 'DraftSection'.
+src/lib/exportReport.ts(37,13): error TS2339: Property 'citations' does not exist on type 'LegalWorkflowState'.
+src/lib/exportReport.ts(37,32): error TS2339: Property 'citations' does not exist on type 'LegalWorkflowState'.
+src/lib/exportReport.ts(39,11): error TS2339: Property 'citations' does not exist on type 'LegalWorkflowState'.
+src/lib/exportReport.ts(99,11): error TS2339: Property 'citations' does not exist on type 'LegalWorkflowState'.
+src/lib/exportReport.ts(99,30): error TS2339: Property 'citations' does not exist on type 'LegalWorkflowState'.
+src/lib/exportReport.ts(100,13): error TS2339: Property 'citations' does not exist on type 'LegalWorkflowState'.
+src/lib/finalGate/pleadingFinalGate.test.ts(10,39): error TS2307: Cannot find module '../revision/pleadingRevision' or its corresponding type declarations.
+src/lib/finalGate/pleadingFinalGate.test.ts(46,70): error TS2322: Type '{ id: string; version: string; caseType: string; supportedPleadingTypes: string[]; formatProfileId: string; sourceAuthority: string; sourceReference: string; verificationStatus: string; rules: { ...; }[]; }' is not assignable to type 'PleadingRuleProfile'.
+  Types of property 'rules' are incompatible.
+    Type '{ sourceReferences: any[]; }[]' is not assignable to type 'ContentRule[]'.
+      Type '{ sourceReferences: any[]; }' is missing the following properties from type 'ContentRule': id, level, appliesTo, targetSection, description
+src/lib/finalGate/pleadingFinalGate.test.ts(83,5): error TS2322: Type '{ id: string; version: string; caseType: string; supportedPleadingTypes: string[]; formatProfileId: string; sourceAuthority: string; sourceReference: string; verificationStatus: string; rules: { ...; }[]; }' is not assignable to type 'PleadingRuleProfile'.
+  Types of property 'rules' are incompatible.
+    Type '{ sourceReferences: any[]; }[]' is not assignable to type 'ContentRule[]'.
+      Type '{ sourceReferences: any[]; }' is missing the following properties from type 'ContentRule': id, level, appliesTo, targetSection, description
+src/lib/finalGate/pleadingFinalGate.ts(6,3): error TS2305: Module '"../../types/compliance"' has no exported member 'FinalDeliveryAuditItem'.
+src/lib/finalGate/pleadingFinalGate.ts(7,3): error TS2305: Module '"../../types/compliance"' has no exported member 'FinalGateBlocker'.
+src/lib/finalGate/pleadingFinalGate.ts(8,3): error TS2305: Module '"../../types/compliance"' has no exported member 'FinalGateReport'.
+src/lib/finalGate/pleadingFinalGate.ts(9,3): error TS2305: Module '"../../types/compliance"' has no exported member 'HumanEditRecord'.
+src/lib/finalGate/pleadingFinalGate.ts(10,3): error TS2305: Module '"../../types/compliance"' has no exported member 'HumanOverride'.
+src/lib/finalGate/pleadingFinalGate.ts(11,3): error TS2305: Module '"../../types/compliance"' has no exported member 'IndependentReReviewReport'.
+src/lib/finalGate/pleadingFinalGate.ts(13,3): error TS2305: Module '"../../types/compliance"' has no exported member 'PleadingRevisionRecord'.
+src/lib/finalGate/pleadingFinalGate.ts(135,26): error TS2339: Property 'severity' does not exist on type 'MissingInput'.
+src/lib/finalGate/pleadingFinalGate.ts(135,59): error TS2339: Property 'severity' does not exist on type 'MissingInput'.
+src/lib/finalGate/pleadingFinalGate.ts(135,95): error TS2339: Property 'sourceRequirement' does not exist on type 'MissingInput'.
+src/lib/finalGate/pleadingFinalGate.ts(135,141): error TS2339: Property 'sourceRequirement' does not exist on type 'MissingInput'.
+src/lib/finalGate/pleadingFinalGate.ts(137,78): error TS2339: Property 'sourceRequirement' does not exist on type 'MissingInput'.
+src/lib/finalGate/pleadingFinalGate.ts(137,119): error TS2339: Property 'requiredFor' does not exist on type 'MissingInput'.
+src/lib/finalGate/pleadingFinalGate.ts(140,21): error TS2339: Property 'reason' does not exist on type 'MissingInput'.
+src/lib/finalGate/pleadingFinalGate.ts(141,30): error TS2339: Property 'category' does not exist on type 'MissingInput'.
+src/lib/finalGate/pleadingFinalGate.ts(212,49): error TS2339: Property 'pleadingType' does not exist on type 'StructuredPleadingDraft'.
+src/lib/finalGate/pleadingFinalGate.ts(212,76): error TS2339: Property 'pleadingType' does not exist on type 'StructuredPleadingDraft'.
+src/lib/finalGate/pleadingFinalGate.ts(213,52): error TS2339: Property 'structure' does not exist on type 'StructuredPleadingDraft'.
+src/lib/finalGate/pleadingFinalGate.ts(214,29): error TS2339: Property 'caseType' does not exist on type 'StructuredPleadingDraft'.
+src/lib/finalGate/pleadingFinalGate.ts(214,65): error TS2339: Property 'pleadingType' does not exist on type 'StructuredPleadingDraft'.
+src/lib/generatedDocumentPipeline.ts(1,970): error TS2339: Property 'verify' does not exist on type 'never'.
+src/lib/generatedDocumentPipeline.ts(1,1005): error TS2339: Property 'verify' does not exist on type 'never'.
+src/lib/generatedDocumentPipeline.ts(1,1056): error TS2339: Property 'allowedCitations' does not exist on type 'never'.
+src/lib/generatedDocumentPipeline.ts(1,1109): error TS2339: Property 'strictAllowedOnly' does not exist on type 'never'.
+src/lib/generator/civilPleadingGenerator.test.ts(51,42): error TS2339: Property 'structure' does not exist on type 'StructuredPleadingDraft'.
+src/lib/generator/civilPleadingGenerator.test.ts(66,18): error TS2339: Property 'structure' does not exist on type 'StructuredPleadingDraft'.
+src/lib/generator/civilPleadingGenerator.test.ts(107,51): error TS2339: Property 'sourceRequirement' does not exist on type 'MissingInput'.
+src/lib/generator/civilPleadingGenerator.test.ts(123,19): error TS2339: Property 'structure' does not exist on type 'StructuredPleadingDraft'.
+src/lib/generator/civilPleadingGenerator.test.ts(166,67): error TS2339: Property 'sourceRequirement' does not exist on type 'MissingInput'.
+src/lib/generator/civilPleadingGenerator.test.ts(186,15): error TS2353: Object literal may only specify known properties, and 'serviceAddress' does not exist in type '{ requested?: boolean; actualAddressStorage?: string; }'.
+src/lib/generator/civilPleadingGenerator.test.ts(251,7): error TS2739: Type '{ sourceReferences: any[]; }' is missing the following properties from type 'ContentRule': id, level, appliesTo, targetSection, description
+src/lib/generator/civilPleadingGenerator.test.ts(252,7): error TS2322: Type '{ sourceReferences: any[]; } | { id: string; basis: string; description: string; level: RequirementLevel; appliesTo: string[]; targetSection: string; }' is not assignable to type 'ContentRule'.
+  Type '{ sourceReferences: any[]; }' is missing the following properties from type 'ContentRule': id, level, appliesTo, targetSection, description
+src/lib/generator/civilPleadingGenerator.test.ts(269,58): error TS2345: Argument of type '{ verificationStatus: "NOT_APPROVED"; id: string; version: string; caseType: string; supportedPleadingTypes: string[]; formatProfileId: string; sourceAuthority: string; sourceReference: string; rules: { ...; }[]; }' is not assignable to parameter of type 'PleadingRuleProfile'.
+  Types of property 'rules' are incompatible.
+    Type '{ sourceReferences: any[]; }[]' is not assignable to type 'ContentRule[]'.
+      Type '{ sourceReferences: any[]; }' is missing the following properties from type 'ContentRule': id, level, appliesTo, targetSection, description
+src/lib/generator/civilPleadingGenerator.test.ts(277,7): error TS2739: Type '{ sourceReferences: any[]; }' is missing the following properties from type 'ContentRule': id, level, appliesTo, targetSection, description
+src/lib/generator/civilPleadingGenerator.test.ts(278,7): error TS2739: Type '{ sourceReferences: any[]; }' is missing the following properties from type 'ContentRule': id, level, appliesTo, targetSection, description
+src/lib/generator/civilPleadingGenerator.test.ts(279,7): error TS2322: Type '{ sourceReferences: any[]; } | { id: string; basis: string; description: string; level: "REQUIRED"; appliesTo: string[]; targetSection: string; }' is not assignable to type 'ContentRule'.
+  Type '{ sourceReferences: any[]; }' is missing the following properties from type 'ContentRule': id, level, appliesTo, targetSection, description
+src/lib/generator/civilPleadingGenerator.test.ts(297,18): error TS2339: Property 'omittedSectionIds' does not exist on type 'StructuredPleadingDraft'.
+src/lib/generator/civilPleadingGenerator.test.ts(302,7): error TS2345: Argument of type '({ sourceReferences: any[]; } | { description: string; sourceReferences: any[]; })[]' is not assignable to parameter of type 'ContentRule[]'.
+  Type '{ sourceReferences: any[]; } | { description: string; sourceReferences: any[]; }' is not assignable to type 'ContentRule'.
+    Type '{ sourceReferences: any[]; }' is missing the following properties from type 'ContentRule': id, level, appliesTo, targetSection, description
+src/lib/generator/civilPleadingGenerator.test.ts(303,14): error TS2339: Property 'id' does not exist on type '{ sourceReferences: any[]; }'.
+src/lib/generator/civilPleadingGenerator.test.ts(318,19): error TS2339: Property 'legalReferencesUsed' does not exist on type 'StructuredPleadingDraft'.
+src/lib/generator/civilPleadingGenerator.ts(80,28): error TS2339: Property 'publicDocumentAddress' does not exist on type '{ requested?: boolean; actualAddressStorage?: string; }'.
+src/lib/generator/civilPleadingGenerator.ts(80,70): error TS2339: Property 'serviceAddress' does not exist on type '{ requested?: boolean; actualAddressStorage?: string; }'.
+src/lib/generator/civilPleadingGenerator.ts(82,50): error TS2339: Property 'publicDocumentAddress' does not exist on type '{ requested?: boolean; actualAddressStorage?: string; }'.
+src/lib/generator/civilPleadingGenerator.ts(208,38): error TS2339: Property 'category' does not exist on type 'MissingInput'.
+src/lib/generator/civilPleadingGenerator.ts(209,26): error TS2339: Property 'severity' does not exist on type 'MissingInput'.
+src/lib/generator/civilPleadingGenerator.ts(212,19): error TS2353: Object literal may only specify known properties, and 'reason' does not exist in type 'MissingInput'.
+src/lib/generator/civilPleadingGenerator.ts(384,14): error TS2339: Property 'pleadingType' does not exist on type 'PleadingRuleProfile'.
+src/lib/generator/civilPleadingGenerator.ts(384,52): error TS2339: Property 'pleadingType' does not exist on type 'PleadingRuleProfile'.
+src/lib/generator/civilPleadingGenerator.ts(455,5): error TS2322: Type '{ id: string; sectionType: string; title: string; ruleIds: string[]; requirementLevels: RequirementLevel[]; }[]' is not assignable to type 'PleadingStructureSection[]'.
+  Property 'required' is missing in type '{ id: string; sectionType: string; title: string; ruleIds: string[]; requirementLevels: RequirementLevel[]; }' but required in type 'PleadingStructureSection'.
+src/lib/generator/civilPleadingGenerator.ts(492,9): error TS2367: This comparison appears to be unintentional because the types 'RequirementLevel' and '"UNVERIFIED"' have no overlap.
+src/lib/generator/civilPleadingGenerator.ts(492,40): error TS2367: This comparison appears to be unintentional because the types 'RequirementLevel' and '"RECOMMENDED_CANDIDATE"' have no overlap.
+src/lib/generator/civilPleadingGenerator.ts(525,3): error TS2322: Type '{ id: string; version: string; caseType: string; supportedPleadingTypes: string[]; formatProfileId: string; sourceAuthority: string; sourceReference: string; verificationStatus: string; rules: { ...; }[]; }' is not assignable to type 'PleadingRuleProfile'.
+  Types of property 'rules' are incompatible.
+    Type '{ sourceReferences: any[]; }[]' is not assignable to type 'ContentRule[]'.
+      Type '{ sourceReferences: any[]; }' is missing the following properties from type 'ContentRule': id, level, appliesTo, targetSection, description
+src/lib/generator/civilPleadingGenerator.ts(551,5): error TS2353: Object literal may only specify known properties, and 'caseType' does not exist in type 'StructuredPleadingDraft'.
+src/lib/generator/civilPleadingGenerator.ts(574,22): error TS2339: Property 'severity' does not exist on type 'MissingInput'.
+src/lib/reviewer/pleadingReviewer.ts(1,5839): error TS2554: Expected 7-8 arguments, but got 5.
+src/lib/reviewer/pleadingReviewer.ts(1,6738): error TS2554: Expected 7-8 arguments, but got 5.
+src/lib/reviewer/pleadingReviewer.ts(1,7948): error TS2554: Expected 7-8 arguments, but got 5.
+src/lib/reviewer/pleadingReviewer.ts(1,8890): error TS2554: Expected 7-8 arguments, but got 6.
+src/lib/reviewer/pleadingReviewer.ts(1,17767): error TS2554: Expected 7-8 arguments, but got 5.
+src/lib/rules/civilPleadingRuleProfile.ts(1,8848): error TS2339: Property 'effectiveDate' does not exist on type '{ id: string; version: string; caseType: string; supportedPleadingTypes: string[]; formatProfileId: string; sourceAuthority: string; sourceReference: string; verificationStatus: string; rules: { ...; }[]; }'.
+src/lib/rules/courtPleadingRuleProfiles.ts(1,2570): error TS2339: Property 'id' does not exist on type '{ sourceReferences: any[]; }'.
+src/lib/rules/courtPleadingRuleProfiles.ts(1,2646): error TS2339: Property 'basis' does not exist on type '{ sourceReferences: any[]; }'.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,3089): error TS2339: Property 'id' does not exist on type '{ sourceReferences: any[]; }'.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,3123): error TS2339: Property 'id' does not exist on type '{ sourceReferences: any[]; }'.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,3888): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,4105): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,4431): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,5061): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,5307): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,5681): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,5956): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,6214): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,6502): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,7113): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,7360): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,7638): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,7966): error TS2554: Expected 9 arguments, but got 8.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,8628): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,8973): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,9258): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,9554): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,9860): error TS2554: Expected 9 arguments, but got 8.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,10117): error TS2554: Expected 9 arguments, but got 8.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,10421): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,10606): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,11082): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,11287): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,11500): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,11924): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,12201): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,12530): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,12850): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,13235): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,13426): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,13661): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,13880): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,14090): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,14270): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,14455): error TS2554: Expected 9 arguments, but got 8.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,14944): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,15257): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,15535): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,15733): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,16000): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,16273): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,16676): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,16921): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,17192): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,17560): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,17803): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,18031): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,18250): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,18427): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,18621): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,19095): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,19308): error TS2554: Expected 9 arguments, but got 7.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,19522): error TS2554: Expected 9 arguments, but got 8.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,19764): error TS2554: Expected 9 arguments, but got 8.
+src/lib/rules/proceduralPleadingRuleProfiles.ts(1,20022): error TS2554: Expected 9 arguments, but got 7.
