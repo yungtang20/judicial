@@ -77,7 +77,7 @@ function parseInterpretationQuery(query: string): Record<string, unknown> | null
 
 /** 法條：「民法 184 條」「刑法 10 條」 */
 function parseRegulationQuery(query: string): Record<string, unknown> | null {
-  const m = toAscii(query).match(/([\u4e00-\u9fff]{2,6}?法)\s*(?:第\s*)?(\d+)\s*條/);
+  const m = toAscii(query).match(/([\u4e00-\u9fff]{1,6}?法)\s*(?:第\s*)?(\d+)\s*條/);
   if (!m) return null;
   return { law_name: m[1], article_no: Number(m[2]) };
 }
