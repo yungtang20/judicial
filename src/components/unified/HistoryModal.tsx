@@ -51,8 +51,19 @@ export const HistoryModal: React.FC<HistoryModalProps> = (props) => {
               historyList.map((record) => (
                 <div
                   key={record.id}
-                  className="flex items-center justify-between p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/50 cursor-pointer transition-colors group"
+                  // 這裡原本是純 div onClick，沒有 role、tabIndex 與鍵盤處理，
+                  // 鍵盤與螢幕閱讀器使用者完全無法還原歷史案件。
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`還原分析記錄：${record.title}`}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      loadFromHistory(record);
+                    }
+                  }}
                   onClick={() => loadFromHistory(record)}
+                  className="flex items-center justify-between p-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/50 cursor-pointer transition-colors group focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                   <div className="flex-1 min-w-0 pr-3">
                     <p className="text-sm font-semibold text-slate-200 truncate">{record.title}</p>

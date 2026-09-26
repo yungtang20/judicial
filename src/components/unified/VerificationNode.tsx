@@ -22,7 +22,11 @@ export const VerificationNode: React.FC<VerificationNodeProps> = (props) => {
       {/* 節點 6 標頭：極簡條列化 */}
       <div
         className="px-5 py-3.5 flex items-center justify-between cursor-pointer select-none bg-slate-900/50 hover:bg-slate-900/80 transition-colors"
-        onClick={() => setIsNode6Open((prev: boolean) => !prev)}
+        role="button"
+              tabIndex={0}
+              aria-label="展開或收合驗證節點"
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIsNode6Open((prev: boolean) => !prev); } }}
+              onClick={() => setIsNode6Open((prev: boolean) => !prev)}
       >
         <div className="flex items-center gap-2.5">
           <span className={`text-xs px-2 py-0.5 rounded font-bold ${isPass ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'}`}>

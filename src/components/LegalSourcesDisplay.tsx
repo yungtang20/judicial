@@ -22,8 +22,12 @@ export function LegalSourcesDisplay({ sources, isExternal, statusMessage, allowe
   return (
     <div className={`mt-4 border rounded-xl overflow-hidden ${isDark ? 'border-slate-800 bg-slate-950 text-slate-200' : 'border-[var(--color-border-subtle)] bg-[var(--color-surface-raised)] text-[var(--color-text-primary)]'}`}>
       <div 
-        className={`px-4 py-3 border-b flex items-center justify-between cursor-pointer transition-colors ${isDark ? 'bg-slate-900 border-slate-800 hover:bg-slate-800' : 'bg-[var(--color-surface-overlay)] border-[var(--color-border-subtle)] hover:bg-[var(--color-surface-raised)]'}`}
-        onClick={() => setIsExpanded(!isExpanded)}
+        className={`px-4 py-3 border-b flex items-center justify-between cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDark ? 'bg-slate-900 border-slate-800 hover:bg-slate-800' : 'bg-[var(--color-surface-overlay)] border-[var(--color-border-subtle)] hover:bg-[var(--color-surface-raised)]'}`}
+        role="button"
+              tabIndex={0}
+              aria-label="展開或收合法律來源清單"
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIsExpanded(!isExpanded); } }}
+              onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center gap-3">
           <div className={`p-1.5 rounded-lg ${isExternal ? (isDark ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-100 text-[var(--color-status-info)]') : (isDark ? 'bg-amber-900/30 text-amber-400' : 'bg-amber-100 text-amber-700')}`}>

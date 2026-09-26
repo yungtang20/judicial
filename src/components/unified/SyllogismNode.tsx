@@ -29,7 +29,11 @@ export const SyllogismNode: React.FC<SyllogismNodeProps> = (props) => {
       {/* 節點 5 標頭列：極簡標題，操作按鈕集合 */}
       <div
         className="px-5 py-3.5 flex items-center justify-between cursor-pointer select-none bg-slate-900/50 hover:bg-slate-900/80 transition-colors"
-        onClick={() => setIsNode5Open((prev: boolean) => !prev)}
+        role="button"
+              tabIndex={0}
+              aria-label="展開或收合三段論分析節點"
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIsNode5Open((prev: boolean) => !prev); } }}
+              onClick={() => setIsNode5Open((prev: boolean) => !prev)}
       >
         <div className="flex items-center gap-2.5">
           <div className="flex items-center gap-2">

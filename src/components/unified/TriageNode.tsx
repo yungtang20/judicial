@@ -63,7 +63,11 @@ export const TriageNode: React.FC<TriageNodeProps> = (props) => {
         {workflowState?.router && (
           <div className="p-4 rounded-xl bg-[var(--color-surface-raised)] border border-slate-800 space-y-3 transition-all">
             <div
-              className="flex items-center justify-between cursor-pointer select-none"
+              className="flex items-center justify-between cursor-pointer select-none focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              role="button"
+              tabIndex={0}
+              aria-label="展開或收合案件分流節點"
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIsNode2Open(prev => !prev); } }}
               onClick={() => setIsNode2Open(prev => !prev)}
             >
               <div className="flex items-center gap-2">
