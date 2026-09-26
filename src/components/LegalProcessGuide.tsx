@@ -33,6 +33,7 @@ import {
 import { RouterEvaluationResult } from '../prompts/legalProcessPrompts';
 import { fetchWithAuth } from '../lib/apiClient';
 import type { LegacyToolSelectionData } from '../types/navigation';
+import { extractIncidentDate, isWithinForensicWindow } from '../lib/forensicGuidance';
 
 interface LegalProcessGuideProps {
   onNavigateToTool?: (toolId: string, subTab?: string, data?: LegacyToolSelectionData) => void;
@@ -54,6 +55,11 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
 
   // 3-Node AI 狀態管理
   const [routerResult, setRouterResult] = useState<RouterEvaluationResult | null>(null);
+  // 依使用者填寫的事實描述推定採證保存時效；抽取不到日期時採保守（已過期）表述。
+  const forensicWithinWindow = useMemo(
+    () => isWithinForensicWindow(extractIncidentDate(narrative).date),
+    [narrative]
+  );
   const [isEvaluatingRouter, setIsEvaluatingRouter] = useState<boolean>(false);
   const [questioningResult, setQuestioningResult] = useState<{
     rawMessage: string;
@@ -483,7 +489,11 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
                   重要警示：偵測到涉及妨害性自主或家庭暴力關鍵情節
                 </div>
                 <p className="leading-relaxed text-slate-300">
-                  此類案件依法享有特殊保護程序。若身體受有侵害，請留意<strong>72小時內避免沐浴洗漱更衣</strong>，並盡速至醫療院所進行驗傷採證；如目前有人身安全危險，請立刻尋求警察到場或致電 113 專線。
+                  此類案件依法享有特殊保護程序。
+                  {forensicWithinWindow
+                    ? <>若身體受有侵害，請留意<strong>72小時內避免沐浴洗漱更衣</strong>，並盡速至醫療院所進行驗傷採證。</>
+                    : <>採證保存時效可能已過，請仍以保存衣物與相關物品為宜，並至醫療院所取得診斷證明書；後續請以數位事證、通訊紀錄與證人陳述為主軸。</>}
+                  如目前有人身安全危險，請立刻尋求警察到場或致電 113 專線。
                 </p>
               </div>
             )}
