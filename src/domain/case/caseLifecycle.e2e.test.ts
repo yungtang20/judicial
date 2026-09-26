@@ -3,14 +3,63 @@ import { generateVerifiedDocument } from '../../lib/generatedDocumentPipeline';
 import { canTransitionCase } from './workflow';
 import { createServer } from 'node:http';
 import { createExpressApp } from '../../../server/index';
+import { useCaseStore } from '../../store/useCaseStore';
+import { canonicalizeRoute } from '../../types/navigation';
+import { createInitialWorkflowState } from '../../lib/workflow/unifiedStateGraph';
 
 describe('case lifecycle flow', () => {
-  it('runs ingest through verified document generation and human gate prerequisites', async () => {
+  it('runs ingest through canonical case transitions, document approval, and human gate', async () => {
     const stages = ['INGEST', 'DEIDENTIFIED', 'TRIAGED', 'ANALYZED', 'RETRIEVED', 'DRAFTED', 'VERIFIED', 'HUMAN_APPROVED'] as const;
-    stages.slice(0, -1).forEach((stage, index) => expect(canTransitionCase(stage, stages[index + 1])).toBe(true));
+    useCaseStore.getState().resetCase();
+    stages.slice(0, -1).forEach((stage, index) => {
+      expect(canTransitionCase(stage, stages[index + 1])).toBe(true);
+      useCaseStore.getState().transitionStage(stages[index + 1]);
+    });
     const result = await generateVerifiedDocument(() => '依民法第184條第1項前段規定，請求損害賠償。');
     expect(result.antiGhostVerification.verificationPassed).toBe(true);
-    expect(result.documentText).toContain('民法第184條');
+    useCaseStore.getState().addDocument({
+      id: 'lifecycle-document',
+      kind: 'PLEADING',
+      title: '測試書狀',
+      text: result.documentText,
+      status: 'VERIFIED',
+      sourceTool: 'lifecycle-e2e',
+      createdAt: new Date().toISOString(),
+      verification: result.antiGhostVerification
+    });
+    useCaseStore.getState().confirmDocument('lifecycle-document', '人工確認完成');
+    const active = useCaseStore.getState().cases['active-case'];
+    expect(active.workflowStage).toBe('HUMAN_APPROVED');
+    expect(active.approvals).toEqual(expect.arrayContaining([expect.objectContaining({ artifactId: 'lifecycle-document' })]));
+  });
+
+  it('switches canonical case state while preserving prior artifacts, and clears them only on reset', () => {
+    const first = createInitialWorkflowState('案件 A');
+    first.id = 'workflow-a';
+    first.currentStep = 'COMPLETED';
+    first.router = { domain: '民事', chapter: '債', cause: '借貸', is_sensitive: false, is_complete: true, missing_elements: [] };
+    useCaseStore.getState().applyUnifiedWorkflow(first);
+    useCaseStore.getState().updateIssues([{ id: 'a', title: 'A 爭點', originalHolding: '', appealArgument: '', legalBasis: '', legalStrength: 'NEED_SUPPLEMENT' }]);
+
+    const second = createInitialWorkflowState('案件 B');
+    second.id = 'workflow-b';
+    second.router = { domain: '民事', chapter: '債', cause: '租賃', is_sensitive: false, is_complete: true, missing_elements: [] };
+    useCaseStore.getState().applyUnifiedWorkflow(second);
+
+    const active = useCaseStore.getState().cases['active-case'];
+    expect(active.facts).toBe('案件 B');
+    expect(active.workflowStateId).toBe('workflow-b');
+    // 切換案件不得無預警地刪除前一案的爭點；清除只能由使用者的明確動作觸發。
+    expect(active.issues).toEqual([expect.objectContaining({ id: 'a', title: 'A 爭點' })]);
+
+    useCaseStore.getState().resetCase();
+    expect(useCaseStore.getState().cases['active-case'].issues).toEqual([]);
+    const handoff = canonicalizeRoute('litigation', 'issues', {
+      facts: '案件 B',
+      issuesSummary: '租賃爭點',
+      sourceTool: 'unified',
+    }).handoff;
+    expect(handoff).toMatchObject({ facts: '案件 B', issuesSummary: '租賃爭點', sourceTool: 'unified' });
   });
 
   it('rejects an unread TLR citation at the real appeal and toolbox routes', async () => {

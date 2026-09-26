@@ -18,9 +18,10 @@
     "lint": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "vitest run src/domain/case/caseLifecycle.e2e.test.ts",
+    "test:ui:e2e": "playwright test",
     "test:coverage": "vitest run --coverage",
     "test:eval": "vitest run src/lib/legalGovernance.test.ts",
-    "test:ssrf": "node test-ssrf.cjs",
+    "test:ssrf": "tsx scripts/verifySsrf.ts",
     "prepare": "husky"
   },
   "dependencies": {
@@ -41,6 +42,7 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",

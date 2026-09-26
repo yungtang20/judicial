@@ -3,8 +3,10 @@ import { ShieldCheck, CheckCircle2 } from "lucide-react";
 import { AntiGhostBadge } from "../AntiGhostBadge";
 import { LegalSourcesDisplay } from "../LegalSourcesDisplay";
 import { Badge } from "../ui/Badge";
+import type { AppealStepContext } from './appealStepContext';
+import { buildEvidenceTableMarkdown, evidenceTableCells } from '../../lib/caseRowAdapters';
 
-export function AppealStep4({ ctx }: { ctx: any }) {
+export function AppealStep4({ ctx }: { ctx: AppealStepContext }) {
   const [tlrStatus, setTlrStatus] = useState<'loading' | 'enabled' | 'disabled' | 'unknown'>('loading');
 
   useEffect(() => {
@@ -69,7 +71,7 @@ export function AppealStep4({ ctx }: { ctx: any }) {
     tableSubmitter,
     tableSubmitDate,
     issues,
-    setIssues,
+    updateCaseIssues,
     evidences,
     generatedPetition,
     generatedDocumentId,
@@ -91,6 +93,8 @@ export function AppealStep4({ ctx }: { ctx: any }) {
     handleFullVerify,
     handlePrint
   } = ctx;
+  const generatedDocument = activeCase?.documents.find(document => document.id === generatedDocumentId);
+  const isHumanApproved = generatedDocument?.status === 'HUMAN_APPROVED' && Boolean(humanGateNote.trim());
 
   return (
     <>
@@ -129,10 +133,11 @@ export function AppealStep4({ ctx }: { ctx: any }) {
 
               {outputTab === 'petition' ? (
                 <button
+                  disabled={!isHumanApproved}
                   onClick={() => {
-                    navigator.clipboard.writeText(generatedPetition);
+                    if (isHumanApproved) navigator.clipboard.writeText(generatedPetition);
                   }}
-                  className="bg-[var(--color-surface-overlay)] border border-[var(--color-border-strong)] text-[var(--color-text-secondary)] px-3 py-2 rounded text-xs font-bold hover:bg-[var(--color-border-strong)]"
+                  className={`${isHumanApproved ? 'bg-[var(--color-surface-overlay)] border border-[var(--color-border-strong)] text-[var(--color-text-secondary)] hover:bg-[var(--color-border-strong)]' : 'bg-gray-400 cursor-not-allowed'} px-3 py-2 rounded text-xs font-bold`}
                 >
                   📋 複製書狀全文
                 </button>
@@ -150,9 +155,7 @@ export function AppealStep4({ ctx }: { ctx: any }) {
               ) : (
                 <button
                   onClick={() => {
-                    const md = `| 聲調編號 | 證據標的與名稱 | 種類 | 待證事實 | 對應爭點 | 保管機關/占有人 | 調查方法 | 聲請調查必要性(民訴286/刑訴163Ⅱ) | 備註 |\n|---|---|---|---|---|---|---|---|---|\n` +
-                      evidences.map((e) => `| ${e.code} | ${e.target} | ${e.type || '書證'} | ${e.provenFact || '-'} | ${e.relatedIssueTitle || '-'} | ${e.holder || '詳卷'} | ${e.method} | ${e.necessity || '-'} | ${e.note || '-'} |`).join('\n');
-                    navigator.clipboard.writeText(md);
+                    navigator.clipboard.writeText(buildEvidenceTableMarkdown(evidences));
                   }}
                   className="bg-blue-100 border border-blue-300 text-[var(--color-status-info)] px-3 py-2 rounded text-xs font-bold hover:bg-blue-200"
                 >
@@ -161,14 +164,12 @@ export function AppealStep4({ ctx }: { ctx: any }) {
               )}
 
               <button
+                disabled={!isHumanApproved}
                 onClick={() => {
-                  if (isFallbackMode) {
-                    return;
-                  }
-                  handlePrint();
+                  if (isHumanApproved) handlePrint();
                 }}
-                className={`${isFallbackMode ? 'bg-gray-400 cursor-not-allowed' : 'bg-[var(--color-brand-primary)] hover:opacity-90'} text-white px-4 py-2 rounded text-xs font-bold shadow-xs`}
-                title={isFallbackMode ? '示範模式下禁用' : ''}
+                className={`${isHumanApproved ? 'bg-[var(--color-brand-primary)] hover:opacity-90' : 'bg-gray-400 cursor-not-allowed'} text-white px-4 py-2 rounded text-xs font-bold shadow-xs`}
+                title={isHumanApproved ? '' : '請先完成人工查證並記錄查證筆記'}
               >
                 🖨 列印 / 存為 A4 PDF
               </button>
@@ -371,7 +372,7 @@ export function AppealStep4({ ctx }: { ctx: any }) {
                           type="button"
                           onClick={() => {
                             const newVal = i.legalStrength === 'NEED_SUPPLEMENT' ? 'HIGH' : 'NEED_SUPPLEMENT';
-                            setIssues(issues.map(item => item.id === i.id ? { ...item, legalStrength: newVal } : item));
+                            updateCaseIssues(issues.map(item => item.id === i.id ? { ...item, legalStrength: newVal } : item));
                           }}
                           title="點擊切換爭點定位（🎯 重點攻擊 ↔ ⚠️ 需補充證據）"
                           className={`px-2 py-1 rounded text-3xs font-bold transition-all cursor-pointer whitespace-nowrap ${
@@ -421,16 +422,19 @@ export function AppealStep4({ ctx }: { ctx: any }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {evidences.map((e, idx) => (
-                    <tr key={e.id || idx} className="hover:bg-[var(--color-surface-raised)]">
-                      <td className="border border-black p-2 text-center font-bold font-mono text-sm">{e.code || idx + 1}</td>
-                      <td className="border border-black p-2 whitespace-pre-wrap leading-relaxed">{e.relatedIssue || e.relatedIssueTitle || '-'}</td>
-                      <td className="border border-black p-2 whitespace-pre-wrap leading-relaxed font-medium">{e.investigationItem || e.method || '-'}</td>
-                      <td className="border border-black p-2 whitespace-pre-wrap leading-relaxed font-bold">{e.investigationTarget || e.target || '-'}</td>
-                      <td className="border border-black p-2 whitespace-pre-wrap leading-relaxed text-[var(--color-text-primary)]">{e.targetAddress || e.holder || '-'}</td>
-                      <td className="border border-black p-2 whitespace-pre-wrap leading-relaxed">{e.provenFact || '-'}</td>
-                    </tr>
-                  ))}
+                  {evidences.map((e, idx) => {
+                    const cells = evidenceTableCells(e, idx);
+                    return (
+                      <tr key={e.id || idx} className="hover:bg-[var(--color-surface-raised)]">
+                        <td className="border border-black p-2 text-center font-bold font-mono text-sm">{cells.code}</td>
+                        <td className="border border-black p-2 whitespace-pre-wrap leading-relaxed">{cells.relatedIssue}</td>
+                        <td className="border border-black p-2 whitespace-pre-wrap leading-relaxed font-medium">{cells.investigationItem}</td>
+                        <td className="border border-black p-2 whitespace-pre-wrap leading-relaxed font-bold">{cells.investigationTarget}</td>
+                        <td className="border border-black p-2 whitespace-pre-wrap leading-relaxed text-[var(--color-text-primary)]">{cells.targetAddress}</td>
+                        <td className="border border-black p-2 whitespace-pre-wrap leading-relaxed">{cells.provenFact}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

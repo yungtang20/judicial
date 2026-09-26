@@ -26,7 +26,7 @@
 2. npm run test:eval (src/lib/legalGovernance.test.ts)
    ✔ 15 passed (15) - 核心法治治理回歸 100% 保持綠燈
 
-3. npm run test:ssrf (node test-ssrf.cjs)
+3. npm run test:ssrf (tsx scripts/verifySsrf.ts)
    ✔ 21 個高風險網址與 4 個合法網址檢核全部通過
 
 4. 對抗性測試套件 (Adversarial Security Test Suites)

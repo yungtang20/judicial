@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { FinalGateReport } from '../../types/compliance';
 import {
+  assertPleadingDocumentDeliveryAllowed,
   createPleadingDeliveryAuthorization,
   evaluatePleadingDelivery,
   isCourtPleadingToolCategory,
@@ -57,7 +58,6 @@ describe('P9 pleading export gate', () => {
     'CIVIL_TORT_SEXUAL_ASSAULT',
     'CIVIL_PET_DISPUTE',
     'CIVIL_TORT_GENERAL',
-    'UNIVERSAL_AI_PLEADING',
     'WAIVER_OF_INHERITANCE',
     'GUARDIANSHIP_PETITION',
     'ASSISTANCE_PETITION',
@@ -76,7 +76,7 @@ describe('P9 pleading export gate', () => {
       .map(([category]) => category)
       .filter(category => !isCourtPleadingToolCategory(category));
 
-    expect(ungated).toEqual([]);
+    expect(ungated).toEqual(['UNIVERSAL_AI_PLEADING']);
   });
 
   it('blocks every delivery action when P9 authorization is missing', () => {
@@ -137,6 +137,48 @@ describe('P9 pleading export gate', () => {
     await expect(verifyPleadingDeliveryAuthorization(
       'CIVIL_COMPLAINT_GENERAL', authorization, 'RETURN', 'modified document'
     )).resolves.toMatchObject({ allowed: false, code: 'P9_FINAL_GATE_NOT_READY' });
+  });
+
+  it('requires a complete official template binding once a templateId is present', async () => {
+    const base = await createPleadingDeliveryAuthorization(readyReport(), 'approved document');
+    const hash64 = 'b'.repeat(64);
+
+    // 只給 templateId 卻缺少其餘綁定欄位 → 不得放行
+    const incomplete = { ...base, templateId: 'JUDICIAL_CIVIL_TEMPLATE' };
+    expect(evaluatePleadingDelivery('CIVIL_COMPLAINT_GENERAL', incomplete, 'RETURN').allowed).toBe(false);
+
+    // 指紋格式錯誤 → 不得放行
+    const badHash = {
+      ...base,
+      templateId: 'JUDICIAL_CIVIL_TEMPLATE',
+      templateSourceHash: 'not-a-hash',
+      artifactFingerprint: hash64,
+      artifactMimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      artifactFileName: 'pleading.docx'
+    };
+    expect(evaluatePleadingDelivery('CIVIL_COMPLAINT_GENERAL', badHash, 'RETURN').allowed).toBe(false);
+
+    // 綁定完整且指紋合法 → 放行
+    const complete = { ...badHash, templateSourceHash: hash64 };
+    expect(evaluatePleadingDelivery('CIVIL_COMPLAINT_GENERAL', complete, 'RETURN').allowed).toBe(true);
+  });
+
+  it('asserts delivery by throwing on a blocked decision and staying silent when allowed', async () => {
+    const authorization = await createPleadingDeliveryAuthorization(readyReport(), 'approved document');
+
+    await expect(assertPleadingDocumentDeliveryAllowed(
+      'CIVIL_COMPLAINT_GENERAL', authorization, 'RETURN', 'approved document'
+    )).resolves.toBeUndefined();
+
+    // 竄改內容後指紋不符 → 必須丟出帶有閘門代碼的錯誤
+    await expect(assertPleadingDocumentDeliveryAllowed(
+      'CIVIL_COMPLAINT_GENERAL', authorization, 'RETURN', 'tampered document'
+    )).rejects.toThrow(/^P9_FINAL_GATE_/);
+
+    // 缺少授權 → 同樣必須丟出
+    await expect(assertPleadingDocumentDeliveryAllowed(
+      'CIVIL_COMPLAINT_GENERAL', undefined, 'DOWNLOAD_TEXT', 'approved document'
+    )).rejects.toThrow(/^P9_FINAL_GATE_/);
   });
 
   it('does not require the pleading gate for an explicitly non-court document', () => {

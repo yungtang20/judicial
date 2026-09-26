@@ -2,8 +2,13 @@ import React from 'react';
 import { ShieldCheck, CheckCircle2 } from "lucide-react";
 import { AntiGhostBadge } from "../AntiGhostBadge";
 import { LegalSourcesDisplay } from "../LegalSourcesDisplay";
+import type { AppealStepContext } from './appealStepContext';
+import { IssueEditorList } from './IssueEditorList';
+import { issueRowsFromCase, issueRowsToCase } from '../../lib/caseRowAdapters';
+import { useCaseStore } from '../../store/useCaseStore';
 
-export function AppealStep2({ ctx }: { ctx: any }) {
+export function AppealStep2({ ctx }: { ctx: AppealStepContext }) {
+  const updateCaseIssues = useCaseStore(state => state.updateIssues);
   const {
     currentStep,
     setCurrentStep,
@@ -246,140 +251,14 @@ export function AppealStep2({ ctx }: { ctx: any }) {
             </div>
           </div>
 
-          {/* 爭點整理對照表 (司法院與 Karoshibox 標準格式) */}
-          <div className="space-y-3">
-            <div className="flex justify-between items-center border-b pb-2 border-[var(--color-status-warning)]/30">
-              <div>
-                <h3 className="font-bold text-base text-[var(--color-text-primary)] flex items-center gap-2">
-                  <span>📊 【司法院標準 爭點整理對照表】</span>
-                  <span className="text-3xs bg-amber-100 text-[var(--color-status-warning)] border border-amber-300 px-2 py-0.5 rounded font-mono">
-                    已建立 {issues.length} 項爭點
-                  </span>
-                </h3>
-                <p className="text-3xs text-[var(--color-text-muted)] mt-0.5">包含爭點類別、原審認定、我方指摘不服理由、對應證物編號與引用實務法條。</p>
-              </div>
-
-              <button
-                onClick={() => setIssues([...issues, {
-                  id: Date.now().toString(),
-                  issueType: '事實認定瑕疵',
-                  title: `爭點${issues.length + 1}`,
-                  originalHolding: '',
-                  appealArgument: '',
-                  relatedEvidenceCodes: `聲調${issues.length + 1}`,
-                  legalBasis: '',
-                  legalStrength: 'HIGH'
-                }])}
-                className="bg-[var(--color-brand-primary)] text-white px-3 py-1.5 rounded text-xs font-bold hover:opacity-90 flex items-center gap-1 shadow-2xs"
-              >
-                ＋ 新增爭點欄位
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              {issues.map((issue, idx) => (
-                <div key={issue.id} className="p-4 border border-[var(--color-border-strong)] rounded-xl bg-[var(--color-surface-overlay)] relative space-y-3 shadow-2xs">
-                  <div className="flex justify-between items-center bg-[var(--color-surface-raised)] p-2 rounded-lg border border-[var(--color-border-subtle)]">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold bg-amber-600 text-white px-2 py-0.5 rounded font-mono">
-                        爭點 No. {idx + 1}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-2 text-xs">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const newVal = issue.legalStrength === 'NEED_SUPPLEMENT' ? 'HIGH' : 'NEED_SUPPLEMENT';
-                            setIssues(issues.map(i => i.id === issue.id ? { ...i, legalStrength: newVal } : i));
-                          }}
-                          className={`px-2.5 py-1 rounded-lg text-2xs font-bold border transition-colors flex items-center gap-1.5 cursor-pointer ${
-                            issue.legalStrength === 'NEED_SUPPLEMENT'
-                              ? 'bg-[var(--color-status-warning-bg)] text-[var(--color-status-warning)] border-amber-300 hover:bg-amber-100'
-                              : 'bg-[var(--color-status-success-bg)] text-[var(--color-status-success)] border-emerald-300 hover:bg-emerald-100'
-                          }`}
-                        >
-                          {issue.legalStrength === 'NEED_SUPPLEMENT' ? '⚠️ 需補充補強證據' : '🎯 重點攻擊爭點'}
-                          <span className="text-3xs font-normal opacity-75">（點擊切換）</span>
-                        </button>
-                      </div>
-
-                      <button
-                        onClick={() => setIssues(issues.filter(i => i.id !== issue.id))}
-                        className="text-red-500 hover:text-red-700 text-xs font-bold border border-[var(--color-status-danger)]/30 px-2 py-1 rounded bg-[var(--color-status-danger-bg)]"
-                      >
-                        ✖ 刪除
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* 爭點標題與對應證據/法條 */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
-                    <div className="md:col-span-2 space-y-1">
-                      <label className="block text-[var(--color-text-secondary)] font-bold">爭點主題與名稱：</label>
-                      <input
-                        type="text"
-                        value={issue.title}
-                        onChange={e => setIssues(issues.map(i => i.id === issue.id ? { ...i, title: e.target.value } : i))}
-                        className="w-full border font-bold rounded p-2 text-xs bg-[var(--color-surface-overlay)]"
-                        placeholder="例如：原決定補償金額每日折算標準過低，未審酌違法失職情節"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="block text-[var(--color-text-secondary)] font-bold">對應證據編號 & 引用法條：</label>
-                      <div className="grid grid-cols-2 gap-1">
-                        <input
-                          type="text"
-                          value={issue.relatedEvidenceCodes || ''}
-                          onChange={e => setIssues(issues.map(i => i.id === issue.id ? { ...i, relatedEvidenceCodes: e.target.value } : i))}
-                          className="border rounded p-1.5 text-xs"
-                          placeholder="證物編號(聲調一)"
-                        />
-                        <input
-                          type="text"
-                          value={issue.legalBasis || ''}
-                          onChange={e => setIssues(issues.map(i => i.id === issue.id ? { ...i, legalBasis: e.target.value } : i))}
-                          className="border rounded p-1.5 text-xs"
-                          placeholder="法條/判解依據"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 原審認定 vs 我方攻防理由 */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                    <div className="space-y-1">
-                      <label className="block text-[var(--color-text-secondary)] font-bold flex items-center gap-1">
-                        <span>🏛️ 原審判決/原決定認定內容與理由：</span>
-                      </label>
-                      <textarea
-                        value={issue.originalHolding}
-                        onChange={e => setIssues(issues.map(i => i.id === issue.id ? { ...i, originalHolding: e.target.value } : i))}
-                        rows={5}
-                        className="w-full border rounded-lg p-2 text-xs bg-[var(--color-surface-raised)] text-[var(--color-text-primary)]"
-                        placeholder="填寫原審認定理由摘要..."
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="block text-[var(--color-status-info)] font-bold flex items-center gap-1">
-                        <span>⚔️ 我方上訴/覆審指摘不服理由（事實不憑證據、違背經驗法則）：</span>
-                      </label>
-                      <textarea
-                        value={issue.appealArgument}
-                        onChange={e => setIssues(issues.map(i => i.id === issue.id ? { ...i, appealArgument: e.target.value } : i))}
-                        rows={5}
-                        className="w-full border border-[var(--color-status-info)]/30 rounded-lg p-2 text-xs bg-[var(--color-status-info-bg)]/60 text-[var(--color-status-info)] font-medium"
-                        placeholder="詳細填寫指摘原審瑕疵之攻擊攻防主張..."
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <IssueEditorList
+            issues={issueRowsFromCase(issues)}
+            onChange={next => {
+              const canonical = issueRowsToCase(next);
+              setIssues(canonical);
+              updateCaseIssues(canonical);
+            }}
+          />
 
           {/* ⚖️ 權威實務見解檢索與挑選 (第二步) */}
           <div className="space-y-4 pt-4 border-t border-[var(--color-border-subtle)]">

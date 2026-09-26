@@ -2,8 +2,9 @@ import React from 'react';
 import { ShieldCheck, CheckCircle2 } from "lucide-react";
 import { AntiGhostBadge } from "../AntiGhostBadge";
 import { LegalSourcesDisplay } from "../LegalSourcesDisplay";
+import type { AppealStepContext } from './appealStepContext';
 
-export function AppealStep1({ ctx }: { ctx: any }) {
+export function AppealStep1({ ctx }: { ctx: AppealStepContext }) {
   const {
     currentStep,
     rawText,

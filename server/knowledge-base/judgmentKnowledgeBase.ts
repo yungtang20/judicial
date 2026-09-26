@@ -8,37 +8,7 @@ import { LegalSearchSources, LegalSourceItem } from "../../src/lib/twLegalRagCli
 import { defaultEmbedder } from "../services/legalRetrieval.js";
 import { Embedder } from "../../src/ai/embedding/Embedder.js";
 
-// Utility for Cosine Similarity
-function cosineSimilarity(a: number[], b: number[]): number {
-  if (!a || !b || a.length !== b.length || a.length === 0) return 0;
-  let dot = 0;
-  let normA = 0;
-  let normB = 0;
-  for (let i = 0; i < a.length; i++) {
-    dot += a[i] * b[i];
-    normA += a[i] * a[i];
-    normB += b[i] * b[i];
-  }
-  if (normA === 0 || normB === 0) return 0;
-  return dot / (Math.sqrt(normA) * Math.sqrt(normB));
-}
-
-// Basic Tokenizer
-function tokenize(text: string): string[] {
-  if (!text) return [];
-  const clean = text.replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g, " ").trim();
-  const words = clean.split(/\s+/).filter(w => w.length >= 2);
-  const tokenSet = new Set<string>(words);
-
-  for (const word of words) {
-    if (/[\u4e00-\u9fa5]/.test(word)) {
-      for (let i = 0; i < word.length - 1; i++) {
-        tokenSet.add(word.slice(i, i + 2));
-      }
-    }
-  }
-  return Array.from(tokenSet);
-}
+import { cosineSimilarity, tokenizeLegalText } from './retrievalMath.js';
 
 function hasTrustedOfficialVerification(chunk: JudgmentChunk): boolean {
   const verification = chunk.metadata.officialVerification;
@@ -121,7 +91,7 @@ export class JudgmentKnowledgeBase {
     if (!trimmed) return [];
 
     const queryEmbedding = await this.embedder.embed(trimmed);
-    const queryTokens = tokenize(trimmed);
+    const queryTokens = tokenizeLegalText(trimmed);
 
     const scoredResults: HybridJudgmentResult[] = [];
 

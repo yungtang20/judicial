@@ -13,8 +13,8 @@ import {
 } from './taiwanLegalDbClient';
 
 const BAD_TRANSPORT = {
-  command: 'nonexistent-python-for-test',
-  args: ['-m', 'mcp_server.server'],
+  command: process.execPath,
+  args: ['-e', 'process.exit(1)'],
   cwd: undefined
 };
 

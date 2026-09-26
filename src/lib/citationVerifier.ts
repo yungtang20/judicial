@@ -800,14 +800,16 @@ export function verifyLegalCitations(
   const allowedList = options?.allowedCitations?.filter(Boolean) || [];
   const hasAllowedConstraint = allowedList.length > 0;
 
-  const isPrecedentAllowed = (fullMatch: string, year: string, caseWord: string, caseNum: string): boolean => {
+  const precedentKey = (value: string): string => {
+    const normalized = value.normalize('NFKC').replace(/\s+/g, '');
+    const match = normalized.match(/(最高法院|臺灣高等法院|高等法院|[一-龥]{2,12}地方法院|[一-龥]{2,12}行政法院|臺北高等行政法院)(\d{2,4})年(?:度)?(台上大|台上|上|重上|台抗|抗|聲|訴|上訴|行政)字?第(\d+)號/);
+    return match ? `${match[1]}:${match[2]}:${match[3]}:${match[4]}` : '';
+  };
+
+  const isPrecedentAllowed = (fullMatch: string, _year: string, _caseWord: string, _caseNum: string): boolean => {
     if (!hasAllowedConstraint) return false;
-    for (const allowed of allowedList) {
-      if (allowed === fullMatch) return true;
-      if (allowed.includes(fullMatch) || fullMatch.includes(allowed)) return true;
-      if (allowed.includes(year) && allowed.includes(caseWord) && allowed.includes(caseNum)) return true;
-    }
-    return false;
+    const targetKey = precedentKey(fullMatch);
+    return Boolean(targetKey && allowedList.some(allowed => precedentKey(allowed) === targetKey));
   };
 
   const STATUTE_MAX_ARTICLES: Record<string, number> = {
@@ -831,9 +833,9 @@ export function verifyLegalCitations(
     const fullMatch = match[0];
     const lawName = match[1];
     const legalClaim = text.substring(Math.max(0, match.index - 30), match.index).trim();
-    const mainArt = match[2];
-    const subArt = match[3] || match[4];
-    const paraNum = match[5] ? parseInt(match[5], 10) : null;
+    const mainArt = match[2].normalize('NFKC');
+    const subArt = (match[3] || match[4])?.normalize('NFKC');
+    const paraNum = match[5] ? parseInt(match[5].normalize('NFKC'), 10) : null;
 
     const baseKey = subArt ? `${lawName}第${mainArt}條之${subArt}` : `${lawName}第${mainArt}條`;
     const altKey = subArt ? `${lawName}第${mainArt}之${subArt}條` : undefined;
@@ -856,7 +858,7 @@ export function verifyLegalCitations(
           verificationStatus: 'REJECTED',
         correctionSuggestion: `請核對正確條號，我國${lawName}目前最高僅有${maxArticleForLaw}條。`
       });
-    } else if (knownStatute) {
+    } else if (knownStatute && (!options?.strictAllowedOnly || allowedList.some(allowed => allowed.normalize('NFKC').replace(/\s+/g, '') === baseKey.normalize('NFKC').replace(/\s+/g, '') || allowed.normalize('NFKC').replace(/\s+/g, '') === fullMatch.normalize('NFKC').replace(/\s+/g, '')))) {
       if (paraNum && paraNum > knownStatute.maxParagraphs) {
         // Hallucinated paragraph number (e.g., 民事訴訟法第279條第5項)
         results.push({
@@ -907,18 +909,18 @@ export function verifyLegalCitations(
   }
 
   // 2. Scan for Supreme Court Case Citations (e.g. 最高法院111年度台上字第99999號判決)
-  const precedentRegex = /(最高法院|高等法院)([0-9０-９]+)年(?:度)?(台上|上|重上|台抗|抗|聲)字第([0-9０-９]+)號(判決|判例|裁定)/g;
+  const precedentRegex = /(最高法院|臺灣高等法院|高等法院|[一-龥]{2,12}地方法院|[一-龥]{2,12}行政法院|臺北高等行政法院)\s*([0-9０-９]+)\s*年\s*(?:度\s*)?(台上大|台上|上|重上|台抗|抗|聲|訴|上訴|行政)\s*字?\s*第\s*([0-9０-９]+)\s*號\s*(?:(?:民事|刑事|行政)?(?:判決|判例|裁定))?/g;
   while ((match = precedentRegex.exec(text)) !== null) {
     const fullMatch = match[0];
     const court = match[1];
     const legalClaim = text.substring(Math.max(0, match.index - 30), match.index).trim();
-    const year = match[2];
-    const caseWord = match[3];
-    const caseNum = match[4];
+    const year = match[2].normalize('NFKC');
+    const caseWord = match[3].normalize('NFKC');
+    const caseNum = match[4].normalize('NFKC');
 
     // Check if it matches our verified real precedents
-    const foundPrecedent = VERIFIED_REAL_PRECEDENTS.find(p => 
-      p.caseYear === year && p.caseWord === caseWord && p.caseNum === caseNum
+    const foundPrecedent = VERIFIED_REAL_PRECEDENTS.find(p =>
+      precedentKey(p.fullCitation) === precedentKey(fullMatch)
     );
 
     // Check if it matches allowed_citations from RAG retrieval
@@ -935,10 +937,10 @@ export function verifyLegalCitations(
         officialSourceUrl: 'https://judgment.judicial.gov.tw/',
         isGhostOrFake: false,
         hallucinationRisk: 'SAFE_VERIFIED',
-          verificationStatus: 'VERIFIED',
+        verificationStatus: 'VERIFIED',
         officialSnippet: '檢索庫 RAG 檢索核可之實務裁判見解（allowed_citations）。'
       });
-    } else if (foundPrecedent) {
+    } else if (foundPrecedent && (!options?.strictAllowedOnly || allowedByRag)) {
       results.push({
         verified: true,
         citationText: fullMatch,
@@ -949,12 +951,12 @@ export function verifyLegalCitations(
         officialSourceUrl: foundPrecedent.officialJudicialUrl,
         isGhostOrFake: false,
         hallucinationRisk: 'SAFE_VERIFIED',
-          verificationStatus: 'VERIFIED',
+        verificationStatus: 'VERIFIED',
         officialSnippet: foundPrecedent.holdingSummary
       });
     } else if (
       // 本地快取 Fast-Path：若該案號裁判全文曾自司法院或 TLR 成功調閱，確認真實存在
-      Boolean(
+      (!options?.strictAllowedOnly || allowedByRag) && Boolean(
         getCachedData(`tlr_fulltext_${year}${caseWord}${caseNum}`, { namespace: 'tlr_fulltext' }) ||
         getCachedData(`${court}${year}${caseWord}${caseNum}`, { namespace: 'tlr_fulltext' }) ||
         getCachedData(`${year}${caseWord}${caseNum}`, { namespace: 'jdoc' })
@@ -998,9 +1000,57 @@ export function verifyLegalCitations(
 
       if (isSuspicious) {
         // Auto replace in sanitized text to protect the user
-        sanitizedText = sanitizedText.replace(fullMatch, `最高法院穩定裁判見解（參最高法院98年度台上字第1045號裁判意旨）`);
+        sanitizedText = sanitizedText.replaceAll(fullMatch, `最高法院穩定裁判見解（參最高法院98年度台上字第1045號裁判意旨）`);
       }
     }
+  }
+
+  const hasCoveredCitation = (citationText: string): boolean => results.some(result =>
+    result.citationText === citationText ||
+    citationText.includes(result.citationText) ||
+    result.citationText.includes(citationText)
+  );
+
+  const addUnverifiedCitation = (
+    fullMatch: string,
+    type: 'PRECEDENT' | 'STATUTE',
+    matchIndex: number
+  ): void => {
+    if (hasCoveredCitation(fullMatch)) return;
+    results.push({
+      verified: false,
+      citationText: fullMatch,
+      type,
+      legalClaim: text.substring(Math.max(0, matchIndex - 30), matchIndex).trim(),
+      claimSupportStatus: 'NEEDS_REVIEW',
+      officialTitle: fullMatch,
+      officialSourceUrl: type === 'STATUTE' ? 'https://law.moj.gov.tw/' : 'https://judgment.judicial.gov.tw/',
+      isGhostOrFake: false,
+      hallucinationRisk: 'UNVERIFIED',
+      verificationStatus: 'NEEDS_REVIEW'
+    });
+  };
+
+  // 3. Fail closed for citation-like text outside the narrow local recognizers.
+  // An unknown law or court citation must not become a zero-citation document.
+  const genericStatuteRegex = /([一-龥]{2,20}法)第[0-9０-９]+條(?:之[0-9０-９]+)?(?:第[0-9０-９]+項)?(?:第[0-9０-９]+款)?/g;
+  while ((match = genericStatuteRegex.exec(text)) !== null) {
+    addUnverifiedCitation(match[0], 'STATUTE', match.index);
+  }
+  const constitutionalCitationRegex = /(釋字|憲判字|憲訴字)\s*(?:第\s*)?[0-9０-９]+\s*號/g;
+  // 大法官解釋、判決及羈押聲請引用不在裁判資料庫索引內，必須 fail closed.
+  while ((match = constitutionalCitationRegex.exec(text)) !== null) {
+    addUnverifiedCitation(match[0], 'PRECEDENT', match.index);
+  }
+
+  const genericPrecedentRegex = /([一-龥]{2,12}法院)\s*[^，。；\n]{0,20}[0-9０-９]{2,4}\s*年\s*[^，。；\n]{0,20}第\s*[0-9０-９]+\s*號\s*(?:判決|判例|裁定)/g;
+  while ((match = genericPrecedentRegex.exec(text)) !== null) {
+    addUnverifiedCitation(match[0], 'PRECEDENT', match.index);
+  }
+
+  const barePrecedentCitationRegex = /(?:(?:最高法院|高等法院|地方法院|臺灣高等法院|行政法院|臺北高等行政法院)\s*)?[0-9０-９]{2,4}\s*年(?:度)?\s*(?:台上大|台上|上|重上|台抗|抗|聲)[^，。；\n]{0,12}第\s*[0-9０-９]+\s*號(?:\s*(?:民事|刑事)?(?:判決|判例|裁定))?/g;
+  while ((match = barePrecedentCitationRegex.exec(text)) !== null) {
+    addUnverifiedCitation(match[0], 'PRECEDENT', match.index);
   }
 
   const ghostCount = results.filter(r => r.isGhostOrFake).length;

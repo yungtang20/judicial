@@ -6,6 +6,8 @@ import { resolveDocumentTool } from '../../lib/documentSelectionRules';
 import DashboardView from '../dashboard/DashboardView';
 import { apiClient } from '../../lib/apiClient';
 import { generateBundleDocument } from '../../lib/ui/bundleDelivery';
+import { getActiveCase, useCaseStore } from '../../store/useCaseStore';
+import { selectVerifiedDocumentText } from '../../lib/ui/dashboardGenerator';
 import {
   DollarSign, Clock, FileSignature,
   Scale, BookOpen, ShieldAlert, Sparkles, Phone, ArrowRight,
@@ -26,9 +28,12 @@ export const GuideModals: React.FC<GuideModalsProps> = (props) => {
     sourceTab, setSourceTab, isSafetyQuery, filteredScenarios, categories,
     QUICK_TAGS, handleRunAiTriage, handleLaunchScenario, handleSelectTool
   } = props;
+  // 僅採用案件卷內已驗證／已人工核准的產製文件，不使用任何客戶端生成的草稿文字。
+  const caseDocuments = useCaseStore(state => getActiveCase(state).documents);
+  const verifiedDocumentText = selectVerifiedDocumentText(caseDocuments);
 
   const handleBundleGeneration = async (bundleId: string) => {
-    const result = await generateBundleDocument(bundleId, searchQuery, aiTriageResult?.pleadingDraft || '', apiClient.toolboxGenerate, aiTriageResult?.generationParams || {});
+    const result = await generateBundleDocument(bundleId, searchQuery, verifiedDocumentText, apiClient.toolboxGenerate, aiTriageResult?.generationParams || {});
     const link = document.createElement('a');
     link.href = URL.createObjectURL(new Blob([result.documentText], { type: 'text/plain;charset=utf-8' }));
     link.download = `${result.documentTitle || bundleId}.txt`;
@@ -87,7 +92,7 @@ export const GuideModals: React.FC<GuideModalsProps> = (props) => {
               </div>
             ) : aiTriageResult ? (
               <div className="space-y-5 text-xs md:text-sm">
-                <DashboardView result={aiTriageResult} onSelectBundle={handleBundleGeneration} />
+                <DashboardView result={aiTriageResult} onSelectBundle={handleBundleGeneration} documents={caseDocuments} />
                 {/* 敏感案件保護路徑強制提醒 */}
                 {aiTriageResult.protectionNotice && (
                   <div id="triage-sensitive-protection-notice" className="bg-rose-950/80 border border-rose-500/60 text-rose-200 p-6 rounded-xl flex items-start gap-3">
@@ -331,29 +336,6 @@ export const GuideModals: React.FC<GuideModalsProps> = (props) => {
                     </div>
                   </div>
                 )}
-                {/* 自動生成的專屬訴狀草稿預覽 */}
-                {aiTriageResult.pleadingDraft && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
-                        <FileText className="w-3.5 h-3.5" /> AI 即時生成合規起訴/告訴狀草稿
-                      </span>
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(aiTriageResult.pleadingDraft);
-                          setCopiedDraft(true);
-                          setTimeout(() => setCopiedDraft(false), 2000);
-                        }}
-                        className="text-xs text-indigo-300 hover:text-white px-2.5 py-1 rounded-lg bg-indigo-950/80 border border-indigo-800/60 transition-colors"
-                      >
-                        {copiedDraft ? '✓ 已複製到剪貼簿' : '複製完整書狀'}
-                      </button>
-                    </div>
-                    <pre className="p-4 rounded-xl bg-slate-950 border border-slate-800 text-[11px] font-mono text-slate-300 whitespace-pre-wrap max-h-60 overflow-y-auto leading-relaxed">
-                      {aiTriageResult.pleadingDraft}
-                    </pre>
-                  </div>
-                )}
 
           {/* 底部導引與按鈕 */}
           <div className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-800">
@@ -372,10 +354,9 @@ export const GuideModals: React.FC<GuideModalsProps> = (props) => {
               <button
                 onClick={() => {
                   setSelectedCategory(null);
-                  handleSelectTool('legalToolbox', undefined, {
-                    preselectedToolId: 'UNIVERSAL_AI_PLEADING',
-                    prefilledData: { incidentDetails: '' }
-                  });
+                        handleSelectTool("legalToolbox", undefined, {
+                          preselectedToolId: "UNIVERSAL_AI_PLEADING"
+                        });
                 }}
                 className="px-3 py-2 rounded-xl bg-amber-950/60 text-amber-300 border border-amber-800/50 text-[11px] font-semibold hover:bg-amber-900/60 transition-all flex items-center gap-1.5"
               >
@@ -425,9 +406,7 @@ export const GuideModals: React.FC<GuideModalsProps> = (props) => {
                         setShowAiTriageModal(false);
                         handleSelectTool("legalToolbox", undefined, {
                           preselectedToolId: "UNIVERSAL_AI_PLEADING",
-                          prefilledData: {
-                            incidentDetails: searchQuery
-                          }
+                          facts: searchQuery
                         });
                       }}
                       className="px-3 py-2 rounded-xl bg-amber-950/60 text-amber-300 border border-amber-800/50 text-[11px] font-semibold hover:bg-amber-900/60 transition-all flex items-center gap-1.5"
@@ -452,12 +431,10 @@ export const GuideModals: React.FC<GuideModalsProps> = (props) => {
                           sensitive: aiTriageResult.isSensitive
                         });
                         setShowAiTriageModal(false);
-                        handleSelectTool("legalToolbox", undefined, { 
+                        handleSelectTool("legalToolbox", undefined, {
                           preselectedToolId: resolved.toolId,
-                          prefilledData: {
-                            incidentDetails: searchQuery,
-                            pleadingText: aiTriageResult.pleadingDraft
-                          }
+                          facts: searchQuery,
+                          formSeed: { pleadingText: verifiedDocumentText }
                         });
                       }}
                       className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all flex items-center justify-center gap-2"

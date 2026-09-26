@@ -1,87 +1,68 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { AntiGhostBadge } from './AntiGhostBadge';
 import { verifyLegalCitations } from '../lib/services/citationCheck';
 import { getActiveCase, useCaseStore } from '../store/useCaseStore';
+import { issueRowsFromCase, issueRowsToCase, type IssueEditorRow } from '../lib/caseRowAdapters';
+import { AttachmentHeaderFields, type AttachmentHeaderValues } from './appeal/AttachmentHeaderFields';
+import { IssueEditorList } from './appeal/IssueEditorList';
 import { ShieldCheck, CheckCircle2 } from 'lucide-react';
 
-interface FullIssueRow {
-  id: string;
-  title: string;             // 爭點名稱
-  originalHolding: string;   // 原審判決/原決定認定內容
-  appealArgument: string;    // 我方上訴/覆審指摘理由
-  relatedEvidences: string;  // 對應證據編號
-  legalBasis: string;        // 引用法條與實務見解
-  legalStrength: 'HIGH' | 'MEDIUM' | 'NEED_SUPPLEMENT'; // 攻防勝算
+
+interface IssueTableGeneratorProps {
+  initialFacts?: string;
+  initialIssueSummary?: string;
 }
 
-export default function IssueTableGenerator() {
+export default function IssueTableGenerator({ initialFacts, initialIssueSummary }: IssueTableGeneratorProps = {}) {
   const activeCase = useCaseStore(getActiveCase);
   const updateCaseIssues = useCaseStore(s => s.updateIssues);
-  // 0. 案件基本資料
   const todayObj = new Date();
   const todayRoc = `${todayObj.getFullYear() - 1911}年${todayObj.getMonth() + 1}月${todayObj.getDate()}日`;
 
   const [attachmentText, setAttachmentText] = useState('附表一');
-  const [courtName, setCourtName] = useState('臺灣高等法院');
-  const [year, setYear] = useState('112');
-  const [word, setWord] = useState('重上');
-  const [caseNo, setCaseNo] = useState('123');
-  const [appellantName, setAppellantName] = useState('王小明');
-  const [appelleeName, setAppelleeName] = useState('陳大華');
-  const [submitter, setSubmitter] = useState('上訴人 王小明');
+  const [courtName, setCourtName] = useState('');
+  const [year, setYear] = useState('');
+  const [word, setWord] = useState('');
+  const [caseNo, setCaseNo] = useState('');
+  const [appellantName, setAppellantName] = useState('');
+  const [appelleeName, setAppelleeName] = useState('');
+  const [submitter, setSubmitter] = useState('');
   const [submitDate, setSubmitDate] = useState(todayRoc);
 
-  const [issues, setIssues] = useState<FullIssueRow[]>(activeCase.issues?.length ? activeCase.issues?.map(issue => ({
-    id: issue.id,
-    title: issue.title,
-    originalHolding: issue.originalHolding,
-    appealArgument: issue.appealArgument,
-    relatedEvidences: issue.relatedEvidenceCodes || '',
-    legalBasis: issue.legalBasis || '',
-    legalStrength: issue.legalStrength || 'NEED_SUPPLEMENT'
-  })) : [
-    {
-      id: '1',
-      title: '爭點一：兩造間消費借貸關係成立與否及舉證責任分配',
-      originalHolding: '原審判決僅憑原告提出之單方匯款單，即認定兩造間成立消費借貸關係，命被告給付新臺幣100萬元。',
-      appealArgument: '被告已於原審提出通訊軟體對話紀錄，證明該筆匯款實係原告清償過往合夥借款。原審未斟酌該項反證，亦未命原告就借貸意思表示一致負舉證責任，顯有採證違背經驗法則與論理法則之瑕疵。',
-      relatedEvidences: '1, 上證一',
-      legalBasis: '民事訴訟法第277條、最高法院109年度台上字第1820號判決',
-      legalStrength: 'HIGH'
-    }
-  ]);
-
-  const addIssue = () => {
-    const next = [
-      ...issues,
-      {
-        id: Date.now().toString(),
-        title: `爭點${issues.length + 1}：`,
+  const [issues, setIssues] = useState<IssueEditorRow[]>(() => {
+    if (activeCase.issues?.length) return issueRowsFromCase(activeCase.issues);
+    if (initialIssueSummary || initialFacts) {
+      return [{
+        id: '1',
+        issueType: '事實認定瑕疵',
+        title: initialIssueSummary || '待確認爭點',
         originalHolding: '',
-        appealArgument: '',
+        appealArgument: initialFacts || '',
         relatedEvidences: '',
         legalBasis: '',
-        legalStrength: 'HIGH'
-      }
-    ];
-    setIssues(next);
-    updateCaseIssues(next.map(issue => ({ id: issue.id, title: issue.title, originalHolding: issue.originalHolding, appealArgument: issue.appealArgument, relatedEvidenceCodes: issue.relatedEvidences, legalBasis: issue.legalBasis, legalStrength: issue.legalStrength })));
-  };
+        legalStrength: 'NEED_SUPPLEMENT'
+      }];
+    }
+    return [];
+  });
+  useEffect(() => {
+    if ((initialIssueSummary || initialFacts) && activeCase.issues?.length === 0) {
+      updateCaseIssues(issueRowsToCase(issues));
+    }
+  }, [initialIssueSummary, initialFacts]);
 
-  const removeIssue = (id: string) => {
-    const next = issues.filter(i => i.id !== id);
-    setIssues(next);
-    updateCaseIssues(next.map(issue => ({ id: issue.id, title: issue.title, originalHolding: issue.originalHolding, appealArgument: issue.appealArgument, relatedEvidenceCodes: issue.relatedEvidences, legalBasis: issue.legalBasis, legalStrength: issue.legalStrength })));
-  };
-
-  const updateIssue = (id: string, field: keyof FullIssueRow, value: any) => {
-    const next = issues.map(i => i.id === id ? { ...i, [field]: value } : i);
-    setIssues(next);
-    updateCaseIssues(next.map(issue => ({ id: issue.id, title: issue.title, originalHolding: issue.originalHolding, appealArgument: issue.appealArgument, relatedEvidenceCodes: issue.relatedEvidences, legalBasis: issue.legalBasis, legalStrength: issue.legalStrength })));
-  };
 
   const handlePrint = () => {
     window.print();
+  };
+  const updateHeaderField = (field: keyof AttachmentHeaderValues, value: string) => {
+    if (field === 'attachmentText') setAttachmentText(value);
+    if (field === 'courtName') setCourtName(value);
+    if (field === 'year') setYear(value);
+    if (field === 'word') setWord(value);
+    if (field === 'caseNo') setCaseNo(value);
+    if (field === 'submitter') setSubmitter(value);
+    if (field === 'submitDate') setSubmitDate(value);
   };
 
   // Full AI Verification
@@ -134,204 +115,30 @@ export default function IssueTableGenerator() {
           <p className="text-xs text-[var(--color-text-muted)] mt-1">產生司法院標準【爭點整理對照表】（7欄標準格式），釐清原審認定與我方攻擊防禦，方便法官審理。</p>
         </div>
 
-        {/* 0. 案件基本資料 */}
-        <div className="space-y-3 bg-[var(--color-status-warning-bg)] p-4 rounded-xl border border-[var(--color-status-warning)]/30">
-          <div className="font-bold text-sm text-[var(--color-status-warning)] border-b pb-1.5 border-amber-300">
-            0. 案件基本資料（ Karoshibox 標頭設定 ）
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-[var(--color-text-secondary)] mb-1">附件文字</label>
-            <input 
-              type="text" 
-              value={attachmentText} 
-              onChange={e => setAttachmentText(e.target.value)}
-              className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)] font-bold"
-              placeholder="附表一"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
-            <div className="col-span-2">
-              <label className="block font-bold text-[var(--color-text-secondary)] mb-1">法院名稱</label>
-              <input 
-                type="text" 
-                value={courtName} 
-                onChange={e => setCourtName(e.target.value)}
-                className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)]"
-                placeholder="臺灣高等法院"
-              />
-            </div>
-            <div>
-              <label className="block font-bold text-[var(--color-text-secondary)] mb-1">年度</label>
-              <input 
-                type="text" 
-                value={year} 
-                onChange={e => setYear(e.target.value)}
-                className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)] text-center font-mono"
-                placeholder="112"
-              />
-            </div>
-            <div>
-              <label className="block font-bold text-[var(--color-text-secondary)] mb-1">字別</label>
-              <input 
-                type="text" 
-                value={word} 
-                onChange={e => setWord(e.target.value)}
-                className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)] text-center"
-                placeholder="重上"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <div>
-              <label className="block font-bold text-[var(--color-text-secondary)] mb-1">案號</label>
-              <input 
-                type="text" 
-                value={caseNo} 
-                onChange={e => setCaseNo(e.target.value)}
-                className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)] font-mono"
-                placeholder="123"
-              />
-            </div>
-            <div>
-              <label className="block font-bold text-[var(--color-text-secondary)] mb-1">具狀/提出人</label>
-              <input 
-                type="text" 
-                value={submitter} 
-                onChange={e => setSubmitter(e.target.value)}
-                className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)]"
-                placeholder="上訴人 王小明"
-              />
-            </div>
-          </div>
-
+        <AttachmentHeaderFields
+          values={{ attachmentText, courtName, year, word, caseNo, submitter, submitDate }}
+          onChange={updateHeaderField}
+        >
           <div className="grid grid-cols-2 gap-2 text-xs">
             <div>
               <label className="block font-bold text-[var(--color-text-secondary)] mb-1">上訴人/原告</label>
-              <input 
-                type="text" 
-                value={appellantName} 
-                onChange={e => setAppellantName(e.target.value)}
-                className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)]"
-                placeholder="王小明"
-              />
+              <input value={appellantName} onChange={e => setAppellantName(e.target.value)} className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)]" placeholder="王小明" />
             </div>
             <div>
               <label className="block font-bold text-[var(--color-text-secondary)] mb-1">被上訴人/被告</label>
-              <input 
-                type="text" 
-                value={appelleeName} 
-                onChange={e => setAppelleeName(e.target.value)}
-                className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)]"
-                placeholder="陳大華"
-              />
+              <input value={appelleeName} onChange={e => setAppelleeName(e.target.value)} className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)]" placeholder="陳大華" />
             </div>
           </div>
-        </div>
-
-        {/* 1. 爭點列表編輯 */}
+        </AttachmentHeaderFields>
         <div className="space-y-3">
-          <div className="flex justify-between items-center border-b pb-2 border-[var(--color-border-subtle)]">
-            <label className="font-bold text-sm text-[var(--color-text-primary)]">1. 爭點對照資料</label>
-            <span className="text-3xs bg-amber-100 text-[var(--color-status-warning)] px-2 py-0.5 rounded font-mono font-bold">共 {issues.length} 爭點</span>
-          </div>
 
-          <div className="space-y-4">
-            {issues.map((issue, idx) => (
-              <div key={issue.id} className="p-3.5 bg-[var(--color-status-warning-bg)]/30 rounded-xl border border-[var(--color-status-warning)]/30 relative space-y-3">
-                <div className="flex justify-between items-center border-b border-[var(--color-status-warning)]/30 pb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-xs text-[var(--color-status-warning)]">項次 {idx + 1}</span>
-                  </div>
-
-                  <button 
-                    onClick={() => removeIssue(issue.id)}
-                    className="text-red-500 hover:text-red-700 font-bold text-3xs border border-[var(--color-status-danger)]/30 px-2 py-0.5 rounded bg-[var(--color-status-danger-bg)]"
-                  >
-                    ✖ 刪除
-                  </button>
-                </div>
-
-                <div>
-                  <label className="block text-3xs font-bold text-[var(--color-text-secondary)] mb-0.5">爭點名稱與主題</label>
-                  <input 
-                    type="text" 
-                    value={issue.title} 
-                    onChange={e => updateIssue(issue.id, 'title', e.target.value)}
-                    className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)] font-bold"
-                    placeholder="例：爭點一：消費借貸契約之成立與舉證責任"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-3xs font-bold text-[var(--color-text-secondary)] mb-0.5">原審判決/原決定認定內容與理由</label>
-                  <textarea 
-                    value={issue.originalHolding} 
-                    onChange={e => updateIssue(issue.id, 'originalHolding', e.target.value)}
-                    rows={5}
-                    className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)] text-[var(--color-text-primary)]"
-                    placeholder="說明原審如何認定與其判決理由..."
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-3xs font-bold text-[var(--color-text-secondary)] mb-0.5">我方上訴/覆審攻擊與指摘理由</label>
-                  <textarea 
-                    value={issue.appealArgument} 
-                    onChange={e => updateIssue(issue.id, 'appealArgument', e.target.value)}
-                    rows={5}
-                    className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)] font-medium text-[var(--color-status-info)]"
-                    placeholder="說明我方指摘原審之違誤與經驗法則/論理法則瑕疵..."
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div>
-                    <label className="block text-3xs font-bold text-[var(--color-text-secondary)] mb-0.5">對應證據編號</label>
-                    <input 
-                      type="text" 
-                      value={issue.relatedEvidences} 
-                      onChange={e => updateIssue(issue.id, 'relatedEvidences', e.target.value)}
-                      className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)] font-mono"
-                      placeholder="例：1, 上證一"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-3xs font-bold text-[var(--color-text-secondary)] mb-0.5">爭點定位提示</label>
-                    <select
-                      value={issue.legalStrength === 'NEED_SUPPLEMENT' ? 'NEED_SUPPLEMENT' : 'HIGH'}
-                      onChange={e => updateIssue(issue.id, 'legalStrength', e.target.value)}
-                      className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)] font-bold"
-                    >
-                      <option value="HIGH">🎯 重點攻擊 (具充足理由/實務見解)</option>
-                      <option value="NEED_SUPPLEMENT">⚠️ 需補充證據 (建議聲請調查/補提物證)</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-3xs font-bold text-[var(--color-text-secondary)] mb-0.5">引用法條與實務見解/判例</label>
-                  <input 
-                    type="text" 
-                    value={issue.legalBasis} 
-                    onChange={e => updateIssue(issue.id, 'legalBasis', e.target.value)}
-                    className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)]"
-                    placeholder="例：民訴§277、最高法院109年台上字第1820號判決"
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <button 
-            onClick={addIssue}
-            className="w-full py-2 border-2 border-dashed border-amber-600 text-[var(--color-status-warning)] font-bold text-xs rounded-xl hover:bg-[var(--color-status-warning-bg)] transition-all flex justify-center items-center gap-1 mt-3"
-          >
-            ⊕ 新增爭點對照列
-          </button>
+        <IssueEditorList
+          issues={issues}
+          onChange={(next) => {
+            setIssues(next);
+            updateCaseIssues(issueRowsToCase(next));
+          }}
+        />
 
           <div className="flex gap-2 mt-4">
             <button 
@@ -389,7 +196,7 @@ export default function IssueTableGenerator() {
           </div>
 
           <div className="border-2 border-black p-3 text-center font-bold text-base text-black tracking-wider bg-[var(--color-surface-raised)]/30">
-            {courtName || '臺灣高等法院'}{year || '112'}年度{word || '重上'}字第{caseNo || '123'}號爭點整理對照表
+            {courtName}{year}年度{word}字第{caseNo}號爭點整理對照表
           </div>
 
           <div className="grid grid-cols-2 border border-black p-2 font-bold text-xs bg-[var(--color-surface-raised)]/20">

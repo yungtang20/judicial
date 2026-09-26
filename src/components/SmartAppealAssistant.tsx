@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { useSmartAppealAssistant } from '../hooks/useSmartAppealAssistant';
 import { AppealWorkflowContext, useAppealStore } from '../store/useAppealStore';
+import { getActiveCase, useCaseStore } from '../store/useCaseStore';
 
 import { AppealStep1 } from './appeal/AppealStep1';
 import { AppealStep2 } from './appeal/AppealStep2';
@@ -14,15 +15,19 @@ interface SmartAppealAssistantProps {
 
 export default function SmartAppealAssistant({ initialFacts, workflowContext }: SmartAppealAssistantProps) {
   const initializeFromWorkflowContext = useAppealStore(s => s.initializeFromWorkflowContext);
-  const contextFacts = initialFacts || workflowContext?.facts;
+  const activeCase = useCaseStore(getActiveCase);
+  const contextFacts = initialFacts || workflowContext?.facts || activeCase.facts;
 
   useEffect(() => {
-    if (!workflowContext && !initialFacts) return;
     initializeFromWorkflowContext({
       ...workflowContext,
-      ...(contextFacts ? { facts: contextFacts } : {})
+      ...(contextFacts ? { facts: contextFacts } : {}),
+      caseId: activeCase.caseId,
+      workflowStateId: activeCase.workflowStateId,
+      issues: activeCase.issues,
+      evidences: activeCase.evidences
     });
-  }, [contextFacts, initializeFromWorkflowContext, initialFacts, workflowContext?.cause, workflowContext?.domain, workflowContext?.issuesSummary, workflowContext?.scenarioKeywords, workflowContext?.judgmentDeliveryDate]);
+  }, [activeCase.caseId, activeCase.evidences, activeCase.facts, activeCase.issues, activeCase.workflowStateId, contextFacts, initializeFromWorkflowContext, initialFacts, workflowContext?.cause, workflowContext?.domain, workflowContext?.issuesSummary, workflowContext?.scenarioKeywords, workflowContext?.judgmentDeliveryDate]);
 
   const {
     ctx,

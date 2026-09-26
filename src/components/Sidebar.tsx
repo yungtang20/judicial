@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Scale,
   Compass,
@@ -8,6 +8,7 @@ import {
   Gavel,
 } from 'lucide-react';
 import { useToolContext } from '../contexts/ToolContext';
+import { canonicalizeRoute } from '../types/navigation';
 
 interface NavItem {
   id: string;
@@ -55,6 +56,47 @@ const coreEntries: NavItem[] = [
   },
 ];
 
+/** AppRoute.view 與側欄 NavItem.id 的對應，用於計算「常用功能」。 */
+const ROUTE_VIEW_TO_ENTRY_ID: Record<string, string> = {
+  analysis: 'unified',
+  litigation: 'litigation',
+  appeal: 'appeal',
+  'process-guide': 'guide',
+  sdlc: 'sdlc',
+  'agent-chat': 'agentChat',
+  checker: 'checker'
+};
+
+const RECENT_TOOLS_STORAGE_KEY = 'recent_tools';
+const RECENT_ENTRY_LIMIT = 3;
+
+function readRouteView(value: unknown): string | null {
+  if (!value || typeof value !== 'object' || !('route' in value)) return null;
+  const route = value.route;
+  if (!route || typeof route !== 'object' || !('view' in route)) return null;
+  const view = route.view;
+  return typeof view === 'string' ? view : null;
+}
+
+function readRecentEntryIds(): string[] {
+  try {
+    const raw = localStorage.getItem(RECENT_TOOLS_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    const ids: string[] = [];
+    for (const item of parsed) {
+      const view = readRouteView(item);
+      if (!view) continue;
+      const entryId = ROUTE_VIEW_TO_ENTRY_ID[view];
+      if (entryId && !ids.includes(entryId)) ids.push(entryId);
+    }
+    return ids;
+  } catch {
+    return [];
+  }
+}
+
 const moduleColors: Record<string, string> = {
   unified: 'var(--color-module-analysis)',
   litigation: 'var(--color-module-litigation)',
@@ -63,23 +105,31 @@ const moduleColors: Record<string, string> = {
 };
 
 export default function Sidebar() {
-  const { activeTool, initialData, handleSelectTool } = useToolContext();
+  const { route, navigate } = useToolContext();
   const [isOpen, setIsOpen] = useState(false);
-
-  const isActive = (id: string) =>
-    activeTool === id ||
-    (id === 'appeal' && ['appeal', 'smartAppeal', 'appealDeadline'].includes(activeTool)) ||
-    (id === 'litigation' &&
-      ['guide', 'processGuide', 'legalToolbox', 'sdlc', 'agent-chat', 'defenseWorkflow', 'issueTableGenerator', 'evidenceListGenerator'].includes(activeTool)) ||
-    (id === 'checker' && ['docAiChecker', 'judicialOpenData', 'judgmentSearch'].includes(activeTool));
-  const selectedTab = initialData?.initialTab ||
-    (activeTool === 'smartAppeal' ? 'appeal' :
-      (['appeal', 'appealDeadline'].includes(activeTool) ? 'deadline' :
-        (activeTool === 'guide' ? 'guide' : (activeTool === 'litigation' ? 'toolbox' : undefined))));
+  // 最近使用紀錄寫在 localStorage，本身不會觸發 React 重渲染；
+  // 以 route 作為重算依據，讓使用者返回本頁時置頂區塊反映最新狀態。
+  const recentEntries = useMemo(() => {
+    const recentIds = readRecentEntryIds();
+    return recentIds
+      .map(id => coreEntries.find(entry => entry.id === id))
+      .filter((entry): entry is NavItem => entry !== undefined)
+      .slice(0, RECENT_ENTRY_LIMIT);
+  }, [route]);
+  const isActive = (id: string) => {
+    if (id === 'unified') return route.view === 'analysis';
+    if (id === 'appeal') return route.view === 'appeal';
+    if (id === 'litigation') return route.view === 'litigation';
+    if (id === 'checker') return route.view === 'checker';
+    return route.view === id;
+  };
+  const selectedTab = route.view === 'appeal'
+    ? route.section === 'analysis' ? 'appeal' : route.section
+    : route.view === 'litigation' ? route.section : undefined;
 
   const handleNav = (id: string, tab?: string) => {
-    const targetId = id === 'litigation' && tab === 'guide' ? 'guide' : id;
-    handleSelectTool(targetId, targetId === 'guide' ? undefined : tab);
+    const next = canonicalizeRoute(id, tab);
+    navigate(next.route);
     setIsOpen(false);
   };
 
@@ -140,6 +190,35 @@ export default function Sidebar() {
             核心功能
           </div>
         </div>
+
+        {/* 常用功能置頂：依 localStorage 的最近使用紀錄排序，最多顯示 3 項。
+            側欄共 8 大類全平鋪時，使用者需反覆捲動才能找到上回用過的工具。 */}
+        {recentEntries.length > 0 && (
+          <>
+            <div className="px-3 pt-1 pb-1">
+              <div className="text-[10px] font-bold tracking-wider text-amber-400/90 uppercase px-3 py-1.5">
+                常用功能
+              </div>
+            </div>
+            <ul className="list-none px-3 pb-2 m-0 space-y-1">
+              {recentEntries.map(entry => {
+                const Icon = entry.icon;
+                return (
+                  <li key={`recent-${entry.id}`}>
+                    <button
+                      onClick={() => handleNav(entry.id)}
+                      className="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-amber-100/90 hover:bg-slate-900/60 hover:text-amber-200 transition-colors flex items-center gap-2"
+                    >
+                      <Icon className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate">{entry.label}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+            <div className="px-3 pb-1"><div className="border-t border-slate-800" /></div>
+          </>
+        )}
 
         {/* Core Entry Points */}
         <ul className="list-none px-3 pb-2 m-0 space-y-1 flex-1 overflow-y-auto">

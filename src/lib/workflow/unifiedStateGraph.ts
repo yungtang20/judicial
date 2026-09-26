@@ -46,6 +46,8 @@ export interface WorkflowRouterData {
   chapter: string; // 罪章或專節領域
   cause: string; // 案由或罪名
   is_sensitive: boolean; // 是否涉及性侵害、家暴、跟蹤騷擾或隱私安全
+  category?: string;
+  caseType?: string;
   is_complete: boolean; // 人、事、時、地、證據要素是否充足
   missing_elements: string[]; // 缺少的要素清單
   legalBasis?: string[]; // 分流引擎判定的法條與罪名／請求權名稱
@@ -65,6 +67,15 @@ export interface WorkflowSafetyData {
   preservationTips: string[];
   immediateSteps: string[];
   acknowledged: boolean;
+  /**
+   * 採證保存時效狀態。事發日期由案情抽取並與系統當下時間比對，
+   * 抽取不到日期時為 false（fail-closed），避免對舊案輸出「立即採證」等急迫語句。
+   */
+  withinForensicWindow?: boolean;
+  /** 事發日期（ISO yyyy-mm-dd）；抽取不到時為 null。 */
+  incidentDate?: string | null;
+  /** 給使用者看的時效說明。 */
+  forensicWindowLabel?: string;
 }
 
 export interface WorkflowRagData {
@@ -89,6 +100,17 @@ export interface WorkflowSyllogismData {
   subsumption: string; // 3. 涵攝
   conclusion: string; // 4. 結論
   fullAnalysis: string;
+  /**
+   * fail-closed 一致性閘門：模型輸出與本機法律規則矛盾時為 true，
+   * 此時 `fullAnalysis` 不含模型原文，UI 必須改以 `analysisViolations` 呈現。
+   */
+  analysisBlocked?: boolean;
+  analysisViolations?: Array<{
+    code: string;
+    message: string;
+    evidence: string;
+    authority: string;
+  }>;
 }
 
 export interface WorkflowVerificationData {

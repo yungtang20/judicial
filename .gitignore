@@ -2,6 +2,8 @@ node_modules/
 build/
 dist/
 coverage/
+test-results/
+playwright-report/
 temp/
 .DS_Store
 *.log
@@ -33,5 +35,4 @@ patch_*.sh
 update_*.py
 update_*.cjs
 test_*.cjs
-!test-ssrf.cjs
 !scripts/maintenance/*

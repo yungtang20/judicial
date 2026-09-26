@@ -4,15 +4,16 @@ import crypto from "node:crypto";
 
 export interface AuthenticatedUser {
   id: string;
-  role: "admin" | "lawyer" | "paralegal" | "client" | "system";
+  role: "admin" | "deployer" | "lawyer" | "paralegal" | "client" | "system";
   tenantId: string;
   name?: string;
+  actorType: 'HUMAN' | 'SYSTEM';
 }
 
 export interface JwtPayload {
   sub: string;
   tenantId: string;
-  role: "admin" | "lawyer" | "paralegal" | "client" | "system";
+  role: "admin" | "deployer" | "lawyer" | "paralegal" | "client" | "system";
   name?: string;
   exp?: number;
   iat?: number;
@@ -194,8 +195,7 @@ export function verifySignedToken(token: string, secret?: string): JwtPayload | 
     if (process.env.JWT_ISSUER && payload.iss !== process.env.JWT_ISSUER) return null;
     if (process.env.JWT_AUDIENCE && payload.aud !== process.env.JWT_AUDIENCE) return null;
 
-    // 4. 驗證必要欄位與合法角色
-    const validRoles = ["admin", "lawyer", "paralegal", "client", "system"];
+    const validRoles = ["admin", "deployer", "lawyer", "paralegal", "client", "system"];
     if (
       !payload.sub || typeof payload.sub !== "string" || payload.sub.trim() === "" ||
       !payload.tenantId || typeof payload.tenantId !== "string" || payload.tenantId.trim() === "" ||
@@ -324,7 +324,8 @@ export function authenticate(options: { required?: boolean } = {}) {
         id: verified.sub,
         role: verified.role,
         tenantId: verified.tenantId,
-        name: verified.name || `User ${verified.sub}`
+        name: verified.name || `User ${verified.sub}`,
+        actorType: verified.role === 'system' ? 'SYSTEM' : 'HUMAN',
       };
       return next();
     }
@@ -344,7 +345,8 @@ export function authenticate(options: { required?: boolean } = {}) {
         id: `svc_${crypto.createHash("sha256").update(apiKeyHeader).digest("hex").slice(0, 10)}`,
         role: check.role || "system",
         tenantId: check.tenantId || "system-service-tenant",
-        name: "Verified Service Account"
+        name: "Verified Service Account",
+        actorType: 'SYSTEM',
       };
       return next();
     }
@@ -371,7 +373,8 @@ export function authenticate(options: { required?: boolean } = {}) {
       id: `guest_${guestHash}`,
       role: "client",
       tenantId: "sandbox-tenant", // 固定租戶邊界，徹底隔絕跨租戶存取
-      name: "Sandbox Guest"
+      name: "Sandbox Guest",
+      actorType: 'SYSTEM',
     };
 
     next();

@@ -1,4 +1,4 @@
-import { evaluatePleadingDelivery } from '../finalGate/pleadingExportGate';
+import { evaluatePleadingDelivery, verifyPleadingDeliveryAuthorization } from '../finalGate/pleadingDeliveryBrowser';
 
 export interface BundleGenerationPayload {
   toolCategory: string;
@@ -24,7 +24,11 @@ export async function generateBundleDocument(
       pleadingText: draft
     }
   });
-  const decision = evaluatePleadingDelivery(bundleId, result?.pleadingDeliveryAuthorization, 'DOWNLOAD_TEXT');
-  if (!decision.allowed || !result?.documentText) throw new Error(`${decision.code}: ${decision.message}`);
+  if (!result?.documentText) {
+    const decision = evaluatePleadingDelivery(bundleId, result?.pleadingDeliveryAuthorization, 'DOWNLOAD_TEXT');
+    throw new Error(`${decision.code}: ${decision.message}`);
+  }
+  const decision = await verifyPleadingDeliveryAuthorization(bundleId, result.pleadingDeliveryAuthorization, 'DOWNLOAD_TEXT', result.documentText);
+  if (!decision.allowed) throw new Error(`${decision.code}: ${decision.message}`);
   return result;
 }

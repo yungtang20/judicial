@@ -18,14 +18,15 @@ import { UIConstants } from '../constants/ui';
 import { useGlobalUI } from '../contexts/GlobalUIContext';
 import { getCalculatorConfig } from '../lib/calculatorEngines';
 import { InteractiveCalculatorView } from './toolbox/InteractiveCalculatorView';
-import { evaluatePleadingDelivery } from '../lib/finalGate/pleadingExportGate';
+import { evaluatePleadingDelivery } from '../lib/finalGate/pleadingDeliveryBrowser';
 import { TOOL_FIELD_SCHEMAS } from '../lib/toolFieldSchemas';
 import { resolveDocumentTool } from '../lib/documentSelectionRules';
 import { DEFAULT_DOCUMENT_TOOL_ID, OFFICIAL_TEMPLATE_UI_ENABLED } from '../lib/documentCatalog';
+import { OfficialTemplateDirectory } from './toolbox/OfficialTemplateDirectory';
 
 type DocumentGenerationStage = 'input' | 'analyzing' | 'formatting' | 'ready' | 'error';
 
-export const LegalToolbox: React.FC<{ initialToolId?: string; initialFacts?: string }> = ({ initialToolId, initialFacts }) => {
+export const LegalToolbox: React.FC<{ initialToolId?: string; initialFacts?: string; formSeed?: Record<string, string> }> = ({ initialToolId, initialFacts, formSeed }) => {
   const { startLoading, stopLoading } = useGlobalUI();
   const activeCase = useCaseStore(getActiveCase);
   const addDocument = useCaseStore(state => state.addDocument);
@@ -48,18 +49,20 @@ export const LegalToolbox: React.FC<{ initialToolId?: string; initialFacts?: str
   const [formInputs, setFormInputs] = useState<Record<string, any>>(() => ({
     ...DEFAULT_FORM_INPUTS,
     officialCategory: '0202',
+    ...(formSeed || {}),
     ...(initialFacts?.trim() ? { incidentDetails: initialFacts.trim() } : {})
   }));
+  const hasRouteIncidentPrefill = Boolean(initialFacts?.trim() || formSeed?.incidentDetails?.trim());
 
   React.useEffect(() => {
     if (!activeCase.facts && !activeCase.issues?.length) return;
     setFormInputs(prev => ({
       ...prev,
-      incidentDetails: activeCase.facts || prev.incidentDetails,
-      issueSummary: activeCase.issues?.map(issue => issue.title).join('\n') || prev.issueSummary,
-      evidenceList: activeCase.evidences?.map(evidence => evidence.provenFact).join('\n') || prev.evidenceList
+      incidentDetails: hasRouteIncidentPrefill ? prev.incidentDetails : activeCase.facts || prev.incidentDetails,
+      issueSummary: formSeed?.issueSummary?.trim() ? prev.issueSummary : activeCase.issues?.map(issue => issue.title).join('\n') || prev.issueSummary,
+      evidenceList: formSeed?.evidenceList?.trim() ? prev.evidenceList : activeCase.evidences?.map(evidence => evidence.provenFact).join('\n') || prev.evidenceList
     }));
-  }, [activeCase]);
+  }, [activeCase, formSeed, hasRouteIncidentPrefill]);
 
   const handleInputChange = (field: string, value: any) => {
     setFormInputs(prev => ({ ...prev, [field]: value }));
@@ -151,7 +154,7 @@ export const LegalToolbox: React.FC<{ initialToolId?: string; initialFacts?: str
           kind: activeToolId,
           title: res.title || currentTool.name,
           text: res.documentText,
-          status: res.antiGhostVerification?.ghostCitationsFound ? 'NEEDS_HUMAN_REVIEW' : 'VERIFIED',
+          status: res.antiGhostVerification?.verificationPassed === true && !res.antiGhostVerification.ghostCitationsFound ? 'VERIFIED' : 'NEEDS_HUMAN_REVIEW',
           sourceTool: 'LegalToolbox',
           createdAt: new Date().toISOString(),
           verification: res.antiGhostVerification
@@ -275,6 +278,21 @@ export const LegalToolbox: React.FC<{ initialToolId?: string; initialFacts?: str
       document.getElementById('tool-workspace-section')?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
   };
+  if (selectedGroup === 'OFFICIAL_TEMPLATES') {
+    return (
+      <div className="space-y-6 pb-20 max-w-7xl mx-auto" id="legal-toolbox-root">
+        <div className="no-print">
+          <ToolboxHeader
+            selectedGroup={selectedGroup}
+            onSelectGroup={handleGroupSelect}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+          />
+        </div>
+        <OfficialTemplateDirectory searchQuery={searchQuery} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-20 max-w-7xl mx-auto" id="legal-toolbox-root" data-tools-count={LEGAL_TOOLS.length}>

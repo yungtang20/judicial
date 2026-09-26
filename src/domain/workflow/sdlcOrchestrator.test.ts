@@ -130,6 +130,40 @@ describe('SdlcOrchestrator Lifecycle & Governance Integration', () => {
     ).rejects.toThrowError(/契約要求之驗證器未全數通過/);
   });
 
+  it('blocks Gate advance when verification is NEEDS_REVIEW even if checks are present', async () => {
+    const projectId = 'proj_needs_review_test';
+    const project = await orchestrator.getOrCreateProject(projectId);
+    project.artifacts['01_plan'] = [{
+      id: 'art-needs-review',
+      stageId: '01_plan',
+      version: 1,
+      name: 'intent artifact',
+      category: 'intent',
+      content: 'test',
+      executionMode: 'REAL',
+      summary: 'test',
+      metadata: {
+        verification: {
+          status: 'NEEDS_REVIEW',
+          checks: [
+            { name: 'PrivacyValidator', category: 'PRIVACY', status: 'PASS' },
+            { name: 'SchemaValidator', category: 'SCHEMA', status: 'PASS' }
+          ],
+          errors: [],
+          warnings: ['需人工確認'],
+          verifiedAt: new Date().toISOString(),
+          verifierVersion: '1.0'
+        }
+      },
+      createdAt: new Date().toISOString()
+    }];
+    await repo.save(project);
+
+    await expect(
+      orchestrator.advanceGate(projectId, '01_plan', lawyerContext)
+    ).rejects.toThrowError(/驗證狀態為 \[NEEDS_REVIEW\]/);
+  });
+
   it('blocks a gate that is not the current or in-progress stage', async () => {
     const projectId = 'proj_gate_not_ready_test';
     await orchestrator.getOrCreateProject(projectId);
@@ -242,7 +276,7 @@ describe('SdlcOrchestrator Lifecycle & Governance Integration', () => {
 
     await expect(
       failOrchestrator.advanceGate(projectId, '01_plan', lawyerContext)
-    ).rejects.toThrowError(/最新工件未通過驗證檢核/);
+    ).rejects.toMatchObject({ code: 'VERIFICATION_FAILED', status: 422 });
   });
 
   it('ensures REAL AI failure sets Verification FAIL and prevents advance', async () => {
@@ -263,7 +297,7 @@ describe('SdlcOrchestrator Lifecycle & Governance Integration', () => {
     
     await expect(
       failOrchestrator.advanceGate(projectId, '01_plan', lawyerContext)
-    ).rejects.toThrowError(/最新工件未通過驗證檢核/);
+    ).rejects.toMatchObject({ code: 'VERIFICATION_FAILED', status: 422 });
   });
 
   it('persists a governed feedback loop and records its audit evidence', async () => {

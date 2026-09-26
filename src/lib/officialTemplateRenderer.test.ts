@@ -348,8 +348,6 @@ function makeTemplate(overrides: Partial<OfficialTemplate> & { id: string }): Of
 beforeEach(() => {
   mockTemplates.clear();
   vi.restoreAllMocks();
-  // Ensure output dir parent exists
-  mkdirp(path.resolve(process.cwd(), 'data', 'official-templates', 'output'));
   mkdirp(TMP);
 });
 
@@ -448,6 +446,79 @@ describe('renderTemplate — status gates', () => {
     expect(r.missingFields).toContain('d');
   });
 });
+
+  it('P9_READY rejects generic and unmapped optional fields', () => {
+    const xml = contentXml();
+    const abs = writeFile('test-p9-allowlist.odt', buildStoredOdt(xml));
+    mockTemplates.set('p9-allowlist', makeTemplate({
+      id: 'p9-allowlist',
+      templateStatus: 'READY_FOR_MERGE',
+      p9Status: 'P9_READY',
+      localFilePath: abs,
+      fields: [
+        { key: 'caseNumber', label: '案號', type: 'text', required: false },
+        { key: 'partyName', label: '當事人', type: 'text', required: false },
+        { key: 'facts', label: '事實', type: 'textarea', required: false },
+        { key: 'optionalUnmapped', label: '未映射欄位', type: 'text', required: false },
+      ],
+    }));
+
+    expect(renderTemplate('p9-allowlist', { field_0: 'generic' }).code).toBe('TEMPLATE_FIELD_NOT_ALLOWED');
+    expect(renderTemplate('p9-allowlist', {
+      caseNumber: '113訴1',
+      partyName: '甲',
+      facts: '事實',
+      optionalUnmapped: '不得放行',
+    }).code).toBe('TEMPLATE_FIELD_NOT_ALLOWED');
+  });
+
+  it('P9_READY rejects a manifest field whose ODT span is missing', () => {
+    const xml = contentXml()
+      .replace(/<text:span text:style-name="T12">[\s\S]*?<\/text:span>/, '')
+      .replace(/<text:span text:style-name="T17">[\s\S]*?<\/text:span>/, '');
+    const abs = writeFile('test-p9-missing-span.odt', buildStoredOdt(xml));
+    mockTemplates.set('p9-missing-span', makeTemplate({
+      id: 'p9-missing-span',
+      templateStatus: 'READY_FOR_MERGE',
+      p9Status: 'P9_READY',
+      localFilePath: abs,
+      fields: [
+        { key: 'caseNumber', label: '案號', type: 'text', required: true },
+        { key: 'partyName', label: '當事人', type: 'text', required: false },
+        { key: 'facts', label: '事實', type: 'textarea', required: false },
+      ],
+    }));
+
+    const result = renderTemplate('p9-missing-span', { caseNumber: '113訴1', partyName: '甲', facts: '事實' });
+    expect(result.success).toBe(false);
+    expect(result.code).toBe('TEMPLATE_MAPPING_INCOMPLETE');
+    expect(result.missingFields).toContain('partyName');
+    expect(result.missingFields).toContain('facts');
+  });
+
+  it('P9_READY rejects duplicate ODT spans for one mapped field', () => {
+    const xml = contentXml().replace(
+      '</office:text>',
+      '<text:p><text:span text:style-name="T11">static text</text:span></text:p></office:text>'
+    );
+    const abs = writeFile('test-p9-duplicate-span.odt', buildStoredOdt(xml));
+    mockTemplates.set('p9-duplicate-span', makeTemplate({
+      id: 'p9-duplicate-span',
+      templateStatus: 'READY_FOR_MERGE',
+      p9Status: 'P9_READY',
+      localFilePath: abs,
+      fields: [
+        { key: 'caseNumber', label: '案號', type: 'text', required: false },
+        { key: 'partyName', label: '當事人', type: 'text', required: false },
+        { key: 'facts', label: '事實', type: 'textarea', required: false },
+      ],
+    }));
+
+    const result = renderTemplate('p9-duplicate-span', { caseNumber: 'A', partyName: 'B', facts: 'C' });
+    expect(result.success).toBe(false);
+    expect(result.code).toBe('TEMPLATE_MAPPING_INCOMPLETE');
+    expect(result.missingFields).toContain('caseNumber:duplicate-span');
+  });
 
 /* ---------- renderTemplate: MISSING_REQUIRED_FIELDS ---------- */
 describe('renderTemplate — missing required fields', () => {
@@ -914,5 +985,59 @@ describe('renderTemplate — content.xml with <text:s/> space elements', () => {
     expect(outStr).toContain('NEW');
     expect(outStr).toContain('NAME');
     expect(outStr).toContain('FACTS');
+  });
+});
+
+describe('renderTemplate — official field binding and retention', () => {
+  it('rejects fields that are not declared by the official template', () => {
+    const abs = writeFile('test-unknown-field.odt', buildStoredOdt(contentXml()));
+    mockTemplates.set('unknown-field', makeTemplate({
+      id: 'unknown-field',
+      templateStatus: 'READY_FOR_MERGE',
+      localFilePath: abs,
+      fields: [
+        { key: 'caseNumber', label: '案號', type: 'text', required: true },
+        { key: 'defendantName', label: '被告', type: 'text', required: true },
+        { key: 'defenseFacts', label: '答辯', type: 'textarea', required: true }
+      ]
+    }));
+
+    const result = renderTemplate('unknown-field', {
+      caseNumber: '113訴1',
+      defendantName: '王小明',
+      defenseFacts: '答辯內容',
+      unapprovedPrompt: '不得進入官方 ODT'
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.code).toBe('TEMPLATE_FIELD_NOT_ALLOWED');
+    expect(result.missingFields).toContain('unapprovedPrompt');
+  });
+
+  it('returns the ODT bytes without writing a rendered file to the output directory', () => {
+    const abs = writeFile('test-memory-only.odt', buildStoredOdt(contentXml()));
+    mockTemplates.set('memory-only', makeTemplate({
+      id: 'memory-only',
+      templateStatus: 'READY_FOR_MERGE',
+      localFilePath: abs,
+      fields: [
+        { key: 'caseNumber', label: '案號', type: 'text', required: true },
+        { key: 'defendantName', label: '被告', type: 'text', required: true },
+        { key: 'defenseFacts', label: '答辯', type: 'textarea', required: true }
+      ]
+    }));
+    const outputDir = path.resolve(process.cwd(), 'data', 'official-templates', 'output');
+    const before = fs.existsSync(outputDir) ? fs.readdirSync(outputDir).filter(name => name.startsWith('memory-only-')) : [];
+
+    const result = renderTemplate('memory-only', {
+      caseNumber: '113訴1',
+      defendantName: '王小明',
+      defenseFacts: '答辯內容'
+    });
+    const after = fs.existsSync(outputDir) ? fs.readdirSync(outputDir).filter(name => name.startsWith('memory-only-')) : [];
+
+    expect(result.success).toBe(true);
+    expect(Buffer.from(result.documentBase64!, 'base64').subarray(0, 2).toString()).toBe('PK');
+    expect(after).toEqual(before);
   });
 });

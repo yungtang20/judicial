@@ -30,10 +30,10 @@ describe('LegalGenerationPipeline Unit Tests', () => {
           }],
           references: [],
           literature: [],
-          allowedCitations: ['最高法院112年度台上字第9號']
+          allowedCitations: ['最高法院112年度台上字第9號', '民法第184條']
         },
         promptBlock: '【相關實務見解】最高法院112年度台上字第9號',
-        allowedCitations: ['最高法院112年度台上字第9號'],
+        allowedCitations: ['最高法院112年度台上字第9號', '民法第184條'],
         disclaimer: '免責聲明',
         hasCitations: true,
         isExternalRetrievalUsed: true,

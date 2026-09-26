@@ -10,7 +10,7 @@
 目前存在兩條彼此分離的產出路徑：
 
 1. **內建工具箱路徑**：`LegalToolbox` 讓使用者選擇 `LEGAL_TOOLS` 中的工具，送到 `POST /api/toolbox/generate`。法院書狀類別會進入 `executeCanonicalPleadingPipeline`，通過 P4–P9 確定性管線後回傳**純文字**；前端再提供 `.txt`、相容 Word HTML 的 `.doc`、複製與列印。這條路徑不會自動讀取 `data/official-templates/manifest.json`。
-2. **司法院官方範本路徑**：使用者切換「司法院官方範本」後，`OfficialTemplateDirectory` 直接讀取 `/api/official-templates`，選取 manifest 中的單一範本。`SOURCE_ONLY` 會只允許下載來源檔；可套版範本才呼叫 `/render`，但目前 server 在驗證後仍以 `P9_FINAL_GATE_REQUIRED` 回傳 409，因此目前不會真正把套版 ODT 交給瀏覽器。
+2. **司法院官方範本路徑**：使用者切換「司法院官方範本」後，`OfficialTemplateDirectory` 直接讀取 `/api/official-templates`，選取 manifest 中的單一範本。`SOURCE_ONLY` 會只允許下載來源檔；具備 template status 與 P9 metadata 的範本才呼叫 `/render`，並在完整 P4–P9 pipeline READY 後回傳 ODT 與 delivery authorization；未核准範本仍 fail-closed。
 
 `src/domain/workflow` 的六階段 SDLC 是**另一個獨立工作台與 API**（`/api/sdlc/*`），不是 `POST /api/toolbox/generate` 的內嵌節點。除非使用者另行進入 SDLC 工作台並逐階段執行／人工 Gate，否則工具箱書狀生成不會經過 `sdlcOrchestrator`。
 
@@ -66,7 +66,7 @@
 | 5 | `server/routes/officialTemplates.ts:28-74,80-108` | list/detail routes | `loadManifest` 讀 `data/official-templates/manifest.json`；以 category/id 查找，不依案情關鍵字自動匹配。 |
 | 6 | `src/components/toolbox/OfficialTemplateDirectory.tsx:209-287` | status UI | `SOURCE_ONLY` 顯示只能下載官方來源；`READY_FOR_MERGE` 才顯示欄位表單；其他狀態顯示暫時無法套版。 |
 | 7 | `src/components/toolbox/OfficialTemplateDirectory.tsx:96-129` | `handleRender` | 使用者填欄位後 POST `/api/official-templates/:id/render`；若 server 真正回 documentBase64，前端會轉 ODT Blob 並下載。 |
-| 8 | `server/routes/officialTemplates.ts:160-226` | render route | `SOURCE_ONLY`、`OUTDATED`、`DOWNLOAD_FAILED` 直接 422；其他狀態交由 `renderTemplate`。即使 render 與 `verifyGeneratedDocument` 通過，該 route 仍因沒有 trusted CaseInput/P8/P9 report 固定回 409 `P9_FINAL_GATE_REQUIRED`。 |
+| 8 | `server/routes/officialTemplates.ts:160-226` | render route | `SOURCE_ONLY`、`OUTDATED`、`DOWNLOAD_FAILED` 直接拒絕；具備 P9 metadata 的範本通過 renderer 與完整 P4–P9 pipeline 後回傳 200、ODT base64 與 authorization，未核准則回應對應 gate error。 |
 | 9 | `src/lib/officialTemplateRenderer.ts:327-380` | `renderTemplate` | 只允許 `READY_FOR_MERGE` 或 `DOWNLOADED`，檢查本機 ODT、必要欄位與欄位位置，最後產生新的 ODT bytes。 |
 | 10 | `server/routes/officialTemplates.ts:115-153` → `OfficialTemplateDirectory.ts:131-153` | source download | 對有 `localFilePath/localFileHash` 的來源檔做 SHA-256 比對後，以原始 ODT/PDF attachment 回傳；這不是套版書狀。 |
 
@@ -156,8 +156,8 @@
 ### 官方範本
 
 - 原始來源下載：server 以 ODT/PDF binary attachment 回傳（`officialTemplates.ts:115-153`），前端轉 Blob 下載（`OfficialTemplateDirectory.tsx:131-153`）。
-- 套版格式（若未被 P9 409 阻擋）：renderer 設計為產生 ODT，前端預期 `documentBase64` 並以 `application/vnd.oasis.opendocument.text` 下載（`OfficialTemplateDirectory.tsx:111-122`）。
-- 目前實際 API：`render` 在 `officialTemplates.ts:211-226` 通過文件引用驗證後仍固定回 HTTP 409 `P9_FINAL_GATE_REQUIRED`，所以目前不能宣稱線上套版 ODT 已經可交付。
+- 套版格式：`renderer` 產生 ODT 後，production route 會執行完整 P4–P9 pipeline；只有 final gate READY 且 delivery authorization 有效時才回傳 ODT 與授權。
+- 未核准或 artifact/citation/mapping 驗證失敗時，render route fail-closed，不交付 ODT。
 
 ## 8. 架構圖
 
@@ -193,9 +193,9 @@ flowchart TD
   U --> V{"templateStatus"}
   V -->|"SOURCE_ONLY"| W["顯示無法套版\nsource download only"]
   W --> X["GET /source → hash-verified ODT/PDF"]
-  V -->|"READY_FOR_MERGE/DOWNLOADED"| Y["POST /render\nrenderTemplate"]
-  Y --> Z["verifyGeneratedDocument"]
-  Z --> ZA["目前仍回 409 P9_FINAL_GATE_REQUIRED"]
+  V -->|"READY_FOR_MERGE/DOWNLOADED"| Y["POST /render\\nrenderTemplate"]
+  Y --> Z["完整 P4–P9 pipeline\\nverify actual artifact"]
+  Z --> ZA["READY → ODT + delivery authorization"]
 
   AA["UnifiedEntry: user narrative"] --> AB["/api/workflow/execute\nrunRouterNode:104-158"]
   AB --> AC["rule triage + domain mapping"]

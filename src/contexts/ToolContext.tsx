@@ -1,39 +1,45 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
+import {
+  type AppRoute,
+  type LegacyToolSelectionData,
+  type RouteHandoff,
+  canonicalizeRoute
+} from '../types/navigation';
+import { clearCrossFeatureContext } from '../lib/crossFeatureContext';
 
-interface ToolContextType {
-  activeTool: string;
-  setActiveTool: (tool: string) => void;
-  initialData: any;
-  setInitialData: (data: any) => void;
-  handleSelectTool: (toolId: string, subTab?: string, data?: any) => void;
+interface ToolContextValue {
+  route: AppRoute;
+  handoff?: RouteHandoff;
+  navigate: (route: AppRoute, handoff?: RouteHandoff) => void;
+  handleSelectTool: (toolId: string, subTab?: string, data?: LegacyToolSelectionData) => void;
 }
 
-const ToolContext = createContext<ToolContextType | undefined>(undefined);
+const ToolContext = createContext<ToolContextValue | undefined>(undefined);
 
 export function ToolProvider({ children }: { children: ReactNode }) {
-  const [activeTool, setActiveTool] = useState('unified');
-  const [initialData, setInitialData] = useState<any>(undefined);
+  const [route, setRoute] = useState<AppRoute>({ view: 'analysis' });
+  const [handoff, setHandoff] = useState<RouteHandoff | undefined>(undefined);
 
-  const handleSelectTool = (toolId: string, subTab?: string, data?: any) => {
-    if (typeof toolId !== 'string') return;
-    const mergedData = {
-      ...(data || {}),
-      ...(subTab ? { initialTab: subTab } : {})
-    };
-    setInitialData(mergedData);
-    setActiveTool(toolId);
-  };
+  const navigate = useCallback((nextRoute: AppRoute, nextHandoff?: RouteHandoff) => {
+    if (nextHandoff === undefined) {
+      clearCrossFeatureContext();
+    }
+    setRoute(nextRoute);
+    setHandoff(nextHandoff);
+  }, []);
+
+  const handleSelectTool = useCallback((
+    toolId: string,
+    subTab?: string,
+    data: LegacyToolSelectionData = {}
+  ) => {
+    const normalized = canonicalizeRoute(toolId, subTab, data);
+    const hasHandoff = Object.keys(normalized.handoff).length > 0;
+    navigate(normalized.route, hasHandoff ? normalized.handoff : undefined);
+  }, [navigate]);
 
   return (
-    <ToolContext.Provider
-      value={{
-        activeTool,
-        setActiveTool,
-        initialData,
-        setInitialData,
-        handleSelectTool,
-      }}
-    >
+    <ToolContext.Provider value={{ route, handoff, navigate, handleSelectTool }}>
       {children}
     </ToolContext.Provider>
   );

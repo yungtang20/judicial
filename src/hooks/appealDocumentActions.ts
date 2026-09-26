@@ -15,6 +15,7 @@ export interface FetchJudicialUrlOptions {
   setUrlFetchSuccessMsg: TextSetter;
   setRawText: TextSetter;
   setSecondText: TextSetter;
+  isCurrent?: () => boolean;
 }
 
 export async function fetchJudicialUrl({
@@ -25,7 +26,8 @@ export async function fetchJudicialUrl({
   setIsFetchingUrl,
   setUrlFetchSuccessMsg,
   setRawText,
-  setSecondText
+  setSecondText,
+  isCurrent
 }: FetchJudicialUrlOptions): Promise<void> {
   setTargetJudicialField(targetField);
   const targetUrl = targetField === 'first' ? firstUrl : secondUrl;
@@ -49,6 +51,7 @@ export async function fetchJudicialUrl({
       throw new Error(errStr);
     }
     const data = await response.json();
+    if (isCurrent && !isCurrent()) return;
     if (data.text) {
       if (targetField === 'first') {
         setRawText(data.text);
@@ -62,8 +65,10 @@ export async function fetchJudicialUrl({
       throw new Error('未讀取到文字內容');
     }
   } catch (err) {
-    const errorMsg = err instanceof Error ? err.message : '未知錯誤';
-    alert(`網址讀取失敗：\n\n${errorMsg}\n\n您亦可使用上方【⚖️ 判決全文庫檢索】按鈕直接輸入案號調閱，或手動複製貼上裁判內文。`);
+    if (!isCurrent || isCurrent()) {
+      const errorMsg = err instanceof Error ? err.message : '未知錯誤';
+      alert(`網址讀取失敗：\n\n${errorMsg}\n\n您亦可使用上方【⚖️ 判決全文庫檢索】按鈕直接輸入案號調閱，或手動複製貼上裁判內文。`);
+    }
   } finally {
     setIsFetchingUrl(false);
   }
@@ -75,6 +80,7 @@ export interface ImportJudgmentFileOptions {
   setIsParsingPdf: BooleanSetter;
   setRawText: TextSetter;
   setSecondText: TextSetter;
+  isCurrent?: () => boolean;
 }
 
 export async function importJudgmentFile({
@@ -82,7 +88,8 @@ export async function importJudgmentFile({
   targetField,
   setIsParsingPdf,
   setRawText,
-  setSecondText
+  setSecondText,
+  isCurrent
 }: ImportJudgmentFileOptions): Promise<void> {
   const file = event.target.files?.[0];
   if (!file) return;
@@ -91,6 +98,7 @@ export async function importJudgmentFile({
     setIsParsingPdf(true);
     try {
       const { text, images } = await parsePdfFile(file);
+      if (isCurrent && !isCurrent()) return;
       let fullText = text;
 
       if (fullText.trim().length < 100 && images.length > 0) {
@@ -111,6 +119,7 @@ export async function importJudgmentFile({
           console.warn('OCR fetch failed:', ocrErr instanceof Error ? ocrErr.message : ocrErr);
         }
       }
+      if (isCurrent && !isCurrent()) return;
 
       if (targetField === 'second') {
         setSecondText(fullText);
@@ -125,6 +134,7 @@ export async function importJudgmentFile({
     }
   } else {
     const text = await file.text();
+    if (isCurrent && !isCurrent()) return;
     if (targetField === 'second') {
       setSecondText(text);
     } else {

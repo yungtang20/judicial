@@ -18,6 +18,7 @@ export interface CaseContext {
   schemaVersion: 1;
   caseId: string;
   workflowStage: CaseWorkflowStage;
+  workflowStateId?: string;
   facts: string;
   caseType?: string;
   issues: IssueRow[];

@@ -50,22 +50,20 @@ describe('UnifiedResult', () => {
     expect(screen.getByText('相關函釋')).toBeInTheDocument();
     expect(screen.getByText('需備證據')).toBeInTheDocument();
     expect(screen.getByText('行動指引')).toBeInTheDocument();
-    expect(screen.getByText('大家也在問')).toBeInTheDocument();
-    expect(screen.getByText('相關判例')).toBeInTheDocument();
-    const sectionOrder = ['對應案件事實', '可能涉及的法條與名稱', '相關函釋', '需備證據', '行動指引', '大家也在問', '相關判例']
+    expect(screen.queryByText('大家也在問')).not.toBeInTheDocument();
+    expect(screen.getByText('引用相同法條的官方裁判')).toBeInTheDocument();
+    const sectionOrder = ['對應案件事實', '可能涉及的法條與名稱', '相關函釋', '需備證據', '行動指引', '引用相同法條的官方裁判']
       .map(label => screen.getByText(label));
     expect(sectionOrder.every((node, index) => index === 0 || Boolean(sectionOrder[index - 1].compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
     expect(screen.getByText('民法第184條（侵權行為損害賠償）')).toBeInTheDocument();
-    expect(screen.getByText(/司法院全文與 AI 防幽靈檢核通過/)).toBeInTheDocument();
-    expect(screen.getByText(/立即離開危險現場/)).toBeInTheDocument();
-    expect(screen.getByText(/緊急報案：110/)).toBeInTheDocument();
+    expect(screen.getByText(/已通過司法院全文查核/)).toBeInTheDocument();
+    expect(screen.getByText(/僅代表法條相同，不代表事實類同/)).toBeInTheDocument();
+    // 熱線由保護面板統一呈現，行動指引此處過濾 113／110／1925 避免同一支專線出現兩次
+    expect(screen.queryByText(/緊急報案：110/)).not.toBeInTheDocument();
     expect(screen.getByText(/期限／試算基準/)).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('法定期間起算日'), { target: { value: '2024-09-11' } });
     expect(screen.getByText('• 2年初估截止日：2026-09-11')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: '開啟上訴與救濟法定期間工具' }));
-    expect(handlers.handleSelectTool).toHaveBeenCalledWith('appealDeadline', 'deadline');
-    expect(screen.getByText('待核對原文')).toBeInTheDocument();
-    expect(screen.getByText('侵權責任函釋：應核對損害及因果關係')).toBeInTheDocument();
+    expect(screen.getByText(/已排除 1 則僅條號相同但內容與本案爭點無關的函釋/)).toBeInTheDocument();
     const details = screen.getByText('深入了解分析依據').closest('details') as HTMLDetailsElement;
     expect(details.open).toBe(false);
     fireEvent.click(screen.getByText('深入了解分析依據'));
@@ -88,7 +86,7 @@ describe('UnifiedResult', () => {
     expect(screen.getByText('需先修正的引用')).toBeInTheDocument();
     expect(screen.getByText(/民法第9999條/)).toBeInTheDocument();
     expect(screen.getByText('僅供參考｜尚未找到同法條的相關裁判')).toBeInTheDocument();
-    expect(screen.getByText(/目前沒有同時通過司法院全文與 AI 防幽靈檢核/)).toBeInTheDocument();
+    expect(screen.getByText(/目前沒有通過司法院全文與 AI 防幽靈檢核的相關裁判/)).toBeInTheDocument();
     expect(screen.queryByText(/fail-closed/)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '複製' })).toBeDisabled();
   });

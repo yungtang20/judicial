@@ -10,6 +10,7 @@ import {
   Search,
   Sparkles
 } from 'lucide-react';
+import type { LegacyToolSelectionData } from '../../types/navigation';
 
 export interface ScenarioItem {
   id: string;
@@ -33,7 +34,7 @@ export interface ScenarioDetailModalProps {
   scenario: ScenarioItem;
   onClose: () => void;
   onLaunch: (scenario: ScenarioItem) => void;
-  onSelectTool: (toolId: string, subTab?: string, initialData?: unknown) => void;
+  onSelectTool: (toolId: string, subTab?: string, data?: LegacyToolSelectionData) => void;
 }
 
 export const ScenarioDetailModal: React.FC<ScenarioDetailModalProps> = ({
@@ -124,7 +125,7 @@ export const ScenarioDetailModal: React.FC<ScenarioDetailModalProps> = ({
               onClose();
               onSelectTool('legalToolbox', undefined, {
                 preselectedToolId: 'UNIVERSAL_AI_PLEADING',
-                prefilledData: { incidentDetails: scenario.situation }
+                facts: scenario.situation
               });
             }}
             className="px-3 py-2 rounded-xl bg-amber-950/60 text-amber-300 border border-amber-800/50 text-[11px] font-semibold hover:bg-amber-900/60 transition-all flex items-center gap-1.5"

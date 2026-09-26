@@ -475,7 +475,7 @@
 
 1. `npm test`：執行全端測試套件（80 個測試檔案，585 項測試全部通過，費時 171.76s）
 2. `npm run test:eval`：執行法治治理回歸測試 `src/lib/legalGovernance.test.ts`（15 項測試通過）
-3. `npm run test:ssrf`：執行 SSRF 嚴格安全防禦驗證 `test-ssrf.cjs`（21 個高風險網址與 4 個合法網址，全部通過）
+3. `npm run test:ssrf`：執行 SSRF 嚴格安全防禦驗證 `scripts/verifySsrf.ts`（21 個高風險網址與 4 個合法網址，全部通過）
 4. `npm run test:e2e`：執行端到端案件生命週期測試 `src/domain/case/caseLifecycle.e2e.test.ts`（2 項測試通過）
 5. `npm run lint`：執行 TypeScript 型別檢查 `tsc --noEmit`（通過，0 個型別錯誤）
 6. `grep -rn "dangerouslySetInnerHTML" src/`：確認無未過濾的 DOM 注入（返回 0 筆匹配）

@@ -3,6 +3,8 @@ import { AlertTriangle, Calculator, Check, Copy, ExternalLink, FileCheck2, Print
 import type { LegalWorkflowState } from '../../lib/workflow/unifiedStateGraph';
 import { formatLegalChapter } from '../../lib/legalChapterLabels';
 import { VERIFIED_REAL_STATUTES } from '../../lib/citationVerifier';
+import { assessInterpretationRelevance, normalizeStatuteCitation } from '../../lib/citationRelevance';
+import { extractIncidentDate, toCalendarDate } from '../../lib/forensicGuidance';
 
 interface UnifiedResultProps {
   workflowState: LegalWorkflowState;
@@ -13,6 +15,20 @@ interface UnifiedResultProps {
   printReport: (state: LegalWorkflowState) => void;
   handleSelectTool?: (toolId: string, subTab?: string) => void;
 }
+
+/** 工作流中的官方法條證據條目。 */
+type WorkflowStatuteEvidence = {
+  citation: string;
+  type: string;
+  status: string;
+  source: string;
+  sourceUrl: string;
+  checkedAt: string;
+  snippet?: string;
+  contentHash?: string;
+  claimSupportStatus?: string;
+  error?: string;
+};
 
 export function canUseWorkflowResult(state: LegalWorkflowState): boolean {
   return !state.error && state.router?.is_complete === true &&
@@ -30,9 +46,23 @@ const findStatuteRecord = (citation: string) => Object.entries(VERIFIED_REAL_STA
   .filter(([key]) => citationsMatch(key, citation))
   .sort(([left], [right]) => normalizeCitation(right).length - normalizeCitation(left).length)[0]?.[1];
 
+/**
+ * 取出法條的精確識別鍵（含「之N」與項次）。
+ * 過往用字串包含比對，會把「刑法第315條」誤配上「刑法第315條之1（妨害秘密罪）」的罪名，
+ * 造成畫面上出現與實際查核條號不符的標示。
+ */
+export function statuteArticleKey(citation: string): string | null {
+  const match = citation.replace(/[（(][^）)]*[）)]/g, '').match(/^(.+?法)第(\d+(?:之\d+)?)條(?:第(\d+)項)?/);
+  if (!match) return null;
+  return `${match[1]}第${match[2]}條${match[3] ? `第${match[3]}項` : ''}`;
+}
+
 export function formatStatuteCitation(citation: string, preferred: string[] = []): string {
   if (/[（(].+[）)]/.test(citation)) return citation;
-  const namedCitation = preferred.find(candidate => /[（(].+[）)]/.test(candidate) && citationsMatch(candidate, citation));
+  const key = statuteArticleKey(citation);
+  const namedCitation = key
+    ? preferred.find(candidate => statuteArticleKey(candidate) === key)
+    : undefined;
   if (namedCitation) return namedCitation;
   const statute = findStatuteRecord(citation);
   return statute?.keywords[0] ? `${citation}（${statute.keywords[0]}）` : citation;
@@ -92,8 +122,19 @@ export function countMatchingPrecedents(state: LegalWorkflowState, citation: str
 export const UnifiedResult: React.FC<UnifiedResultProps> = ({
   workflowState, isCopied, handleCopyAnalysis, exportAsHtml, exportAsText, printReport, handleSelectTool,
 }) => {
-  const [periodStartDate, setPeriodStartDate] = useState('');
   const { router, rag, syllogism, verification } = workflowState;
+  // 法定期間起算日自動帶入事發日期，使用者可手動覆寫。
+  /** 保護面板已呈現熱線，行動指引不得重複出現 113／110／1925。 */
+  const HOTLINE_PATTERN = /(113|110|1925)|(婦幼保護專線|警察報案|安心專線)/;
+  const DEFAULT_ACTION_TIPS = [
+    '先保存上述證據原始檔，不要只留截圖。',
+    '依官方法條及裁判內容核對適用要件。',
+    '涉及期限或重大權益時，儘速向律師或法律扶助確認。'
+  ];
+  const [periodStartDate, setPeriodStartDate] = useState(() => {
+    const extracted = extractIncidentDate(workflowState.userNarrative).date;
+    return workflowState.safety?.incidentDate || (extracted ? toCalendarDate(extracted) : '');
+  });
   if (!syllogism) return null;
 
   const canUseResult = canUseWorkflowResult(workflowState);
@@ -107,12 +148,58 @@ export const UnifiedResult: React.FC<UnifiedResultProps> = ({
       : hasJudicialSupport
         ? '已有部分司法依據｜法條與官方裁判已交叉比對'
         : '僅供參考｜尚未確認適用於您的案件';
-  const title = workflowState.error ? '分析失敗' : canUseResult ? '分析結論' : status === 'FAIL' ? '分析草稿（檢核未通過）' : '初步分析（待查驗）';
+  // 主要法條清單只顯示已通過官方即時查驗者；未通過者一律只出現在「不可引用」區塊。
+  // 官方證據對同一條文可能有兩筆紀錄（RAG 節點與查核閘門各查一次），
+  // 且同一條文可能以「刑法第315條之1」或「刑法第315條之1（妨害秘密罪）」兩種形式出現；
+  // 必須以正規化條號為鍵、並以「任一筆通過即視為通過」收斂，否則同一條文會兩邊都出現。
+  const AUTHORITATIVE_STATUSES = ['VALID', 'VERIFIED', 'AUTHORITATIVE'];
+  const statuteEvidenceByCitation = new Map<string, WorkflowStatuteEvidence>();
+  for (const item of officialEvidence) {
+    if (item.type !== 'STATUTE') continue;
+    const key = normalizeStatuteCitation(item.citation);
+    const existing = statuteEvidenceByCitation.get(key);
+    if (!existing || (!AUTHORITATIVE_STATUSES.includes(existing.status) && AUTHORITATIVE_STATUSES.includes(item.status))) {
+      statuteEvidenceByCitation.set(key, item);
+    }
+  }
+  const allStatuteEvidence = Array.from(statuteEvidenceByCitation.values());
+  const statuteEvidence = allStatuteEvidence.filter(item => AUTHORITATIVE_STATUSES.includes(item.status));
+  const unverifiedStatutes = allStatuteEvidence.filter(item => !AUTHORITATIVE_STATUSES.includes(item.status));
   const problemResults = verification?.results?.filter(item => !item.verified || item.isGhostOrFake) || [];
   const warningNotice = verification?.warningNotice?.includes('fail-closed')
     ? '部分引用尚未經官方資料庫確認，因此目前只能參考，不能直接用於書狀或法律主張。'
     : verification?.warningNotice;
-  const statuteEvidence = officialEvidence.filter(item => item.type === 'STATUTE');
+  // 保護面板已逐一列出 113／110／1925，行動指引此處不得重複出現同一支專線。
+  const isHotlineLine = (line: string) => HOTLINE_PATTERN.test(line);
+  const actionTips = workflowState.safety
+    ? [
+        ...workflowState.safety.immediateSteps.filter(line => !isHotlineLine(line)).slice(0, 3),
+        ...(router?.suggestedActions || []).filter(line => !isHotlineLine(line)).slice(0, 3)
+      ]
+    : (router?.suggestedActions || DEFAULT_ACTION_TIPS).slice(0, 5);
+  // 不可引用清單以「整份官方證據（去重後）」為唯一判準：
+  // 只要任一筆官方紀錄通過查驗，該條文就不得再出現在此區塊，
+  // 否則同一條引用會同時出現在主要清單與不可引用區塊而自相矛盾。
+  const authoritativeStatuteKeys = new Set(
+    statuteEvidence.map(item => normalizeStatuteCitation(item.citation))
+  );
+  const unverifiedCitations = allStatuteEvidence
+    .filter(item => !AUTHORITATIVE_STATUSES.includes(item.status))
+    .map(item => item.citation)
+    .concat(
+      (rag?.statuteCitations || []).filter(
+        citation => !authoritativeStatuteKeys.has(normalizeStatuteCitation(citation))
+      )
+    )
+    .filter((citation, index, all) => all.indexOf(citation) === index);
+  // 函釋需與案情有實質主題交集；僅條號相同者（例如民法第184條對應到物之毀損折舊函釋）不顯示。
+  const relevantInterpretations = (rag?.interpretations || []).filter(item =>
+    assessInterpretationRelevance({
+      text: `${item.title || ''} ${item.excerpt || ''}`,
+      narrative: workflowState.userNarrative
+    }).relevant
+  );
+  const excludedInterpretationCount = (rag?.interpretations || []).length - relevantInterpretations.length;
   const verifiedPrecedents = (rag?.precedents || []).filter(precedent =>
     verification?.externalCitations?.some(item => item.citation === precedent.caseNumber && item.status === 'verified' && item.exactMatch) &&
     officialEvidence.some(item => item.citation === precedent.caseNumber && item.type === 'PRECEDENT' && item.status === 'VERIFIED' && item.contentHash)
@@ -122,21 +209,9 @@ export const UnifiedResult: React.FC<UnifiedResultProps> = ({
     '備份通訊、錄音、照片、影片或監視器原始檔。',
     '整理契約、金流、醫療、報案或其他第三方紀錄。',
   ];
-  const actionTips = workflowState.safety
-    ? [...workflowState.safety.immediateSteps.slice(0, 3), ...(router?.suggestedActions || []).slice(0, 2), ...workflowState.safety.emergencyHotlines.slice(0, 3).map(item => `${item.label}：${item.number}（${item.desc}）`)]
-    : router?.suggestedActions?.slice(0, 5) || [
-        '先保存上述證據原始檔，不要只留截圖。',
-        '依官方法條及裁判內容核對適用要件。',
-        '涉及期限或重大權益時，儘速向律師或法律扶助確認。',
-      ];
   const procedureSteps = buildProcedureSteps(router?.domain);
   const periodEstimates = router?.statuteOfLimitations ? calculateLegalPeriodEstimates(router.statuteOfLimitations, periodStartDate) : [];
-  const faqs = statuteEvidence.slice(0, 2).map(item => ({
-    question: `${formatStatuteCitation(item.citation, router?.legalBasis || [])}主要規範什麼？`,
-    answer: findStatuteRecord(item.citation)?.officialSummary || syllogism.majorPremise,
-  }));
-  if (router?.statuteOfLimitations) faqs.push({ question: '這件事有期限嗎？', answer: router.statuteOfLimitations });
-
+  const title = workflowState.error ? '分析失敗' : canUseResult ? '分析結論' : status === 'FAIL' ? '分析草稿（檢核未通過）' : '初步分析（待查驗）';
   const actionClass = 'px-3 py-2 rounded-lg border border-slate-700 text-xs font-semibold text-slate-300 hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed';
 
   return (
@@ -206,21 +281,40 @@ export const UnifiedResult: React.FC<UnifiedResultProps> = ({
                 {item.sourceUrl && <a href={item.sourceUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-sky-400 hover:underline">{item.source}<ExternalLink className="w-3 h-3" /></a>}
               </div>
             );
-          }) : (rag?.statuteCitations || []).map(citation => (
-            <div key={citation} className="py-2 border-t border-slate-800 text-xs text-slate-300">{formatStatuteCitation(citation, router?.legalBasis || [])}<span className="ml-2 text-amber-300">尚待官方來源查驗</span></div>
-          ))}
+          }) : (
+            <p className="py-2 border-t border-slate-800 text-xs leading-6 text-slate-400">
+              引用清單中的法條均未通過全國法規資料庫即時查驗，請改由下方「不可引用」區塊檢視。
+            </p>
+          )}
         </div>
 
         <div className="space-y-2">
           <h2 className="text-sm font-bold text-white">相關函釋</h2>
-          {rag?.interpretations?.length ? rag.interpretations.map(item => (
+          {relevantInterpretations.length ? relevantInterpretations.map(item => (
             <div key={item.citation} className="py-2 border-t border-slate-800 text-xs text-slate-300">
-              <div className="font-semibold text-slate-200">{item.citation}<span className="ml-2 font-normal text-amber-300">待核對原文</span></div>
-              <p className="mt-1 leading-5">{item.title}{item.excerpt ? `：${item.excerpt}` : ''}</p>
+              <div className="font-semibold text-slate-200">{item.title || item.citation}</div>
+              {item.excerpt && <p className="mt-1 leading-6 text-[var(--color-text-secondary)]">{item.excerpt}</p>}
               {item.sourceUrl && <a href={item.sourceUrl} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 text-sky-400 hover:underline">開啟來源核對原文<ExternalLink className="w-3 h-3" /></a>}
             </div>
-          )) : <p className="text-xs leading-6 text-slate-400">目前沒有檢索到可供核對的相關函釋。</p>}
+          )) : <p className="text-xs leading-6 text-slate-400">目前沒有與本案爭點具備實質相關性的函釋。</p>}
+          {excludedInterpretationCount > 0 && (
+            <p className="text-[11px] leading-5 text-slate-500">已排除 {excludedInterpretationCount} 則僅條號相同但內容與本案爭點無關的函釋。</p>
+          )}
         </div>
+
+        {unverifiedCitations.length > 0 && (
+          <div className="space-y-2 rounded-lg border border-rose-800/60 bg-rose-950/20 p-3">
+            <h2 className="text-sm font-bold text-rose-200">不可引用｜未通過官方查驗的法條</h2>
+            <p className="text-xs leading-6 text-rose-200/80">
+              下列引用未能於全國法規資料庫完成即時查驗，可能為已廢止、過時或誤植的條號，<strong>不得用於書狀或法律主張</strong>。
+            </p>
+            <ul className="space-y-1 text-xs text-rose-200/90">
+              {unverifiedCitations.map(citation => (
+                <li key={citation}>• {formatStatuteCitation(citation, router?.legalBasis || [])}</li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <div className="space-y-2">
           <h2 className="text-sm font-bold text-white">需備證據</h2>
@@ -243,9 +337,11 @@ export const UnifiedResult: React.FC<UnifiedResultProps> = ({
               </label>
               {periodStartDate && (periodEstimates.length > 0
                 ? <ul>{periodEstimates.map(item => <li key={item.period}>• {item.period}初估截止日：{item.deadline}</li>)}</ul>
-                : <p>目前無法從文字基準辨識可試算期間，請改用完整法定期間工具。</p>)}
+                : (/(非告訴乃論|公訴罪)/.test(router?.statuteOfLimitations || '') && periodStartDate
+                  ? <p>本案屬公訴罪，原則上無告訴期限；起算日 {periodStartDate} 僅供記錄，實際送件時程仍請與承辦單位確認。</p>
+                  : <p>目前無法從文字基準辨識可試算期間，請改用完整法定期間工具。</p>))}
               <p className="text-amber-200/80">起算事件、假日順延及在途期間可能改變結果，送件前仍須核對送達證明與適用法條。</p>
-              {handleSelectTool && <button type="button" onClick={() => handleSelectTool('appealDeadline', 'deadline')} className="inline-flex items-center gap-1 font-semibold text-sky-300 hover:underline"><Calculator className="h-3.5 w-3.5" />開啟上訴與救濟法定期間工具</button>}
+              {handleSelectTool && <button type="button" onClick={() => handleSelectTool('appeal', 'deadline')} className="inline-flex items-center gap-1 font-semibold text-sky-300 hover:underline"><Calculator className="h-3.5 w-3.5" />開啟上訴與救濟法定期間工具</button>}
             </div>
           )}
           <ol className="space-y-2 border-t border-slate-800 pt-3 text-xs leading-5 text-slate-300">
@@ -254,17 +350,11 @@ export const UnifiedResult: React.FC<UnifiedResultProps> = ({
         </div>
 
         <div className="space-y-2">
-          <h2 className="text-sm font-bold text-white">大家也在問</h2>
-          {faqs.length ? faqs.map(item => (
-            <details key={item.question} className="border-t border-slate-800 py-2">
-              <summary className="cursor-pointer text-xs font-semibold text-slate-200">{item.question}</summary>
-              <p className="pt-2 text-xs leading-6 text-slate-400">{item.answer}</p>
-            </details>
-          )) : <p className="text-xs leading-6 text-slate-400">目前沒有可安全產出的構成要件問答。</p>}
-        </div>
-
-        <div className="space-y-2">
-          <h2 className="text-sm font-bold text-white">相關判例</h2>
+          <h2 className="text-sm font-bold text-white">引用相同法條的官方裁判</h2>
+          <p className="text-xs leading-6 text-[var(--color-text-muted)]">
+            下列裁判僅因<strong className="text-slate-300">引用了與您案件相同的法條</strong>而被列出，系統並未比對其犯罪事實與您案情是否類同。
+            請自行開啟官方來源確認事實是否相近後再行參考，不得直接援引。
+          </p>
           {verifiedPrecedents.length > 0 ? verifiedPrecedents.map((precedent, index) => {
               const citedStatutes = precedent.citedStatutes?.length
                 ? precedent.citedStatutes
@@ -273,12 +363,12 @@ export const UnifiedResult: React.FC<UnifiedResultProps> = ({
                 <div key={`${precedent.caseNumber}-${index}`} className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 py-2 border-t border-slate-800 text-xs text-slate-300">
                   <div>
                     <div className="font-semibold text-slate-200">{precedent.caseNumber}</div>
-                    <div className="mt-1 text-[var(--color-text-muted)]">{precedent.courtName}{citedStatutes.length ? ` · 同案引用：${citedStatutes.join('、')}` : ' · 尚未比對出相同法條'} · 司法院全文與 AI 防幽靈檢核通過</div>
+                    <div className="mt-1 text-[var(--color-text-muted)]">{precedent.courtName}{citedStatutes.length ? ` · 引用法條：${citedStatutes.join('、')}（僅代表法條相同，不代表事實類同）` : ' · 尚未比對出相同法條'} · 已通過司法院全文查核</div>
                   </div>
                   {precedent.sourceUrl && <a href={precedent.sourceUrl} target="_blank" rel="noreferrer" className="shrink-0 text-sky-400 hover:underline">官方來源</a>}
                 </div>
               );
-            }) : <p className="text-xs leading-6 text-slate-400">目前沒有同時通過司法院全文與 AI 防幽靈檢核的相關判例。</p>}
+            }) : <p className="text-xs leading-6 text-slate-400">目前沒有通過司法院全文與 AI 防幽靈檢核的相關裁判。</p>}
         </div>
 
         <details className="border-t border-slate-800 pt-4 group">
@@ -287,7 +377,28 @@ export const UnifiedResult: React.FC<UnifiedResultProps> = ({
             <div><span className="block font-semibold text-slate-200">法律規則</span>{syllogism.majorPremise}</div>
             <div><span className="block font-semibold text-slate-200">案件事實</span>{syllogism.minorPremise}</div>
             <div><span className="block font-semibold text-slate-200">要件比對</span>{syllogism.subsumption}</div>
-            <div><span className="block font-semibold text-slate-200">完整分析</span><span className="whitespace-pre-wrap">{syllogism.fullAnalysis}</span></div>
+            <div>
+              <span className="block font-semibold text-slate-200">完整分析</span>
+              {syllogism.analysisBlocked ? (
+                <div className="mt-1 space-y-2" role="alert">
+                  <p className="rounded-md border border-rose-800/60 bg-rose-950/20 px-3 py-2 leading-6 text-rose-200">
+                    本段 AI 分析與本機法律規則矛盾，已依 fail-closed 原則停止回傳，改以本機規則產生的結構化欄位（法律規則、案件事實、要件比對）為準。
+                    請勿採用下列已被判定為錯誤的敘述：
+                  </p>
+                  <ul className="space-y-1.5">
+                    {(syllogism.analysisViolations || []).map((violation, index) => (
+                      <li key={`${violation.code}-${index}`} className="rounded-md border border-rose-900/60 px-3 py-2 leading-5 text-rose-200/90">
+                        <div>{violation.message}</div>
+                        <div className="mt-0.5 text-rose-300/70">原文片段：{violation.evidence}</div>
+                        <div className="mt-0.5 text-rose-300/70">權威依據：{violation.authority}</div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                <span className="whitespace-pre-wrap">{syllogism.fullAnalysis}</span>
+              )}
+            </div>
             <div><span className="block font-semibold text-slate-200">查驗摘要</span>檢核 {verification?.totalChecked || 0} 處，異常 {verification?.ghostCount || 0} 處。</div>
           </div>
         </details>

@@ -4,7 +4,7 @@ import { AuthenticatedUser } from "./auth.js";
 export interface TenantContext {
   tenantId: string;
   userId: string;
-  role: "admin" | "lawyer" | "paralegal" | "client" | "system";
+  role: "admin" | "deployer" | "lawyer" | "paralegal" | "client" | "system";
   isSystemAdmin: boolean;
 }
 
@@ -24,12 +24,12 @@ declare global {
 export function tenantScopeMiddleware(req: Request, _res: Response, next: NextFunction) {
   const user = req.user as AuthenticatedUser | undefined;
 
-  // 1. 判斷是否為具備跨租戶管理權限的系統管理員
-  const isSystemAdmin = user?.role === "admin" || user?.role === "system";
+  // 1. 僅明確的 admin 角色具備跨租戶管理權限；system 服務角色仍受簽發租戶約束
+  const isSystemAdmin = user?.role === "admin";
 
   // 2. 嚴格取得租戶與使用者身分：
-  // 僅在具備系統管理員身分時，才允許在管理指令中明確指派目標租戶；
-  // 其餘所有角色 (律師、法務、客戶、訪客) 一律強制鎖定為 Token 內簽署之 tenantId 與 userId！
+  // 僅 admin 可在管理指令中明確指派目標租戶；
+  // 其餘所有角色（含 system）一律強制鎖定為 Token／API key 內簽署之 tenantId 與 userId！
   let tenantId = user?.tenantId || "sandbox-tenant";
   if (isSystemAdmin && req.headers["x-tenant-id"] && typeof req.headers["x-tenant-id"] === "string") {
     tenantId = req.headers["x-tenant-id"].trim();

@@ -36,7 +36,7 @@ describe('AUDIT-P0-001: Fallback PASS Bypass & Empty Document Hard Enforcement',
 
   });
   describe('Route Level Enforcement: /api/generate-appeal-petition & /api/defense/generate-pleading', () => {
-    it('Case A: AI normal with valid allowed citations returns verified document and passes', async () => {
+    it('Case A: appeal route fails closed until P9 canonical delivery is wired', async () => {
       const server = createServer(createExpressApp());
       await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
       const address = server.address();
@@ -54,22 +54,18 @@ describe('AUDIT-P0-001: Fallback PASS Bypass & Empty Document Hard Enforcement',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({
             caseNo: '113年度上字第123號',
-            claims: '原判決廢棄',
-            judgmentSummary: '原審判決認事用法顯有未盡之處'
+            claims: '原判決廢棄，應適用民法第184條第1項',
           })
         });
 
-        expect(res.status).toBe(200);
-        const data = await res.json();
-        expect(data.petitionText).toBeTruthy();
-        expect(data.antiGhostVerification.verificationPassed).toBe(true);
-        expect(data.antiGhostVerification.ghostCitationsFound).toBe(0);
+        expect(res.status).toBe(409);
+        expect((await res.json()).code).toBe('P9_FINAL_GATE_REQUIRED');
       } finally {
         await new Promise<void>((resolve, reject) => server.close((err) => err ? reject(err) : resolve()));
       }
     });
 
-    it('Case B, C, E: AI failure triggers fallback, but fallback MUST verify real documentText instead of bypassing with empty string', async () => {
+    it('Case B, C, E: appeal route cannot fall back to an ungated pleading', async () => {
       const server = createServer(createExpressApp());
       await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
       const address = server.address();
@@ -92,25 +88,14 @@ describe('AUDIT-P0-001: Fallback PASS Bypass & Empty Document Hard Enforcement',
 
         // The fallback document must NOT bypass citation check with documentText: ""
         // It must either pass full citation verification on fallback text, or fail-closed (422)
-        if (res.status === 200) {
-          const data = await res.json();
-          // The returned petition text must be non-empty
-          expect(data.petitionText).toBeTruthy();
-          expect(data.petitionText.trim().length).toBeGreaterThan(20);
-          // antiGhostVerification must be for the actual petition text, not empty text bypass
-          expect(data.antiGhostVerification).toBeDefined();
-          expect(data.antiGhostVerification.ghostCitationsFound).toBe(0);
-        } else {
-          expect(res.status).toBe(422);
-          const data = await res.json();
-          expect(data.code).toBe('DOCUMENT_VERIFICATION_FAILED');
-        }
+        expect(res.status).toBe(409);
+        expect((await res.json()).code).toBe('P9_FINAL_GATE_REQUIRED');
       } finally {
         await new Promise<void>((resolve, reject) => server.close((err) => err ? reject(err) : resolve()));
       }
     });
 
-    it('Defense Case: AI failure triggers fallback for /api/defense/generate-pleading, fallback text must be verified', async () => {
+    it('Defense Case: defense route fails closed until P9 canonical delivery is wired', async () => {
       const server = createServer(createExpressApp());
       await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
       const address = server.address();
@@ -138,15 +123,8 @@ describe('AUDIT-P0-001: Fallback PASS Bypass & Empty Document Hard Enforcement',
           })
         });
 
-        if (res.status === 200) {
-          const data = await res.json();
-          expect(data.pleadingText).toBeTruthy();
-          expect(data.pleadingText.trim().length).toBeGreaterThan(20);
-          expect(data.antiGhostVerification).toBeDefined();
-          expect(data.antiGhostVerification.ghostCitationsFound).toBe(0);
-        } else {
-          expect(res.status).toBe(422);
-        }
+        expect(res.status).toBe(409);
+        expect((await res.json()).code).toBe('P9_FINAL_GATE_REQUIRED');
       } finally {
         await new Promise<void>((resolve, reject) => server.close((err) => err ? reject(err) : resolve()));
       }

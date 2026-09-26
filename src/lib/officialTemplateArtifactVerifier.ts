@@ -7,6 +7,14 @@ import { extractContentXml } from './officialTemplateRenderer';
 const FILES_DIR = path.resolve(process.cwd(), 'data', 'official-templates', 'files');
 const FIELD_STYLES = ['T11', 'T12', 'T17'] as const;
 
+function countStyleSpans(contentXml: string, styleName: string): number {
+  const pattern = new RegExp(
+    `<text:span text:style-name="${styleName}">[\\s\\S]*?</text:span>`,
+    'g'
+  );
+  return [...contentXml.matchAll(pattern)].length;
+}
+
 export type ArtifactVerificationStatus = 'VERIFIED' | 'MISSING' | 'HASH_MISMATCH' | 'INVALID';
 
 export interface ArtifactVerificationResult {
@@ -119,35 +127,42 @@ export function normalizeOdtText(contentXml: string): string {
 
 export function verifyTemplateFieldMapping(
   template: OfficialTemplate,
-  contentXml: string
+  contentXml: string,
+  options: { strictP9?: boolean } = {}
 ): TemplateFieldMappingResult {
   if (!contentXml.trim()) {
     return { status: 'INVALID', fields: [], missingRequiredFields: [], error: 'Template content.xml is empty.' };
   }
 
+  const enforceExactlyOne = template.p9Status === 'P9_READY' || options.strictP9 === true;
   const fields = template.fields.map((field, index) => {
     const styleName = FIELD_STYLES[index] || null;
-    const mapped = Boolean(styleName && new RegExp(`text:style-name="${styleName}"`).test(contentXml));
+    const spanCount = styleName ? countStyleSpans(contentXml, styleName) : 0;
+    const mapped = styleName ? (enforceExactlyOne ? spanCount === 1 : spanCount > 0) : false;
     return { key: field.key, styleName, mapped, required: field.required };
   });
   const missingRequiredFields = fields.filter(field => field.required && !field.mapped).map(field => field.key);
+  const invalidP9Fields = enforceExactlyOne
+    ? fields.filter(field => field.styleName && !field.mapped).map(field => field.key)
+    : [];
 
   return {
-    status: missingRequiredFields.length ? 'MAPPING_INCOMPLETE' : 'VERIFIED',
+    status: missingRequiredFields.length || invalidP9Fields.length ? 'MAPPING_INCOMPLETE' : 'VERIFIED',
     fields,
-    missingRequiredFields,
+    missingRequiredFields: [...missingRequiredFields, ...invalidP9Fields],
   };
 }
 
 export function verifyTemplateArtifactAndMapping(
   template: OfficialTemplate,
   buffer: Buffer,
-  expectedSha256: string | undefined = template.localFileHash || undefined
+  expectedSha256: string | undefined = template.localFileHash || undefined,
+  options: { strictP9?: boolean } = {}
 ): ArtifactVerificationResult & { mapping?: TemplateFieldMappingResult; normalizedText?: string } {
   const artifact = verifyOfficialTemplateBuffer(buffer, expectedSha256);
   if (artifact.status !== 'VERIFIED' || !artifact.contentXml) return artifact;
 
-  const mapping = verifyTemplateFieldMapping(template, artifact.contentXml);
+  const mapping = verifyTemplateFieldMapping(template, artifact.contentXml, options);
   return {
     ...artifact,
     mapping,

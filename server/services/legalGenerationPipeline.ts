@@ -227,8 +227,10 @@ export class LegalGenerationPipeline {
     }
 
     // 步驟 4: 強制防幽靈檢核 (Verify & Fail-Closed)
+    const strictAllowedOnly = (retrieval.allowedCitations?.length || 0) > 0;
     const verification = verifyGeneratedDocument(extracted.documentText, {
-      allowedCitations: retrieval.allowedCitations
+      allowedCitations: retrieval.allowedCitations,
+      strictAllowedOnly
     });
     const verified = assertGeneratedDocumentVerified(verification);
 

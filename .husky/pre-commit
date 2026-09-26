@@ -1,6 +1,6 @@
 #!/bin/sh
-# 1. 檢查根目錄下的暫存/修補腳本（排除 test-ssrf.cjs 例外）
-bad_files=$(ls fix_*.py fix_*.cjs fix_*.sh patch_*.py patch_*.cjs patch_*.sh update_*.py update_*.cjs test_*.cjs 2>/dev/null | grep -v "^test-ssrf.cjs$" || true)
+# 1. 檢查根目錄下的暫存/修補腳本
+bad_files=$(ls fix_*.py fix_*.cjs fix_*.sh patch_*.py patch_*.cjs patch_*.sh update_*.py update_*.cjs test_*.cjs 2>/dev/null | grep -v "test-ssrf.cjs" || true)
 if [ -n "$bad_files" ]; then
   echo "Error: Found temporary scripts in root directory. Please delete them before committing:"
   echo "$bad_files"

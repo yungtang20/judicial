@@ -55,7 +55,7 @@ export async function verifyOfficialTemplateP9(options: VerifyOfficialTemplateP9
   if (sourceVerification.status !== 'VERIFIED') {
     throw new OfficialTemplateP9VerificationError('SOURCE_HASH_DRIFT', '官方範本來源 hash 未通過驗證。');
   }
-  const mapping = verifyTemplateArtifactAndMapping(template, source);
+  const mapping = verifyTemplateArtifactAndMapping(template, source, template.localFileHash || undefined, { strictP9: true });
   if (mapping.mapping?.status !== 'VERIFIED') {
     throw new OfficialTemplateP9VerificationError(
       'FIELD_MAPPING_INCOMPLETE',
@@ -71,7 +71,7 @@ export async function verifyOfficialTemplateP9(options: VerifyOfficialTemplateP9
     );
   }
   const artifact = Buffer.from(rendered.documentBase64, 'base64');
-  const artifactVerification = verifyTemplateArtifactAndMapping(template, artifact, undefined);
+  const artifactVerification = verifyTemplateArtifactAndMapping(template, artifact, '', { strictP9: true });
   if (artifactVerification.status !== 'VERIFIED' || artifactVerification.mapping?.status !== 'VERIFIED') {
     throw new OfficialTemplateP9VerificationError('ARTIFACT_BLOCKED', '產出 ODT 的 integrity 或 mapping 未通過。');
   }

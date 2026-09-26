@@ -209,6 +209,7 @@ router.post('/api/official-templates/:id/render', requireAuth(), async (req: Req
       const status = result.code === 'TEMPLATE_NOT_FOUND' ? 404
         : result.code === 'MISSING_REQUIRED_FIELDS' ? 422
         : result.code === 'TEMPLATE_MAPPING_INCOMPLETE' ? 422
+        : result.code === 'TEMPLATE_FIELD_NOT_ALLOWED' ? 422
         : result.code === 'TEMPLATE_NOT_RENDERABLE' ? 422
         : 500;
       return res.status(status).json({
@@ -232,6 +233,7 @@ router.post('/api/official-templates/:id/render', requireAuth(), async (req: Req
       template,
       values: fields,
       artifact: Buffer.from(result.documentBase64, 'base64'),
+      artifactFileName: result.fileName,
       sourceArtifact: fs.readFileSync(resolved),
     });
 

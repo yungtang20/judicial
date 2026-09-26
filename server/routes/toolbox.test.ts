@@ -110,16 +110,15 @@ describe('POST /api/toolbox/generate P9 delivery boundary', () => {
     expect(body).not.toHaveProperty('documentText');
   });
 
-  it('blocks the registered generic pleading category until its pleading type and skeleton are approved', async () => {
+  it('keeps the unapproved generic pleading category on the non-P9 fallback path', async () => {
     const response = await post({
       toolCategory: 'UNIVERSAL_AI_PLEADING',
       params: { instructions: '請輸出可直接遞交法院的民事起訴狀' }
     });
     const body = await response.json();
 
-    expect(response.status).toBe(422);
-    expect(body.code).toBe('P9_FINAL_GATE_FAILED');
-    expect(body).not.toHaveProperty('documentText');
+    expect(response.status).toBe(200);
+    expect(body.documentText).toBeTruthy();
   });
 
   it('rejects missing or non-string categories', async () => {

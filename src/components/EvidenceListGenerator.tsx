@@ -1,83 +1,97 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import type { CaseContext } from '../domain/case/types';
+import { evidenceRowsFromCase, evidenceRowsToCase, type EvidenceEditorRow } from '../lib/caseRowAdapters';
 import { getActiveCase, useCaseStore } from '../store/useCaseStore';
+import { AttachmentHeaderFields, type AttachmentHeaderValues } from './appeal/AttachmentHeaderFields';
+import { EvidenceEditorList } from './appeal/EvidenceEditorList';
 
-interface EvidenceRowItem {
-  id: string;
-  code: string;               // 編號 (如：1)
-  relatedIssue: string;       // 所涉爭點
-  investigationItem: string;  // 調查事項 (如：訊問證人)
-  investigationTarget: string;// 調查對象 (姓名或單位)
-  targetAddress: string;      // 對象地址及聯絡方式
-  provenFact: string;         // 待證事實(限50字)
+interface EvidenceSeedConsumption {
+  issueSummary: string;
+  consumedAt: string;
 }
 
-export default function EvidenceListGenerator() {
-  const activeCase = useCaseStore(getActiveCase);
+type EvidenceSeedCaseContext = CaseContext & {
+  evidenceSeedConsumption?: EvidenceSeedConsumption;
+};
+
+function consumeEvidenceSeed(issueSummary: string, seededItems?: EvidenceEditorRow[]) {
+  useCaseStore.setState(state => {
+    const current = getActiveCase(state) as EvidenceSeedCaseContext;
+    if (current.evidenceSeedConsumption?.issueSummary === issueSummary) return state;
+    const consumedAt = new Date().toISOString();
+    const next: EvidenceSeedCaseContext = {
+      ...current,
+      evidences: seededItems ? evidenceRowsToCase(seededItems) : current.evidences,
+      evidenceSeedConsumption: { issueSummary, consumedAt },
+      updatedAt: consumedAt
+    };
+    return {
+      cases: {
+        ...state.cases,
+        [state.activeCaseId]: next
+      }
+    };
+  });
+}
+
+
+interface EvidenceListGeneratorProps {
+  initialIssueSummary?: string;
+}
+
+function evidenceSeedItems(issueSeed: string): EvidenceEditorRow[] {
+  return [{
+    id: '1',
+    code: '1',
+    relatedIssue: issueSeed,
+    investigationItem: '',
+    investigationTarget: '',
+    targetAddress: '',
+    provenFact: ''
+  }];
+}
+
+export default function EvidenceListGenerator({ initialIssueSummary }: EvidenceListGeneratorProps = {}) {
+  const issueSeed = initialIssueSummary?.trim() || '';
+  const activeCase = useCaseStore(state => getActiveCase(state) as EvidenceSeedCaseContext);
   const updateCaseEvidences = useCaseStore(s => s.updateEvidences);
-  // 0. 案件基本資料
   const todayObj = new Date();
   const todayRoc = `${todayObj.getFullYear() - 1911}年${todayObj.getMonth() + 1}月${todayObj.getDate()}日`;
 
   const [attachmentText, setAttachmentText] = useState('附件');
-  const [courtName, setCourtName] = useState('臺灣高等法院');
-  const [year, setYear] = useState('112');
-  const [word, setWord] = useState('重上');
-  const [caseNo, setCaseNo] = useState('123');
-  const [submitter, setSubmitter] = useState('例如：上訴人 王小明');
+  const [courtName, setCourtName] = useState('');
+  const [year, setYear] = useState('');
+  const [word, setWord] = useState('');
+  const [caseNo, setCaseNo] = useState('');
+  const [submitter, setSubmitter] = useState('');
   const [submitDate, setSubmitDate] = useState(todayRoc);
 
-  // 1. 調查證據列表
-  const [items, setItems] = useState<EvidenceRowItem[]>(activeCase.evidences?.length ? activeCase.evidences?.map(item => ({
-    id: item.id,
-    code: item.code,
-    relatedIssue: item.relatedIssue,
-    investigationItem: item.investigationItem,
-    investigationTarget: item.investigationTarget,
-    targetAddress: item.targetAddress,
-    provenFact: item.provenFact
-  })) : [
-    {
-      id: '1',
-      code: '1',
-      relatedIssue: '',
-      investigationItem: '',
-      investigationTarget: '',
-      targetAddress: '',
-      provenFact: ''
+  const [items, setItems] = useState<EvidenceEditorRow[]>(() => (
+    activeCase.evidences?.length ? evidenceRowsFromCase(activeCase.evidences) : []
+  ));
+  useEffect(() => {
+    if (!issueSeed) return;
+    if (activeCase.evidenceSeedConsumption?.issueSummary === issueSeed) return;
+    if (activeCase.evidences?.length) {
+      consumeEvidenceSeed(issueSeed);
+      return;
     }
-  ]);
-
-  const addItem = () => {
-    const next = [
-      ...items,
-      {
-        id: Date.now().toString(),
-        code: String(items.length + 1),
-        relatedIssue: '',
-        investigationItem: '',
-        investigationTarget: '',
-        targetAddress: '',
-        provenFact: ''
-      }
-    ];
-    setItems(next);
-    updateCaseEvidences(next.map(item => ({ id: item.id, code: item.code, relatedIssue: item.relatedIssue, investigationItem: item.investigationItem, investigationTarget: item.investigationTarget, targetAddress: item.targetAddress, provenFact: item.provenFact })));
-  };
-
-  const removeItem = (id: string) => {
-    const next = items.filter(item => item.id !== id);
-    setItems(next);
-    updateCaseEvidences(next.map(item => ({ id: item.id, code: item.code, relatedIssue: item.relatedIssue, investigationItem: item.investigationItem, investigationTarget: item.investigationTarget, targetAddress: item.targetAddress, provenFact: item.provenFact })));
-  };
-
-  const updateItem = (id: string, field: keyof EvidenceRowItem, value: string) => {
-    const next = items.map(item => item.id === id ? { ...item, [field]: value } : item);
-    setItems(next);
-    updateCaseEvidences(next.map(item => ({ id: item.id, code: item.code, relatedIssue: item.relatedIssue, investigationItem: item.investigationItem, investigationTarget: item.investigationTarget, targetAddress: item.targetAddress, provenFact: item.provenFact })));
-  };
+    const seededItems = evidenceSeedItems(issueSeed);
+    consumeEvidenceSeed(issueSeed, seededItems);
+    setItems(seededItems);
+  }, [issueSeed, activeCase.evidences, activeCase.evidenceSeedConsumption]);
 
   const handlePrint = () => {
     window.print();
+  };
+  const updateHeaderField = (field: keyof AttachmentHeaderValues, value: string) => {
+    if (field === 'attachmentText') setAttachmentText(value);
+    if (field === 'courtName') setCourtName(value);
+    if (field === 'year') setYear(value);
+    if (field === 'word') setWord(value);
+    if (field === 'caseNo') setCaseNo(value);
+    if (field === 'submitter') setSubmitter(value);
+    if (field === 'submitDate') setSubmitDate(value);
   };
 
   return (
@@ -92,183 +106,20 @@ export default function EvidenceListGenerator() {
         </div>
 
         {/* 0. 案件基本資料 */}
-        <div className="space-y-3 bg-[var(--color-surface-raised)] p-4 rounded-xl border border-[var(--color-border-subtle)]">
-          <div className="font-bold text-sm text-[var(--color-text-primary)] border-b pb-1.5 border-[var(--color-border-strong)]">
-            0. 案件基本資料
-          </div>
+        <AttachmentHeaderFields
+          values={{ attachmentText, courtName, year, word, caseNo, submitter, submitDate }}
+          onChange={updateHeaderField}
+        />
 
-          <div>
-            <label className="block text-xs font-bold text-[var(--color-text-secondary)] mb-1">附件文字</label>
-            <input 
-              type="text" 
-              value={attachmentText} 
-              onChange={e => setAttachmentText(e.target.value)}
-              className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)] font-bold"
-              placeholder="附件"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
-            <div className="col-span-2">
-              <label className="block font-bold text-[var(--color-text-secondary)] mb-1">法院名稱</label>
-              <input 
-                type="text" 
-                value={courtName} 
-                onChange={e => setCourtName(e.target.value)}
-                className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)]"
-                placeholder="臺灣高等法院"
-              />
-            </div>
-            <div>
-              <label className="block font-bold text-[var(--color-text-secondary)] mb-1">年度</label>
-              <input 
-                type="text" 
-                value={year} 
-                onChange={e => setYear(e.target.value)}
-                className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)] text-center font-mono"
-                placeholder="112"
-              />
-            </div>
-            <div>
-              <label className="block font-bold text-[var(--color-text-secondary)] mb-1">字別</label>
-              <input 
-                type="text" 
-                value={word} 
-                onChange={e => setWord(e.target.value)}
-                className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)] text-center"
-                placeholder="重上"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-[var(--color-text-secondary)] mb-1">案號</label>
-            <input 
-              type="text" 
-              value={caseNo} 
-              onChange={e => setCaseNo(e.target.value)}
-              className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)] font-mono"
-              placeholder="123"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-[var(--color-text-secondary)] mb-1">提出人（簽章）</label>
-            <textarea 
-              value={submitter} 
-              onChange={e => setSubmitter(e.target.value)}
-              rows={5}
-              className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)]"
-              placeholder="例如：上訴人 王小明"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-[var(--color-text-secondary)] mb-1">提出日期</label>
-            <textarea 
-              value={submitDate} 
-              onChange={e => setSubmitDate(e.target.value)}
-              rows={5}
-              className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)]"
-              placeholder="例如：112年12月25日"
-            />
-          </div>
-        </div>
-
-        {/* 1. 調查證據列表 */}
         <div className="space-y-3">
-          <div className="flex justify-between items-center border-b pb-2 border-[var(--color-border-subtle)]">
-            <label className="font-bold text-sm text-[var(--color-text-primary)]">1. 調查證據列表</label>
-            <span className="text-3xs bg-[var(--color-surface-overlay)] text-[var(--color-text-secondary)] px-2 py-0.5 rounded font-mono">共 {items.length} 列</span>
-          </div>
-
-          <div className="space-y-4">
-            {items.map((item, idx) => (
-              <div key={item.id} className="p-3.5 bg-[var(--color-surface-raised)]/70 rounded-xl border border-[var(--color-border-strong)] relative space-y-3">
-                <div className="flex justify-between items-center border-b border-[var(--color-border-subtle)] pb-2">
-                  <span className="font-bold text-xs text-[var(--color-text-primary)]">編號 {idx + 1}</span>
-                  <button 
-                    onClick={() => removeItem(item.id)}
-                    className="text-red-500 hover:text-red-700 font-bold text-3xs border border-[var(--color-status-danger)]/30 px-2 py-0.5 rounded bg-[var(--color-status-danger-bg)]"
-                  >
-                    ✖ 刪除
-                  </button>
-                </div>
-
-                <div>
-                  <label className="block text-3xs font-bold text-[var(--color-text-secondary)] mb-0.5">所涉爭點</label>
-                  <textarea 
-                    value={item.relatedIssue} 
-                    onChange={e => updateItem(item.id, 'relatedIssue', e.target.value)}
-                    rows={5}
-                    className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)]"
-                    placeholder="例如：爭點一：消費借貸契約之成立與舉證責任"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div>
-                    <label className="block text-3xs font-bold text-[var(--color-text-secondary)] mb-0.5">調查事項</label>
-                    <textarea 
-                      value={item.investigationItem} 
-                      onChange={e => updateItem(item.id, 'investigationItem', e.target.value)}
-                      rows={5}
-                      className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)]"
-                      placeholder="例如：訊問證人"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-3xs font-bold text-[var(--color-text-secondary)] mb-0.5">調查對象</label>
-                    <textarea 
-                      value={item.investigationTarget} 
-                      onChange={e => updateItem(item.id, 'investigationTarget', e.target.value)}
-                      rows={5}
-                      className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)]"
-                      placeholder="姓名或單位"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-3xs font-bold text-[var(--color-text-secondary)] mb-0.5">對象地址及聯絡方式</label>
-                  <textarea 
-                    value={item.targetAddress} 
-                    onChange={e => updateItem(item.id, 'targetAddress', e.target.value)}
-                    rows={5}
-                    className="w-full border border-[var(--color-border-strong)] rounded p-1.5 text-xs bg-[var(--color-surface-overlay)]"
-                    placeholder="地址及電話或卷頁"
-                  />
-                </div>
-
-                <div>
-                  <div className="flex justify-between items-center mb-0.5">
-                    <label className="block text-3xs font-bold text-[var(--color-text-secondary)]">待證事實 (限50字)</label>
-                    <span className={`text-3xs font-mono font-bold ${(item.provenFact || '').length > 50 ? 'text-red-600' : 'text-[var(--color-text-muted)]'}`}>
-                      限制 : {(item.provenFact || '').length}/50字
-                    </span>
-                  </div>
-                  <textarea 
-                    value={item.provenFact} 
-                    onChange={e => updateItem(item.id, 'provenFact', e.target.value)}
-                    rows={5}
-                    maxLength={100}
-                    className={`w-full border rounded p-1.5 text-xs bg-[var(--color-surface-overlay)] ${(item.provenFact || '').length > 50 ? 'border-red-400 bg-[var(--color-status-danger-bg)]/50' : 'border-[var(--color-border-strong)]'}`}
-                    placeholder="限50字內說明待證事實"
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <button 
-            onClick={addItem}
-            className="w-full py-2 border-2 border-dashed border-[var(--color-brand-primary)] text-[var(--color-brand-primary)] font-bold text-xs rounded-xl hover:bg-[var(--color-status-success-bg)] transition-all flex justify-center items-center gap-1 mt-3"
-          >
-            ⊕ 增加一列
-          </button>
-
-          <button 
+          <EvidenceEditorList
+            evidences={items}
+            onChange={next => {
+              setItems(next);
+              updateCaseEvidences(evidenceRowsToCase(next));
+            }}
+          />
+          <button
             onClick={handlePrint}
             className="w-full bg-[var(--color-brand-primary)] text-white py-2.5 rounded-xl font-bold text-sm hover:opacity-90 transition-opacity flex justify-center items-center gap-2 mt-4"
           >
@@ -287,7 +138,7 @@ export default function EvidenceListGenerator() {
 
           {/* 標題框 */}
           <div className="border-2 border-black p-3 text-center font-bold text-base text-black tracking-wider bg-[var(--color-surface-raised)]/30">
-            {courtName || '臺灣高等法院'}{year || '112'}年度{word || '重上'}字第{caseNo || '123'}號調查證據聲請表
+            {courtName}{year}年度{word}字第{caseNo}號調查證據聲請表
           </div>
 
           {/* 提出人與日期列 */}

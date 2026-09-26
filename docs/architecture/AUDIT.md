@@ -33,8 +33,16 @@ Legal generation result
 | Legal generation | `server/services/legalGenerationPipeline.ts` | 前置檢查、生成、fallback 與產後驗證的共同管線 |
 | Workflow domain | `src/domain/workflow/`、`src/domain/sdlc/` | deterministic state machine、stage contract、RBAC、Human Gate、audit event |
 | Citation trust | `src/lib/citationVerifier.ts`、`server/services/officialCitationVerification.ts` | 本機 heuristic 與官方來源證據分離；失敗時 fail-closed |
-| Tenant/auth | `server/middleware/auth.ts`、`tenantIsolation.ts` | Bearer/API key 驗證、tenant context 與跨租戶阻擋 |
+| Tenant/auth | `server/middleware/auth.ts`、`server/middleware/tenantScope.ts` | Bearer/API key 驗證、tenant context 與跨租戶阻擋 |
 | UI tool registry | `src/lib/legalToolRegistry.ts`、`toolFieldSchemas.ts` | 工具 metadata 與資料驅動表單 schema |
+
+## UI Route 與資料 Handoff
+
+- `src/types/navigation.ts` 是前端 canonical route contract；`ToolContext` 保存 route 與 typed handoff，不再以任意 `activeTool`／`initialData` 作為正式 authority。
+- `App.tsx` 依 canonical route 決定 workspace；`LitigationWorkspace` 再依 canonical section 顯示導診、書狀、防禦、上訴或爭點工作區。
+- `LegalToolbox` 的工具選擇仍是 feature-local state；外部 route 只傳入 `toolId`、`facts` 與 `formSeed`。
+- 官方範本分類是獨立 view，掛載 `OfficialTemplateDirectory`，不再與一般書狀表單同時渲染。
+- `cross_feature_context` 僅保存跨功能 handoff；`useCaseStore` 與 Unified workflow state 仍維持各自資料 authority。
 
 ## 已落實的架構控制
 
@@ -72,6 +80,7 @@ npm run test:coverage
 npm run test:eval
 npm run test:e2e
 npm run test:ssrf
+npm run test:ui:e2e
 npm run build
 ```
 

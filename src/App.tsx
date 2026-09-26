@@ -10,6 +10,11 @@ const LitigationWorkspace = React.lazy(() => import('./components/LitigationWork
 const AgentChat = React.lazy(() => import('./components/AgentChat').then(m => ({ default: m.default || m.AgentChat })));
 const JudicialAndAiChecker = React.lazy(() => import('./components/JudicialAndAiChecker').then(m => ({ default: m.default || m.JudicialAndAiChecker })));
 const LegalProcessGuide = React.lazy(() => import('./components/LegalProcessGuide').then(m => ({ default: m.LegalProcessGuide })));
+const CHECKER_TAB = {
+  'anti-ghost': 'antiGhost',
+  'open-data': 'openData',
+  'local-search': 'localSearch'
+} as const;
 
 function LoadingFallback() {
   return (
@@ -23,47 +28,45 @@ function LoadingFallback() {
 }
 
 function AppContent() {
-  const { activeTool, setActiveTool, initialData, handleSelectTool } = useToolContext();
+  const { route, handoff, navigate, handleSelectTool } = useToolContext();
 
   useEffect(() => {
-    trackToolUsage(activeTool);
-  }, [activeTool]);
+    trackToolUsage(route);
+  }, [route]);
+  const handoffKey = handoff ? JSON.stringify(handoff) : 'none';
 
   const renderContent = () => {
-    switch (activeTool) {
-      case 'unified':
+    switch (route.view) {
+      case 'analysis':
         return <UnifiedEntry />;
-      case 'guide':
-        return <LitigationWorkspace initialTab={initialData?.initialTab || 'guide'} initialToolId={initialData?.preselectedToolId} initialFacts={initialData?.facts} />;
       case 'litigation':
-        return <LitigationWorkspace initialTab={initialData?.initialTab === 'guide' ? 'toolbox' : initialData?.initialTab || 'toolbox'} initialToolId={initialData?.preselectedToolId} initialFacts={initialData?.facts} />;
-      case 'processGuide':
+        return (
+          <LitigationWorkspace
+            key={`litigation:${route.section}:${handoffKey}`}
+            root="litigation"
+            section={route.section}
+            handoff={handoff}
+            onSectionChange={section => navigate(route.view === 'appeal' ? { view: 'appeal', section } : { view: 'litigation', section }, handoff)}
+          />
+        );
+      case 'appeal':
+        return (
+          <LitigationWorkspace
+            key={`appeal:${route.section}:${handoffKey}`}
+            root="appeal"
+            section={route.section}
+            handoff={handoff}
+            onSectionChange={section => navigate({ view: 'appeal', section }, handoff)}
+          />
+        );
+      case 'process-guide':
         return <LegalProcessGuide onNavigateToTool={handleSelectTool} />;
       case 'sdlc':
         return <LegalSdlcWorkbench />;
-      case 'legalToolbox':
-        return <LitigationWorkspace initialTab={initialData?.initialTab || 'toolbox'} initialToolId={initialData?.preselectedToolId} initialFacts={initialData?.facts} />;
-      case 'appeal':
-      case 'smartAppeal':
-      case 'appealDeadline':
-        return (
-          <LitigationWorkspace
-            initialTab={initialData?.initialTab || (activeTool === 'smartAppeal' ? 'appeal' : 'deadline')}
-            initialToolId={initialData?.preselectedToolId}
-            initialFacts={initialData?.facts}
-            appealOnly
-          />
-        );
       case 'agent-chat':
         return <AgentChat />;
       case 'checker':
-        return <JudicialAndAiChecker />;
-      case 'docAiChecker':
-        return <JudicialAndAiChecker />;
-      case 'judgmentSearch':
-        return <JudicialAndAiChecker />;
-      default:
-        return <UnifiedEntry />;
+        return <JudicialAndAiChecker initialTab={CHECKER_TAB[route.section]} />;
     }
   };
 

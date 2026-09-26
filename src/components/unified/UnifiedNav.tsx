@@ -4,7 +4,16 @@ import {
   FileText, ArrowRight, Briefcase, Table, Scale, Compass
 } from 'lucide-react';
 import { canUseWorkflowResult } from './UnifiedResult';
+import type { LegalWorkflowState } from '../../lib/workflow/unifiedStateGraph';
 import { resolveDocumentTool } from '../../lib/documentSelectionRules';
+
+export function buildCaseIssueSummary(workflowState: LegalWorkflowState): string {
+  const cause = workflowState.router?.cause?.trim() || '';
+  const caseType = workflowState.router?.caseType?.trim() || '';
+  if (!cause) return caseType;
+  if (!caseType || caseType === cause) return cause;
+  return `${cause}；案件類型：${caseType}`;
+}
 
 export interface UnifiedNavProps {
   [key: string]: any;
@@ -25,35 +34,34 @@ export const UnifiedNav: React.FC<UnifiedNavProps> = (props) => {
     recommendedToolId: workflowState.router?.recommendedToolId
   });
 
+  const handoff = {
+    domain: workflowState.router?.domain || '',
+    cause: workflowState.router?.cause || '',
+    scenarioKeywords: workflowState.router?.cause || '',
+    facts: workflowState.userNarrative || '',
+    issuesSummary: buildCaseIssueSummary(workflowState),
+    sourceTool: 'unified'
+  };
+
   const handleJumpToLitigation = (tab: 'toolbox' | 'issues' | 'appeal') => {
     const prioritizedTab = tab === 'toolbox' && documentSelection.destination === 'appeal' ? 'appeal' : tab;
     saveCrossFeatureContext({
-      scenarioKeywords: workflowState?.router?.cause || '',
-      domain: workflowState?.router?.domain,
-      cause: workflowState?.router?.cause,
-      facts: workflowState?.userNarrative || '',
-      issuesSummary: workflowState?.syllogism?.majorPremise || '',
-      initialTab: prioritizedTab,
-      sourceTool: 'unified',
-      timestamp: Date.now()
+      ...handoff,
+      initialTab: prioritizedTab
     });
     handleSelectTool(prioritizedTab === 'appeal' ? 'appeal' : 'litigation', prioritizedTab, {
+      ...handoff,
       initialTab: prioritizedTab,
-      facts: workflowState?.userNarrative,
       ...(prioritizedTab === 'toolbox' && documentSelection.toolId ? { preselectedToolId: documentSelection.toolId } : {})
     });
   };
 
   const handleJumpToGuide = () => {
     saveCrossFeatureContext({
-      scenarioKeywords: workflowState?.router?.cause || '',
-      domain: workflowState?.router?.domain,
-      cause: workflowState?.router?.cause,
-      facts: workflowState?.userNarrative || '',
-      sourceTool: 'unified',
-      timestamp: Date.now()
+      ...handoff,
+      initialTab: 'guide'
     });
-    handleSelectTool('litigation', 'guide');
+    handleSelectTool('litigation', 'guide', handoff);
   };
 
   return (

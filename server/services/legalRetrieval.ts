@@ -3,6 +3,8 @@ import path from "node:path";
 import fs from "node:fs";
 import { GoogleGenAI } from "@google/genai";
 import { Embedder } from "../../src/ai/embedding/Embedder.js";
+import { cosineSimilarity, extractRelevantExcerpt, tokenizeLegalText } from '../knowledge-base/retrievalMath.js';
+export { cosineSimilarity } from '../knowledge-base/retrievalMath.js';
 
 let DatabaseSync: any;
 try {
@@ -99,23 +101,6 @@ function createFallbackEmbedding(text: string, dimensions = 128): number[] {
   return Array.from(vec);
 }
 
-/**
- * Compute cosine similarity between two numeric vectors
- */
-export function cosineSimilarity(a: number[], b: number[]): number {
-  if (a.length !== b.length || a.length === 0) return 0;
-  let dot = 0;
-  let normA = 0;
-  let normB = 0;
-  for (let i = 0; i < a.length; i++) {
-    dot += a[i] * b[i];
-    normA += a[i] * a[i];
-    normB += b[i] * b[i];
-  }
-  const denom = Math.sqrt(normA) * Math.sqrt(normB);
-  if (denom === 0) return 0;
-  return dot / denom;
-}
 
 export class LegalEmbedder implements Embedder {
   private apiKey?: string;
@@ -284,46 +269,6 @@ export async function indexDocument(
   });
 }
 
-function extractRelevantExcerpt(fullText: string, query: string, maxLength = 250): string {
-  if (!fullText) return "";
-  if (fullText.length <= maxLength) return fullText;
-
-  // Search for the query keywords inside the text
-  const cleanTokens = query.replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g, " ").split(/\s+/).filter(t => t.length >= 2);
-  let bestPos = -1;
-
-  for (const token of cleanTokens) {
-    const pos = fullText.indexOf(token);
-    if (pos !== -1) {
-      bestPos = pos;
-      break;
-    }
-  }
-
-  if (bestPos === -1) {
-    return fullText.slice(0, maxLength) + "…";
-  }
-
-  const start = Math.max(0, bestPos - 40);
-  const end = Math.min(fullText.length, start + maxLength);
-  const excerpt = fullText.slice(start, end);
-  return (start > 0 ? "…" : "") + excerpt + (end < fullText.length ? "…" : "");
-}
-
-function extractSearchTokens(query: string): string[] {
-  const clean = query.replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g, " ").trim();
-  const words = clean.split(/\s+/).filter(w => w.length >= 2);
-  const tokens = new Set<string>(words);
-
-  for (const word of words) {
-    if (/[\u4e00-\u9fa5]/.test(word)) {
-      for (let i = 0; i < word.length - 1; i++) {
-        tokens.add(word.slice(i, i + 2));
-      }
-    }
-  }
-  return Array.from(tokens);
-}
 
 export interface RetrieveOptions {
   topK?: number;
@@ -397,7 +342,7 @@ export async function retrieve(
 
   const queryEmbedding = await embedder.embed(trimmed);
   const scored: Array<{ doc: StoredDocument; score: number }> = [];
-  const searchTokens = extractSearchTokens(trimmed);
+  const searchTokens = tokenizeLegalText(trimmed);
 
   for (const doc of docs) {
     // 裁判必須具備逐筆官方明細頁、查證時間與內容雜湊，否則不得進入生成上下文。
@@ -440,7 +385,7 @@ export async function retrieve(
     id: doc.id,
     source: doc.source,
     citation: doc.citation,
-    excerpt: extractRelevantExcerpt(doc.fullText, trimmed),
+    excerpt: extractRelevantExcerpt(doc.fullText, trimmed, 250, 40),
     sourceUrl: doc.url,
     score: Number(score.toFixed(4))
   }));

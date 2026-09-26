@@ -16,8 +16,9 @@ describe('Sidebar', () => {
 
   it('shows workspace sections in the sidebar and routes the selected section', () => {
     const Selection = () => {
-      const { activeTool, initialData } = useToolContext();
-      return <output>{activeTool}:{initialData?.initialTab || ''}</output>;
+      const { route } = useToolContext();
+      const section = 'section' in route ? route.section : '';
+      return <output>{route.view}:{section}</output>;
     };
     render(<ToolProvider><Sidebar /><Selection /></ToolProvider>);
     const labels = ['上訴法定期間試算', '判決分析與上訴狀', '雙軌訴訟防禦', '爭點與證據清單'];

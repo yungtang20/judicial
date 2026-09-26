@@ -11,60 +11,8 @@ import {
 } from "../../src/lib/twLegalRagClient.js";
 import { defaultEmbedder } from "../services/legalRetrieval.js";
 import { Embedder } from "../../src/ai/embedding/Embedder.js";
+import { cosineSimilarity, extractRelevantExcerpt, tokenizeLegalText } from './retrievalMath.js';
 
-function cosineSimilarity(a: number[], b: number[]): number {
-  if (!a || !b || a.length !== b.length || a.length === 0) return 0;
-  let dot = 0;
-  let normA = 0;
-  let normB = 0;
-  for (let i = 0; i < a.length; i++) {
-    dot += a[i] * b[i];
-    normA += a[i] * a[i];
-    normB += b[i] * b[i];
-  }
-  if (normA === 0 || normB === 0) return 0;
-  return dot / (Math.sqrt(normA) * Math.sqrt(normB));
-}
-
-function tokenize(text: string): string[] {
-  if (!text) return [];
-  const clean = text.replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g, " ").trim();
-  const words = clean.split(/\s+/).filter(w => w.length >= 2);
-  const tokenSet = new Set<string>(words);
-
-  for (const word of words) {
-    if (/[\u4e00-\u9fa5]/.test(word)) {
-      for (let i = 0; i < word.length - 1; i++) {
-        tokenSet.add(word.slice(i, i + 2));
-      }
-    }
-  }
-  return Array.from(tokenSet);
-}
-
-function extractRelevantExcerpt(fullText: string, query: string, maxLength = 200): string {
-  if (!fullText) return "";
-  if (fullText.length <= maxLength) return fullText;
-
-  const tokens = tokenize(query);
-  let bestPos = -1;
-  for (const token of tokens) {
-    const pos = fullText.indexOf(token);
-    if (pos !== -1) {
-      bestPos = pos;
-      break;
-    }
-  }
-
-  if (bestPos === -1) {
-    return fullText.slice(0, maxLength) + "…";
-  }
-
-  const start = Math.max(0, bestPos - 30);
-  const end = Math.min(fullText.length, start + maxLength);
-  const excerpt = fullText.slice(start, end);
-  return (start > 0 ? "…" : "") + excerpt + (end < fullText.length ? "…" : "");
-}
 
 export interface LocalKnowledgeBaseOptions {
   embedder?: Embedder;
@@ -153,7 +101,7 @@ export class LocalLegalKnowledgeBase {
     const typeFilter = options?.typeFilter;
 
     const queryEmbedding = await this.embedder.embed(trimmed);
-    const queryTokens = tokenize(trimmed);
+    const queryTokens = tokenizeLegalText(trimmed);
 
     // 擷取查詢中的法條數字（如 184、277、339）
     const numMatches = trimmed.match(/\d+/g) || [];
@@ -218,7 +166,7 @@ export class LocalLegalKnowledgeBase {
           keywordScore: Number(keywordScore.toFixed(4)),
           vectorScore: Number(vectorScore.toFixed(4)),
           matchedTokens,
-          excerpt: extractRelevantExcerpt(item.content, trimmed)
+          excerpt: extractRelevantExcerpt(item.content, trimmed, 200, 30)
         });
       }
     }

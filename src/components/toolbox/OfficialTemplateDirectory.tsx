@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ExternalLink, Download, FileText, ChevronRight, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react';
 import { fetchWithAuth } from '../../lib/apiClient';
 import { OFFICIAL_TEMPLATE_UI_ENABLED } from '../../lib/documentCatalog';
@@ -51,6 +51,8 @@ export const OfficialTemplateDirectory: React.FC<OfficialTemplateDirectoryProps>
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [renderResult, setRenderResult] = useState<OfficialTemplateRenderResult | null>(null);
+  const renderRequestRef = useRef(0);
+  const categoryRequestRef = useRef(0);
 
   // Load categories on mount
   useEffect(() => {
@@ -67,7 +69,13 @@ export const OfficialTemplateDirectory: React.FC<OfficialTemplateDirectoryProps>
 
   // Load templates when category selected
   useEffect(() => {
-    if (!selectedCategory) { setTemplates([]); return; }
+    const requestId = ++categoryRequestRef.current;
+    if (!selectedCategory) {
+      setTemplates([]);
+      setIsLoading(false);
+      setLoadError(null);
+      return;
+    }
     setIsLoading(true);
     setLoadError(null);
     fetchWithAuth(`/api/official-templates?category=${encodeURIComponent(selectedCategory)}`)
@@ -76,30 +84,48 @@ export const OfficialTemplateDirectory: React.FC<OfficialTemplateDirectoryProps>
         if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
         return data;
       })
-      .then((data: { templates: TemplateSummary[] }) => setTemplates(data.templates || []))
-      .catch(() => setLoadError('無法載入此分類的範本，請稍後重試。'))
-      .finally(() => setIsLoading(false));
+      .then((data: { templates: TemplateSummary[] }) => {
+        if (requestId !== categoryRequestRef.current) return;
+        setTemplates(data.templates || []);
+      })
+      .catch(() => {
+        if (requestId === categoryRequestRef.current) setLoadError('無法載入此分類的範本，請稍後重試。');
+      })
+      .finally(() => {
+        if (requestId === categoryRequestRef.current) setIsLoading(false);
+      });
   }, [selectedCategory]);
 
   const handleSelectTemplate = useCallback(async (id: string) => {
+    const requestId = ++renderRequestRef.current;
     setIsLoading(true);
+    setIsRendering(false);
+    setRenderResult(null);
     try {
       const res = await fetchWithAuth(`/api/official-templates/${id}`);
       const data: TemplateDetail = await res.json();
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (requestId !== renderRequestRef.current) return;
       setSelectedTemplate(data);
       setFieldValues({});
       setRenderError(null);
-      setRenderResult(null);
     } catch {
-      setRenderError('無法載入範本詳細資料，請稍後重試。');
+      if (requestId === renderRequestRef.current) setRenderError('無法載入範本詳細資料，請稍後重試。');
     } finally {
-      setIsLoading(false);
+      if (requestId === renderRequestRef.current) setIsLoading(false);
     }
+  }, []);
+  const updateFieldValue = useCallback((key: string, value: string) => {
+    renderRequestRef.current += 1;
+    setIsRendering(false);
+    setRenderResult(null);
+    setRenderError(null);
+    setFieldValues(previous => ({ ...previous, [key]: value }));
   }, []);
 
   const handleRender = useCallback(async () => {
     if (!selectedTemplate) return;
+    const requestId = ++renderRequestRef.current;
     setIsRendering(true);
     setRenderError(null);
     setRenderResult(null);
@@ -115,15 +141,18 @@ export const OfficialTemplateDirectory: React.FC<OfficialTemplateDirectoryProps>
         body: JSON.stringify({ fields: fieldValues }),
       });
       const data = await res.json();
+      if (requestId !== renderRequestRef.current) return;
       if (!res.ok) {
         setRenderError(`${data.error || `HTTP ${res.status}`}（${data.code || `HTTP_${res.status}`}）`);
         return;
       }
       setRenderResult(data as OfficialTemplateRenderResult);
-    } catch (err: any) {
-      setRenderError(err.message || 'Render failed');
+    } catch (err) {
+      if (requestId === renderRequestRef.current) {
+        setRenderError(err instanceof Error ? err.message : 'Render failed');
+      }
     } finally {
-      setIsRendering(false);
+      if (requestId === renderRequestRef.current) setIsRendering(false);
     }
   }, [selectedTemplate, fieldValues]);
 
@@ -240,7 +269,7 @@ export const OfficialTemplateDirectory: React.FC<OfficialTemplateDirectoryProps>
                         className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-sky-500 focus:outline-none"
                         placeholder={field.placeholder}
                         value={fieldValues[field.key] || ''}
-                        onChange={e => setFieldValues(prev => ({ ...prev, [field.key]: e.target.value }))}
+                        onChange={e => updateFieldValue(field.key, e.target.value)}
                         rows={4}
                         required={field.required}
                       />
@@ -248,7 +277,7 @@ export const OfficialTemplateDirectory: React.FC<OfficialTemplateDirectoryProps>
                       <select
                         className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none"
                         value={fieldValues[field.key] || ''}
-                        onChange={e => setFieldValues(prev => ({ ...prev, [field.key]: e.target.value }))}
+                        onChange={e => updateFieldValue(field.key, e.target.value)}
                         required={field.required}
                       >
                         <option value="">請選擇</option>
@@ -262,7 +291,7 @@ export const OfficialTemplateDirectory: React.FC<OfficialTemplateDirectoryProps>
                         className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-sky-500 focus:outline-none"
                         placeholder={field.placeholder}
                         value={fieldValues[field.key] || ''}
-                        onChange={e => setFieldValues(prev => ({ ...prev, [field.key]: e.target.value }))}
+                        onChange={e => updateFieldValue(field.key, e.target.value)}
                         required={field.required}
                       />
                     )}

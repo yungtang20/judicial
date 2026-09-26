@@ -118,6 +118,17 @@ export const LEGAL_TOOLS: ToolDefinition[] = [
     icon: Gavel,
     legalBasis: '強制執行法'
   },
+  {
+    id: 'UNIVERSAL_AI_PLEADING',
+    categoryGroup: 'LABOR_CRIMINAL_CONTRACT',
+    categoryLabel: '綜合案件 · AI 產製',
+    name: '全能自訂案件 AI 法律診斷與專業書狀產製',
+    shortDesc: '依使用者輸入的案情整理爭點、事證與法律依據，供人工確認後產製文件。',
+    badge: 'AI 產製',
+    toolType: 'generator',
+    icon: Briefcase,
+    legalBasis: '依案件類型適用之現行實體法與程序法'
+  },
 
   // ==========================================
   // 分類一：家事 · 離婚｜親權｜財產 (11項)

@@ -47,6 +47,7 @@ export interface PreviousOfficialTemplateArtifacts {
 
 export interface OfficialTemplatePleadingPipelineInput extends OfficialTemplateAdapterInput {
   artifact: Buffer;
+  artifactFileName?: string;
   sourceArtifact?: Buffer;
   previous?: PreviousOfficialTemplateArtifacts;
 }
@@ -70,6 +71,42 @@ export interface OfficialTemplatePleadingPipelineResult {
 
 function problem(status: ComplianceFinding['status']): boolean {
   return status === 'MISSING' || status === 'CONFLICT' || status === 'UNVERIFIED';
+}
+
+function normalizeArtifactText(value: string): string {
+  return value.normalize('NFKC').replace(/\s+/g, '');
+}
+
+function assertArtifactContainsMappedValues(
+  artifact: { normalizedText: string; mapping?: { fields: Array<{ key: string; mapped: boolean }> } },
+  values: Record<string, string | undefined>,
+  fieldMappings: ReadonlyArray<{ fieldKey: string; required: boolean }>
+): void {
+  const mappedKeys = new Set(artifact.mapping?.fields.filter(field => field.mapped).map(field => field.key) || []);
+  const normalizedArtifact = normalizeArtifactText(artifact.normalizedText);
+  const missing = fieldMappings
+    .filter(mapping => mappedKeys.has(mapping.fieldKey))
+    .map(mapping => ({ key: mapping.fieldKey, value: typeof values[mapping.fieldKey] === 'string' ? values[mapping.fieldKey]!.trim() : '' }))
+    .filter(field => field.value && !normalizedArtifact.includes(normalizeArtifactText(field.value)))
+    .map(field => field.key);
+  if (missing.length > 0) {
+    throw new OfficialTemplatePleadingPipelineError(
+      'ARTIFACT_CONTENT_MISMATCH',
+      '實際 ODT artifact 未包含已映射的必要或使用者提供的欄位值。',
+      missing
+    );
+  }
+}
+
+function assertArtifactCitationsVerified(documentText: string): void {
+  const normalizedDocumentText = normalizeArtifactText(documentText);
+  const verification = verifyGeneratedDocument(normalizedDocumentText);
+  if (!verification.antiGhostVerification.verificationPassed) {
+    throw new OfficialTemplatePleadingPipelineError(
+      'ARTIFACT_CITATION_BLOCKED',
+      '實際 ODT artifact 的引用查核未通過，禁止交付。'
+    );
+  }
 }
 
 function requireVerifiedArtifact(
@@ -138,25 +175,29 @@ export async function executeOfficialTemplatePleadingPipeline(
   const sourceVerification = verifyTemplateArtifactAndMapping(input.template, sourceArtifact);
   requireVerifiedArtifact(input.template, sourceVerification);
   const artifact = input.sourceArtifact
-    ? verifyTemplateArtifactAndMapping(input.template, input.artifact, undefined)
+    ? verifyTemplateArtifactAndMapping(input.template, input.artifact, '')
     : sourceVerification;
   requireVerifiedArtifact(input.template, artifact);
 
   const { caseInput, draft, ruleProfile } = adaptOfficialTemplateToCanonical(input);
+  assertArtifactContainsMappedValues(artifact, input.values, profile.fieldMappings);
+  const artifactCitationText = normalizeArtifactText(artifact.normalizedText);
+  assertArtifactCitationsVerified(artifactCitationText);
   const complianceFindings = verifyPleadingCompliance({
     draft,
     caseInput,
     ruleProfile,
     legalReferences: profile.legalReferences
   });
-  const draftDocumentText = draft.sections.map(section => section.content).filter(Boolean).join('\n');
+  const artifactCitationVerification = verifyGeneratedDocument(artifactCitationText);
   const officialTemplateFormatFinding = officialFormatFinding(input.template, artifact.sha256, profile.mappingVersion);
   const reviewReport = await reviewStructuredPleading({
     draft,
     caseInput,
     ruleProfile,
     complianceFindings,
-    citationVerification: verifyGeneratedDocument(draftDocumentText),
+    citationVerification: artifactCitationVerification,
+    citationDocumentText: artifactCitationVerification.documentText,
     formatFinding: verifyGenerationTemplate(profile.caseType, profile.formatProfile),
     appliedFormatProfile: profile.formatProfile,
     officialTemplateFormatFinding
@@ -198,7 +239,7 @@ export async function executeOfficialTemplatePleadingPipeline(
   }
 
   const documentText = artifact.normalizedText;
-  const artifactFileName = path.basename(input.template.localFilePath || `${input.template.id}.odt`);
+  const artifactFileName = path.basename(input.artifactFileName || input.template.localFilePath || `${input.template.id}.odt`);
   const deliveryAuthorization = await createPleadingDeliveryAuthorization(
     finalGateReport,
     documentText,

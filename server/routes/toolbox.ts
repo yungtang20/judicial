@@ -120,9 +120,13 @@ router.post("/api/toolbox/generate", async (req: Request, res: Response) => {
     });
 
     const verified = pipelineResult;
+    const payload = (pipelineResult.payload || {}) as Record<string, unknown>;
     const finalPayload = {
-      ...(pipelineResult.payload || {}),
-      documentText: verified.documentText || (pipelineResult.payload as any).documentText,
+      title: resolvedTitle,
+      documentTitle: resolvedTitle,
+      documentText: verified.documentText || (typeof payload.documentText === 'string' ? payload.documentText : ''),
+      legalCitations: Array.isArray(payload.legalCitations) ? payload.legalCitations : [],
+      strategicAdvice: typeof payload.strategicAdvice === 'string' ? payload.strategicAdvice : '已產製完成，請詳加核對事實及證據資料。',
       antiGhostVerification: verified.antiGhostVerification,
       legalSources: verified.legalSources,
       isExternalRetrievalUsed: verified.isExternalRetrievalUsed,
@@ -148,8 +152,13 @@ router.post("/api/toolbox/verify-citations", (req: Request, res: Response) => {
   }
 
   const raw = verifyLegalCitations(documentText);
+  // status 是人工覆核閘門的唯一權威依據：未回傳 status 會讓前端把「未查核」誤讀為「已通過」。
+  // 只有在整份文件掃描完成且未發現幽靈引用時才宣告 VERIFIED；
+  // 任一處引用被判定為幽靈或虛構一律 FAIL，文件不得交付。
+  const status: 'VERIFIED' | 'FAIL' = raw.ghostCount > 0 ? 'FAIL' : 'VERIFIED';
   res.json({
     antiGhostVerification: {
+      status,
       totalCitationsChecked: raw.totalChecked,
       ghostCitationsFound: raw.ghostCount,
       verifiedCitations: raw.results

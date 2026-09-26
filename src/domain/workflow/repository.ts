@@ -28,6 +28,8 @@ export class MemorySdlcProjectRepository implements SdlcProjectRepository {
   }
 
   public async create(project: SdlcProjectState): Promise<SdlcProjectState> {
+    const existing = this.store.get(project.projectId);
+    if (existing) return JSON.parse(JSON.stringify(existing));
     this.store.set(project.projectId, JSON.parse(JSON.stringify(project)));
     return JSON.parse(JSON.stringify(project));
   }

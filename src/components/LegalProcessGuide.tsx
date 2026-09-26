@@ -32,9 +32,10 @@ import {
 } from '../lib/legalProcessClassifier';
 import { RouterEvaluationResult } from '../prompts/legalProcessPrompts';
 import { fetchWithAuth } from '../lib/apiClient';
+import type { LegacyToolSelectionData } from '../types/navigation';
 
 interface LegalProcessGuideProps {
-  onNavigateToTool?: (toolId: string, subTab?: string, initialData?: any) => void;
+  onNavigateToTool?: (toolId: string, subTab?: string, data?: LegacyToolSelectionData) => void;
 }
 
 export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigateToTool }) => {

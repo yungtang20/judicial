@@ -103,7 +103,19 @@ function assessClaimSupport(claim: string | undefined, officialText: string): "S
   }
   if (shingles.size === 0) return "NEEDS_REVIEW";
   const matched = Array.from(shingles).filter(shingle => normalizedOfficial.includes(shingle)).length;
-  return matched / shingles.size >= 0.6 ? "SUPPORTED" : "NEEDS_REVIEW";
+  return "NEEDS_REVIEW";
+}
+
+function buildClaimSnippet(claim: string | undefined, body: string): string {
+  const normalizedClaim = normalize(claim || "").replace(/[^一-龥a-zA-Z0-9]/g, "");
+  if (normalizedClaim.length >= 8) {
+    for (let index = 0; index <= normalizedClaim.length - 8; index += 1) {
+      const shingle = normalizedClaim.slice(index, index + 8);
+      const bodyIndex = body.indexOf(shingle);
+      if (bodyIndex >= 0) return body.slice(Math.max(0, bodyIndex - 80), bodyIndex + 200);
+    }
+  }
+  return body.slice(0, 240);
 }
 
 const hash = async (value: string) => {
@@ -217,7 +229,7 @@ async function verifyStatute(
     query: citation,
     matchStrategy: "OFFICIAL_ARTICLE_PAGE",
     contentHash: exact ? await hash(body) : undefined,
-    snippet: exact ? body.slice(0, 240) : undefined,
+    snippet: exact ? buildClaimSnippet(claim, body) : undefined,
     claimSupportStatus: claim ? (exact ? assessClaimSupport(claim, body) : "UNVERIFIABLE") : undefined
   };
 }
@@ -303,7 +315,7 @@ async function verifyPrecedent(
     status: exact ? "VERIFIED" : "NOT_FOUND",
     sourceUrl: detailUrl.toString(),
     contentHash: exact ? await hash(body) : undefined,
-    snippet: exact ? body.slice(0, 240) : undefined,
+    snippet: exact ? buildClaimSnippet(claim, body) : undefined,
     claimSupportStatus: claim ? (exact ? assessClaimSupport(claim, body) : "UNVERIFIABLE") : undefined
   };
 }

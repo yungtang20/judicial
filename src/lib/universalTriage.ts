@@ -1,4 +1,12 @@
 import { buildFallbackToolboxResult } from '../utils/toolboxFallbacks.js';
+import {
+  buildForensicGuidance,
+  extractIncidentDate,
+  isWithinForensicWindow,
+  type ForensicGuidance,
+  toCalendarDate,
+  type IncidentDateExtraction
+} from './forensicGuidance.js';
 
 export function buildIntelligentRuleBasedTriage(query: string) {
     const q = (query || "").toLowerCase();
@@ -725,6 +733,75 @@ export function evaluateNarrativeCompleteness(query: string): {
   };
 }
 
+export interface ForensicWindowState {
+  withinWindow: boolean;
+  incidentDate: IncidentDateExtraction;
+  guidance: ForensicGuidance;
+}
+
+/**
+ * 解析事發日期與採證保存時效，作為整條分流管線的權威依據。
+ * 抽取不到日期時一律視為窗口已過（fail-closed）。
+ */
+export function resolveForensicWindowState(query: string, now?: Date): ForensicWindowState {
+  const incidentDate = extractIncidentDate(query);
+  const withinWindow = isWithinForensicWindow(incidentDate.date, now);
+  return { withinWindow, incidentDate, guidance: buildForensicGuidance(withinWindow) };
+}
+
+/**
+ * 急迫語彙 → 已過期語彙的逐條對應。
+ * 逐條列出而非整段重寫，理由是各分支（規則引擎、本機備援、伺服器補救路徑）
+ * 的用字略有差異，必須全部涵蓋，同時不得誤傷與採證無關的句子。
+ */
+const EXPIRED_PHRASE_REPLACEMENTS: Array<[RegExp, string]> = [
+  [/黃金\s*72\s*小時內請至急診驗傷採證。?/g, '採證保存時效可能已過，請改以數位事證、通訊紀錄與證人陳述為主軸。'],
+  [/黃金\s*72\s*小時內請至急診驗傷。?/g, '採證保存時效可能已過，請改以數位事證、通訊紀錄與證人陳述為主軸。'],
+  [/72\s*小時內急診驗傷採證（勿洗澡更衣）/g, '就醫取得診斷證明（採證保存時效可能已過）'],
+  [/性自主案件切勿沐浴更衣，請立即將案發衣物以紙袋保全。?/g, '採證保存時效可能已過，生物檢體取得困難；請仍以保存衣物與相關物品為宜，避免清洗或丟棄。'],
+  [/性自主案件切勿沐浴更衣，請立即將案發衣物以乾淨紙袋保全存證。?/g, '採證保存時效可能已過，生物檢體取得困難；請仍以保存衣物與相關物品為宜，避免清洗或丟棄。'],
+  [/請儘速於\s*72\s*小時內前往醫療院所急診驗傷採證並開立診斷書。?/g, '請至醫療院所就醫並開立診斷證明書，作為心理創傷與就醫事實的佐證。'],
+  [/請儘速前往公私立醫院急診進行「一站式性侵害採證」，切勿先行沐浴、刷牙或更換衣物，並將衣物放入紙袋保存DNA生物跡證。/g, '請至醫療院所就醫並開立診斷證明書；生物檢體保存時效可能已過，請仍以保存衣物與相關物品為宜。'],
+  [/留意\s*72\s*小時內避免沐浴洗漱更衣/g, '留意就醫取得診斷證明'],
+  [/請儘速前往公私立醫院急診驗傷，請醫師開立驗傷診斷書並保存生物檢體。/g, '請至醫療院所就醫並取得診斷證明書。'],
+  [/（勿洗澡更衣）/g, ''],
+  [/（急診 DNA 採證黃金保存期）/g, ''],
+  [/（黃金\s*72\s*小時內）/g, '']
+];
+
+function rewriteUrgency(text: string): string {
+  let result = text;
+  for (const [pattern, replacement] of EXPIRED_PHRASE_REPLACEMENTS) {
+    result = result.replace(pattern, replacement);
+  }
+  return result;
+}
+
+/**
+ * 把分流結果中所有與採證時效相關的文字改為條件式語句。
+ * 只處理字串陣列與字串欄位；其餘結構不動。
+ */
+export function applyConditionalForensicWording<T>(payload: T, guidance: ForensicGuidance): T {
+  if (!payload || typeof payload !== 'object') return payload;
+  const source = payload as Record<string, unknown>;
+  const next: Record<string, unknown> = { ...source };
+
+  for (const [key, value] of Object.entries(source)) {
+    if (typeof value === 'string') {
+      next[key] = rewriteUrgency(value);
+    } else if (Array.isArray(value) && value.every(item => typeof item === 'string')) {
+      next[key] = value.map(item => rewriteUrgency(item));
+    }
+  }
+
+  // 證據清單與保全建議整組替換，避免只改半句造成語意破碎
+  if (guidance.withinWindow === false) {
+    if (Array.isArray(source.evidenceChecklist)) next.evidenceChecklist = guidance.evidenceChecklist;
+    if (Array.isArray(source.preservationTips)) next.preservationTips = guidance.preservationTips;
+  }
+  return next as T;
+}
+
 /**
  * 雙層校驗機制 (Layer 2 Guardrail)：
  * 針對 LLM 分類後的結果進行強制一致性與法理校正，
@@ -850,6 +927,41 @@ export function enforceTriageConsistency(payload: any, query: string): any {
     p.legalBasis = p.legalBasis.filter((b: string) => 
       !/(刑法第22[1-9]條|家庭暴力防治法|性侵害犯罪防治法)/.test(b)
     );
+  }
+
+  // 規則 5：偷拍、竊錄與以私密影像施壓的案件，必須納入散布與下架相關法條。
+  // 這是當事人最急迫的救濟（預防性移除、扣押、銷毀），過去完全未被引用。
+  const hasCoercedIntimacyImage = /(偷拍|竊錄|祕密拍|秘密拍|偷錄|私密照|私密影像|性影像|裸照|不雅照片|外流|散布|威脅.{0,6}(影片|照片|影像)|(影片|照片|影像).{0,6}威脅)/.test(query);
+  if (hasCoercedIntimacyImage) {
+    p.isSensitive = true;
+    const imageStatutes = [
+      "刑法第315條之1（妨害秘密罪）",
+      "刑法第319條之3（未經同意散布性影像罪）",
+      "刑法第235條（散布猥褻物罪）"
+    ];
+    const existingBasis = Array.isArray(p.legalBasis) ? p.legalBasis : [];
+    p.legalBasis = [
+      ...existingBasis.filter((b: string) => !/(315條之1|319條之3|第235條)/.test(b)),
+      ...imageStatutes
+    ];
+    const removalAction = "向相關平臺提出下架與移除請求，並向偵查機關聲請扣押相關裝置與雲端檔案";
+    const existingActions = Array.isArray(p.suggestedActions) ? p.suggestedActions : [];
+    if (!existingActions.some((a: string) => a.includes('下架'))) {
+      p.suggestedActions = [removalAction, ...existingActions];
+    }
+  }
+
+  // 規則 6：採證時效改為條件式。事發日期由案情抽取，與系統當下時間比對後
+  // 才決定輸出「緊急採證」或「採證窗口已過」語句；抽取不到日期一律視為已過期。
+  const forensic = resolveForensicWindowState(query);
+  p.withinForensicWindow = forensic.withinWindow;
+  p.incidentDate = forensic.incidentDate.date ? toCalendarDate(forensic.incidentDate.date) : null;
+  p.incidentDateRaw = forensic.incidentDate.raw;
+  p.forensicWindowLabel = forensic.guidance.windowLabel;
+
+  const conditioned = applyConditionalForensicWording(p, forensic.guidance) as Record<string, unknown>;
+  for (const [key, value] of Object.entries(conditioned)) {
+    p[key] = value;
   }
 
   return p;

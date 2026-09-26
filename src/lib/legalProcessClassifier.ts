@@ -7,6 +7,8 @@
  * 3. 釐清實體法法條、告訴性質（告訴乃論 vs 非告訴乃論公訴罪）、時效與對應處置路徑。
  */
 
+import { buildForensicGuidance } from './forensicGuidance';
+
 export interface ProcessGuideInput {
   scenarioCategory: string; // DOMESTIC, SEXUAL_HARM, PROPERTY, TRAFFIC, HOUSING, LABOR, OTHER
   narrative: string;
@@ -193,20 +195,16 @@ export function evaluateLegalProcess(input: ProcessGuideInput): ProcessGuideResu
       requiresImmediateProtection: true,
       statuteCitations: citations,
       safetyGuidelines: [
-        '【黃金72小時急診驗傷】：請勿沐浴盥洗、更衣或清洗患處，將案發時所穿著衣物放入紙袋保存，盡速至各縣市責任醫院急診驗傷採證。',
+        `【採證保存時效】：${buildForensicGuidance(input.urgencyFlags.happenedWithin72Hours).preservationTips[1]}`,
         '【24小時保護專線】：可隨時撥打 113 保護專線（免付費），由專業社工提供法律、心理諮商、庇護安置與緊急法律扶助諮詢。',
         '【即時危險求助】：若加害人目前仍在身邊或有繼續騷擾施暴之虞，請立刻撥打 110 報警派員到場維護安全。',
         '【法理要件防呆】：若屬乘機性交（刑法第225條，例如利用熟睡或泥醉），不論對方是否為配偶，一律屬「非告訴乃論公訴罪」，不受6個月告訴乃論期間之限制。'
       ],
       recommendedPaths: paths,
       legalAnalysis: `本案情境涉及刑法妨害性自主罪章。若加害人利用被害人處於熟睡、昏睡或不省人事之不能抗拒狀態（刑法第225條），為非告訴乃論之公訴重罪，檢警知悉即應依法啟動偵查；若涉及配偶關係且屬強制手段（第221/224條），則須注意6個月告訴乃論時效。同時被害人具備民法第184條及第195條侵害性自主權之非財產上損害賠償請求權。`,
-      evidenceChecklist: [
-        '醫院甲種診斷證明書與性侵害驗傷採證包（黃金72小時內）',
-        '案發當日所穿著之衣物（以紙袋密封保存，切勿清洗）',
-        '雙方通訊軟體對話紀錄截圖（尤其是事後對方道歉、提及案發經過之對話）',
-        '現場照片、錄影監視器或出入刷卡門禁紀錄',
+      evidenceChecklist: buildForensicGuidance(input.urgencyFlags.happenedWithin72Hours).evidenceChecklist.concat([
         '案發前後向親友求助或就醫之對話與心理諮商紀錄'
-      ]
+      ])
     };
   }
 

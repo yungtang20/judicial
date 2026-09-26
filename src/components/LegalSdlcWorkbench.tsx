@@ -23,9 +23,63 @@ import {
 import { apiClient } from '../lib/apiClient';
 import { useGlobalUI } from '../contexts/GlobalUIContext';
 
+/**
+ * SDLC 專案識別的瀏覽器端持久化 key。
+ * 專案 id 必須在使用者／租戶範圍內穩定，否則每次重新進入工作台都會
+ * 對 `POST /api/sdlc/project` 造成 miss，進而新建空白專案並遺失既有
+ * 階段進度、Gate 決策與產物。
+ */
+export const PROJECT_ID_STORAGE_KEY = 'judicial.sdlc.projectId';
+
+const PROJECT_ID_PATTERN = /^sdlc_ui_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+const isUsableProjectId = (value: string | null): value is string =>
+  typeof value === 'string' && PROJECT_ID_PATTERN.test(value.trim());
+
+const persistProjectId = (projectId: string): void => {
+  try {
+    window.localStorage.setItem(PROJECT_ID_STORAGE_KEY, projectId);
+  } catch (e) {
+    // localStorage 不可用（SSR／隱私模式／配額爆滿）：降級為本次掛載的暫用 id
+    console.warn('[SDLC] 無法將專案識別寫入 localStorage:', e);
+  }
+};
+
+/**
+ * 讀取持久化的專案 id；讀不到或值損毀時重新產生並覆寫。
+ * 任何 storage 例外都被吞掉，絕不讓掛載中斷。
+ */
+const readPersistedProjectId = (): string => {
+  if (typeof window === 'undefined') {
+    return `sdlc_ui_${crypto.randomUUID()}`;
+  }
+  let stored: string | null = null;
+  try {
+    stored = window.localStorage.getItem(PROJECT_ID_STORAGE_KEY);
+  } catch (e) {
+    console.warn('[SDLC] 無法讀取 localStorage，改用本次掛載的暫時專案識別:', e);
+    return `sdlc_ui_${crypto.randomUUID()}`;
+  }
+  if (isUsableProjectId(stored)) {
+    return stored.trim();
+  }
+  // 值不存在或已損毀 → 重新產生並覆寫
+  const regenerated = `sdlc_ui_${crypto.randomUUID()}`;
+  persistProjectId(regenerated);
+  return regenerated;
+};
+
+const toErrorMessage = (error: unknown): string => {
+  if (error instanceof Error && error.message) return error.message;
+  if (typeof error === 'string' && error) return error;
+  return '未知錯誤';
+};
+
 export const LegalSdlcWorkbench: React.FC = () => {
-  const { startLoading, stopLoading } = useGlobalUI();
-  const [projectId] = useState<string>('project_legal_sdlc_master');
+  const { startLoading, stopLoading, showToast } = useGlobalUI();
+  // 專案 id 必須在掛載間保持穩定，否則 getOrCreateProject 每次都會 miss
+  // 而新建空白專案，導致既有階段、Gate 決策與產物全部遺失。
+  const [projectId] = useState<string>(readPersistedProjectId);
   const [projectTitle, setProjectTitle] = useState<string>('民事損害賠償與不當得利 AI 原生交付專案');
   const [legalDomain, setLegalDomain] = useState<string>('CIVIL');
   const [projectState, setProjectState] = useState<SdlcProjectState | null>(null);
@@ -34,6 +88,7 @@ export const LegalSdlcWorkbench: React.FC = () => {
   const [stageInputText, setStageInputText] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<'flow' | 'artifacts' | 'gates' | 'feedback'>('flow');
+  const [loadError, setLoadError] = useState<string | null>(null);
   
   // 審批 Modal 狀態
   const [showGateModal, setShowGateModal] = useState<boolean>(false);
@@ -47,15 +102,21 @@ export const LegalSdlcWorkbench: React.FC = () => {
   const [feedbackAdjustments, setFeedbackAdjustments] = useState<string>('需於設計階段重構請求權基礎，將主要請求權由侵權行為轉移至不當得利與契約責任。');
 
   const loadProject = async () => {
+    setLoadError(null);
     try {
       setLoading(true);
       const res = await apiClient.sdlcGetProject(projectId, projectTitle, legalDomain);
-      if (res.project) {
-        setProjectState(res.project);
-        setSelectedStageId(res.project.currentStageId || '01_plan');
+      if (!res.project) {
+        setLoadError(`伺服器未回傳專案（識別：${projectId}）。請重試，若持續失敗請確認後端服務是否正常。`);
+        return;
       }
+      setProjectState(res.project);
+      setSelectedStageId(res.project.currentStageId || '01_plan');
     } catch (e) {
+      // getOrCreateProject 對這個 id 拋錯時必須讓使用者看得見，不得靜默停在載入中。
       console.error('載入 SDLC 專案失敗:', e);
+      setLoadError(`載入 SDLC 專案失敗：${toErrorMessage(e)}`);
+      showToast({ message: 'SDLC 專案載入失敗', type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -210,6 +271,26 @@ export const LegalSdlcWorkbench: React.FC = () => {
           </button>
         </div>
       </header>
+
+      {/* 專案載入失敗提示：確保錯誤可見且可重試，不會永久停在載入狀態 */}
+      {loadError && (
+        <div
+          role="alert"
+          data-testid="sdlc-load-error"
+          className="flex items-center gap-3 px-6 py-3 bg-rose-950/70 border-b border-rose-800 text-rose-100"
+        >
+          <AlertTriangle className="w-4 h-4 flex-shrink-0 text-rose-400" />
+          <span className="text-sm flex-1">{loadError}</span>
+          <button
+            onClick={loadProject}
+            disabled={loading}
+            className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white text-xs font-semibold flex items-center gap-1.5"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            重新載入專案
+          </button>
+        </div>
+      )}
 
       {/* 流程總覽 6 大階段進度欄（嚴格對齊圖片佈局） */}
       <div className="bg-slate-900 border-b border-slate-800 px-6 py-4 overflow-x-auto">

@@ -118,6 +118,7 @@ router.post("/api/defense/generate-pleading", async (req: Request, res: Response
       issues: precheck.issues
     });
   }
+  return res.status(409).json({ error: '答辯狀正式交付尚未完成 P4–P9 Final Gate,拒絕產生未授權法院書狀。', code: 'P9_FINAL_GATE_REQUIRED' });
 
   const ragQuery = `${caseInfo?.caseType || ""} ${caseInfo?.clientRole || ""} ${clientInput ? clientInput.slice(0, 100) : ""}`.trim() || "民刑訴訟答辯狀裁判見解";
 

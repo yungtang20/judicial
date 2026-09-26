@@ -64,6 +64,7 @@ export interface PleadingReviewInput {
   ruleProfile: PleadingRuleProfile;
   complianceFindings?: ComplianceFinding[];
   citationVerification?: CitationReviewEvidence;
+  citationDocumentText?: string;
   formatFinding?: ComplianceFinding;
   appliedFormatProfile?: FormatProfile;
   officialTemplateFormatFinding?: OfficialTemplateFormatFinding;
@@ -246,7 +247,7 @@ function citationReview(input: PleadingReviewInput): ReviewFinding[] {
 
   const evidence = verification.antiGhostVerification;
   const citations = evidence.verifiedCitations;
-  const currentText = draftText(input.draft);
+  const currentText = input.citationDocumentText || draftText(input.draft);
   const countersMatch =
     evidence.totalCitationsChecked === citations.length &&
     evidence.ghostCitationsFound === citations.filter(item => item.isGhostOrFake).length &&

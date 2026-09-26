@@ -69,6 +69,21 @@ describe('official template artifact verifier', () => {
     expect(result.missingRequiredFields).toEqual(['signature']);
   });
 
+  it('rejects duplicate spans during P9 promotion candidate validation', () => {
+    const duplicateXml = xml.replace(
+      '</office:text>',
+      '<text:p><text:span text:style-name="T11">static</text:span></text:p></office:text>'
+    );
+    const result = verifyTemplateFieldMapping(template([
+      { key: 'caseNumber', label: '案號', type: 'text', required: true },
+      { key: 'defendantName', label: '被告', type: 'text', required: true },
+      { key: 'defenseFacts', label: '答辯', type: 'textarea', required: true },
+    ]), duplicateXml, { strictP9: true });
+
+    expect(result.status).toBe('MAPPING_INCOMPLETE');
+    expect(result.missingRequiredFields).toContain('caseNumber');
+  });
+
   it('normalizes ODT XML into legal document text instead of returning XML', () => {
     expect(normalizeOdtText(xml)).toBe('案號\n被告 & 代理人\n答辯\n內容');
   });

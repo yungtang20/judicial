@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { formatLegalChapter, formatVerificationStatus } from '../../lib/legalChapterLabels';
 import { resolveDocumentTool } from '../../lib/documentSelectionRules';
+import { buildCaseIssueSummary } from './UnifiedNav';
 
 export interface SettingsModalProps {
   [key: string]: any;
@@ -43,7 +44,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = (props) => {
                       scenarioKeywords: workflowState?.router?.cause || '',
                       domain: workflowState?.router?.domain,
                       cause: workflowState?.router?.cause,
-                      issuesSummary: workflowState?.syllogism?.majorPremise || '',
+                      issuesSummary: buildCaseIssueSummary(workflowState),
                       sourceTool: 'unified'
                     });
                     handleSelectTool('appeal', 'appeal', {
@@ -52,7 +53,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = (props) => {
                       domain: workflowState?.router?.domain,
                       cause: workflowState?.router?.cause,
                       scenarioKeywords: workflowState?.router?.cause || '',
-                      issuesSummary: workflowState?.syllogism?.majorPremise || '',
+                      issuesSummary: buildCaseIssueSummary(workflowState),
                       sourceTool: 'unified'
                     });
                   }}

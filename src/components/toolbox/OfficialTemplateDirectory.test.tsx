@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { fetchWithAuth } = vi.hoisted(() => ({ fetchWithAuth: vi.fn() }));
@@ -80,6 +80,39 @@ describe('OfficialTemplateDirectory', () => {
 
     expect(await screen.findByText(/尚未取得 P9 Final Gate/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /下載套版文件/ })).not.toBeInTheDocument();
+  });
+
+  it('keeps the latest category response when an older request finishes later', async () => {
+    let resolveA!: (value: ReturnType<typeof response>) => void;
+    let resolveB!: (value: ReturnType<typeof response>) => void;
+    fetchWithAuth.mockImplementation((url: string) => {
+      if (url === '/api/official-templates') {
+        return response({ categories: [
+          { name: 'A', total: 1, readyForMerge: 1, needsFieldMapping: 0, downloaded: 1, sourceOnly: 0, sourceLinks: 1 },
+          { name: 'B', total: 1, readyForMerge: 1, needsFieldMapping: 0, downloaded: 1, sourceOnly: 0, sourceLinks: 1 },
+        ] });
+      }
+      if (url.endsWith('category=A')) {
+        return new Promise<ReturnType<typeof response>>(resolve => { resolveA = resolve; });
+      }
+      if (url.endsWith('category=B')) {
+        return new Promise<ReturnType<typeof response>>(resolve => { resolveB = resolve; });
+      }
+      return response({ templates: [] });
+    });
+
+    render(<OfficialTemplateDirectory />);
+    fireEvent.click(await screen.findByRole('button', { name: /A/ }));
+    fireEvent.click(await screen.findByRole('button', { name: '返回全部分類' }));
+    fireEvent.click(await screen.findByRole('button', { name: /B/ }));
+
+    resolveB(response({ templates: [{ id: 'b', name: 'B目前範本', category: 'B' }] }));
+    expect(await screen.findByText('B目前範本')).toBeInTheDocument();
+    await act(async () => {
+      resolveA(response({ templates: [{ id: 'a', name: 'A舊範本', category: 'A' }] }));
+    });
+    expect(screen.queryByText('A舊範本')).not.toBeInTheDocument();
+    expect(screen.getByText('B目前範本')).toBeInTheDocument();
   });
 
   it('downloads the verified original without enabling template rendering', async () => {

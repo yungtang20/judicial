@@ -11,7 +11,7 @@ import {
   SdlcArtifact,
   ExecutionMode
 } from '../sdlc/types';
-import { createInitialSdlcProject, addSdlcArtifact } from '../sdlc/sdlcEngine';
+import { createInitialSdlcProject, addSdlcArtifact } from './sdlcState';
 import { SdlcProjectRepository, defaultSdlcRepository } from './repository';
 import { AppError } from './errors';
 import { AuthorizationPolicy, ApprovalContext } from './authorization';
@@ -20,6 +20,7 @@ import { FeedbackPolicy, FeedbackArtifact } from './feedbackPolicy';
 import { STAGE_CONTRACTS } from './stageContracts';
 import { stageExecutorsMap } from './stageExecutors';
 import { AuditLogRepository, defaultAuditLogger } from './auditEvent';
+import { VerificationResult, VerificationCheckItem } from './verification';
 
 export class SdlcOrchestrator {
   constructor(
@@ -43,7 +44,7 @@ export class SdlcOrchestrator {
     if (!project) {
       project = createInitialSdlcProject(projectId, title, legalDomain, tenantId, ownerId);
       project.executionMode = executionMode;
-      await this.repository.create(project);
+      project = await this.repository.create(project);
 
       this.auditLogger.log({
         workflowId: projectId,
@@ -185,6 +186,11 @@ export class SdlcOrchestrator {
 
     // 規則 3：檢查 StageContract 前置工件是否齊全 (逐項 categories 檢查)
     const contract = STAGE_CONTRACTS[stageId];
+    AuthorizationPolicy.assertRoleForApproval(
+      context,
+      contract.requiredRoleForApproval,
+      `階段門閥 ${stageId}`
+    );
     const stageArtifacts = project.artifacts[stageId] || [];
     if (stageArtifacts.length === 0) {
       throw new AppError(
@@ -208,7 +214,7 @@ export class SdlcOrchestrator {
 
     // 規則 4：檢查工件驗證結果與 StageContract 必備驗證器覆蓋率（Fail-Closed 阻擋）
     const latestArtifact = stageArtifacts[stageArtifacts.length - 1]!;
-    const verification = latestArtifact.metadata?.verification as any;
+    const verification = latestArtifact.metadata?.verification as VerificationResult | undefined;
     if (!verification) {
       throw new AppError(
         'VERIFICATION_FAILED',
@@ -216,8 +222,7 @@ export class SdlcOrchestrator {
         422
       );
     }
-
-    if (verification.status === 'FAIL') {
+    if (verification.status !== 'PASS') {
       this.auditLogger.log({
         workflowId: projectId,
         stageId,
@@ -225,23 +230,23 @@ export class SdlcOrchestrator {
         actorId: context.actorId,
         eventType: 'GATE_REJECTED',
         result: 'BLOCKED',
-        metadata: { reason: '工件驗證失敗未通過', errors: verification.errors }
+        metadata: { reason: '工件驗證未達 PASS', status: verification.status }
       });
-
       throw new AppError(
         'VERIFICATION_FAILED',
-        `門閥拒絕放行：階段 [${stageId}] 最新工件未通過驗證檢核 (${verification.errors?.join('; ') || '驗證失敗'})。`,
+        `門閥拒絕放行：階段 [${stageId}] 最新工件驗證狀態為 [${verification.status}]，必須為 PASS。`,
         422,
         { verification }
       );
     }
 
+
     // 逐項檢查 StageContract requiredValidatorCategories 是否全數執行且通過
-    const executedChecks = verification.checks || [];
+    const executedChecks: VerificationCheckItem[] = verification.checks;
     const passedCheckCategories = new Set(
       executedChecks
-        .filter((c: any) => c.status === 'PASS' || c.status === 'NEEDS_REVIEW')
-        .map((c: any) => c.category)
+        .filter(check => check.status === 'PASS')
+        .map(check => check.category)
     );
     const missingValidators = contract.requiredValidatorCategories.filter(cat => !passedCheckCategories.has(cat));
     if (missingValidators.length > 0) {

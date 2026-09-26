@@ -10,7 +10,7 @@
 - 嚴格禁止實體型態 `AI` 執行任何審批放行操作。
 
 ## 三、輸入/輸出安全與 SSRF 防禦
-- 司法爬蟲與外部連結請求一律經由安全白名單檢驗，禁止存取內網 (127.0.0.1, 10.0.0.0/8 等)。
+- 外部 URL 僅允許 HTTP/HTTPS；每次 redirect 重新驗證 DNS，拒絕私有/保留位址，並將連線 pin 至已驗證 IP，保留 Host/SNI；正文以串流 2 MiB 上限與 deadline 讀取。
 - 驗證管線內嵌 `PrivacyValidator` 與 `SecurityValidator`，即時偵測個資洩漏與 Prompt Injection。
 
 ## 四、Production 預設安全模式

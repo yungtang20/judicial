@@ -136,6 +136,7 @@ export interface GeneratedPleadingResult {
   modelUsed?: string;
   isFallback?: boolean;
   antiGhostVerification?: {
+    status?: 'VERIFIED' | 'UNVERIFIED' | 'FAIL';
     totalCitationsChecked: number;
     ghostCitationsFound: number;
     verifiedCitations: CitationVerificationResult[];
@@ -171,6 +172,7 @@ export interface LegalToolboxResult {
     detail: string;
   }[];
   antiGhostVerification: {
+    status?: 'VERIFIED' | 'UNVERIFIED' | 'FAIL';
     totalCitationsChecked: number;
     ghostCitationsFound: number;
     verifiedCitations: CitationVerificationResult[];

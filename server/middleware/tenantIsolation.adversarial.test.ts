@@ -22,6 +22,10 @@ describe("Tenant Isolation Adversarial Tests (Phase A)", () => {
     { sub: "admin-user", tenantId: "system-admin-tenant", role: "admin" }
   );
 
+  const tokenSystem = createSignedToken(
+    { sub: "system-service", tenantId: "system-service-tenant", role: "system" }
+  );
+
   beforeAll(async () => {
     const app = createExpressApp();
     await new Promise<void>((resolve) => {
@@ -144,7 +148,7 @@ describe("Tenant Isolation Adversarial Tests (Phase A)", () => {
       expect(gateBody.error).toContain("禁止跨租戶存取");
     });
 
-    it("System Admin can access cross-tenant project for global auditing", async () => {
+    it("Explicit admin can access cross-tenant project for global auditing", async () => {
       // 1. Tenant A 建立專案
       await fetch(`${baseUrl}/api/sdlc/project`, {
         method: "POST",
@@ -168,6 +172,71 @@ describe("Tenant Isolation Adversarial Tests (Phase A)", () => {
       expect(adminRes.status).toBe(200);
       const adminBody = await adminRes.json();
       expect(adminBody.project.projectId).toBe("project-alpha-admin-audit");
+    });
+
+    it("System role cannot use X-Tenant-Id to access or impersonate another tenant", async () => {
+      // 1. Tenant A 建立專案
+      const createRes = await fetch(`${baseUrl}/api/sdlc/project`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${tokenTenantA}`
+        },
+        body: JSON.stringify({
+          projectId: "project-alpha-system-isolation",
+          title: "Tenant A 系統服務隔離案件"
+        })
+      });
+      expect(createRes.status).toBe(200);
+
+      // 2. system 服務即使偽造目標租戶標頭，仍不得存取 Tenant A 資源
+      const crossTenantRead = await fetch(
+        `${baseUrl}/api/sdlc/project/project-alpha-system-isolation`,
+        {
+          headers: {
+            Authorization: `Bearer ${tokenSystem}`,
+            "X-Tenant-Id": "tenant-alpha"
+          }
+        }
+      );
+      expect(crossTenantRead.status).toBe(403);
+      const crossTenantBody = await crossTenantRead.json();
+      expect(crossTenantBody.code).toBe("PERMISSION_DENIED");
+
+      // 3. 建立資源時，X-Tenant-Id 也不得改寫 system 身分簽發的租戶
+      const systemCreate = await fetch(`${baseUrl}/api/sdlc/project`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${tokenSystem}`,
+          "X-Tenant-Id": "tenant-alpha"
+        },
+        body: JSON.stringify({
+          projectId: "project-system-bound-tenant",
+          title: "System 服務租戶案件"
+        })
+      });
+      expect(systemCreate.status).toBe(200);
+      const systemCreateBody = await systemCreate.json();
+      expect(systemCreateBody.project.tenantId).toBe("system-service-tenant");
+      expect(systemCreateBody.project.ownerId).toBe("system-service");
+    });
+
+    it("rejects a concurrent same-project creation from another tenant", async () => {
+      const create = (token: string) => fetch(`${baseUrl}/api/sdlc/project`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ projectId: "project-concurrent-ownership", title: "同 ID 競態案件" })
+      });
+
+      const responses = await Promise.all([create(tokenTenantA), create(tokenTenantB)]);
+      expect(responses.map(response => response.status).sort()).toEqual([200, 403]);
+
+      const winner = responses[0].status === 200 ? tokenTenantA : tokenTenantB;
+      const read = await fetch(`${baseUrl}/api/sdlc/project/project-concurrent-ownership`, {
+        headers: { Authorization: `Bearer ${winner}` }
+      });
+      expect(read.status).toBe(200);
     });
   });
 

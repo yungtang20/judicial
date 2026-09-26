@@ -23,7 +23,10 @@ import {
 } from "../../src/lib/universalTriage.js";
 import { formatLegalChapter } from "../../src/lib/legalChapterLabels.js";
 import { searchOfficialJudgments, verifyOfficialCitations } from "../services/officialCitationVerification.js";
+import { detectAnalysisContradictions, type ConsistencyViolation } from "../../src/lib/legalAnalysisConsistency.js";
 import { isBasicSafeUrl, verifyDnsSafe } from "./fetchUrl.js";
+import { resolveForensicWindowState } from "../../src/lib/universalTriage.js";
+import { toCalendarDate } from "../../src/lib/forensicGuidance.js";
 
 const router = Router();
 
@@ -64,9 +67,10 @@ export async function resolveRequestAIProvider(input: unknown): Promise<AIProvid
   const config = input as CustomAIProviderInput;
   if (config.providerType !== "custom") throw new Error("AI_PROVIDER_TYPE_UNSUPPORTED");
 
+  const defaultBaseUrl = process.env.AGNES_BASE_URL?.trim() || "https://apihub.agnes-ai.com/v1";
   const baseUrl = typeof config.baseUrl === "string" && config.baseUrl.trim()
     ? config.baseUrl.trim()
-    : "https://apihub.agnes-ai.com/v1";
+    : defaultBaseUrl;
   const urlCheck = isBasicSafeUrl(baseUrl);
   if (!urlCheck.safe || !urlCheck.parsed || urlCheck.parsed.protocol !== "https:") {
     throw new Error("AI_PROVIDER_URL_INVALID");
@@ -76,6 +80,9 @@ export async function resolveRequestAIProvider(input: unknown): Promise<AIProvid
   }
 
   const apiKey = typeof config.apiKey === "string" ? config.apiKey.trim() : undefined;
+  if (!apiKey && baseUrl !== defaultBaseUrl) {
+    throw new Error("AI_PROVIDER_SERVER_KEY_REQUIRES_TRUSTED_BASE_URL");
+  }
   const model = typeof config.model === "string" && config.model.trim() ? config.model.trim() : "agnes-3.0-flash";
   if (baseUrl.length > 2048 || model.length > 128 || (apiKey && apiKey.length > 512)) {
     throw new Error("AI_PROVIDER_CONFIG_TOO_LARGE");
@@ -415,6 +422,8 @@ async function runSyllogismNode(
   subsumption: string;
   conclusion: string;
   fullAnalysis: string;
+  analysisBlocked: boolean;
+  analysisViolations: ConsistencyViolation[];
 }> {
   let fullAnalysis = "";
   const isSexualOrDomestic = routerMeta.is_sensitive || 
@@ -443,19 +452,33 @@ async function runSyllogismNode(
     }
   }
 
-  // 敏感案件強制在輸出頂部注入完整保護指引
-  if (routerMeta.is_sensitive && routerMeta.protectionNotice) {
-    if (!fullAnalysis.includes("113")) {
-      fullAnalysis = `${routerMeta.protectionNotice}\n\n--------------------------------\n${fullAnalysis}`;
-    }
-  }
+  // fail-closed 一致性閘門：本機規則為權威，模型輸出與其矛盾時擋下該段分析，
+  // 改以違規清單呈現，不得讓矛盾陳述進入使用者畫面。
+  const analysisViolations = detectAnalysisContradictions(fullAnalysis, {
+    isPublicProsecution: routerMeta.legalBasis?.some(basis => /第\s?22[145]\s?條/.test(basis)) === true,
+    isSexualAutonomyCase: isSexualOrDomestic
+  });
+  const analysisBlocked = analysisViolations.length > 0;
+
+  // 敏感案件強制在輸出頂部注入完整保護指引；該指引由本機規則產生，不受模型輸出影響。
+  const guardedAnalysis = analysisBlocked ? "" : fullAnalysis;
+  const shouldInjectProtection =
+    routerMeta.is_sensitive === true &&
+    typeof routerMeta.protectionNotice === 'string' &&
+    routerMeta.protectionNotice.length > 0 &&
+    !guardedAnalysis.includes("113");
+  const finalAnalysis = shouldInjectProtection
+    ? `${routerMeta.protectionNotice}\n\n--------------------------------\n${guardedAnalysis}`
+    : guardedAnalysis;
 
   return {
     majorPremise: isSexualOrDomestic ? "刑法第221條、第225條及家庭暴力防治法" : "依中華民國法律構成要件與實務見解",
     minorPremise: `用戶陳述事實：「${userFacts.slice(0, 100)}...」`,
     subsumption: "比對事實樣態與法定構成要件之關聯性及舉證門檻",
     conclusion: "具備初步法律主張與救濟程序基礎，應保全關鍵佐證",
-    fullAnalysis
+    fullAnalysis: finalAnalysis,
+    analysisBlocked,
+    analysisViolations
   };
 }
 
@@ -624,25 +647,23 @@ router.post("/api/workflow/execute", async (req: Request, res: Response) => {
       Boolean(routerResult.chapter?.includes("性自主")) ||
       Boolean(routerResult.cause?.includes("性自主")) ||
       /性自主|性侵|猥褻|乘機性交|強制性交/.test(state.userNarrative);
+    const forensic = resolveForensicWindowState(state.userNarrative);
 
     if (routerResult.is_sensitive) {
       state.safety = {
         emergencyHotlines: [
-          { label: "全國婦幼保護專線", number: "113", desc: "24 小時免付費，提供家暴、性侵、兒少保護諮詢與通報" },
+          { label: "全國婦婦保護專線", number: "113", desc: "24 小時免付費，提供家暴、性侵、兒少保護諮詢與通報" },
           { label: "警察報案電話", number: "110", desc: "緊急危難或立即性人身安全威脅時請立即撥打" },
           { label: "衛福部安心專線", number: "1925", desc: "24 小時心理諮商與心理支持熱線" }
         ],
         preservationTips: [
-          "【生物檢體保全】：性自主案件切勿沐浴更衣，請立即將案發衣物以乾淨紙袋保全存證。",
-          "【醫療驗傷】：黃金72小時內請至醫院急診驗傷，請醫師開立驗傷診斷書並保存生物檢體。",
-          "【數位事證】：保留所有 LINE、通話錄音、監視器畫面及事發現場截圖，切勿刪除對話紀錄。",
+          ...forensic.guidance.preservationTips,
           "【法律與心理支援】：如有人身危險，得立即向法院或警察局聲請緊急或暫時保護令，並可尋求心理諮商資源。"
         ],
-        immediateSteps: [
-          "撥打 113 保護專線或 110 報案",
-          "至醫療院所開立驗傷診斷證明書並採證",
-          "向轄區分局報案製作筆錄並聲請保護令"
-        ],
+        immediateSteps: forensic.guidance.immediateSteps,
+        withinForensicWindow: forensic.withinWindow,
+        incidentDate: forensic.incidentDate.date ? toCalendarDate(forensic.incidentDate.date) : null,
+        forensicWindowLabel: forensic.guidance.windowLabel,
         acknowledged: Boolean(acknowledgeSafety || isSexualAutonomy)
       };
 
@@ -678,11 +699,12 @@ router.post("/api/workflow/execute", async (req: Request, res: Response) => {
  */
 router.post("/api/workflow/supplement", async (req: Request, res: Response) => {
   try {
-    const { existingNarrative, supplementText, acknowledgeSafety, aiConfig } = req.body as {
+    const { existingNarrative, supplementText, acknowledgeSafety, aiConfig, stateId } = req.body as {
       existingNarrative?: string;
       supplementText?: string;
       acknowledgeSafety?: boolean;
       aiConfig?: unknown;
+      stateId?: string;
     };
 
     if (!supplementText || !supplementText.trim()) {
@@ -703,9 +725,11 @@ router.post("/api/workflow/supplement", async (req: Request, res: Response) => {
     // 轉發執行統一 Router
     const routerResult = await runRouterNode(merged);
     const state = createInitialWorkflowState(merged);
+    if (stateId) state.id = stateId;
     state.router = routerResult;
     state.factHistory = [existingNarrative || "", supplementText.trim()];
 
+    const supplementForensic = resolveForensicWindowState(merged);
     if (routerResult.is_sensitive) {
       state.safety = {
         emergencyHotlines: [
@@ -713,11 +737,11 @@ router.post("/api/workflow/supplement", async (req: Request, res: Response) => {
           { label: "警察報案電話", number: "110", desc: "緊急危難或立即性人身安全威脅時請立即撥打" },
           { label: "衛福部安心專線", number: "1925", desc: "24 小時心理諮商與心理支持熱線" }
         ],
-        preservationTips: [
-          "黃金72小時內請至醫院驗傷，保留醫療單據與驗傷單，切勿沐浴更衣。",
-          "備份所有通訊紀錄與相關照片、證物。"
-        ],
-        immediateSteps: ["驗傷保全", "警察局筆錄", "法院聲請保護令"],
+        preservationTips: supplementForensic.guidance.preservationTips,
+        immediateSteps: supplementForensic.guidance.immediateSteps,
+        withinForensicWindow: supplementForensic.withinWindow,
+        incidentDate: supplementForensic.incidentDate.date ? toCalendarDate(supplementForensic.incidentDate.date) : null,
+        forensicWindowLabel: supplementForensic.guidance.windowLabel,
         acknowledged: Boolean(acknowledgeSafety)
       };
     }

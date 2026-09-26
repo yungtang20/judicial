@@ -12,6 +12,15 @@ vi.mock('./externalCitationVerifier', () => ({
   verifyExternalPrecedents: vi.fn()
 }));
 
+vi.mock('./taiwanLegalDbClient', () => ({
+  queryTaiwanLegalDbBatch: vi.fn(async (queries: Array<{ query: string }>) => queries.map(({ query }) => ({
+    citation: query,
+    status: 'unavailable',
+    source: 'mcp-taiwan-legal-db',
+    message: '測試 fixture：未啟動外部 MCP。'
+  })))
+}));
+
 describe('queryAllLegalSources', () => {
   it('正常查到：兩邊各回傳各自結果，原始不合併', async () => {
     (verifyExternalPrecedents as ReturnType<typeof vi.fn>).mockResolvedValue([

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { generateBundleDocument } from './bundleDelivery';
+import { fingerprintReviewPayload } from '../reviewer/pleadingReviewer';
 import { apiClient } from '../apiClient';
 
 describe('bundleDelivery', () => {
@@ -20,6 +21,25 @@ describe('bundleDelivery', () => {
     const generate = vi.fn().mockResolvedValue({ documentText: 'blocked' });
     await expect(generateBundleDocument('PAYMENT_ORDER_PETITION', '案情', '', generate))
       .rejects.toThrow('P9_FINAL_GATE_REQUIRED');
+  });
+
+  it('rejects a P9 authorization replayed with tampered document text', async () => {
+    const authorization = {
+      finalGateStatus: 'READY' as const,
+      exportPolicy: 'READY_ONLY' as const,
+      evaluatorVersion: 'bundle-test',
+      gateInputFingerprint: 'a'.repeat(64),
+      documentFingerprint: await fingerprintReviewPayload('approved document'),
+      caseInputId: 'case-e2e',
+      draftId: 'draft-e2e',
+      ruleProfileId: 'profile-e2e',
+      ruleProfileVersion: '1.0',
+      authorizedActions: ['DOWNLOAD_TEXT' as const]
+    };
+    const generate = vi.fn().mockResolvedValue({ documentText: 'tampered document', pleadingDeliveryAuthorization: authorization });
+
+    await expect(generateBundleDocument('CIVIL_COMPLAINT_GENERAL', '案情', '草稿', generate))
+      .rejects.toThrow('P9_FINAL_GATE_NOT_READY');
   });
 
   it('uses the real api client request and serializes the bundle payload', async () => {

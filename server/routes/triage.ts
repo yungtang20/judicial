@@ -145,11 +145,15 @@ ${toolsSummary}
       parties: []
     });
 
+    delete finalPayload.pleadingDraft;
+    delete finalPayload.readyDocumentText;
     res.json(finalPayload);
   } catch (err: any) {
     console.error("[TriageUniversal] Pipeline execution error:", err.message);
     const fallbackObj: any = buildIntelligentRuleBasedTriage(rawInput);
     fallbackObj.error = "系統發生未預期錯誤，已自動降級至規則引擎。";
+    delete fallbackObj.pleadingDraft;
+    delete fallbackObj.readyDocumentText;
     res.json(fallbackObj);
   }
 });

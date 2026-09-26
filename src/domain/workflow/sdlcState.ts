@@ -1,15 +1,16 @@
 /**
- * AI 原生 SDLC 核心狀態機引擎 (SDLC State Machine & Artifact Repository)
+ * Canonical SDLC project state helpers.
+ *
+ * State transitions and gate decisions are owned by SdlcOrchestrator.
+ * This module only creates the initial state and appends versioned artifacts.
  */
-
 import {
   SdlcStageId,
   StageStatus,
   SdlcArtifact,
   HumanDecisionGate,
-  SdlcProjectState,
-  SDLC_STAGES
-} from './types';
+  SdlcProjectState
+} from '../sdlc/types';
 
 export function createInitialSdlcProject(
   projectId: string,
@@ -93,73 +94,6 @@ export function createInitialSdlcProject(
     gates,
     iterationsCount: 0,
     feedbackHistory: [],
-    updatedAt: new Date().toISOString()
-  };
-}
-
-export function advanceSdlcStage(
-  state: SdlcProjectState,
-  currentStageId: SdlcStageId,
-  humanDecidedBy?: string,
-  decisionNote?: string
-): SdlcProjectState {
-  const stageIndex = SDLC_STAGES.findIndex(s => s.id === currentStageId);
-  if (stageIndex === -1) return state;
-
-  const nextStage = SDLC_STAGES[stageIndex + 1];
-  const newState: SdlcProjectState = {
-    ...state,
-    stageStatuses: {
-      ...state.stageStatuses,
-      [currentStageId]: 'completed'
-    },
-    gates: {
-      ...state.gates,
-      [currentStageId]: {
-        ...state.gates[currentStageId],
-        passed: true,
-        decidedBy: humanDecidedBy || '資深法律顧問/承辦律師',
-        decidedAt: new Date().toISOString(),
-        decisionNote: decisionNote || '已由人工完成關鍵風險核可並放行至下一交付階段'
-      }
-    },
-    updatedAt: new Date().toISOString()
-  };
-
-  if (nextStage) {
-    newState.currentStageId = nextStage.id;
-    newState.stageStatuses[nextStage.id] = 'in_progress';
-  }
-
-  return newState;
-}
-
-export function triggerSdlcFeedbackLoop(
-  state: SdlcProjectState,
-  fromStage: SdlcStageId,
-  targetStage: SdlcStageId,
-  reason: string,
-  suggestedAdjustments: string
-): SdlcProjectState {
-  return {
-    ...state,
-    currentStageId: targetStage,
-    stageStatuses: {
-      ...state.stageStatuses,
-      [fromStage]: 'iterating',
-      [targetStage]: 'in_progress'
-    },
-    iterationsCount: state.iterationsCount + 1,
-    feedbackHistory: [
-      {
-        timestamp: new Date().toISOString(),
-        fromStage,
-        targetStage,
-        reason,
-        suggestedAdjustments
-      },
-      ...state.feedbackHistory
-    ],
     updatedAt: new Date().toISOString()
   };
 }

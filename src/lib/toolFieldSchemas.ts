@@ -379,6 +379,13 @@ export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
       "type": "textarea",
       "rows": 6,
       "showAiSuggest": true
+    },
+    {
+      "key": "pleadingText",
+      "label": "AI 草稿（請人工確認後再產製）",
+      "type": "textarea",
+      "rows": 8,
+      "showAiSuggest": false
     }
   ],
   "CRIMINAL_SUPPLEMENTARY_CIVIL": [

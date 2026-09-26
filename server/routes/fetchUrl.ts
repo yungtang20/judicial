@@ -1,7 +1,10 @@
 import { Router, Request, Response } from "express";
 import dns from "node:dns/promises";
+import http from "node:http";
+import https from "node:https";
 import net from "node:net";
-
+import { Readable } from "node:stream";
+import type { IncomingMessage } from "node:http";
 const router = Router();
 const MAX_REDIRECTS = 3;
 const MAX_BODY_BYTES = 2 * 1024 * 1024; // 2MB limit
@@ -98,6 +101,9 @@ const PRIVATE_V6_CIDRS: ReadonlyArray<readonly [bigint, number]> = [
   [0xfc000000_00000000_00000000_00000000n, 7], // fc00::/7 (ULA)
   [0xfe800000_00000000_00000000_00000000n, 10], // fe80::/10 (Link-Local)
   [0xff000000_00000000_00000000_00000000n, 8], // ff00::/8 (Multicast)
+  [0x0064ff9b000000000000000000000000n, 96], // NAT64 well-known prefix
+  [0x20020000000000000000000000000000n, 16], // 6to4
+  [0x20010000000000000000000000000000n, 32], // Teredo
   [0x20010db8_00000000_00000000_00000000n, 32], // 2001:db8::/32 (Documentation)
   [0x2001db80_00000000_00000000_00000000n, 28], // 2001:db80::/28（保留原本 startswith("2001:db8") 寬封鎖）
 ];
@@ -181,30 +187,144 @@ export function isBasicSafeUrl(targetUrl: string): { safe: boolean; parsed?: URL
 }
 
 /**
- * 解析 DNS 並確認所有解析出的 IP 均非私有/保留位址 (防止 DNS Rebinding)
+ * 解析 DNS 並確認所有解析出的 IP 均非私有/保留位址 (防止 DNS Rebinding)。
+ * 回傳可安全固定至連線的位址；任一結果可疑時整組拒絕 (fail-closed)。
  */
-export async function verifyDnsSafe(hostname: string): Promise<boolean> {
+export async function resolveSafeDnsAddresses(hostname: string): Promise<string[]> {
   const cleanHost = hostname.replace(/^\[|\]$/g, "");
   if (net.isIP(cleanHost)) {
-    return !isPrivateIp(cleanHost);
+    return isPrivateIp(cleanHost) ? [] : [cleanHost];
   }
 
   try {
     const records = await dns.lookup(cleanHost, { all: true, verbatim: true });
-    if (!records || records.length === 0) {
-      return false;
+    if (!records || records.length === 0 || records.some((record) => isPrivateIp(record.address))) {
+      return [];
     }
-
-    for (const record of records) {
-      if (isPrivateIp(record.address)) {
-        return false;
-      }
-    }
-    return true;
+    return records.map((record) => record.address);
   } catch {
-    return false;
+    return [];
   }
 }
+
+export async function verifyDnsSafe(hostname: string): Promise<boolean> {
+  return (await resolveSafeDnsAddresses(hostname)).length > 0;
+}
+
+/** 建立只連線至已驗證 IP、但保留原 Host/SNI 的 request options。 */
+export function createPinnedRequestOptions(target: URL, address: string): https.RequestOptions {
+  const cleanHostname = target.hostname.replace(/^\[|\]$/g, "");
+  const options: https.RequestOptions = {
+    protocol: target.protocol,
+    hostname: address,
+    port: target.port || undefined,
+    path: `${target.pathname}${target.search}`,
+    method: "GET",
+    headers: {
+      Host: target.host,
+      "User-Agent": "Mozilla/5.0 (SmartLegalAssistant; Crawler/1.0)",
+      Accept: "text/html,application/xhtml+xml,text/plain;q=0.9,*/*;q=0.8",
+      "Accept-Encoding": "identity",
+    },
+  };
+
+  if (target.protocol === "https:" && net.isIP(cleanHostname) === 0) {
+    options.servername = cleanHostname;
+  }
+
+  return options;
+}
+
+/** 使用已驗證的 IP 發出請求；此 helper 本身不解析 hostname。 */
+export function requestPinnedUrl(target: URL, address: string, signal: AbortSignal): Promise<IncomingMessage> {
+  const options = createPinnedRequestOptions(target, address);
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const onResponse = (response: IncomingMessage) => {
+      settled = true;
+      signal.removeEventListener("abort", onAbort);
+      resolve(response);
+    };
+    const onError = (error: Error) => {
+      signal.removeEventListener("abort", onAbort);
+      reject(error);
+    };
+    const onAbort = () => {
+      if (settled) return;
+      const error = createAbortError();
+      request.destroy(error);
+      reject(error);
+    };
+    const request = target.protocol === "https:"
+      ? https.request(options, onResponse)
+      : http.request(options, onResponse);
+
+    request.once("error", onError);
+    if (signal.aborted) {
+      onAbort();
+      return;
+    }
+    signal.addEventListener("abort", onAbort, { once: true });
+    request.end();
+  });
+}
+
+class PayloadTooLargeError extends Error {}
+
+function createAbortError(): Error {
+  const error = new Error("The operation was aborted");
+  error.name = "AbortError";
+  return error;
+}
+
+/** 串流讀取回應本文，逐 chunk 限制 UTF-8 位元組並在超限時立即中止。 */
+export function readBodyWithLimit(response: Readable, signal: AbortSignal): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    let totalBytes = 0;
+
+    const cleanup = () => {
+      response.off("data", onData);
+      response.off("end", onEnd);
+      response.off("error", onError);
+      response.off("aborted", onAborted);
+      signal.removeEventListener("abort", onAbort);
+    };
+    const fail = (error: Error) => {
+      cleanup();
+      response.destroy();
+      reject(error);
+    };
+    const onData = (chunk: Buffer | string) => {
+      const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+      totalBytes += buffer.byteLength;
+      if (totalBytes > MAX_BODY_BYTES) {
+        fail(new PayloadTooLargeError("目標網頁內容超過 2MB 限制"));
+        return;
+      }
+      chunks.push(buffer);
+    };
+    const onEnd = () => {
+      cleanup();
+      resolve(Buffer.concat(chunks, totalBytes).toString("utf8"));
+    };
+    const onError = (error: Error) => fail(error);
+    const onAborted = () => fail(createAbortError());
+    const onAbort = () => fail(createAbortError());
+
+    if (signal.aborted) {
+      onAbort();
+      return;
+    }
+
+    response.on("data", onData);
+    response.once("end", onEnd);
+    response.once("error", onError);
+    response.once("aborted", onAborted);
+    signal.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
 
 /**
  * 清理 HTML 取得標題與內文
@@ -267,9 +387,10 @@ router.post("/api/fetch-url", async (req: Request, res: Response) => {
 
     let currentUrl = url.trim();
     let redirectCount = 0;
-    let finalResponse: globalThis.Response | null = null;
+    let finalHtml = "";
+    let hasFinalResponse = false;
 
-    // 手動重導向迴圈，每次重導向均完整執行 DNS 與 IP 驗證 (避免 Redirect SSRF)
+    // 手動重導向迴圈；每一跳重新解析、驗證並將連線固定至已驗證 IP。
     while (redirectCount <= MAX_REDIRECTS) {
       const check = isBasicSafeUrl(currentUrl);
       if (!check.safe || !check.parsed) {
@@ -282,8 +403,8 @@ router.post("/api/fetch-url", async (req: Request, res: Response) => {
         });
       }
 
-      const isDnsSafe = await verifyDnsSafe(check.parsed.hostname);
-      if (!isDnsSafe) {
+      const safeAddresses = await resolveSafeDnsAddresses(check.parsed.hostname);
+      if (safeAddresses.length === 0) {
         const errorMsg = "解析目標位址為內部保留或受限 IP，已阻擋存取 (SSRF 防禦)";
         return res.status(400).json({
           code: "SSRF_BLOCKED",
@@ -295,20 +416,13 @@ router.post("/api/fetch-url", async (req: Request, res: Response) => {
 
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 6000);
+      let upstreamResponse: IncomingMessage | null = null;
 
       try {
-        const fetchRes = await fetch(currentUrl, {
-          signal: controller.signal,
-          redirect: "manual",
-          headers: {
-            "User-Agent": "Mozilla/5.0 (SmartLegalAssistant; Crawler/1.0)",
-            Accept: "text/html,application/xhtml+xml,text/plain;q=0.9,*/*;q=0.8",
-          },
-        });
-        clearTimeout(timeout);
+        // hostname 僅用於 Host/SNI；TCP 連線直接使用剛完成安全驗證的 IP。
+        upstreamResponse = await requestPinnedUrl(check.parsed, safeAddresses[0], controller.signal);
 
-        // 判斷是否為重導向 (301, 302, 303, 307, 308)
-        if ([301, 302, 303, 307, 308].includes(fetchRes.status)) {
+        if ([301, 302, 303, 307, 308].includes(upstreamResponse.statusCode || 0)) {
           redirectCount++;
           if (redirectCount > MAX_REDIRECTS) {
             return res.status(502).json({
@@ -318,7 +432,7 @@ router.post("/api/fetch-url", async (req: Request, res: Response) => {
             });
           }
 
-          const location = fetchRes.headers.get("location");
+          const location = upstreamResponse.headers.location;
           if (!location) {
             return res.status(502).json({
               code: "FETCH_FAILED",
@@ -327,19 +441,66 @@ router.post("/api/fetch-url", async (req: Request, res: Response) => {
             });
           }
 
-          currentUrl = new URL(location, currentUrl).toString();
-          continue; // 進行下一輪驗證與抓取
+          currentUrl = new URL(Array.isArray(location) ? location[0] : location, currentUrl).toString();
+          continue;
         }
 
-        finalResponse = fetchRes;
+        const statusCode = upstreamResponse.statusCode || 502;
+        if (statusCode < 200 || statusCode >= 300) {
+          return res.status(statusCode).json({
+            code: "UPSTREAM_ERROR",
+            message: `來源伺服器回應異常，狀態碼: ${statusCode}`,
+            requestId,
+          });
+        }
+
+        const contentTypeHeader = upstreamResponse.headers["content-type"];
+        const contentType = Array.isArray(contentTypeHeader) ? contentTypeHeader[0] || "" : contentTypeHeader || "";
+        const isTextOrHtml =
+          contentType.includes("text/html") ||
+          contentType.includes("text/plain") ||
+          contentType.includes("application/xhtml+xml");
+
+        if (!isTextOrHtml) {
+          return res.status(415).json({
+            code: "UNSUPPORTED_MEDIA_TYPE",
+            message: "來源網址並非文字或 HTML 網頁內容",
+            requestId,
+          });
+        }
+
+        const contentLengthHeader = upstreamResponse.headers["content-length"];
+        const contentLength = Array.isArray(contentLengthHeader) ? contentLengthHeader[0] : contentLengthHeader;
+        if (contentLength && parseInt(contentLength, 10) > MAX_BODY_BYTES) {
+          return res.status(413).json({
+            code: "PAYLOAD_TOO_LARGE",
+            message: "目標網頁容量超過 2MB 限制",
+            requestId,
+          });
+        }
+
+        // 同一個 deadline 從 DNS 後的連線建立持續涵蓋 headers 與本文讀取。
+        hasFinalResponse = true;
+        finalHtml = await readBodyWithLimit(upstreamResponse, controller.signal);
         break;
-      } catch (fetchErr: any) {
-        clearTimeout(timeout);
+      } catch (fetchErr: unknown) {
+        if (fetchErr instanceof PayloadTooLargeError) {
+          return res.status(413).json({
+            code: "PAYLOAD_TOO_LARGE",
+            message: "目標網頁內容超過 2MB 限制",
+            requestId,
+          });
+        }
         throw fetchErr;
+      } finally {
+        clearTimeout(timeout);
+        if (upstreamResponse && !upstreamResponse.readableEnded) {
+          upstreamResponse.destroy();
+        }
       }
     }
 
-    if (!finalResponse) {
+    if (!hasFinalResponse) {
       return res.status(502).json({
         code: "FETCH_FAILED",
         message: "無法自來源網址取得內容",
@@ -347,49 +508,7 @@ router.post("/api/fetch-url", async (req: Request, res: Response) => {
       });
     }
 
-    if (!finalResponse.ok) {
-      return res.status(finalResponse.status).json({
-        code: "UPSTREAM_ERROR",
-        message: `來源伺服器回應異常，狀態碼: ${finalResponse.status}`,
-        requestId,
-      });
-    }
-
-    // 檢驗 Content-Type: 僅允許 HTML 或純文字
-    const contentType = finalResponse.headers.get("content-type") || "";
-    const isTextOrHtml =
-      contentType.includes("text/html") ||
-      contentType.includes("text/plain") ||
-      contentType.includes("application/xhtml+xml");
-
-    if (!isTextOrHtml) {
-      return res.status(415).json({
-        code: "UNSUPPORTED_MEDIA_TYPE",
-        message: "來源網址並非文字或 HTML 網頁內容",
-        requestId,
-      });
-    }
-
-    // 檢驗 Content-Length
-    const contentLength = finalResponse.headers.get("content-length");
-    if (contentLength && parseInt(contentLength, 10) > MAX_BODY_BYTES) {
-      return res.status(413).json({
-        code: "PAYLOAD_TOO_LARGE",
-        message: "目標網頁容量超過 2MB 限制",
-        requestId,
-      });
-    }
-
-    const html = await finalResponse.text();
-    if (Buffer.byteLength(html, "utf8") > MAX_BODY_BYTES) {
-      return res.status(413).json({
-        code: "PAYLOAD_TOO_LARGE",
-        message: "目標網頁內容超過 2MB 限制",
-        requestId,
-      });
-    }
-
-    const { title, text } = extractHtmlText(html);
+    const { title, text } = extractHtmlText(finalHtml);
     if (!text || text.length < 10) {
       return res.status(422).json({
         code: "UNPROCESSABLE_ENTITY",
@@ -404,8 +523,9 @@ router.post("/api/fetch-url", async (req: Request, res: Response) => {
       url: currentUrl,
       requestId,
     });
-  } catch (err: any) {
-    if (err.name === "AbortError") {
+  } catch (err: unknown) {
+    const error = err instanceof Error ? err : new Error("Unknown fetch error");
+    if (error.name === "AbortError") {
       return res.status(504).json({
         code: "GATEWAY_TIMEOUT",
         message: "讀取目標網址連線逾時",
@@ -414,7 +534,7 @@ router.post("/api/fetch-url", async (req: Request, res: Response) => {
     }
 
     // 記錄詳細原因於後台日誌，不外洩內部例外堆疊
-    console.error("[FetchUrlError]:", err?.message || err);
+    console.error("[FetchUrlError]:", error.message);
     return res.status(502).json({
       code: "FETCH_FAILED",
       message: "無法取得外部網址內容",

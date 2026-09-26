@@ -39,3 +39,23 @@ jobs:
       - run: npm run test:e2e
       - run: npm run test:ssrf
       - run: npm run build
+
+  browser-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22.23.2
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:ui:e2e
+      - name: Upload Playwright failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-results-node22
+          path: test-results/
+          if-no-files-found: warn

@@ -245,6 +245,25 @@ describe("JWT & Auth Adversarial Tests", () => {
       expect(verified).toBeNull();
     });
 
+    it("should preserve SYSTEM actor type for a verified system JWT", () => {
+      const previousSecret = process.env.JWT_SECRET;
+      process.env.JWT_SECRET = testSecret;
+      try {
+        const token = createSignedToken({ sub: "system1", tenantId: "tenant1", role: "system" }, testSecret);
+        const req = { headers: { authorization: `Bearer ${token}` } } as unknown as Request;
+        const res = { status: vi.fn().mockReturnThis(), json: vi.fn() } as unknown as Response;
+        const next = vi.fn();
+
+        authenticate({ required: true })(req, res, next);
+
+        expect(next).toHaveBeenCalledOnce();
+        expect(req.user?.actorType).toBe("SYSTEM");
+      } finally {
+        if (previousSecret === undefined) delete process.env.JWT_SECRET;
+        else process.env.JWT_SECRET = previousSecret;
+      }
+    });
+
     it("should block malformed token formats (not 3 segments)", () => {
       expect(verifySignedToken("only-one-part", testSecret)).toBeNull();
       expect(verifySignedToken("part1.part2", testSecret)).toBeNull();

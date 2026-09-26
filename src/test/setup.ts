@@ -4,6 +4,17 @@ import { defaultAIProvider } from '../ai/providers/providerRegistry.js';
 
 // Keep test audit writes isolated from the repository/runtime database.
 process.env.AUDIT_DB_PATH = ':memory:';
+if (typeof window !== 'undefined') {
+  Object.defineProperty(window, 'open', {
+    configurable: true,
+    writable: true,
+    value: vi.fn(() => ({
+      document: { write: vi.fn(), close: vi.fn() },
+      focus: vi.fn(),
+      print: vi.fn()
+    }))
+  });
+}
 
 vi.mock('../ai/providers/providerRegistry.js', async (importOriginal) => {
   const actual = await importOriginal<Record<string, any>>();

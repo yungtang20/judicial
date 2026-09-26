@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { UnifiedHeader } from './unified/UnifiedHeader';
 import { HistoryModal } from './unified/HistoryModal';
 import { UnifiedProgress } from './unified/UnifiedProgress';
@@ -33,8 +33,11 @@ import { saveCrossFeatureContext } from '../lib/crossFeatureContext';
 import { useToolContext } from '../contexts/ToolContext';
 import { useGlobalUI } from '../contexts/GlobalUIContext';
 import { fetchWithAuth } from '../lib/apiClient';
-import { buildIntelligentRuleBasedTriage, enforceTriageConsistency, detectTemporalConflict } from '../lib/universalTriage';
+import { buildIntelligentRuleBasedTriage, enforceTriageConsistency, detectTemporalConflict, resolveForensicWindowState } from '../lib/universalTriage';
+import { toCalendarDate } from '../lib/forensicGuidance';
 import { verifyLegalCitations } from '../lib/citationVerifier';
+import { useCaseStore } from '../store/useCaseStore';
+import { useAppealStore } from '../store/useAppealStore';
 
 interface CustomPresetCase {
   title: string;
@@ -65,11 +68,28 @@ function loadCustomPreset(): CustomPresetCase {
 export const UnifiedEntry: React.FC = () => {
   const { handleSelectTool } = useToolContext();
   const { startLoading, stopLoading } = useGlobalUI();
+  const applyUnifiedWorkflow = useCaseStore(state => state.applyUnifiedWorkflow);
+  const resetCase = useCaseStore(state => state.resetCase);
+  const resetAppealForNewCase = useAppealStore(state => state.resetForNewCase);
+  const commitWorkflowState = (nextState: LegalWorkflowState) => {
+    setWorkflowState(nextState);
+    applyUnifiedWorkflow(nextState);
+  };
   const defaultSample = `事發於民國112年11月15日晚上約11點，在台北市信義區租屋處。我與房東因退租押金發生爭執，房東以無合理依據之清潔費為由拒絕退還新台幣5萬元押金，並威脅若再爭執將把我的私人物品丟到走廊。我有雙方簽署之房屋租賃契約書、歷次匯款房租水電之銀行明細，以及當日 LINE 對話紀錄截圖。請問我的法律權利為何？`;
 
   const [inputNarrative, setInputNarrative] = useState<string>('');
+  const workflowGeneration = useRef(0);
+  const historyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    workflowGeneration.current += 1;
+    clearTimeout(historyTimerRef.current);
+    historyTimerRef.current = null;
+  }, []);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [workflowState, setWorkflowState] = useState<LegalWorkflowState | null>(null);
+  // 工作流狀態改由 useCaseStore 持有。放在元件 useState 會在 App.tsx 每次導航卸載時遺失，
+  // 使用者回到統一入口再分析時就不帶 stateId，伺服器會發新 id 並把既有案件當成不同案件。
+  const workflowState = useCaseStore(state => state.workflowState);
+  const setWorkflowState = useCaseStore(state => state.setWorkflowState);
   const [supplementInput, setSupplementInput] = useState<string>('');
   const [showDocTypeModal, setShowDocTypeModal] = useState<boolean>(false);
   const [isCopied, setIsCopied] = useState<boolean>(false);
@@ -144,9 +164,10 @@ export const UnifiedEntry: React.FC = () => {
   };
 
   // 本機確定性規則備援工作流（當網路或後端短暫不可達時自動接管）
-  const executeLocalFallbackWorkflow = (userInputText: string, safetyAck?: boolean): LegalWorkflowState => {
+  const executeLocalFallbackWorkflow = (userInputText: string, safetyAck?: boolean, stateId?: string): LegalWorkflowState => {
     const trimmed = userInputText.trim();
     const state = createInitialWorkflowState(trimmed);
+    if (stateId) state.id = stateId;
     state.inputType = 'facts';
     const baseTriage = buildIntelligentRuleBasedTriage(trimmed);
     const triage = enforceTriageConsistency(baseTriage, trimmed);
@@ -183,6 +204,8 @@ export const UnifiedEntry: React.FC = () => {
       Boolean(triage.identifiedIssue?.includes("性自主")) ||
       /性自主|性侵|猥褻|乘機性交|強制性交/.test(trimmed);
 
+    const forensic = resolveForensicWindowState(trimmed);
+
     if (triage.isSensitive) {
       state.safety = {
         emergencyHotlines: [
@@ -190,15 +213,11 @@ export const UnifiedEntry: React.FC = () => {
           { label: "警察報案電話", number: "110", desc: "緊急危難或立即性人身安全威脅時請立即撥打" },
           { label: "衛福部安心專線", number: "1925", desc: "24 小時心理諮商與心理支持熱線" }
         ],
-        preservationTips: [
-          "【生物檢體保全】：性自主案件切勿沐浴更衣，請立即將案發衣物以乾淨紙袋保全存證。",
-          "【醫療驗傷】：黃金72小時內請至醫院急診驗傷，請醫師開立驗傷診斷書並保存生物檢體。",
-          "【數位事證】：保留所有 LINE、通話錄音、監視器畫面及事發現場截圖，切勿刪除對話紀錄。"
-        ],
-        immediateSteps: [
-          "撥打 113 保護專線或 110 報案",
-          "至醫療院所開立驗傷診斷證明書並採證"
-        ],
+        preservationTips: [...forensic.guidance.preservationTips],
+        immediateSteps: forensic.guidance.immediateSteps,
+        withinForensicWindow: forensic.withinWindow,
+        incidentDate: forensic.incidentDate.date ? toCalendarDate(forensic.incidentDate.date) : null,
+        forensicWindowLabel: forensic.guidance.windowLabel,
         acknowledged: true
       };
     }
@@ -241,7 +260,9 @@ export const UnifiedEntry: React.FC = () => {
 
   // Auto-save when analysis completes
   const handleExecuteWorkflow = async (textToRun?: string, safetyAck?: boolean) => {
+    workflowGeneration.current += 1;
     const text = (textToRun !== undefined ? textToRun : inputNarrative).trim();
+    const requestGeneration = workflowGeneration.current;
     if (!text) return;
 
     const effectiveSafetyAck = true;
@@ -265,41 +286,45 @@ export const UnifiedEntry: React.FC = () => {
       }
 
       const data = await res.json();
+      if (requestGeneration !== workflowGeneration.current) return;
       if (data.success && data.data) {
-        setWorkflowState(data.data);
-        // Auto-save to history
-        setTimeout(() => {
+        commitWorkflowState(data.data);
+        clearTimeout(historyTimerRef.current);
+        historyTimerRef.current = setTimeout(() => {
+          if (requestGeneration !== workflowGeneration.current) return;
           saveToHistory({
             inputText: data.data.userNarrative,
             workflowState: data.data,
             title: data.data.router?.cause || data.data.userNarrative.slice(0, 30) + '...',
           });
           setHistoryList(loadHistory());
+          historyTimerRef.current = null;
         }, 100);
-        stopLoading({ message: '分析完成', type: 'success' });
       } else {
         throw new Error(data.error || '工作流執行失敗');
       }
     } catch (err: any) {
+      if (requestGeneration !== workflowGeneration.current) return;
       console.warn('[UnifiedEntry] 執行工作流網路異常，啟動本機規則備援引擎:', err);
-      // 網路或後端暫時無回應時，啟動本機確定性規則推論引擎，確保使用者永不卡死
-      const fallbackState = executeLocalFallbackWorkflow(text, safetyAck);
-      setWorkflowState(fallbackState);
+      const fallbackState = executeLocalFallbackWorkflow(text, safetyAck, workflowState?.id);
+      commitWorkflowState(fallbackState);
       saveToHistory({
         inputText: fallbackState.userNarrative,
         workflowState: fallbackState,
         title: fallbackState.router?.cause || fallbackState.userNarrative.slice(0, 30) + '...',
       });
       setHistoryList(loadHistory());
-      stopLoading({ message: '本機規則分析完成', type: 'success' });
     } finally {
-      setIsSubmitting(false);
+      stopLoading();
+      if (requestGeneration === workflowGeneration.current) setIsSubmitting(false);
     }
   };
 
   const handleSupplementFact = async (supplementText?: string) => {
     const supplement = (supplementText !== undefined ? supplementText : supplementInput).trim();
     if (!supplement || !workflowState) return;
+    workflowGeneration.current += 1;
+    const requestGeneration = workflowGeneration.current;
 
     setIsSubmitting(true);
     startLoading();
@@ -310,25 +335,33 @@ export const UnifiedEntry: React.FC = () => {
         body: JSON.stringify({
           existingNarrative: workflowState.userNarrative,
           supplementText: supplement,
-          acknowledgeSafety: true
-          , aiConfig
+          acknowledgeSafety: true,
+          stateId: workflowState?.id,
+          aiConfig
         })
       });
 
       const data = await res.json();
+      if (requestGeneration !== workflowGeneration.current) return;
       if (data.success && data.data) {
-        setWorkflowState(data.data);
+        commitWorkflowState(data.data);
         setInputNarrative(data.data.userNarrative);
         setSupplementInput('');
-        stopLoading({ message: '事實補充分析完成', type: 'success' });
+        saveToHistory({
+          inputText: data.data.userNarrative,
+          workflowState: data.data,
+          title: data.data.router?.cause || data.data.userNarrative.slice(0, 30) + '...',
+        });
+        setHistoryList(loadHistory());
       } else {
         throw new Error(data.error || '補充事實處理失敗');
       }
     } catch (err: any) {
+      if (requestGeneration !== workflowGeneration.current) return;
       console.warn('[UnifiedEntry] 補充事實連線異常，啟動本機規則備援:', err);
       const combinedNarrative = `${workflowState.userNarrative}\n【補充事實】：${supplement}`;
-      const fallbackState = executeLocalFallbackWorkflow(combinedNarrative, true);
-      setWorkflowState(fallbackState);
+      const fallbackState = executeLocalFallbackWorkflow(combinedNarrative, true, workflowState?.id);
+      commitWorkflowState(fallbackState);
       setInputNarrative(combinedNarrative);
       setSupplementInput('');
       saveToHistory({
@@ -336,10 +369,9 @@ export const UnifiedEntry: React.FC = () => {
         workflowState: fallbackState,
         title: fallbackState.router?.cause || fallbackState.userNarrative.slice(0, 30) + '...',
       });
-      setHistoryList(loadHistory());
-      stopLoading({ message: '本機事實補充完成', type: 'success' });
     } finally {
-      setIsSubmitting(false);
+      stopLoading();
+      if (requestGeneration === workflowGeneration.current) setIsSubmitting(false);
     }
   };
 
@@ -355,7 +387,12 @@ export const UnifiedEntry: React.FC = () => {
   };
 
   const handleResetWorkflow = () => {
+    workflowGeneration.current += 1;
+    stopLoading({ message: '已開始新案件', type: 'info' });
+    setIsSubmitting(false);
     setWorkflowState(null);
+    resetCase();
+    resetAppealForNewCase();
     setInputNarrative('');
     setSupplementInput('');
     setAcknowledgeSafetyInSession(false);
@@ -369,7 +406,12 @@ export const UnifiedEntry: React.FC = () => {
   };
 
   const loadFromHistory = (record: AnalysisRecord) => {
-    setWorkflowState(record.workflowState);
+    workflowGeneration.current += 1;
+    // 提升 generation 會讓原請求 finally 內的 setIsSubmitting(false) 被跳過，
+    // 因此這裡必須自行清除載入狀態，否則主分析介面會永久卡在 disabled。
+    setIsSubmitting(false);
+    stopLoading();
+    commitWorkflowState(record.workflowState);
     setInputNarrative(record.inputText);
     setShowHistory(false);
   };
@@ -388,10 +430,12 @@ export const UnifiedEntry: React.FC = () => {
       <div className="max-w-5xl mx-auto w-full space-y-4">
         <UnifiedHeader {...sharedProps} />
         <HistoryModal {...sharedProps} />
+        {(isSubmitting || workflowState?.error) && <UnifiedProgress {...sharedProps} />}
+        {/* 動態追問與敏感案件保護面板優先於輸入區顯示：
+            追問時使用者需要先回答問題，輸入框卻仍佔據畫面頂端且可重複送出。 */}
+        <SafetyNode {...sharedProps} showSafety={Boolean(workflowState?.safety)} />
         {!hasResult && <InputNode {...sharedProps} />}
         {!hasResult && <AIProviderSettings value={aiConfig} onChange={setAiConfig} />}
-        {(isSubmitting || workflowState?.error) && <UnifiedProgress {...sharedProps} />}
-        <SafetyNode {...sharedProps} showSafety={false} />
         {workflowState && <UnifiedResult {...sharedProps} workflowState={workflowState} />}
         {hasResult && <UnifiedNav {...sharedProps} />}
         {hasResult && (

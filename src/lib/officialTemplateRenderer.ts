@@ -11,11 +11,7 @@ import { loadManifest, getTemplateById } from './officialTemplateManifest';
 import type { OfficialTemplate, OfficialTemplateField, RenderTemplateResponse } from '../types/officialTemplate';
 
 const FILES_DIR = path.resolve(process.cwd(), 'data', 'official-templates', 'files');
-const OUTPUT_DIR = path.resolve(process.cwd(), 'data', 'official-templates', 'output');
 
-function ensureDir(dir: string) {
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-}
 
 const UNDERLINE_STYLES = ['T11', 'T12', 'T17'];
 
@@ -139,6 +135,17 @@ export function extractContentXml(zipBuf: Buffer): string | null {
   return null;
 }
 
+function underlineSpanPattern(odtStyle: string): RegExp {
+  return new RegExp(
+    `(<text:span text:style-name="${odtStyle}">)([\\s\\S]*?)(</text:span>)`,
+    'g'
+  );
+}
+
+function countUnderlineSpans(contentXml: string, odtStyle: string): number {
+  return [...contentXml.matchAll(new RegExp(underlineSpanPattern(odtStyle).source, 'g'))].length;
+}
+
 /**
  * Replace field values in content.xml.
  * Accepts both semantic keys (caseNumber, defendantName, gender) and generic keys (field_0, field_1, field_2).
@@ -165,10 +172,7 @@ function replaceFieldsInXml(contentXml: string, fields: Record<string, string>, 
     const entry = fieldMapping[i];
     const value = resolvedValues[i];
 
-    const pattern = new RegExp(
-      `(<text:span text:style-name="${entry.odtStyle}">)([^<]*(?:<text:s[^>]*\\/>[^<]*)*)(</text:span>)`,
-      'g'
-    );
+    const pattern = underlineSpanPattern(entry.odtStyle);
 
     result = result.replace(pattern, (match, open, _content, close) => {
       return `${open}${escapeXml(value)}${close}`;
@@ -190,7 +194,7 @@ function escapeXml(s: string): string {
 /**
  * Rebuild ODT file from modified content.xml
  */
-function rebuildOdt(originalOdtPath: string, newContentXml: string, outputPath: string): void {
+function rebuildOdt(originalOdtPath: string, newContentXml: string): Buffer {
   const zipBuf = fs.readFileSync(originalOdtPath);
   const entries: Array<{ name: string; data: Buffer; offset: number; localHeaderOffset: number }> = [];
 
@@ -238,7 +242,7 @@ function rebuildOdt(originalOdtPath: string, newContentXml: string, outputPath: 
 
   // Rebuild as a new ZIP with all entries stored (no compression)
   const { ZIP_LOCAL_HEADER, ZIP_CENTRAL_DIR, ZIP_END_OF_CENTRAL_DIR } = buildZip(entries);
-  fs.writeFileSync(outputPath, Buffer.concat([ZIP_LOCAL_HEADER, ZIP_CENTRAL_DIR, ZIP_END_OF_CENTRAL_DIR]));
+  return Buffer.concat([ZIP_LOCAL_HEADER, ZIP_CENTRAL_DIR, ZIP_END_OF_CENTRAL_DIR]);
 }
 
 function buildZip(entries: Array<{ name: string; data: Buffer }>) {
@@ -367,6 +371,7 @@ export function renderTemplate(
   // If any required field lacks an ODT span, fail-closed with TEMPLATE_MAPPING_INCOMPLETE.
   const manifestFields = template.fields || [];
   const fieldMapping = buildFieldMapping(template);
+  const isP9Ready = template.p9Status === 'P9_READY';
   const odtKeySet = new Set(fieldMapping.map(e => e.key));
   const missingFields: string[] = [];
   const unmappedRequired: string[] = [];
@@ -381,7 +386,7 @@ export function renderTemplate(
     const semanticVal = fields[mf.key];
     const genericIdx = fieldMapping.findIndex(e => e.key === mf.key);
     const genericKey = `field_${genericIdx}`;
-    const genericVal = fields[genericKey];
+    const genericVal = isP9Ready ? undefined : fields[genericKey];
     if ((!semanticVal || !semanticVal.trim()) && (!genericVal || !genericVal.trim())) {
       missingFields.push(mf.key);
     }
@@ -394,6 +399,20 @@ export function renderTemplate(
       error: `Template mapping incomplete: required fields have no ODT position`,
       code: 'TEMPLATE_MAPPING_INCOMPLETE',
       missingFields: unmappedRequired,
+    };
+  }
+  const allowedInputKeys = new Set(
+    isP9Ready
+      ? manifestFields.filter(field => odtKeySet.has(field.key)).map(field => field.key)
+      : [...odtKeySet, ...manifestFields.map(field => field.key), ...fieldMapping.map((_, index) => `field_${index}`)]
+  );
+  const unknownFields = Object.keys(fields).filter(key => !allowedInputKeys.has(key));
+  if (unknownFields.length > 0) {
+    return {
+      success: false,
+      error: 'Template contains fields that are not approved for this official template',
+      code: 'TEMPLATE_FIELD_NOT_ALLOWED',
+      missingFields: unknownFields
     };
   }
 
@@ -413,19 +432,26 @@ export function renderTemplate(
     if (!contentXml) {
       return { success: false, error: 'Cannot parse template content.xml', code: 'TEMPLATE_PARSE_ERROR' };
     }
+    if (isP9Ready) {
+      const p9InvalidSpans = fieldMapping
+        .filter(entry => manifestFields.some(field => field.key === entry.key))
+        .map(entry => ({ key: entry.key, count: countUnderlineSpans(contentXml, entry.odtStyle) }))
+        .filter(entry => entry.count !== 1);
+      if (p9InvalidSpans.length > 0) {
+        return {
+          success: false,
+          error: 'Template mapping incomplete: P9 field must have exactly one ODT span',
+          code: 'TEMPLATE_MAPPING_INCOMPLETE',
+          missingFields: p9InvalidSpans.map(entry => entry.count === 0 ? entry.key : `${entry.key}:duplicate-span`),
+        };
+      }
+    }
 
     const newContentXml = replaceFieldsInXml(contentXml, fields, template);
 
-    // Create output file
-    ensureDir(OUTPUT_DIR);
+    // Rebuild the ODT entirely in memory so rendered legal text is not retained on disk.
+    const outputBuf = rebuildOdt(absPath, newContentXml);
     const outputFileName = `${templateId}-${Date.now()}-${crypto.randomUUID()}.odt`;
-    const outputPath = path.join(OUTPUT_DIR, outputFileName);
-
-    // Simple approach: rebuild ODT with modified content.xml
-    rebuildOdt(absPath, newContentXml, outputPath);
-
-    const outputBuf = fs.readFileSync(outputPath);
-    const hash = crypto.createHash('sha256').update(outputBuf).digest('hex');
 
     return {
       success: true,

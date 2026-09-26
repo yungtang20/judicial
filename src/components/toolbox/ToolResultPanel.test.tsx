@@ -24,9 +24,11 @@ describe('ToolResultPanel Export & Print Actions', () => {
     title: '存證信函測試',
     documentText: '一、主旨：請求返還借款。\n二、說明：查台端向本人借款新台幣壹拾萬元整...',
     antiGhostVerification: {
+      // 必須帶明確 status：過往夾具缺少此欄位，會讓人工覆核閘門把「未查核」誤讀為「已通過」。
+      status: 'VERIFIED' as const,
       totalCitationsChecked: 2,
       ghostCitationsFound: 0,
-      citations: []
+      verifiedCitations: []
     },
     complianceChecklist: [
       { rule: '法定管轄權檢核', passed: true, detail: '符合民事訴訟法第一條' }
@@ -56,6 +58,34 @@ describe('ToolResultPanel Export & Print Actions', () => {
     expect(screen.queryByText('TXT')).toBeNull();
     expect(screen.queryByText('Word')).toBeNull();
     expect(screen.queryByText('A4 列印')).toBeNull();
+  });
+
+  it('blocks every export action while the citation verification is still unproven', async () => {
+    const pendingResult = {
+      ...mockResult,
+      // canonical 管線產製時尚未執行外部查核，status 為 UNVERIFIED
+      antiGhostVerification: {
+        status: 'UNVERIFIED' as const,
+        totalCitationsChecked: 0,
+        ghostCitationsFound: 0,
+        verifiedCitations: []
+      }
+    };
+    render(
+      <ToolResultPanel
+        result={pendingResult}
+        currentTool={mockTool}
+        isVerifyingAi={false}
+        verifyNotice={null}
+        onFullVerify={vi.fn()}
+      />
+    );
+
+    // 擋下狀態：正文與匯出按鈕不可用，且必須提供人工複核入口才能解鎖
+    expect(await screen.findByRole('button', { name: '已完成人工複核' })).toBeInTheDocument();
+    for (const name of ['複製', 'TXT', 'Word', 'A4 列印']) {
+      expect(screen.getByRole('button', { name })).toBeDisabled();
+    }
   });
 
   it('renders Copy, TXT, Word, and A4 Print action buttons', async () => {
@@ -97,6 +127,7 @@ describe('ToolResultPanel Export & Print Actions', () => {
     const revokeObjectURLMock = vi.fn();
     window.URL.createObjectURL = createObjectURLMock;
     window.URL.revokeObjectURL = revokeObjectURLMock;
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
 
     render(
       <ToolResultPanel
@@ -120,7 +151,7 @@ describe('ToolResultPanel Export & Print Actions', () => {
     const closeMock = vi.fn();
     const focusMock = vi.fn();
 
-    vi.spyOn(window, 'open').mockImplementation(() => ({
+    const openMock = vi.fn(() => ({
       document: {
         write: writeMock,
         close: closeMock
@@ -128,6 +159,7 @@ describe('ToolResultPanel Export & Print Actions', () => {
       focus: focusMock,
       print: printMock
     } as unknown as Window));
+    Object.defineProperty(window, 'open', { configurable: true, value: openMock });
 
     render(
       <ToolResultPanel
@@ -142,7 +174,7 @@ describe('ToolResultPanel Export & Print Actions', () => {
     const printBtn = await screen.findByText('A4 列印');
     fireEvent.click(printBtn);
 
-    await vi.waitFor(() => expect(window.open).toHaveBeenCalled());
+    await vi.waitFor(() => expect(openMock).toHaveBeenCalled());
     expect(writeMock).toHaveBeenCalled();
   });
 

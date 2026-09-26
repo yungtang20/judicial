@@ -1,16 +1,49 @@
 import { Router, Request, Response } from 'express';
+import { randomUUID } from 'node:crypto';
 import { defaultSdlcOrchestrator } from '../../src/domain/workflow/sdlcOrchestrator';
-import { SdlcStageId, ExecutionMode } from '../../src/domain/sdlc/types';
-import { extractApprovalContextFromRequest } from '../../src/domain/workflow/authorization';
+import { SdlcStageId, ExecutionMode, SdlcProjectState } from '../../src/domain/sdlc/types';
+import {
+  extractSandboxAwareApprovalContext,
+  isSandboxApprovalGrant,
+  ApprovalContext
+} from '../../src/domain/workflow/authorization';
 import { AppError } from '../../src/domain/workflow/errors';
+import { defaultAuditLogger } from '../../src/domain/workflow/auditEvent';
 import { verifyTenantOwnership } from '../middleware/tenantScope.js';
 
 export const sdlcRouter = Router();
 
 // 輔助函式：自 HTTP Request 提取審批上下文 (ApprovalContext)
-function getApprovalContext(req: Request) {
-  const isProd = process.env.NODE_ENV === 'production';
-  return extractApprovalContextFromRequest(req, isProd);
+// 於 REQUIRE_AUTH=true 且非 production 的沙盒環境中，guest 訪客會被降級為 SANDBOX 角色
+// 並取得明確的「沙盒核准」授予書：可執行 SDLC 階段與推進階段門閥，但絕不具備 APPROVE 權限。
+function getApprovalContext(req: Request): ApprovalContext {
+  return extractSandboxAwareApprovalContext(req);
+}
+
+// 輔助函式：沙盒核准之稽核留痕
+// 沙盒放行必須在稽核紀錄中可被明確辨識為「沙盒核准」而非人工審批，故額外記錄核准路徑與授予書。
+function logSandboxGateAudit(
+  context: ApprovalContext,
+  workflowId: string,
+  stageId: SdlcStageId,
+  eventType: 'GATE_REQUESTED' | 'GATE_REJECTED',
+  metadata: Record<string, unknown>
+): void {
+  if (!isSandboxApprovalGrant(context.sandboxGrant)) return;
+  defaultAuditLogger.log({
+    workflowId,
+    stageId,
+    actorType: context.actorType,
+    actorId: context.actorId,
+    eventType,
+    result: eventType === 'GATE_REJECTED' ? 'BLOCKED' : 'SUCCESS',
+    metadata: {
+      approvalPath: 'SANDBOX_GUEST',
+      decidedBy: context.name,
+      sandboxGrant: context.sandboxGrant,
+      ...metadata
+    }
+  });
 }
 
 // 輔助函式：強制核實資源所有權與租戶隔離
@@ -42,7 +75,7 @@ function handleRouteError(err: any, res: Response) {
 sdlcRouter.post('/project', async (req: Request, res: Response) => {
   try {
     const { projectId, title, legalDomain, executionMode } = req.body;
-    const id = projectId || `sdlc_${Date.now()}`;
+    const id = projectId || `sdlc_${randomUUID()}`;
     const tenantId = req.tenantContext?.tenantId;
     const ownerId = req.tenantContext?.userId;
 
@@ -59,6 +92,7 @@ sdlcRouter.post('/project', async (req: Request, res: Response) => {
       tenantId,
       ownerId
     );
+    assertProjectTenantOwnership(req, project);
     res.json({ success: true, project });
   } catch (err) {
     handleRouteError(err, res);
@@ -283,14 +317,24 @@ sdlcRouter.post('/advance-gate', async (req: Request, res: Response) => {
       });
     }
     assertProjectTenantOwnership(req, project);
-
     const context = getApprovalContext(req);
-    const updatedProject = await defaultSdlcOrchestrator.advanceGate(
-      projectId,
-      stageId as SdlcStageId,
-      context,
-      decisionNote
-    );
+    const targetStage = stageId as SdlcStageId;
+    logSandboxGateAudit(context, projectId, targetStage, 'GATE_REQUESTED', { decisionNote: decisionNote || '' });
+
+    let updatedProject: SdlcProjectState;
+    try {
+      updatedProject = await defaultSdlcOrchestrator.advanceGate(
+        projectId,
+        targetStage,
+        context,
+        decisionNote
+      );
+    } catch (err) {
+      logSandboxGateAudit(context, projectId, targetStage, 'GATE_REJECTED', {
+        reason: err instanceof AppError ? err.code : 'INTERNAL_ERROR'
+      });
+      throw err;
+    }
 
     res.json({ success: true, project: updatedProject });
   } catch (err) {
