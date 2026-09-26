@@ -185,6 +185,10 @@ export const AgentChat: React.FC = () => {
           <button
             onClick={handleSend}
             disabled={!input.trim() || isLoading}
+            // 純圖示按鈕若沒有無障礙名稱，螢幕閱讀器使用者完全無法送出問題。
+            // 這是本頁的主要動作，必須有可讀名稱。
+            aria-label="送出問題"
+            title="送出問題"
             className="p-3 rounded-xl bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             {isLoading ? (
