@@ -72,3 +72,16 @@ describe('所有 AI 產出入口都必須要求繁體中文', () => {
     expect(getMineScanPrompt('案情')).toContain('繁體中文');
   });
 });
+
+describe('繁體中文中合法使用的字不得被誤判為簡體', () => {
+  it('准在繁體中文是合法用字（准許、批准、獲准），不得誤擋', () => {
+    // 實測教訓：曾把「准→準」列為簡體對應，導致正當的繁體法律文件被擋下。
+    expect(containsSimplifiedChinese('經准許後，於三個月內申請獲准延長')).toBe(false);
+    expect(containsSimplifiedChinese('准予扣除所繳納費用')).toBe(false);
+  });
+
+  it('交付閘門不得因「准」而擋下合法繁體文件', () => {
+    expect(() => verifyGeneratedDocument('聲請人檢具證件，經法院准許後准予延長提出證據之期間。'))
+      .not.toThrow();
+  });
+});
