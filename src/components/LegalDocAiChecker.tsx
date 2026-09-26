@@ -209,7 +209,7 @@ export const LegalDocAiChecker: React.FC = () => {
                 {isExternalChecking ? '正在查詢第三方裁判字號資料庫...' : '外部裁判字號存在性覆核'}
               </button>
               <p className="text-[11px] text-[var(--color-text-muted)] mt-2 leading-relaxed">
-                提示：只將文件擷取出的裁判字號送至第三方，非官方官方終審判定，可隨時點擊驗證。
+                提示：只將文件擷取出的裁判字號送至第三方，非官方終審判定，可隨時點擊驗證。
               </p>
             </div>
           </div>
