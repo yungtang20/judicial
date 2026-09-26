@@ -47,6 +47,9 @@ interface JDocResult {
 export default function JudicialOpenDataTool() {
   const [activeTab, setActiveTab] = useState<'categories' | 'jdgApi' | 'memberToken'>('categories');
   const [hasEnvCreds, setHasEnvCreds] = useState<boolean>(false);
+  // 司法院開放資料的伺服器端尚未實作；必須如實告知使用者，
+  // 不可顯示成「只差設定憑證」而讓人白花時間輸入。
+  const [backendAvailable, setBackendAvailable] = useState<boolean | null>(null);
   
   // 帳密設定
   const [account, setAccount] = useState('');
@@ -106,14 +109,21 @@ export default function JudicialOpenDataTool() {
       setMemberToken(validMember);
     }
 
+    // 這個探測端點目前尚未在伺服器實作，請求會被 SPA fallback 導回 index.html，
+    // res.json() 拋錯後舊流程一律顯示「未檢測到環境變數」，
+    // 會讓使用者誤以為只是沒設定憑證。必須區分「後端不存在」與「未設定憑證」。
     fetchWithAuth('/api/judicial/env-status')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.configured) {
+      .then(res => res.json())
+      .then(data => {
+        setBackendAvailable(true);
+        if (data && data.configured) {
           setHasEnvCreds(true);
         }
       })
-      .catch((err) => console.warn('Failed to check judicial env status:', err));
+      .catch(err => {
+        console.warn('Failed to check judicial env status:', err);
+        setBackendAvailable(false);
+      });
   }, [refreshCacheStats]);
 
   // 取得主題分類（支援快取）
@@ -334,7 +344,18 @@ export default function JudicialOpenDataTool() {
               </p>
             </div>
             
-            {hasEnvCreds ? (
+            {backendAvailable === false ? (
+              <div
+                role="alert"
+                className="flex items-start gap-2 px-3 py-2 bg-[var(--color-status-error-bg)] text-[var(--color-status-error)] rounded-lg border border-[var(--color-status-error)]/30 text-xs max-w-sm"
+              >
+                <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                <span>
+                  此功能的伺服器端尚未提供，<strong>目前無法查詢司法院開放資料</strong>。
+                  下方帳密欄位不會送出任何資料；請改用「匯入裁判書全文檢索」或上傳 PDF／TXT。
+                </span>
+              </div>
+            ) : hasEnvCreds ? (
               <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--color-status-success-bg)] text-emerald-700 rounded-lg border border-[var(--color-status-success)]/30 text-xs font-semibold">
                 <ShieldCheck className="w-4 h-4 text-emerald-600" />
                 已自動載入系統環境變數帳密
@@ -372,8 +393,11 @@ export default function JudicialOpenDataTool() {
             </button>
           </div>
 
-          {/* 帳號密碼覆蓋輸入欄 */}
-          <div className="mt-4 pt-4 border-t border-[var(--color-border-subtle)] grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+          {/* 帳號密碼覆蓋輸入欄：後端不可用時停用，避免使用者白填一組永遠不會被送出的憑證 */}
+          <fieldset
+            disabled={backendAvailable === false}
+            className="mt-4 pt-4 border-t border-[var(--color-border-subtle)] grid grid-cols-1 md:grid-cols-3 gap-3 items-end disabled:opacity-50"
+          >
             <div>
               <label className="block text-xs font-medium text-[var(--color-text-secondary)] mb-1">
                 會員帳號 (memberAccount / user)
@@ -401,7 +425,7 @@ export default function JudicialOpenDataTool() {
             <div className="text-xs text-[var(--color-text-muted)]">
               💡 若系統已於 <code className="bg-[var(--color-surface-overlay)] px-1 py-0.5 rounded text-[var(--color-text-secondary)]">.env</code> 設定 <code className="bg-[var(--color-surface-overlay)] px-1 py-0.5 rounded text-[var(--color-text-secondary)]">JUDICIAL_OPENDATA_ACCOUNT</code>，此處可留空。
             </div>
-          </div>
+          </fieldset>
         </div>
 
         {/* 頁籤切換 */}
