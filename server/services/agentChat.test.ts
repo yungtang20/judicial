@@ -290,7 +290,7 @@ describe("agentChat service", () => {
     mockTriage.mockReturnValue({ caseType: "民事", category: "其他", isSensitive: false } as any);
     mockTriageConsistency.mockReturnValue({ caseType: "民事", category: "其他", isSensitive: false } as any);
     mockRetrieve.mockResolvedValue([] as any);
-    mockRetrieveContext.mockResolvedValue({ promptBlock: "TLR context block" } as any);
+    mockRetrieveContext.mockResolvedValue({ promptBlock: "TLR context block", isExternalRetrievalUsed: true } as any);
     mockGenerate.mockResolvedValue({ text: "TLR response" } as any);
     mockVerify.mockReturnValue({ ghostCount: 0, totalChecked: 0, sanitizedText: "TLR response" } as any);
 
@@ -371,12 +371,29 @@ describe("agentChat service", () => {
 
   // ── Disclaimer ──────────────────────────────────────────────────────────
 
-  it("appends disclaimer with source info to reply", async () => {
+  it("returns the disclaimer as a structured field instead of appending it to the reply", async () => {
     setupHappyPath();
     const result = await handleAgentChat({ userInput: "test" });
-    expect(result.reply).toContain("---");
+    // 免責聲明只由前端渲染一次；附加到 reply 會造成同一次回覆重複顯示
+    expect(result.reply).not.toContain("---");
+    expect(result.reply).not.toContain("不構成法律意見");
     expect(result.disclaimer).toBeDefined();
     expect(result.disclaimer).toContain("本地法律檢索");
+  });
+
+  it("不得把本機知識庫降級結果誤標為外部 TLR 來源", async () => {
+    mockTriage.mockReturnValue({ caseType: "民事", category: "其他", isSensitive: false } as any);
+    mockTriageConsistency.mockReturnValue({ caseType: "民事", category: "其他", isSensitive: false } as any);
+    mockRetrieve.mockResolvedValue([] as any);
+    // 外部服務未啟用時 retrieveContext 會帶回本機知識庫內容，但 isExternalRetrievalUsed 為 false
+    mockRetrieveContext.mockResolvedValue({ promptBlock: "本機知識庫內容", isExternalRetrievalUsed: false } as any);
+    mockGenerate.mockResolvedValue({ text: "response" } as any);
+    mockVerify.mockReturnValue({ ghostCount: 0, totalChecked: 0, sanitizedText: "response" } as any);
+
+    const result = await handleAgentChat({ userInput: "test" });
+    expect(result.usedRetrieval).toBe(true);
+    expect(result.sourceProvider).toBe("local");
+    expect(result.disclaimer).not.toContain("TW Legal RAG");
   });
 
   it("uses 'none' disclaimer when no retrieval source", async () => {

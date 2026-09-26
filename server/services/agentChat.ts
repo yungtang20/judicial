@@ -74,7 +74,7 @@ function getDisclaimer(source: "tlr" | "opendata" | "local" | "none"): string {
     "本系統為輔助性工具，提供的分析僅供參考，不構成法律意見。如需正式法律諮詢，請諮詢專業律師。";
   const sourceMap: Record<string, string> = {
     tlr:
-      "（資料來源：TW Legal RAG 本地知識庫）" ,
+      "（資料來源：TW Legal RAG 外部法源檢索）",
     opendata:
       "（資料來源：司法院法學資料檢索系統 OpenData）",
     local:
@@ -133,10 +133,13 @@ export async function handleAgentChat(
   if (!usedRetrieval) {
     try {
       const retrieval = await defaultLegalRetrievalService.retrieveContext(userText);
+      // retrieveContext 在外部服務未啟用時會無聲降級到本機知識庫，
+      // 因此不能只看 promptBlock 是否非空——那會把本機 24 條種子誤標成外部法源。
+      // 必須以 isExternalRetrievalUsed 判定，對使用者誠實呈報實際來源。
       if (retrieval.promptBlock && retrieval.promptBlock.trim().length > 0) {
         legalContext = retrieval.promptBlock;
         usedRetrieval = true;
-        sourceProvider = "tlr";
+        sourceProvider = retrieval.isExternalRetrievalUsed ? "tlr" : "local";
       }
     } catch (err) {
       console.warn("[AgentChat] TLR retrieval failed:", err);
@@ -182,7 +185,7 @@ export async function handleAgentChat(
     "- 回覆長度控制在 500 字以內，除非使用者要求詳細說明。",
     "- 引用法條時必須附上完整條號，不得虛構。",
     "- 保持中立客觀，不做立場判斷。",
-    "- 末尾必須附上免責聲明。",
+    "- 不得自行撰寫免責聲明或聲稱資料來源；系統會統一附加。",
     triage.isSensitive
       ? "- 本案件涉及敏感類型（性別/家事），請特別注意保護當事人隱私。"
       : "",
@@ -257,12 +260,13 @@ export async function handleAgentChat(
     gateStatus = "NEEDS_REVIEW";
   }
 
-  // 9. Append disclaimer
-  const reply = `${sanitizedReply}\n\n---\n${getDisclaimer(sourceProvider)}`;
-
+  // 9. 免責聲明：只由前端統一渲染一次（msg.disclaimer）。
+  // 過往把免責聲明同時附加到 reply 文字，前端又渲染一次，
+  // 加上模型自己也會生成一段，單次回覆裡出現三次。
+  // 這裡只回傳結構化欄位，reply 保持純回覆內容。
   return {
     success: true,
-    reply,
+    reply: sanitizedReply,
     disclaimer: getDisclaimer(sourceProvider),
     usedRetrieval,
     sourceProvider,
