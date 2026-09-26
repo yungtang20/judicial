@@ -64,11 +64,54 @@ const createInitialCase = (): CaseContext => ({
 
 const initialCase = createInitialCase();
 
+/**
+ * 案件卷自動儲存。
+ *
+ * 背景：useCaseStore 原本完全沒有持久化，使用者按一次重新整理，
+ * 事實、爭點、證據清單、已產製書狀與人工核准紀錄就全部消失，
+ * 而且沒有任何提示、沒有復原途徑（exportEncryptedCase 也沒有 UI 呼叫者）。
+ * 對律師而言這等於憑空蒸發整份卷宗。
+ *
+ * 選用 sessionStorage 而非 localStorage：
+ * sessionStorage 足以跨重新整理保留工作階段，關閉分頁即清除，
+ * 避免在磁碟上長期留存放明文的案件個資。
+ */
+const CASE_STORAGE_KEY = 'judicial_case_autosave_v1';
+
+function rehydrateCases(): Record<string, CaseContext> {
+  if (typeof sessionStorage === 'undefined') return { [CASE_ID]: initialCase };
+  try {
+    const raw = sessionStorage.getItem(CASE_STORAGE_KEY);
+    if (!raw) return { [CASE_ID]: initialCase };
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return { [CASE_ID]: initialCase };
+    const record = parsed as Record<string, CaseContext>;
+    const restored = record[CASE_ID];
+    if (!restored || typeof restored !== 'object' || !Array.isArray(restored.documents)) {
+      return { [CASE_ID]: initialCase };
+    }
+    return { [CASE_ID]: { ...initialCase, ...restored } };
+  } catch {
+    // 讀取失敗一律退回空白案件，不得讓儲存的問題中斷應用
+    return { [CASE_ID]: initialCase };
+  }
+}
+
+function persistCases(cases: Record<string, CaseContext>): void {
+  if (typeof sessionStorage === 'undefined') return;
+  try {
+    sessionStorage.setItem(CASE_STORAGE_KEY, JSON.stringify(cases));
+  } catch {
+    // 配額爆滿或隱私模式：自動儲存失敗不得中斷操作
+  }
+}
+
+const rehydratedCases = rehydrateCases();
 export const useCaseStore = create<CaseStore>((set, get) => ({
   activeCaseId: CASE_ID,
   workflowState: null,
   setWorkflowState: (workflowState) => set({ workflowState }),
-  cases: { [CASE_ID]: initialCase },
+  cases: rehydratedCases,
   // 開立新案件是使用者明確動作，因此這裡才允許連同工作流狀態與產物一起清除
   resetCase: () => set({ activeCaseId: CASE_ID, workflowState: null, cases: { [CASE_ID]: createInitialCase() } }),
   saveTriage: (facts, result) => set((state) => {
@@ -193,5 +236,11 @@ export const useCaseStore = create<CaseStore>((set, get) => ({
     set((state) => ({ cases: { ...state.cases, [CASE_ID]: { ...imported, caseId: CASE_ID, evidences: Array.isArray(imported.evidences) ? imported.evidences.map((item, index) => normalizeEvidenceRow(item, index)) : [], updatedAt: now() } } }));
   }
 }));
+
+// 任何案件卷變更都立即自動儲存，確保重新整理不會遺失工作成果。
+// 訂閱在 store 建立後註冊，避免 rehydrate 階段寫回造成回圈。
+useCaseStore.subscribe((state, prev) => {
+  if (state.cases !== prev.cases) persistCases(state.cases);
+});
 
 export const getActiveCase = (state: CaseStore): CaseContext => state.cases[state.activeCaseId] || initialCase;
