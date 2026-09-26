@@ -53,21 +53,35 @@ function generateStorytellingNarrative(judgmentText: string, courtName: string, 
   }
 
   // 一般刑事與民事案件之小說紀實風故事
-  if (rawFactText && rawFactText.length > 80) {
+  if (rawFactText && rawFactText.length > 80 && isCriminal) {
     const cleanExcerpt = rawFactText.slice(0, 380);
     storyPart1 = `整起事件發生於 ${eventTime}，在 ${eventPlace}。當時 ${defendantName} 與 ${victimName} 因彼此間的互動與情境演變，在現場爆發了嚴重的衝突與爭端。從現場動態來看，${cleanExcerpt}。`;
+  } else if (!isCriminal) {
+    const claimSummary = rawFactText ? rawFactText.slice(0, 300) : '';
+    // 民事與行政案件不存在「肢體或言語衝突」的現場場面，改描述金錢或行政爭執。
+    storyPart1 = `整起事件發生於 ${eventTime}，地點位於 ${eventPlace}。${defendantName} 與相對人間就本案標的發生爭執${claimSummary ? `，爭執內容為：${claimSummary}。` : '，相關經過記載於判決書事實欄明。'}`;
   } else {
     storyPart1 = `整起事件發生於 ${eventTime}，地點位於 ${eventPlace}。當時 ${defendantName} 與 ${victimName} 原本各自處於日常的活動與接觸中，然而雙方在現場的言語互動與舉止逐漸失控，現場氣氛急轉直下，演變成一場實質的法益侵害與肢體或言語衝突。`;
   }
 
-  storyPart2 = `站在 ${victimName} 的角度，當下突遭變故與衝擊，心中充滿了驚愕、恐懼與難以置信。在事發當下與隨後的警詢指訴中，${victimName} 痛苦地指控 ${defendantName} 在未經同意且違背其個人意願之情況下，恣意實施了侵害法益的行為，造成其身心受到實質創傷與極大痛苦。事件發生後，${victimName} 隨即在親友協助或報警求助下尋求公權力介入，誓言要為自己討回公道。`;
-
-  storyPart3 = `然而，面對排山倒海的指控，${defendantName} 於警詢、偵查及法庭審理時則有截然不同的說法。${defendantName} 極力辯解稱事發當時的狀況與對方的指控大相逕庭，主張彼此之間的互動並非如指訴般具有惡意或違法故意，甚至認為對方的說法存在誇大、誤會或因個人情緒反應而作出的不實指控。${defendantName} 強調自己並未實施違法行為，請求法院明察秋毫還其清白。`;
+  // 侵害型敘述只能用在判決書本身呈現此類情形的案件。
+  // 先前不分案件類型一律套用「侵害法益／身心創傷／被害人指控」，
+  // 導致租賃清償、虛偽標示等案件也產出性侵害式敘事，
+  // 使用者會誤以為那就是自己案件的內容。
+  if (isCriminal) {
+    storyPart2 = `站在 ${victimName} 的角度，當下突遭變故與衝擊，心中充滿了驚愕、恐懼與難以置信。在事發當下與隨後的警詢指訴中，${victimName} 痛苦地指控 ${defendantName} 在未經同意且違背其個人意願之情況下，恣意實施了侵害法益的行為，造成其身心受到實質創傷與極大痛苦。事件發生後，${victimName} 隨即在親友協助或報警求助下尋求公權力介入，誓言要為自己討回公道。`;
+    storyPart3 = `然而，面對排山倒海的指控，${defendantName} 於警詢、偵查及法庭審理時則有截然不同的說法。${defendantName} 極力辯解稱事發當時的狀況與對方的指控大相逕庭，主張彼此之間的互動並非如指訴般具有惡意或違法故意，甚至認為對方的說法存在誇大、誤會或因個人情緒反應而作出的不實指控。${defendantName} 強調自己並未實施違法行為，請求法院明察秋毫還其清白。`;
+  } else {
+    // 民事與行政案件不得出現人身侵害或身心創傷的敘述。
+    const claimSummary = rawFactText ? rawFactText.slice(0, 300) : '';
+    storyPart2 = `${defendantName}的主張與理由${claimSummary ? `如下：${claimSummary}。` : '，記載於判決書事實欄明。'}`;
+    storyPart3 = `相對人則就同一爭點提出不同主張${rawReasonText ? `，其理由為：${rawReasonText.slice(0, 300)}。` : '，雙方各執一詞、各執己見。'}法院就雙方提出的事實與法律主張逐項審酌，交互判斷其真偽與可否採信。`;
+  }
 
   if (witnessNames) {
     storyPart4 = `在雙方各執一詞、互不相讓之際，現場相關證人 ${witnessNames} 的證詞以及卷內調取的各項通聯、監視影像與客觀紀錄成為了法庭攻防的關鍵。證人描述了當時所目睹的現場氣氛、雙方互動的神態與事後反應，這些客觀拼圖在法庭上與雙方的說詞進行了激烈的比對與檢驗。原審法院在綜合審酌被害人的指證、被告的辯解以及證人證詞與卷內客觀事證後，逐步拼湊出案件的真實樣貌，並據此作成實體裁判，為這場糾葛劃下第一審司法的認定句點。`;
   } else {
-    storyPart4 = `在雙方各執一詞、各執己見之際，法庭上展開了激烈的言詞交鋒。法官與檢察官詳細提示了現場相關證人之證言、通訊對話紀錄與客觀調查報告。這些客觀事證在法庭上逐一被檢視，用以比對 ${victimName} 的指訴是否前後一致，以及 ${defendantName} 的辯解是否符合常理與經驗法則。原審法院在全面審酌卷內各項人證與客觀跡證後，形成了心證並認定犯罪或侵權事實成立，進而作成判決。`;
+    storyPart4 = `在雙方各執一詞、各執己見之際，法庭上展開了言詞的交鋒。法官就卷內各項證據與卷宗資料逐項審查，用以比對雙方的說詞是否前後一致，以及各自的主張是否符合常理與經驗法則。法院在全面審酌卷內各項事證後，形成心證並認定事實成立與否，進而作成判決。`;
   }
 
   return `${storyPart1}\n\n${storyPart2}\n\n${storyPart3}\n\n${storyPart4}`;
@@ -76,7 +90,11 @@ function generateStorytellingNarrative(judgmentText: string, courtName: string, 
 // 本地離線智慧判決解析器（當 API 完全 429 超額時自動保底，避免系統崩潰）
 export function buildFallbackJudgmentAnalysis(judgmentText: string) {
   const isCriminalComp = /刑事補償|刑補/i.test(judgmentText);
-  const isCriminal = !isCriminalComp && /刑事|判決|公訴|檢察官|簡易判決|猥褻|傷害|詐欺|公共危險|毒品|竊盜|侵訴/i.test(judgmentText);
+  // 判斷是否刑事案件必須只採刑事專屬特徵。
+  // 先前把「判決」列入判斷式，但每份判決書標題都含這兩個字
+  // （民事判決、行政判決同樣包含），導致所有民事判決都被誤判為刑事案件，
+  // 進而套用性侵害式敘事。
+  const isCriminal = !isCriminalComp && /(?:刑事(?!補償)|公訴|檢察官|簡易判決|受判決人|處有期徒刑|宣告刑)/.test(judgmentText);
   const isAdmin = /行政判決|高等行政法院|訴願/i.test(judgmentText);
   const caseType = isCriminalComp ? "criminal_compensation" : isCriminal ? "criminal" : isAdmin ? "administrative" : "civil";
 
@@ -129,6 +147,10 @@ export function buildFallbackJudgmentAnalysis(judgmentText: string) {
       overview: story,
       mainHolding: defaultHolding
     },
+    // 誠實揭露來源：這是本機規則備援產生的結果，不是從判決書以 AI 提煉而來。
+    // 使用者必須知道手上的故事化文字是範本，而不是自己案件的內容。
+    isLocalFallback: true,
+    fallbackNotice: "本結果由本機規則備援產生，敘事為固定範本而非從判決書提煉而來，僅供定位段落與格式參考，不得作為案件事實引用。",
     suggestedPrecedents: isCriminalComp ? [
       {
         type: "最高法院刑事判例",

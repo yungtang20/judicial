@@ -357,7 +357,13 @@ export function useSmartAppealAssistant() {
         // 模型可能補寫原文未載明的內容（實測以極短無意義原文即可產出長篇捏造事實）。
         // 此處只做提醒不阻擋，實際防線是要求使用者逐句核對原始裁判書。
         const grounding = assessGrounding(rawText, data.judgmentSummary);
-        setGroundingWarning(grounding.warning);
+        // 本機規則備援產生的故事化文字是固定範本，不是從判決書提煉而來，
+        // 必須明確告知，否則使用者會把它當成自己案件的內容。
+        setGroundingWarning(
+          data.isLocalFallback
+            ? `${data.fallbackNotice || '本結果由本機規則備援產生，敘事為固定範本而非從判決書提煉而來。'}\n${grounding.warning}`.trim()
+            : grounding.warning
+        );
       }
 
       const mappedIssues = mapSuggestedIssues(data.suggestedIssues);
