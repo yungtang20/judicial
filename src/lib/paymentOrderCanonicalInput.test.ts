@@ -91,3 +91,39 @@ describe('支付命令產出內容不得遺漏使用者填寫的資料', () => {
     expect(doc).toContain('臺灣臺北地方法院');
   });
 });
+
+describe('確定性管線產出的書狀必須能成為可精修對象', () => {
+  it('回應必須帶有 verificationPassed，否則前端永遠判定為待人工審查', async () => {
+    const result = await executeCanonicalPleadingPipeline('PAYMENT_ORDER_PETITION', {
+      creditorName: '王大明',
+      creditorAddress: '臺北市中山區南京東路一段1號',
+      debtorName: '李小華',
+      debtorAddress: '新北市中和區中正路100號',
+      debtAmount: '350,000',
+      interestRate: '3.5',
+      dueDate: '113年7月10日',
+      courtName: '臺灣臺北地方法院',
+      evidenceDetails: '借據乙紙',
+      incidentDetails: '債務人借款後屢催不還。'
+    });
+    // 前端以 verificationPassed === true 決定文件狀態；
+    // 缺這個欄位會讓草稿精修永遠選不到確定性管線產出的書狀。
+    expect(result.antiGhostVerification.verificationPassed).toBe(true);
+    expect(result.antiGhostVerification.ghostCitationsFound).toBe(0);
+  });
+
+  it('引用查核結果必須如實回報，不得宣稱已完成外部查核', async () => {
+    const result = await executeCanonicalPleadingPipeline('PAYMENT_ORDER_PETITION', {
+      creditorName: '王大明',
+      creditorAddress: '臺北市中山區南京東路一段1號',
+      debtorName: '李小華',
+      debtorAddress: '新北市中和區中正路100號',
+      debtAmount: '350,000',
+      courtName: '臺灣臺北地方法院',
+      evidenceDetails: '借據乙紙',
+      incidentDetails: '債務人借款後屢催不還。'
+    });
+    // 確定性管線不連外部查核服務，status 必須如實維持 UNVERIFIED
+    expect(result.antiGhostVerification.status).toBe('UNVERIFIED');
+  });
+});

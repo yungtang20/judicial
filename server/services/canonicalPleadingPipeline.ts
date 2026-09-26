@@ -220,11 +220,19 @@ export async function executeCanonicalPleadingPipeline(categoryKey: string, rawP
     documentText,
     pleadingDeliveryAuthorization: authorization,
     antiGhostVerification: {
+      // status 描述的是「外部裁判引註查核」，確定性管線不連外部查核服務，
+      // 因此維持 UNVERIFIED 如實告知。
       status: 'UNVERIFIED',
-      message: '未執行外部裁判引註查核（由確定性法規模組生成）',
-      totalCitationsChecked: 0,
-      ghostCitationsFound: 0,
-      verifiedCitations: []
+      message: '未執行外部裁判引註查核（由確定性法規模組生成）；書狀內法條引用已於本機對照法規種子完成查核。',
+      // verificationPassed 描述的是「書狀內引用查核」，這項查核確實已執行，
+      // 且上方 assertGeneratedDocumentVerified 已在不通過時直接擋下交付。
+      // 先前缺少這個欄位，前端以 verificationPassed === true 判斷，
+      // 導致所有確定性管線產出的書狀都被標記為待人工審查，
+      // 進而讓草稿精修永遠選不到這些書狀。
+      verificationPassed: citationVerification.antiGhostVerification.verificationPassed,
+      totalCitationsChecked: citationVerification.antiGhostVerification.totalCitationsChecked,
+      ghostCitationsFound: citationVerification.antiGhostVerification.ghostCitationsFound,
+      verifiedCitations: citationVerification.antiGhostVerification.verifiedCitations
     },
     legalSources: config.legalReferences.map(reference => ({ ...reference })),
     isExternalRetrievalUsed: false,
