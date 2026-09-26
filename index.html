@@ -7,12 +7,14 @@
     <meta name="description" content="全方位實用法務書狀、互動式法律流程引導、性侵家暴安全分流、司法院判決檢索、AI真確性檢核及一站式智慧訴訟上訴輔助系統。" />
     <meta property="og:title" content="智慧法律書狀與判決分析系統" />
     <meta property="og:description" content="全方位實用法務書狀、互動式法律流程引導、性侵家暴安全分流、司法院判決檢索、AI真確性檢核及一站式智慧訴訟上訴輔助系統。" />
-    <!-- 字型以 <link> + preconnect 載入：CSS @import 會形成額外請求鏈並延後字型探索。
-         Noto Sans TC 補上 600/800 兩款字重，程式碼中 font-semibold 與 font-extrabold
-         共出現 167 處，缺少時瀏覽器會以合成粗體代替，強調層級會失真。 -->
+    <!-- 字型以 <link> + preconnect 載入：CSS @import 必須等父樣式表下載解析後才被發現，
+         會形成額外請求鏈並延後字型探索。
+         字重維持 400/500/700/900：Google Fonts 的 CJK 樣式表大小隨請求字重數量成長，
+         實測 6 字重會使樣式表由 131 KB 增至 196 KB、DOMContentLoaded 由 763ms 增至 1228ms，
+         因此不為修正合成粗體而犧牲首屏效能。 -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap" />
   </head>
   <body class="bg-[#090d16] text-slate-100 min-h-screen">
     <div id="root"></div>
