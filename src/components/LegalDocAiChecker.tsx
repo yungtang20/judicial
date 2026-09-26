@@ -69,13 +69,22 @@ export const LegalDocAiChecker: React.FC = () => {
       const text = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
         ? await extractPdfText(file)
         : await file.text();
-      if (!text.trim()) throw new Error('EMPTY_DOCUMENT');
+      if (!text.trim()) {
+        setImportStatus('已讀取檔案但未取得任何文字。若為掃描版 PDF，請先完成 OCR 後再上傳，或直接貼上文字內容。');
+        return;
+      }
       setDocumentInput(text);
       setScanResult(null);
       setExternalResults(null);
       setImportStatus(`已匯入 ${file.name}，可開始掃描。`);
-    } catch {
-      setImportStatus('無法讀取文件；掃描版 PDF 請先完成 OCR，或改貼上文字。');
+    } catch (err) {
+      // 讀取失敗可能來自掃描版、加密或損毀的檔案，也可能來自解析環境本身。
+      // 不可一律歸因為「掃描版」，否則使用者會照著錯誤方向排查。
+      console.warn('[LegalDocAiChecker] 文件讀取失敗:', err);
+      setImportStatus(
+        '無法解析此檔案。可能原因：掃描版需先完成 OCR、檔案已加密或損毀、格式非標準 PDF。' +
+        '可改用 TXT 或直接貼上文字內容。'
+      );
     }
   };
 
