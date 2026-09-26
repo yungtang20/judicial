@@ -3,6 +3,8 @@ import { UnifiedHeader } from './unified/UnifiedHeader';
 import { HistoryModal } from './unified/HistoryModal';
 import { UnifiedProgress } from './unified/UnifiedProgress';
 import { InputNode } from './unified/InputNode';
+import { CitationNode } from './unified/CitationNode';
+import { VerificationNode } from './unified/VerificationNode';
 import { SafetyNode } from './unified/SafetyNode';
 import { UnifiedResult } from './unified/UnifiedResult';
 import { UnifiedNav } from './unified/UnifiedNav';
@@ -437,6 +439,12 @@ export const UnifiedEntry: React.FC = () => {
         {!hasResult && <InputNode {...sharedProps} />}
         {!hasResult && <AIProviderSettings value={aiConfig} onChange={setAiConfig} />}
         {workflowState && <UnifiedResult {...sharedProps} workflowState={workflowState} />}
+        {/* 節點 4／5：引用檢索庫與驗證狀態。兩者讓使用者能直接檢視系統查了哪些法條、
+            找到哪些裁判，以及引用查核結果，是判斷產出可信度的關鍵依據。
+            這兩個節點的收合狀態（isNode4Open／isNode5Open）原本存在但沒有任何元件渲染，
+            屬於死狀態；此處接上對應元件。 */}
+        {workflowState && <CitationNode {...sharedProps} />}
+        {workflowState && <VerificationNode {...sharedProps} />}
         {hasResult && <UnifiedNav {...sharedProps} />}
         {hasResult && (
           <details className="rounded-xl border border-slate-800 bg-[var(--color-surface-raised)]">
