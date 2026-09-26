@@ -26,6 +26,42 @@ export interface RetrievalResult extends LegalPromptContext {
 }
 
 /**
+ * 判斷錯誤是否為上游 AI 服務的暫時性故障，值得重試。
+ *
+ * 只涵蓋「換一次請求很可能就成功」的情況：連線逾時、請求中止、5xx、429。
+ * 驗證失敗、格式錯誤、輸入遭拒等屬於確定性結果，重試只會浪費額度且改變不了結果，
+ * 因此明確排除。
+ */
+export function isTransientProviderError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const message = error.message || '';
+  if (/GHOST_CITATION|VERIFICATION|INVALID_|REJECT|_REQUIRED|DENIED|unauthorized/i.test(message)) return false;
+  if (/aborted|timeout|timed out|ECONNRESET|ECONNREFUSED|ETIMEDOUT|ENOTFOUND|EAI_AGAIN|socket hang up|fetch failed/i.test(message)) return true;
+  return /_HTTP_(5\d\d|429)\b/.test(message);
+}
+
+const TRANSIENT_RETRY_DELAYS_MS = [800, 2000] as const;
+
+// 以 setTimeout 驅動，必須使用 executor 形式（Promise.withResolvers 需 ES2024 lib，本專案尚未启用）。
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+async function withTransientRetry<T>(operation: () => Promise<T>): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= TRANSIENT_RETRY_DELAYS_MS.length; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      const isLastAttempt = attempt === TRANSIENT_RETRY_DELAYS_MS.length;
+      if (isLastAttempt || !isTransientProviderError(error)) throw error;
+      await delay(TRANSIENT_RETRY_DELAYS_MS[attempt]);
+    }
+  }
+  throw lastError;
+}
+
+/**
  * 檢索服務層介面：封裝實務檢索與上下文封裝，未來可擴充本地索引、Elasticsearch、法院開放資料等
  */
 export interface ILegalRetrievalService {
@@ -213,7 +249,10 @@ export class LegalGenerationPipeline {
     // 步驟 3: 呼叫 AI 生成 (Generate，生成前進行個資去識別化防護)
     try {
       const sanitizedPrompt = scrubPersonalInfo(fullPrompt);
-      const aiRes = await provider.generate(sanitizedPrompt);
+      // 上游 AI 服務偶發逾時或 5xx（實測約四成產製失敗源自此），
+      // 這類暫時性故障重試即可成功；驗證失敗等確定性結果不在此重試，
+      // 避免放寬任何安全閘門。
+      const aiRes = await withTransientRetry(() => provider.generate(sanitizedPrompt));
       rawGeneratedText = aiRes.text || '';
       if (options.parseResponse) {
         extracted = options.parseResponse(rawGeneratedText);
