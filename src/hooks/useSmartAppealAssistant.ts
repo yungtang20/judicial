@@ -5,6 +5,7 @@ import { useState, useRef, useMemo, useEffect } from "react";
 import { IssueRow, EvidenceRow, PrecedentItem } from "../types";
 import { useAppealBindings } from './useAppealBindings';
 import { useCaseStore } from "../store/useCaseStore";
+import { assessGrounding } from '../lib/groundingAssessment';
 import { verifyLegalCitations } from "../lib/services/citationCheck";
 import type { LegalSearchSources } from '../lib/twLegalRagClient';
 import {
@@ -351,7 +352,13 @@ export function useSmartAppealAssistant() {
       if (data.eligibilityStatusTitle) setEligibilityStatusTitle(data.eligibilityStatusTitle);
       if (data.eligibilityReason) setEligibilityReason(data.eligibilityReason);
       if (data.proceduralRequirements) setProceduralRequirements(data.proceduralRequirements);
-      if (data.judgmentSummary) setJudgmentSummary(data.judgmentSummary);
+      if (data.judgmentSummary) {
+        setJudgmentSummary(data.judgmentSummary);
+        // 模型可能補寫原文未載明的內容（實測以極短無意義原文即可產出長篇捏造事實）。
+        // 此處只做提醒不阻擋，實際防線是要求使用者逐句核對原始裁判書。
+        const grounding = assessGrounding(rawText, data.judgmentSummary);
+        setGroundingWarning(grounding.warning);
+      }
 
       const mappedIssues = mapSuggestedIssues(data.suggestedIssues);
       if (mappedIssues.length > 0) setIssues(mappedIssues);
@@ -519,6 +526,8 @@ export function useSmartAppealAssistant() {
   const [petitionError, setPetitionError] = useState<string | null>(null);
 
   // Explicit AI Full Citation Verification
+  // AI 提煉內容的來源支持度警示；null 代表未觸發。
+  const [groundingWarning, setGroundingWarning] = useState<string | null>(null);
   const [isVerifyingAi, setIsVerifyingAi] = useState(false);
   const [verifyNotice, setVerifyNotice] = useState<string | null>(null);
 
@@ -742,6 +751,7 @@ export function useSmartAppealAssistant() {
     setProceduralRequirements,
     judgmentSummary,
     setJudgmentSummary,
+    groundingWarning, setGroundingWarning,
     isAnalyzingSummaryOnly,
     setIsAnalyzingSummaryOnly,
     showSummaryInStep2,

@@ -49,6 +49,8 @@ export type AppealStepContext = Omit<AppealState, 'workflowContext' | 'initializ
   };
   isVerifyingAi: boolean;
   verifyNotice: string | null;
+  /** AI 提煉內容與原始裁判書的用詞重疊過低時的提醒。 */
+  groundingWarning: string | null;
   /** 上訴理由狀產製失敗的具體原因，顯示於第三步。 */
   petitionError: string | null;
   setVerifyNotice: (value: string | null) => void;

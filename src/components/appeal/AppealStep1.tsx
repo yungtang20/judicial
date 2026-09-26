@@ -9,6 +9,7 @@ export function AppealStep1({ ctx }: { ctx: AppealStepContext }) {
     currentStep,
     rawText,
     setRawText,
+    groundingWarning,
     secondText,
     setSecondText,
     isDualMode,
@@ -275,6 +276,13 @@ export function AppealStep1({ ctx }: { ctx: AppealStepContext }) {
               </div>
             )}
           </div>
+
+          {groundingWarning && (
+            <div role="alert" className="rounded-lg border border-amber-500/50 bg-amber-950/30 px-3 py-2 text-2xs leading-5 text-amber-100">
+              <span className="font-bold mr-1">⚠️ 請核對原文：</span>
+              {groundingWarning}
+            </div>
+          )}
 
           <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-2">
             <div className="text-2xs text-[var(--color-text-muted)]">
