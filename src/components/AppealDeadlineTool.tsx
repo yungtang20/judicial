@@ -220,6 +220,7 @@ export default function AppealDeadlineTool() {
   // 遇假日順延後最終末日
   const deferredResult = rawEndDate ? { ...getNextWorkingDay(rawEndDate), beyondHolidayCoverage: rawEndDate.getFullYear() > HOLIDAY_TABLE_COVERAGE_END_YEAR } : { date: null, deferredDays: 0, beyondHolidayCoverage: false };
   const finalEndDate = deferredResult.date;
+  const beyondHolidayCoverage = Boolean(deferredResult.beyondHolidayCoverage);
 
   // 倒數天數計算
   const getDaysLeft = () => {
@@ -636,15 +637,17 @@ ${reasonDeadlineDate ? `補提上訴理由書最晚期限：${formatROCDate(reas
               <div className="text-base md:text-lg font-bold text-amber-300 font-mono">
                 {formatROCDate(finalEndDate)}
               </div>
-              {finalEndDate.getFullYear() > HOLIDAY_TABLE_COVERAGE_END_YEAR && (
+              {beyondHolidayCoverage && (
                 <div role="alert" className="text-3xs text-rose-300 font-semibold leading-relaxed">
-                  此期限落在民國 {finalEndDate.getFullYear()} 年，超出本系統例假日維護範圍（至民國 {HOLIDAY_TABLE_COVERAGE_END_YEAR} 年為止），該年度國定假日未納入計算，期間末日可能偏早。請務必另行向法院或司法院確認，或採取較保守的期限。
+                  此期限落在民國 {finalEndDate.getFullYear() - 1911} 年，超出本系統例假日維護範圍（至民國 {HOLIDAY_TABLE_COVERAGE_END_YEAR} 年為止），該年度國定假日未納入計算，期間末日可能偏早。請務必另行向法院或司法院確認，或採取較保守的期限。
                 </div>
               )}
               {deferredResult.deferredDays > 0 ? (
                 <div className="text-3xs text-emerald-300 font-medium">
                   原末日 ({formatSimpleROC(rawEndDate)}) 為例假日，自動順延 {deferredResult.deferredDays} 日至次一工作日
                 </div>
+              ) : beyondHolidayCoverage ? (
+                <div className="text-3xs text-amber-300 font-medium">該年度例假日未建檔，無法確認末日是否為例假日</div>
               ) : (
                 <div className="text-3xs text-slate-300 font-medium">未逢例假日，正常於該日截止</div>
               )}

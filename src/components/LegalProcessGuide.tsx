@@ -668,6 +668,13 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
                 { id: 'FAMILY', label: '血親／直系親屬／同住家人' },
                 { id: 'COLLEAGUE', label: '職場主管／同事' },
                 { id: 'STRANGER', label: '陌生人／非親友' },
+                ...(scenarioCategory === 'CIVIL_GENERAL' ? [
+                  // 房東、賣方、雇主、承攬人都不是人身關係，卻是民事糾紛最常見的相對人。
+                  // 沒有這些選項時，使用者只能誤選「陌生人／其他關係」。
+                  { id: 'LANDLORD_TENANT', label: '房東／租屋人（租賃關係）' },
+                  { id: 'SELLER_BUYER', label: '出賣人／買受人或承攬人' },
+                  { id: 'EMPLOYER', label: '雇主／受僱人（勞動關係）' }
+                ] : []),
                 { id: 'OTHER', label: '其他關係' }
               ].map(rel => (
                 <button
@@ -696,7 +703,18 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
                 { id: 'PHYSICAL_VIOLENCE', label: '肢體毆打／推擠掐脖／摔破家具器具', badge: '暴力傷害' },
                 { id: 'PRIVATE_MEDIA', label: '未經同意拍攝或散布性私密照、裸照', badge: '數位性暴力' },
                 { id: 'THREAT_HARASS', label: '威脅要殺、跟蹤騷擾、恐嚇生命安全', badge: '恐嚇騷擾' },
-                { id: 'THEFT_FRAUD', label: '擅自拿取存摺金錢、盜刷信用卡', badge: '財產犯罪' }
+                { id: 'THEFT_FRAUD', label: '擅自拿取存摺金錢、盜刷信用卡', badge: '財產犯罪' },
+                // 步驟 1 已讓使用者挑選案件類型，但這裡先前完全沒有依此分流。
+                // 結果是選了「一般民事契約、借貸、租賃或交通事故」的房東押金爭議，
+                // 畫面仍只列出性侵害與暴力特徵，且沒有「以上皆非」可選，
+                // 使用者被迫勾選一個不實的類別，而分類結論正是由這些選擇驅動。
+                ...(scenarioCategory === 'CIVIL_GENERAL' ? [
+                  { id: 'DEBT_UNPAID', label: '借貸／租金／工程款未依約給付', badge: '民事給付之訴' },
+                  { id: 'DEPOSIT_DISPUTE', label: '押金、定金或保證金返還爭議', badge: '民事給付之訴' },
+                  { id: 'DEFECT_CLAIM', label: '買賣瑕疵或契約未依約履行', badge: '瑕疵給付' },
+                  { id: 'TRAFFIC_COMPENSATION', label: '交通事故損害賠償求償', badge: '損害賠償' },
+                  { id: 'LABOR_DISPUTE', label: '資遣費、欠薪或解雇爭議', badge: '勞動爭議' }
+                ] : [])
               ].map(char => {
                 const checked = characteristics.includes(char.id);
                 return (
