@@ -190,25 +190,43 @@ export function isBasicSafeUrl(targetUrl: string): { safe: boolean; parsed?: URL
  * 解析 DNS 並確認所有解析出的 IP 均非私有/保留位址 (防止 DNS Rebinding)。
  * 回傳可安全固定至連線的位址；任一結果可疑時整組拒絕 (fail-closed)。
  */
-export async function resolveSafeDnsAddresses(hostname: string): Promise<string[]> {
+export type DnsSafetyVerdict =
+  | { status: 'safe'; addresses: string[] }
+  /** 主機名稱無法解析：可能是網域不存在或 DNS 暫時故障，並非 SSRF。 */
+  | { status: 'unresolvable'; addresses: [] }
+  /** 解析到內部保留／受限位址，這才是真正的 SSRF 阻擋。 */
+  | { status: 'private'; addresses: [] };
+
+export async function classifyHostDns(hostname: string): Promise<DnsSafetyVerdict> {
   const cleanHost = hostname.replace(/^\[|\]$/g, "");
   if (net.isIP(cleanHost)) {
-    return isPrivateIp(cleanHost) ? [] : [cleanHost];
+    return isPrivateIp(cleanHost)
+      ? { status: 'private', addresses: [] }
+      : { status: 'safe', addresses: [cleanHost] };
   }
 
+  let records: Array<{ address: string; family: number }>;
   try {
-    const records = await dns.lookup(cleanHost, { all: true, verbatim: true });
-    if (!records || records.length === 0 || records.some((record) => isPrivateIp(record.address))) {
-      return [];
-    }
-    return records.map((record) => record.address);
+    records = await dns.lookup(cleanHost, { all: true, verbatim: true });
   } catch {
-    return [];
+    // 解析失敗與解析到私有位址是兩件事，混為一談會讓排查 SSRF 的人跑錯方向。
+    return { status: 'unresolvable', addresses: [] };
   }
+  if (!records || records.length === 0) {
+    return { status: 'unresolvable', addresses: [] };
+  }
+  if (records.some((record) => isPrivateIp(record.address))) {
+    return { status: 'private', addresses: [] };
+  }
+  return { status: 'safe', addresses: records.map((record) => record.address) };
+}
+
+export async function resolveSafeDnsAddresses(hostname: string): Promise<string[]> {
+  return (await classifyHostDns(hostname)).addresses;
 }
 
 export async function verifyDnsSafe(hostname: string): Promise<boolean> {
-  return (await resolveSafeDnsAddresses(hostname)).length > 0;
+  return (await classifyHostDns(hostname)).status === 'safe';
 }
 
 /** 建立只連線至已驗證 IP、但保留原 Host/SNI 的 request options。 */
@@ -384,7 +402,6 @@ router.post("/api/fetch-url", async (req: Request, res: Response) => {
         requestId,
       });
     }
-
     let currentUrl = url.trim();
     let redirectCount = 0;
     let finalHtml = "";
@@ -403,16 +420,21 @@ router.post("/api/fetch-url", async (req: Request, res: Response) => {
         });
       }
 
-      const safeAddresses = await resolveSafeDnsAddresses(check.parsed.hostname);
-      if (safeAddresses.length === 0) {
-        const errorMsg = "解析目標位址為內部保留或受限 IP，已阻擋存取 (SSRF 防禦)";
+      const dnsVerdict = await classifyHostDns(check.parsed.hostname);
+      if (dnsVerdict.status !== 'safe') {
+        // 區分「DNS 解析不到」與「解析到內部位址」：兩者的排查方向完全不同。
+        const errorMsg = dnsVerdict.status === 'unresolvable'
+          ? "無法解析此網域名稱，請確認網址是否正確（此情況非 SSRF 阻擋）"
+          : "解析目標位址為內部保留或受限 IP，已阻擋存取 (SSRF 防禦)";
         return res.status(400).json({
-          code: "SSRF_BLOCKED",
+          code: dnsVerdict.status === 'unresolvable' ? "HOST_UNRESOLVABLE" : "SSRF_BLOCKED",
+          reason: dnsVerdict.status,
           message: errorMsg,
           error: errorMsg,
           requestId,
         });
       }
+      const safeAddresses = dnsVerdict.addresses;
 
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 6000);
