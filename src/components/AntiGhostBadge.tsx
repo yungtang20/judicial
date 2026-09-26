@@ -27,17 +27,22 @@ export const AntiGhostBadge: React.FC<AntiGhostBadgeProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  const total = verification?.totalCitationsChecked ?? 0;
   const citations = verification?.verifiedCitations ?? [];
+  const total = verification?.totalCitationsChecked ?? 0;
+  // 幽靈數量必須取實際值。先前硬寫「0 處幽靈」且固定用綠色打勾，
+  // 即使文件確實含有幽靈法條，標題仍宣稱零幽靈，與下方明細自相矛盾。
+  const ghosts = verification?.ghostCitationsFound ?? 0;
+  const unverified = citations.filter(c => !c.verified).length;
+  const isClean = ghosts === 0 && unverified === 0;
 
   if (compact) {
     return (
-      <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 ${className}`}>
-        <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+      <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${isClean ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/40' : 'bg-rose-950/80 text-rose-300 border-rose-500/40'} ${className}`}>
+        {isClean ? <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> : <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />}
         <span>引用掃描結果（不等同官方核實）</span>
         {total > 0 && (
-          <span className="ml-1 px-1.5 py-0.2 bg-emerald-900/80 text-[10px] text-emerald-200 rounded font-mono">
-            {total} 處核實
+          <span className="ml-1 px-1.5 py-0.2 rounded text-[10px] font-mono" style={{ background: isClean ? 'bg-emerald-900/80' : 'bg-rose-900/80' }}>
+            {ghosts > 0 ? `${ghosts} 處幽靈` : `${total} 處已檢驗`}
           </span>
         )}
       </div>
@@ -66,9 +71,13 @@ export const AntiGhostBadge: React.FC<AntiGhostBadgeProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-[11px] px-2.5 py-1 rounded-lg bg-emerald-950/90 text-emerald-300 border border-emerald-500/40 font-mono font-bold flex items-center gap-1">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-            {total > 0 ? `已檢驗 ${total} 處法規/字號 · 0 處幽靈` : '司法院實體法條規則檢核通過'}
+          <span className={`text-[11px] px-2.5 py-1 rounded-lg border font-mono font-bold flex items-center gap-1 ${isClean ? 'bg-emerald-950/90 text-emerald-300 border-emerald-500/40' : 'bg-rose-950/90 text-rose-300 border-rose-500/40'}`}>
+            {isClean ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> : <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />}
+            {ghosts > 0
+              ? `已檢驗 ${total} 處 · ${ghosts} 處幽靈法條，不得用於主張`
+              : unverified > 0
+                ? `已檢驗 ${total} 處 · ${unverified} 處未查證，請人工確認`
+                : total > 0 ? `已檢驗 ${total} 處法規/字號 · 0 處幽靈` : '司法院實體法條規則檢核通過'}
           </span>
           {citations.length > 0 && (
             <button
