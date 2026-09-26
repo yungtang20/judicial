@@ -378,7 +378,7 @@ describe("agentChat service", () => {
     expect(result.reply).not.toContain("---");
     expect(result.reply).not.toContain("不構成法律意見");
     expect(result.disclaimer).toBeDefined();
-    expect(result.disclaimer).toContain("本地法律檢索");
+    expect(result.disclaimer).toContain("本機法規與函釋快照");
   });
 
   it("不得把本機知識庫降級結果誤標為外部 TLR 來源", async () => {

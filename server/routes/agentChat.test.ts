@@ -106,8 +106,8 @@ describe("AgentChat Route — 輸入驗證與回應結構", () => {
     });
 
     expect(result.success).toBe(true);
-    expect(result.disclaimer).toContain("輔助性工具");
-    expect(result.disclaimer).toContain("不構成法律意見");
+    // 逐則免責聲明只負責標示資料來源；「不構成法律意見」由前端頁尾統一負責
+    expect(result.disclaimer).toContain("資料來源");
   });
 
   it("回應的 gateStatus 為有效值", async () => {

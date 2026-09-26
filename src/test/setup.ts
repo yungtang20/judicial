@@ -14,6 +14,14 @@ if (typeof window !== 'undefined') {
       print: vi.fn()
     }))
   });
+  // jsdom 未實作捲動 API；任何元件掛載時呼叫 scrollIntoView 都會直接拋錯，
+  // 導致該元件完全無法被測試。
+  if (typeof Element !== 'undefined' && !Element.prototype.scrollIntoView) {
+    Element.prototype.scrollIntoView = vi.fn();
+  }
+  if (typeof Element !== 'undefined' && !Element.prototype.scrollTo) {
+    Element.prototype.scrollTo = vi.fn();
+  }
 }
 
 vi.mock('../ai/providers/providerRegistry.js', async (importOriginal) => {

@@ -10,6 +10,17 @@ import {
 } from 'lucide-react';
 import { useAgentChatStore } from '../store/useAgentChatStore';
 
+
+/** 對外顯示的來源標籤；不得直接呈現 tlr／opendata 等內部代號。 */
+const SOURCE_LABELS: Record<string, string> = {
+  tlr: 'TW Legal RAG 外部法源',
+  opendata: '司法院法學資料檢索系統',
+  local: '本機法規與函釋快照',
+  none: '未引用外部法源'
+};
+
+/** 只有這些來源才算真正查詢過外部法源，其餘都是本機快照。 */
+const EXTERNAL_SOURCES: string[] = ['tlr', 'opendata'];
 export const AgentChat: React.FC = () => {
   const { messages, isLoading, error, sendMessage, clearMessages } =
     useAgentChatStore();
@@ -123,9 +134,13 @@ export const AgentChat: React.FC = () => {
               )}
               {msg.role === 'assistant' && msg.usedRetrieval && (
                 <div className="mt-1 flex items-center gap-1.5 text-[10px] text-[var(--color-text-muted)]">
-                  <BookOpen className="w-3 h-3" />
-                  <span>已查詢法規資料庫</span>
-                  {msg.sourceProvider && <span>· {msg.sourceProvider}</span>}
+                  <BookOpen className="w-3 h-3 shrink-0" />
+                  <span>
+                    {EXTERNAL_SOURCES.includes(msg.sourceProvider)
+                      ? '已查詢外部法源'
+                      : '已查詢本機法規快照'}
+                    {msg.sourceProvider ? ` · ${SOURCE_LABELS[msg.sourceProvider] ?? ''}` : ''}
+                  </span>
                 </div>
               )}
             </div>

@@ -70,19 +70,15 @@ function getMaxHistoryTurns(): number {
 // ---------------------------------------------------------------------------
 
 function getDisclaimer(source: "tlr" | "opendata" | "local" | "none"): string {
-  const base =
-    "本系統為輔助性工具，提供的分析僅供參考，不構成法律意見。如需正式法律諮詢，請諮詢專業律師。";
+  // 逐則免責聲明只負責標示資料來源。
+  // 「不構成法律意見」由頁尾的全域免責區塊統一負責，兩處重複只會讓使用者以為系統出錯。
   const sourceMap: Record<string, string> = {
-    tlr:
-      "（資料來源：TW Legal RAG 外部法源檢索）",
-    opendata:
-      "（資料來源：司法院法學資料檢索系統 OpenData）",
-    local:
-      "（資料來源：本地法律檢索）",
-    none:
-      "（本回覆未引用外部法律資料）",
+    tlr: "資料來源：TW Legal RAG 外部法源檢索",
+    opendata: "資料來源：司法院法學資料檢索系統 OpenData",
+    local: "資料來源：本機法規與函釋快照（僅收錄 24 條常用法規，非即時更新）",
+    none: "本回覆未引用外部法律資料"
   };
-  return `${base}${sourceMap[source] ?? sourceMap.none}`;
+  return sourceMap[source] ?? sourceMap.none;
 }
 
 // ---------------------------------------------------------------------------
