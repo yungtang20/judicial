@@ -30,6 +30,7 @@ export function AppealStep3({ ctx }: { ctx: AppealStepContext }) {
     evidences,
     setEvidences,
     isGeneratingPetition,
+    petitionError,
     handleGeneratePetition
   } = ctx;
   const updateHeaderField = (field: keyof AttachmentHeaderValues, value: string) => {
@@ -77,6 +78,12 @@ export function AppealStep3({ ctx }: { ctx: AppealStepContext }) {
               ⯇ 上一步
             </button>
 
+            {petitionError && (
+              <div role="alert" className="flex-1 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">
+                <span className="font-semibold">上訴理由狀尚未開放產製：</span>
+                <span>{petitionError}</span>
+              </div>
+            )}
             <button
               onClick={handleGeneratePetition}
               disabled={isGeneratingPetition}

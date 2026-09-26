@@ -118,48 +118,18 @@ router.post("/api/defense/generate-pleading", async (req: Request, res: Response
       issues: precheck.issues
     });
   }
-  return res.status(409).json({ error: '答辯狀正式交付尚未完成 P4–P9 Final Gate,拒絕產生未授權法院書狀。', code: 'P9_FINAL_GATE_REQUIRED' });
-
-  const ragQuery = `${caseInfo?.caseType || ""} ${caseInfo?.clientRole || ""} ${clientInput ? clientInput.slice(0, 100) : ""}`.trim() || "民刑訴訟答辯狀裁判見解";
-
-  try {
-    const pipelineResult = await defaultLegalGenerationPipeline.execute({
-      ragQuery,
-      buildPrompt: () => getDefensePleadingPrompt(
-        pleadingType,
-        clientInput,
-        triageData,
-        mineData,
-        caseInfo
-      ),
-      parseResponse: (rawText) => ({
-        documentText: rawText
-      }),
-      fallback: () => {
-        const fallbackResult = buildFallbackDefensePleading(pleadingType, clientInput, caseInfo);
-        return {
-          documentText: fallbackResult.pleadingText,
-          payload: fallbackResult
-        };
-      }
-    });
-
-    const verified = pipelineResult;
-    res.json({
-      ...(pipelineResult.payload || {}),
-      pleadingText: verified.documentText || (pipelineResult.payload as any).pleadingText,
-      antiGhostVerification: verified.antiGhostVerification,
-      legalSources: verified.legalSources,
-      isExternalRetrievalUsed: verified.isExternalRetrievalUsed,
-      retrievalStatusMessage: verified.retrievalStatusMessage
-    });
-  } catch (err: any) {
-    console.warn("[DefenseGeneratePleading] Pipeline 執行未通過或被攔截:", err?.message || err);
-    return res.status(422).json({
-      error: err?.message || '法律文件引用檢核未通過，拒絕回傳未確認引用文件',
-      code: 'DOCUMENT_VERIFICATION_FAILED'
-    });
-  }
+  // 答辯狀屬法院書狀，交付前必須取得 P4–P9 Final Gate 的 READY 授權。
+  // 目錄中尚未建立「答辯狀」經核准的書狀結構與 rule profile，因此這條路徑無法取得授權。
+  // 這裡必須 fail-closed，但不得留下不可達的後續程式碼誤導維護者。
+  return res.status(409).json({
+    error: '答辯狀尚未開放正式產製：此類書狀尚未建立經核准的格式結構與合規規則，系統不會交付未經授權的法院書狀。',
+    code: 'P9_FINAL_GATE_REQUIRED',
+    detail: {
+      reason: 'CANONICAL_STRUCTURE_NOT_APPROVED',
+      guidance: '請改用「全方位實用法務工具箱」中已開放的書狀類型。',
+      reference: 'src/lib/rules/courtPleadingRuleProfiles.ts'
+    }
+  });
 });
 
 export default router;

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Sparkles } from 'lucide-react';
+import { fetchWithAuth } from '../../lib/apiClient';
 
 export interface AiSuggestButtonProps {
   fieldLabel: string;
@@ -22,7 +23,7 @@ export const AiSuggestButton: React.FC<AiSuggestButtonProps> = ({ fieldLabel, fi
     setIsLoading(true);
     setIsOpen(true);
     try {
-      const res = await fetch('/api/workflow/suggest-field', {
+      const res = await fetchWithAuth('/api/workflow/suggest-field', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fieldLabel, toolName, incidentDetails })

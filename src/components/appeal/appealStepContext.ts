@@ -49,6 +49,8 @@ export type AppealStepContext = Omit<AppealState, 'workflowContext' | 'initializ
   };
   isVerifyingAi: boolean;
   verifyNotice: string | null;
+  /** 上訴理由狀產製失敗的具體原因，顯示於第三步。 */
+  petitionError: string | null;
   setVerifyNotice: (value: string | null) => void;
   handleFullVerify: (textToVerify?: string) => Promise<void>;
   handlePrint: () => void;

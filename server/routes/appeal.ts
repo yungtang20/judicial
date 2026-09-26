@@ -88,50 +88,20 @@ router.post("/api/generate-appeal-petition", async (req: Request, res: Response)
       issues: precheck.issues
     });
   }
-  return res.status(409).json({ error: '上訴狀正式交付尚未完成 P4–P9 Final Gate,拒絕產生未授權法院書狀。', code: 'P9_FINAL_GATE_REQUIRED' });
-
-  const ragQuery = [
-    normalized.caseNo,
-    normalized.caseType,
-    typeof normalized.claims === 'string' ? normalized.claims.slice(0, 80) : '',
-    Array.isArray(normalized.issues) ? normalized.issues.map((i: any) => typeof i === 'string' ? i : (i?.title || '')).join(' ').slice(0, 80) : ''
-  ].filter(Boolean).join(' ') || '上訴理由實務裁判';
-
-  try {
-    const pipelineResult = await defaultLegalGenerationPipeline.execute({
-      ragQuery,
-      buildPrompt: () => getGenerateAppealPetitionPrompt(normalized),
-      fallback: () => {
-        const fallbackText = buildFallbackPetition({
-          caseNumber: normalized.caseNo || "113年度上字第123號",
-          appellantName: normalized.appellantName || "上訴人",
-          appelleeName: normalized.appelleeName || "被上訴人",
-          courtName: normalized.courtName || "臺灣高等法院",
-          caseType: normalized.caseType || "CIVIL",
-          judgmentSummary: normalized.judgmentSummary || "原審判決認事用法顯有重大違誤",
-          appealScope: normalized.claims || "原判決不利於上訴人部分廢棄"
-        });
-        return {
-          documentText: fallbackText,
-          payload: { fallbackText }
-        };
-      }
-    });
-
-    res.json({
-      petitionText: pipelineResult.documentText || pipelineResult.payload?.fallbackText,
-      antiGhostVerification: pipelineResult.antiGhostVerification,
-      legalSources: pipelineResult.legalSources,
-      isExternalRetrievalUsed: pipelineResult.isExternalRetrievalUsed,
-      retrievalStatusMessage: pipelineResult.retrievalStatusMessage
-    });
-  } catch (err: any) {
-    console.warn("[GenerateAppealPetition] Pipeline 執行未通過或被攔截:", err?.message || err);
-    return res.status(422).json({
-      error: err?.message || '法律文件引用檢核未通過，拒絕回傳未確認引用文件',
-      code: 'DOCUMENT_VERIFICATION_FAILED'
-    });
-  }
+  // 上訴狀屬法院書狀，交付前必須取得 P4–P9 Final Gate 的 READY 授權。
+  // 目前目錄中尚未建立「上訴理由狀」經核准的書狀結構與 rule profile
+  // （見 src/lib/rules/courtPleadingRuleProfiles.ts），因此這條路徑無法取得授權。
+  // 這裡必須 fail-closed，但不得留下不可達的後續程式碼誤導維護者，
+  // 也不得以裸 fetch／未認證請求讓使用者誤以為只是暫時性失敗。
+  return res.status(409).json({
+    error: '上訴理由狀尚未開放正式產製：此類書狀尚未建立經核准的格式結構與合規規則，系統不會交付未經授權的法院書狀。',
+    code: 'P9_FINAL_GATE_REQUIRED',
+    detail: {
+      reason: 'CANONICAL_STRUCTURE_NOT_APPROVED',
+      guidance: '請改用「全方位實用法務工具箱」中已開放的書狀類型；上訴理由狀開放後會另行公告。',
+      reference: 'src/lib/rules/courtPleadingRuleProfiles.ts'
+    }
+  });
 });
 
 export default router;

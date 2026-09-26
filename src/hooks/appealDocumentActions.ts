@@ -1,5 +1,6 @@
 import type { ChangeEvent } from 'react';
 import { scrubPersonalInfo } from '../lib/deidentifier';
+import { fetchWithAuth } from '../lib/apiClient';
 import { parsePdfFile } from '../lib/pdfUtils';
 
 type TextSetter = (value: string) => void;
@@ -36,7 +37,7 @@ export async function fetchJudicialUrl({
   setIsFetchingUrl(true);
   setUrlFetchSuccessMsg('');
   try {
-    const response = await fetch('/api/fetch-url', {
+    const response = await fetchWithAuth('/api/fetch-url', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url: targetUrl })
@@ -103,7 +104,7 @@ export async function importJudgmentFile({
 
       if (fullText.trim().length < 100 && images.length > 0) {
         try {
-          const ocrRes = await fetch('/api/ocr', {
+          const ocrRes = await fetchWithAuth('/api/ocr', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ images })

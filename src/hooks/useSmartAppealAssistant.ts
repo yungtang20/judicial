@@ -1,5 +1,6 @@
 import React from "react";
 import { useAutoSave } from '../hooks/useAutoSave';
+import { fetchWithAuth } from '../lib/apiClient';
 import { useState, useRef, useMemo, useEffect } from "react";
 import { IssueRow, EvidenceRow, PrecedentItem } from "../types";
 import { useAppealBindings } from './useAppealBindings';
@@ -290,7 +291,7 @@ export function useSmartAppealAssistant() {
     }
 
     try {
-      const res = await fetch('/api/analyze-judgment', {
+      const res = await fetchWithAuth('/api/analyze-judgment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -392,7 +393,7 @@ export function useSmartAppealAssistant() {
     const requestScope = beginAppealOperation();
     setIsSearchingPrecedents(true);
     try {
-      const res = await fetch('/api/search-precedents', {
+      const res = await fetchWithAuth('/api/search-precedents', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -427,10 +428,11 @@ export function useSmartAppealAssistant() {
   const handleGeneratePetition = async () => {
     const requestScope = beginAppealOperation();
     setIsGeneratingPetition(true);
+    setPetitionError(null);
     try {
       const selectedPrecedentsList = precedents.filter(p => p.selected);
 
-      const res = await fetch('/api/generate-appeal-petition', {
+      const res = await fetchWithAuth('/api/generate-appeal-petition', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -503,11 +505,18 @@ export function useSmartAppealAssistant() {
         handleFullVerify(data.petitionText);
       }
     } catch (err: any) {
-      if (isCurrentAppealScope(requestScope)) alert(err.message || '生成失敗');
+      // 過去使用阻塞式原生 alert()：無頭環境會自動關閉而完全看不到反饋，
+      // 且與應用程式既有的提示樣式不一致。改為畫面上的具體說明。
+      if (isCurrentAppealScope(requestScope)) {
+        setPetitionError(err?.message || '生成失敗，請稍後再試或改用其他已開放的書狀類型。');
+      }
     } finally {
       setIsGeneratingPetition(false);
     }
   };
+
+  // 上訴理由狀產製失敗的具體原因，顯示於第三步按鈕上方。
+  const [petitionError, setPetitionError] = useState<string | null>(null);
 
   // Explicit AI Full Citation Verification
   const [isVerifyingAi, setIsVerifyingAi] = useState(false);
@@ -520,7 +529,7 @@ export function useSmartAppealAssistant() {
     setIsVerifyingAi(true);
     setVerifyNotice(null);
     try {
-      const res = await fetch('/api/toolbox/verify-citations', {
+      const res = await fetchWithAuth('/api/toolbox/verify-citations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ documentText: text })
@@ -708,6 +717,8 @@ export function useSmartAppealAssistant() {
     setIsGeneratingPetition,
     generatedPetition,
     setGeneratedPetition,
+    petitionError,
+    setPetitionError,
     generatedDocumentId,
     setGeneratedDocumentId,
     petitionLegalSources,
