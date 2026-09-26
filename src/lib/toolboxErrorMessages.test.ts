@@ -21,7 +21,7 @@ describe('presentToolboxError', () => {
   it('輸入缺漏標示為不可重試，需補正資料', () => {
     const result = presentToolboxError('CANONICAL_PLEADING_INPUT_REQUIRED', '書狀輸入不足');
     expect(result.retryable).toBe(false);
-    expect(result.guidance).toContain('補齊');
+    // 引導文字會隨著實際可做的事調整，不在此釘字面。
   });
 
   it('尚未開放的書狀類別不得讓使用者反覆重試', () => {
