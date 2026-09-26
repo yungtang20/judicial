@@ -291,7 +291,27 @@ export const ToolResultPanel: React.FC<ToolResultPanelProps> = ({ result, curren
   };
 
   const hasVerification = !!result.antiGhostVerification;
-  const isVerifiedClean = hasVerification && !result.antiGhostVerification?.ghostCitationsFound;
+  // 引用狀態必須反映實際查核結果。先前只看幽靈數量，
+  // 導致「零引用」與「有引用但未查證」兩種情況都被說成「未發現異常」。
+  const citationTotal = result.antiGhostVerification?.totalCitationsChecked ?? 0;
+  const citationGhosts = result.antiGhostVerification?.ghostCitationsFound ?? 0;
+  const citationUnverified = (result.antiGhostVerification?.verifiedCitations || [])
+    .filter((citation: { verified?: boolean }) => citation.verified !== true).length;
+  const CITATION_BADGE: Record<string, { text: string; tone: string }> = {
+    noCitations: { text: '本文件未引用法條或裁判，無須引用查核', tone: 'bg-slate-100 text-[var(--color-text-secondary)]' },
+    ghosts: { text: '疑似無效引用', tone: 'bg-rose-100 text-[var(--color-status-danger)]' },
+    unverified: { text: '有引用尚未查證，請人工確認', tone: 'bg-amber-100 text-[var(--color-status-warning)]' },
+    clean: { text: '引用檢查未發現異常', tone: 'bg-emerald-100 text-[var(--color-status-success)]' }
+  };
+  const citationBadge = !hasVerification
+    ? CITATION_BADGE.ghosts
+    : citationGhosts > 0
+      ? CITATION_BADGE.ghosts
+      : citationTotal === 0
+        ? CITATION_BADGE.noCitations
+        : citationUnverified > 0
+          ? CITATION_BADGE.unverified
+          : CITATION_BADGE.clean;
   const hasCalculation = result.calculationSummary && Object.keys(result.calculationSummary).length > 0;
   const hasChecklist = result.complianceChecklist && result.complianceChecklist.length > 0;
 
@@ -359,12 +379,12 @@ export const ToolResultPanel: React.FC<ToolResultPanelProps> = ({ result, curren
         <div className="px-4 py-2.5 bg-[var(--color-surface-raised)]/90 border-b border-[var(--color-border-subtle)] text-xs flex flex-wrap items-center justify-between gap-2">
           {hasVerification ? (
             <div className="flex items-center gap-2">
-              <span className={`px-2 py-0.5 rounded font-bold text-[11px] ${isVerifiedClean ? 'bg-emerald-100 text-[var(--color-status-success)]' : 'bg-rose-100 text-[var(--color-status-danger)]'}`}>
-                {isVerifiedClean ? '引用檢查未發現異常' : '疑似無效引用'}
+              <span className={`px-2 py-0.5 rounded font-bold text-[11px] ${citationBadge.tone}`}>
+                {citationBadge.text}
               </span>
               <span className="text-[var(--color-text-secondary)] text-[11px]">
-                共檢核 {result.antiGhostVerification!.totalCitationsChecked} 處引用
-                {result.antiGhostVerification!.ghostCitationsFound > 0 ? `（${result.antiGhostVerification!.ghostCitationsFound} 處異常）` : '；此結果不等同法律合規'}
+                共檢核 {citationTotal} 處引用
+                {citationGhosts > 0 ? `（${citationGhosts} 處異常）` : citationTotal > 0 ? '；此結果不等同法律合規' : ''}
               </span>
             </div>
           ) : (
