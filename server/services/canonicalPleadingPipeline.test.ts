@@ -75,7 +75,8 @@ describe('canonical pleading pipeline', () => {
       'statements',
       'evidence',
       'court',
-      'date',
+      // 書狀出具日期由系統帶入當日，不再列為缺漏欄位。
+      // 這是文件本身產製的日期，不是案件事實，因此不構成捏造。
       'signature',
       'subject_and_facts',
       'judgment_relief'

@@ -675,14 +675,26 @@ export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
       "showAiSuggest": true
     },
     {
-      "key": "debtorName",
-      "label": "債務人",
+      "key": "creditorAddress",
+      "label": "債權人住址",
       "type": "text",
       "showAiSuggest": true
     },
     {
       "key": "debtAmount",
       "label": "金額",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "debtorName",
+      "label": "債務人",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "debtorAddress",
+      "label": "債務人住址",
       "type": "text",
       "showAiSuggest": true
     },
@@ -701,6 +713,19 @@ export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
     {
       "key": "dueDate",
       "label": "清償期日",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "evidenceDetails",
+      "label": "檢附證物（每行一項）",
+      "type": "textarea",
+      "rows": 3,
+      "showAiSuggest": true
+    },
+    {
+      "key": "courtName",
+      "label": "受訴法院（依管轄原則填寫）",
       "type": "text",
       "showAiSuggest": true
     },

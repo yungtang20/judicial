@@ -9,8 +9,13 @@ import { createPleadingDeliveryAuthorization } from '../../src/lib/finalGate/ple
 import { getCourtPleadingConfig } from '../../src/lib/rules/courtPleadingRuleProfiles.js';
 import { assertGeneratedDocumentVerified, verifyGeneratedDocument } from '../../src/lib/generatedDocumentPipeline.js';
 import { verifyGenerationTemplate } from '../../src/lib/compliance/generationTemplateVerifier.js';
-
 type CanonicalParams = Record<string, unknown>;
+
+/** 出具當日的民國日期。書狀日期不應要求使用者手填。 */
+function formatRocToday(): string {
+  const now = new Date();
+  return `中華民國 ${now.getFullYear() - 1911} 年 ${now.getMonth() + 1} 月 ${now.getDate()} 日`;
+}
 
 export class CanonicalPleadingInputError extends Error {
   readonly code = 'CANONICAL_PLEADING_INPUT_REQUIRED';
@@ -101,8 +106,14 @@ export async function executeCanonicalPleadingPipeline(categoryKey: string, rawP
     styleProfile: config.styleProfile,
     court: text(params, 'courtName'),
     proceeding: text(params, 'proceeding') || config.proceeding,
-    documentDate: text(params, 'documentDate'),
-    signature: text(params, 'signature'),
+    // 書狀日期預設為出具當日。使用者不需手填日期，而日期若留空會被
+    // 必要欄位檢查擋下，造成「表單已填完卻無法產製」的窘境。
+    documentDate: text(params, 'documentDate') || formatRocToday(),
+    // 簽署人是聲請人本身，因此帶入債權人姓名並非虛構內容；
+    // 實際簽章仍由律師或當事人親自簽立。
+    signature: text(params, 'signature') || text(
+      params, 'plaintiffName', 'claimantName', 'creditorName', 'complainantName', 'petitionerName'
+    ),
     parties: buildParties(params, config.claimantRole, config.respondentRole),
     claims: claimStatement ? [{
       id: claimId,

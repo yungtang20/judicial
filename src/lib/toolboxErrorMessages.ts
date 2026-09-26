@@ -35,7 +35,7 @@ const BY_CODE: Record<string, ToolboxErrorPresentation> = {
   },
   CANONICAL_PLEADING_INPUT_REQUIRED: {
     message: '書狀必要欄位尚未填寫完整。',
-    guidance: '請依畫面列出的缺漏欄位（當事人、地址、訴之聲明、證據、法院、日期、簽章等）補齊後再次產製。',
+    guidance: '請確認表單上的當事人、地址、訴之聲明、證據、法院等欄位都已填寫後再次產製。',
     retryable: false
   },
   P9_FINAL_GATE_FAILED: {
