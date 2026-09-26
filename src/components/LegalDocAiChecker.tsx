@@ -211,9 +211,25 @@ export const LegalDocAiChecker: React.FC = () => {
                   </>
                 )}
               </button>
+              {/* 伺服端強制要求使用者明確同意才會把裁判字號送至第三方；
+                  先前這裡沒有任何可勾選的控制，setExternalConsent 從未被呼叫，
+                  導致整個外部覆核功能永久不可達。 */}
+              <label className="mt-2 flex items-start gap-2 text-[11px] leading-5 text-[var(--color-text-secondary)] cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={externalConsent}
+                  onChange={event => setExternalConsent(event.target.checked)}
+                  className="mt-0.5 rounded border-slate-600 bg-slate-900 text-sky-500 focus:ring-sky-500"
+                />
+                <span>
+                  我同意將本文件擷取到的裁判字號送至第三方資料庫（api.dr-lawbot.com）比對存在性。
+                  系統僅送出字號，不送出其餘文件內容。
+                </span>
+              </label>
               <button
                 onClick={handleExternalCheck}
-                disabled={isExternalChecking || !documentInput.trim()}
+                disabled={isExternalChecking || !documentInput.trim() || !externalConsent}
+                title={!externalConsent ? '請先勾選上方同意選項' : undefined}
                 className="w-full mt-2 py-2 px-4 border border-slate-700 text-slate-300 hover:text-white hover:border-sky-500 rounded-xl disabled:opacity-50 transition-all text-xs"
               >
                 {isExternalChecking ? '正在查詢第三方裁判字號資料庫...' : '外部裁判字號存在性覆核'}
