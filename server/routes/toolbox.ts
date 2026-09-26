@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import { getLegalToolboxPrompt } from "../../src/prompts/toolbox-prompts.js";
-import { verifyGeneratedDocument, assertGeneratedDocumentVerified } from "../../src/lib/generatedDocumentPipeline.js";
+import { verifyGeneratedDocument, assertGeneratedDocumentVerified, verifyGeneratedDocumentWithOfficialSources } from "../../src/lib/generatedDocumentPipeline.js";
 import {
   blockProductionToolboxFallback,
   ProductionToolboxFallbackBlockedError
@@ -15,6 +15,8 @@ import { evaluatePleadingDelivery } from "../../src/lib/finalGate/pleadingExport
 
 import { isCourtPleadingToolCategory } from "../../src/lib/finalGate/pleadingExportGate.js";
 import { executeCanonicalPleadingPipeline } from "../services/canonicalPleadingPipeline.js";
+import { buildFallbackToolboxResult, hasDeterministicToolboxTemplate } from "../../src/utils/toolboxFallbacks.js";
+import { verifyOfficialCitations } from "../services/officialCitationVerification.js";
 
 // Enforced via defaultLegalGenerationPipeline
 
@@ -86,6 +88,41 @@ router.post("/api/toolbox/generate", async (req: Request, res: Response) => {
         error: err?.message || '書狀合規產製未通過 P9 最終守門員',
         code: err?.code || 'P9_FINAL_GATE_FAILED',
         ...(Array.isArray(err?.missingInputs) ? { missingInputs: err.missingInputs } : {})
+      });
+    }
+  }
+
+  // 有完整確定性模板的類別直接走確定性路徑，不呼叫 AI 起草。
+  //
+  // 原因：模板本身就是確定性產物，沒有幻覺風險，產出也不會因模型隨機性
+  // 而每次不同；而且 AI 偶爾多寫一句法條，就會被引用查核擋下整份文件。
+  // 實測先前一律走 AI，28 項工具中有 19 項產製失敗，同一輸入產出還不穩定。
+  //
+  // 這不放寬治理：確定性產出照樣經過 verifyGeneratedDocument 與官方查核，
+  // 查核不通過仍由 assertGeneratedDocumentVerified 擋下交付。
+  if (hasDeterministicToolboxTemplate(categoryKey)) {
+    res.setHeader('Cache-Control', 'no-store');
+    try {
+      const deterministic = buildFallbackToolboxResult(categoryKey, params || {});
+      const verified = await verifyGeneratedDocumentWithOfficialSources(
+        deterministic.documentText,
+        { allowedCitations: [], strictAllowedOnly: false },
+        inputs => verifyOfficialCitations(inputs)
+      );
+      assertGeneratedDocumentVerified(verified);
+      return res.json({
+        ...deterministic,
+        documentText: verified.documentText,
+        antiGhostVerification: verified.antiGhostVerification,
+        modelUsed: 'DETERMINISTIC_TEMPLATE',
+        generationMode: 'DETERMINISTIC',
+        retrievalStatusMessage: '已使用確定性法律模板產製（未呼叫 AI 起草）'
+      });
+    } catch (err: any) {
+      console.warn("[ToolboxGenerate] 確定性模板產製或查核未通過:", err?.message || err);
+      return res.status(422).json({
+        error: err?.message || '法律文件引用檢核未通過，拒絕回傳未確認引用文件',
+        code: 'DOCUMENT_VERIFICATION_FAILED'
       });
     }
   }
