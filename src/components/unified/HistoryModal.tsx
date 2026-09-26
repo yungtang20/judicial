@@ -67,6 +67,11 @@ export const HistoryModal: React.FC<HistoryModalProps> = (props) => {
                 >
                   <div className="flex-1 min-w-0 pr-3">
                     <p className="text-sm font-semibold text-slate-200 truncate">{record.title}</p>
+                    {/* 標題取自案件類型分類，同一類型的多筆記錄會完全相同，
+                        使用者無從分辨哪一筆是哪個案子。這裡補上案件事實摘要。 */}
+                    <p className="text-[11px] text-slate-400 mt-0.5 line-clamp-2 break-words">
+                      {(record.inputText || '').replace(/\s+/g, ' ').trim().slice(0, 80) || '（無案件事實紀錄）'}
+                    </p>
                     <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">
                       {new Date(record.timestamp).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })}
                       {' · '}
