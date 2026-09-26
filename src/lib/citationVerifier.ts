@@ -786,6 +786,46 @@ export interface VerifyCitationsOptions {
  * Scans generated legal text for statutory articles and case citations,
  * verifying them against official database rules and allowed_citations to detect ghost/hallucinated items.
  */
+const SAME_LAW_PREFIX_PATTERN = /(?:準用)?(?:同法|前法|上開同法|前開同法)/;
+/** 明確法名清單，用於還原「同法」所指的法。 */
+const EXPLICIT_LAW_NAME_PATTERN = /(民法|民事訴訟法|刑法|刑事訴訟法|票據法|勞動基準法|強制執行法|家事事件法|家庭暴力防治法|非訟事件法|保險法|公寓大廈管理條例|著作權法|商標法|著作財產權法第[^，。；\n]{0,8}法)/g;
+
+/**
+ * 把「同法第X條」「準用同法第X條」還原成前文所指的明確法條。
+ *
+ * 這是臺灣法律文書的標準簡稱寫法。若不還原，抽取器會把「同法」當成一個
+ * 不存在的法名，判定為未驗證引用，導致內容完全正確的書狀被 fail-closed 誤擋。
+ *
+ * 規則（維持 fail-closed）：
+ * - 只在「同法」出現之前確實有明確法名時才還原，指向最近的前文法條。
+ * - 全文未出現過任何明確法名時維持原樣，仍會被判為未驗證而擋下。
+ * - 僅還原法名，不改動條次、項次與款次。
+ */
+export function resolveSameLawShortForms(text: string): string {
+  if (!text || !SAME_LAW_PREFIX_PATTERN.test(text)) return text;
+  // 重設 lastIndex，避免同一個全域 regex 因 test() 而影響後續 exec()。
+  SAME_LAW_PREFIX_PATTERN.lastIndex = 0;
+  const sameLawRegex = /(準用)?(同法|前法|上開同法|前開同法)(第[0-9０-９]+(?:之[0-9０-９]+)?條(?:之[0-9０-９]+)?)(?:(第[0-9０-９]+項))?(?:(第[0-9０-９]+款))?/g;
+  const out: string[] = [];
+  let cursor = 0;
+  let match = sameLawRegex.exec(text);
+  while (match) {
+    const prefixText = text.slice(0, match.index);
+    const priorLaws = [...prefixText.matchAll(new RegExp(EXPLICIT_LAW_NAME_PATTERN.source, 'g'))];
+    const priorLaw = priorLaws.length > 0 ? priorLaws[priorLaws.length - 1][0] : null;
+    out.push(text.slice(cursor, match.index));
+    if (priorLaw) {
+      const tail = `${match[3]}${match[4] || ''}${match[5] || ''}`;
+      out.push(`${priorLaw}${tail}`);
+    } else {
+      out.push(match[0]);
+    }
+    cursor = match.index + match[0].length;
+    match = sameLawRegex.exec(text);
+  }
+  out.push(text.slice(cursor));
+  return out.join('');
+}
 export function verifyLegalCitations(
   text: string,
   options?: VerifyCitationsOptions
@@ -797,9 +837,13 @@ export function verifyLegalCitations(
 } {
   const results: CitationVerificationResult[] = [];
   let sanitizedText = text;
+  // 還原「同法第X條」這類法律文書的標準簡稱寫法。
+  // 既有抽取器要求引用必須帶法名，會把「同法」誤認為一個不存在的法名而判為未驗證，
+  // 導致內容正確的存證信函被誤擋（實測約三分之一產製失敗）。
+  // 全文出現過明確法條者還原為該法條；未曾出現則維持原樣，維持 fail-closed。
+  text = resolveSameLawShortForms(text);
   const allowedList = options?.allowedCitations?.filter(Boolean) || [];
   const hasAllowedConstraint = allowedList.length > 0;
-
   const precedentKey = (value: string): string => {
     const normalized = value.normalize('NFKC').replace(/\s+/g, '');
     const match = normalized.match(/(最高法院|臺灣高等法院|高等法院|[一-龥]{2,12}地方法院|[一-龥]{2,12}行政法院|臺北高等行政法院)(\d{2,4})年(?:度)?(台上大|台上|上|重上|台抗|抗|聲|訴|上訴|行政)字?第(\d+)號/);
