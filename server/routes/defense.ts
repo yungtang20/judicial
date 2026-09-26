@@ -1,4 +1,5 @@
 import { UNIVERSAL_SYLLOGISM_RULES } from "../../src/prompts/universal-syllogism.js";
+import { describePrecheckRejection } from "../../src/lib/precheckRejectionMessage.js";
 import { Router, Request, Response } from "express";
 import { defaultAIProvider as configuredAIProvider } from "../../src/ai/providers/providerRegistry.js";
 import { getBPointTriagePrompt, getMineScanPrompt, getDefensePleadingPrompt } from "../../src/prompts/defense-workflow.js";

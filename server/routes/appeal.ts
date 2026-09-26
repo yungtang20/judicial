@@ -1,4 +1,5 @@
 import { Router, Request, Response } from "express";
+import { describePrecheckRejection } from "../../src/lib/precheckRejectionMessage.js";
 import { getGenerateAppealPetitionPrompt } from "../../src/prompts/generate-appeal-petition.js";
 import { verifyGeneratedDocument } from "../../src/lib/generatedDocumentPipeline.js";
 import { buildFallbackPetition } from "../../src/utils/fallbacks.js";
