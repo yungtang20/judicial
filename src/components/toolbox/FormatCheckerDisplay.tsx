@@ -4,12 +4,20 @@ import { verifyDocumentFormat, FormatCheckItem } from '../../lib/formatChecker';
 
 interface FormatCheckerDisplayProps {
   documentText: string;
+  /**
+   * 這份文件是否為法院書狀。
+   * 格式指標（原告／被告、訴之聲明、法院、附屬文件…）是為法院書狀設計的；
+   * 存證信函、聲明書等非法院書狀本就不含這些欄位，若照樣逐項標示 MISSING
+   * 只會產生噪音並誤導使用者，因此非法院書狀不顯示本區塊。
+   */
+  isCourtPleading: boolean;
 }
 
-export const FormatCheckerDisplay: React.FC<FormatCheckerDisplayProps> = ({ documentText }) => {
+export const FormatCheckerDisplay: React.FC<FormatCheckerDisplayProps> = ({ documentText, isCourtPleading }) => {
   const checks = useMemo(() => verifyDocumentFormat(documentText), [documentText]);
-  
   const missingCount = checks.filter(check => check.status === 'MISSING').length;
+
+  if (!isCourtPleading) return null;
 
   return (
     <div className="print:hidden mt-6 mb-4 border border-[var(--color-border-subtle)] rounded-xl overflow-hidden bg-[var(--color-surface-base)] shadow-sm">

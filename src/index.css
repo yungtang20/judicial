@@ -1,4 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
+/* 字型改由 index.html 的 <link> + preconnect 載入。
+   CSS @import 必須等父樣式表下載解析後才會發現，會形成額外的請求鏈並延後字型探索。 */
 @import "tailwindcss";
 
 @theme {
