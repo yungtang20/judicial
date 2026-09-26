@@ -63,7 +63,7 @@ export const COURT_FEE_CALCULATOR_CONFIG: LegalCalculatorConfig = {
     const firstFee = isNonProp ? 3000 : calculateCourtFee(claimAmount, 'first').fee;
     const secondFee = Math.round(firstFee * 1.5);
 
-    const clause = `訴訟費用由被告負擔。\n（聲明事項：請准原告提供擔保宣告假執行，並命被告負擔第一審裁判費新台幣 ${formatCurrency(fee).replace('$', '')} 元）`;
+    const clause = `訴訟費用由被告負擔。\n（聲明事項：請准原告提供擔保宣告假執行，並命被告負擔第一審裁判費新臺幣 ${formatCurrency(fee).replace('$', '')} 元）`;
 
     return {
       summary: [

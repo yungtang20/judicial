@@ -50,7 +50,7 @@ const CUSTOM_PRESET_STORAGE_KEY = 'smart_legal_user_custom_preset';
 
 const DEFAULT_CUSTOM_PRESET: CustomPresetCase = {
   title: '自訂案例：裝潢工程瑕疵扣款與給付尾款爭議',
-  narrative: `我去年委託室內裝潢公司裝修住宅，總工程款新台幣120萬元，約定分四期付款，我已如期給付前三期款項共90萬元。完工驗收時我發現客廳天花板嚴重龜裂、木地板受潮突起，且浴室防水層施作瑕疵致使樓下天花板滲水。建築師公會鑑定修復費用需35萬元。我以存證信函催告對方修補，對方置之不理，反而向法院聲請發支付命令向我索討第四期尾款30萬元。請問我能否依法主張瑕疵擔保修補費用抵銷尾款，並請求賠償樓下住戶之損失？`
+  narrative: `我去年委託室內裝潢公司裝修住宅，總工程款新臺幣120萬元，約定分四期付款，我已如期給付前三期款項共90萬元。完工驗收時我發現客廳天花板嚴重龜裂、木地板受潮突起，且浴室防水層施作瑕疵致使樓下天花板滲水。建築師公會鑑定修復費用需35萬元。我以存證信函催告對方修補，對方置之不理，反而向法院聲請發支付命令向我索討第四期尾款30萬元。請問我能否依法主張瑕疵擔保修補費用抵銷尾款，並請求賠償樓下住戶之損失？`
 };
 
 function loadCustomPreset(): CustomPresetCase {
@@ -77,7 +77,7 @@ export const UnifiedEntry: React.FC = () => {
     setWorkflowState(nextState);
     applyUnifiedWorkflow(nextState);
   };
-  const defaultSample = `事發於民國112年11月15日晚上約11點，在台北市信義區租屋處。我與房東因退租押金發生爭執，房東以無合理依據之清潔費為由拒絕退還新台幣5萬元押金，並威脅若再爭執將把我的私人物品丟到走廊。我有雙方簽署之房屋租賃契約書、歷次匯款房租水電之銀行明細，以及當日 LINE 對話紀錄截圖。請問我的法律權利為何？`;
+  const defaultSample = `事發於民國112年11月15日晚上約11點，在臺北市信義區租屋處。我與房東因退租押金發生爭執，房東以無合理依據之清潔費為由拒絕退還新臺幣5萬元押金，並威脅若再爭執將把我的私人物品丟到走廊。我有雙方簽署之房屋租賃契約書、歷次匯款房租水電之銀行明細，以及當日 LINE 對話紀錄截圖。請問我的法律權利為何？`;
 
   const [inputNarrative, setInputNarrative] = useState<string>('');
   const workflowGeneration = useRef(0);

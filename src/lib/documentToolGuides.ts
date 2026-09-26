@@ -25,7 +25,7 @@ export const DOCUMENT_TOOL_GUIDES: Record<string, DocumentToolGuide> = {
       '最近2年內拍攝符合規格之身分證證件照片各1張與換證規費'
     ],
     courtOrAgency: '雙方任一方戶籍所在地之戶政事務所（如經調解成立則由戶政依法院函文登記）',
-    feeStandard: '換發國民身分證每張規費新台幣 50 元、換領戶口名簿每份規費新台幣 30 元',
+    feeStandard: '換發國民身分證每張規費新臺幣 50 元、換領戶口名簿每份規費新臺幣 30 元',
     guideSections: [
       {
         title: '證人適格性與實務地雷',
@@ -270,7 +270,7 @@ export const DOCUMENT_TOOL_GUIDES: Record<string, DocumentToolGuide> = {
       '債務人最新個人戶籍謄本或公司經濟部登記表'
     ],
     courtOrAgency: '債務人戶籍地或主營業所所在地之地方法院非訟事件處理中心',
-    feeStandard: '每一件聲請事件法定規費新台幣 500 元',
+    feeStandard: '每一件聲請事件法定規費新臺幣 500 元',
     guideSections: [
       {
         title: '20日異議期與修法後之執行力',
@@ -391,7 +391,7 @@ export const DOCUMENT_TOOL_GUIDES: Record<string, DocumentToolGuide> = {
       '診斷證明書、醫療收據、修車估價單、出險紀錄單'
     ],
     courtOrAgency: '處理派出所/交通分隊、轄區車輛行車事故鑑定會、地檢署、地方法院',
-    feeStandard: '初判表申請免費；向車鑑會申請行車事故鑑定每案規費新台幣 3,000 元',
+    feeStandard: '初判表申請免費；向車鑑會申請行車事故鑑定每案規費新臺幣 3,000 元',
     guideSections: [
       {
         title: '刑事告訴時效不可延誤',

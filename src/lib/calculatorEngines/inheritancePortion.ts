@@ -211,7 +211,7 @@ export const INHERITANCE_PORTION_CALCULATOR_CONFIG: LegalCalculatorConfig = {
     }));
 
     const clauseLines = heirs.map(h => 
-      `・繼承人【${h.name}】：應繼分比例為 ${h.fractionName}，分配遺產價值新台幣 ${formatCurrency(Math.round(h.statutoryPortion)).replace('$', '')} 元整（特留分保障額 ${formatCurrency(Math.round(h.forcedShareAmount)).replace('$', '')} 元整）。`
+      `・繼承人【${h.name}】：應繼分比例為 ${h.fractionName}，分配遺產價值新臺幣 ${formatCurrency(Math.round(h.statutoryPortion)).replace('$', '')} 元整（特留分保障額 ${formatCurrency(Math.round(h.forcedShareAmount)).replace('$', '')} 元整）。`
     ).join('\n');
 
     const clause = `遺產分割協議條款：\n全體繼承人同意就立被繼承人所遺留之全部遺產，依下列比例進行分割與繼承登記：\n${clauseLines}\n立協議書人均確認上開分配無侵害各繼承人之法定特留分，並同意共同配合辦理稅捐申報及產權移轉登記。`;

@@ -90,7 +90,7 @@ export const SEVERANCE_PAY_CALCULATOR_CONFIG: LegalCalculatorConfig = {
 
     const grandTotal = severancePay + noticeWage + unusedLeaveWage;
 
-    const clause = `勞資資遣結算證明與給付協議：\n雇主依勞動基準法第11條終止勞動契約，雙方合意結算給付項目如下：\n一、新制資遣費：按年資結算發給 ${cappedMultiplier.toFixed(3)} 個月，計新台幣 ${formatCurrency(severancePay).replace('$', '')} 元整。\n二、預告期間工資：應預告日數為 ${noticeDays} 日，若未經預告離職，折算給付預告工資新台幣 ${formatCurrency(noticeWage).replace('$', '')} 元整。\n三、特休未休日數 ${unusedDays} 天折現工資：新台幣 ${formatCurrency(unusedLeaveWage).replace('$', '')} 元整。\n合計雇主應給付新台幣 ${formatCurrency(grandTotal).replace('$', '')} 元整，並依法於終止勞動契約後 30 日內發給資遣費，並開立「非自願離職證明書」。`;
+    const clause = `勞資資遣結算證明與給付協議：\n雇主依勞動基準法第11條終止勞動契約，雙方合意結算給付項目如下：\n一、新制資遣費：按年資結算發給 ${cappedMultiplier.toFixed(3)} 個月，計新臺幣 ${formatCurrency(severancePay).replace('$', '')} 元整。\n二、預告期間工資：應預告日數為 ${noticeDays} 日，若未經預告離職，折算給付預告工資新臺幣 ${formatCurrency(noticeWage).replace('$', '')} 元整。\n三、特休未休日數 ${unusedDays} 天折現工資：新臺幣 ${formatCurrency(unusedLeaveWage).replace('$', '')} 元整。\n合計雇主應給付新臺幣 ${formatCurrency(grandTotal).replace('$', '')} 元整，並依法於終止勞動契約後 30 日內發給資遣費，並開立「非自願離職證明書」。`;
 
     return {
       summary: [
@@ -128,7 +128,7 @@ export const SEVERANCE_PAY_CALCULATOR_CONFIG: LegalCalculatorConfig = {
       ],
       risksToAvoid: [
         '切勿輕易簽署自願離職單：一旦簽署自願離職或員工自請離職申請書，將喪失請求資遣費及申請失業給付之權利。',
-        '資遣通報義務：雇主應於資遣員工 10 日前向當地主管機關及公立就業服務機構通報（就業服務法第33條），否則處新台幣 3 萬至 15 萬元罰鍰。'
+        '資遣通報義務：雇主應於資遣員工 10 日前向當地主管機關及公立就業服務機構通報（就業服務法第33條），否則處新臺幣 3 萬至 15 萬元罰鍰。'
       ]
     }
   ]

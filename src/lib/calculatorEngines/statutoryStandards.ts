@@ -35,7 +35,7 @@ export function calculateCourtFee(claimAmount: number, instance: 'first' | 'seco
   basisRule: string;
 } {
   if (instance === 'payment_order') {
-    return { fee: 500, basisRule: '民事訴訟法第77條之19：聲請支付命令徵收裁判費新台幣500元' };
+    return { fee: 500, basisRule: '民事訴訟法第77條之19：聲請支付命令徵收裁判費新臺幣500元' };
   }
 
   let firstInstanceFee = 0;

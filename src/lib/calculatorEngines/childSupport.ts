@@ -86,7 +86,7 @@ export const CHILD_SUPPORT_CALCULATOR_CONFIG: LegalCalculatorConfig = {
     const remainingMonths = Math.max(0, (18 - childAge) * 12);
     const grandTotal = payerTotalMonthly * remainingMonths;
 
-    const clause = `一、未成年子女之扶養費，由相對人（給付方）自民國　年　月起至未成年子女各年滿十八歲（成年前一日）止，按月於每月五日以前，給付聲請人（受領方）扶養費用每名每月新台幣 ${formatCurrency(payerPerChildMonthly).replace('$', '')} 元整（合計每月新台幣 ${formatCurrency(payerTotalMonthly).replace('$', '')} 元整），逕匯入聲請人指定之金融機構帳戶。\n二、相對人如有一期遲延履行或未完全給付，其後之給付視為全部到期，聲請人得就未到期之全部扶養費一次聲請強制執行。`;
+    const clause = `一、未成年子女之扶養費，由相對人（給付方）自民國　年　月起至未成年子女各年滿十八歲（成年前一日）止，按月於每月五日以前，給付聲請人（受領方）扶養費用每名每月新臺幣 ${formatCurrency(payerPerChildMonthly).replace('$', '')} 元整（合計每月新臺幣 ${formatCurrency(payerTotalMonthly).replace('$', '')} 元整），逕匯入聲請人指定之金融機構帳戶。\n二、相對人如有一期遲延履行或未完全給付，其後之給付視為全部到期，聲請人得就未到期之全部扶養費一次聲請強制執行。`;
 
     return {
       summary: [

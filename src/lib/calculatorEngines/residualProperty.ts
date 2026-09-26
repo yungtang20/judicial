@@ -65,7 +65,7 @@ export const RESIDUAL_PROPERTY_CALCULATOR_CONFIG: LegalCalculatorConfig = {
     }
 
     const clause = distributionAmount > 0
-      ? `雙方依民法第1030條之1規定結算剩餘財產分配：\n確認夫方婚後淨財產為新台幣 ${formatCurrency(hNet).replace('$', '')} 元整，妻方婚後淨財產為新台幣 ${formatCurrency(wNet).replace('$', '')} 元整，雙方淨額差額為新台幣 ${formatCurrency(diff).replace('$', '')} 元整。\n應由【${payer}】給付【${receiver}】剩餘財產差額半數新台幣 ${formatCurrency(distributionAmount).replace('$', '')} 元整，並於民國　年　月　日前一次付清。給付完畢後，雙方相互拋棄其餘一切民法上之剩餘財產分配請求權。`
+      ? `雙方依民法第1030條之1規定結算剩餘財產分配：\n確認夫方婚後淨財產為新臺幣 ${formatCurrency(hNet).replace('$', '')} 元整，妻方婚後淨財產為新臺幣 ${formatCurrency(wNet).replace('$', '')} 元整，雙方淨額差額為新臺幣 ${formatCurrency(diff).replace('$', '')} 元整。\n應由【${payer}】給付【${receiver}】剩餘財產差額半數新臺幣 ${formatCurrency(distributionAmount).replace('$', '')} 元整，並於民國　年　月　日前一次付清。給付完畢後，雙方相互拋棄其餘一切民法上之剩餘財產分配請求權。`
       : `雙方確認婚後淨財產無差額，互相拋棄民法第1030條之1剩餘財產分配請求權，此後均不得再向他方主張任何財產分配。`;
 
     return {

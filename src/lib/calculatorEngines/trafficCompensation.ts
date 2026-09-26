@@ -98,7 +98,7 @@ export const TRAFFIC_COMPENSATION_CALCULATOR_CONFIG: LegalCalculatorConfig = {
     const otherFaultRatio = (100 - faultRatio) / 100;
     const claimableTotal = Math.round(grossTotal * otherFaultRatio);
 
-    const clause = `車禍和解賠償條款：\n一、對造（賠償義務人）願賠償受害人因本件車禍所受損害（含醫療費、工作損失、車損修復及精神慰撫金），經雙方會算扣除強制責任險與過失比例後，由對造給付受害人新台幣 ${formatCurrency(claimableTotal).replace('$', '')} 元整。\n二、付款方式：於簽署本和解書時一次以現金給付，或於民國　年　月　日以前逕匯入受害人指定帳戶。\n三、受害人於收受前條款項後，願拋棄對對造本件事故之其餘民事請求權，並撤回（或不再提起）刑事過失傷害之告訴。`;
+    const clause = `車禍和解賠償條款：\n一、對造（賠償義務人）願賠償受害人因本件車禍所受損害（含醫療費、工作損失、車損修復及精神慰撫金），經雙方會算扣除強制責任險與過失比例後，由對造給付受害人新臺幣 ${formatCurrency(claimableTotal).replace('$', '')} 元整。\n二、付款方式：於簽署本和解書時一次以現金給付，或於民國　年　月　日以前逕匯入受害人指定帳戶。\n三、受害人於收受前條款項後，願拋棄對對造本件事故之其餘民事請求權，並撤回（或不再提起）刑事過失傷害之告訴。`;
 
     return {
       summary: [
