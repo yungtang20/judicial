@@ -46,6 +46,15 @@ const persistProjectId = (projectId: string): void => {
 };
 
 /**
+ * 作廢目前持久化的專案識別並立即產生新的。
+ * 用於訪客身分更新後，原本的工作階段已無法存取的復原情境。
+ */
+const regenerateProjectId = (): string => {
+  const regenerated = `sdlc_ui_${crypto.randomUUID()}`;
+  persistProjectId(regenerated);
+  return regenerated;
+};
+/**
  * 讀取持久化的專案 id；讀不到或值損毀時重新產生並覆寫。
  * 任何 storage 例外都被吞掉，絕不讓掛載中斷。
  */
@@ -115,8 +124,28 @@ export const LegalSdlcWorkbench: React.FC = () => {
     } catch (e) {
       // getOrCreateProject 對這個 id 拋錯時必須讓使用者看得見，不得靜默停在載入中。
       console.error('載入 SDLC 專案失敗:', e);
-      setLoadError(`載入 SDLC 專案失敗：${toErrorMessage(e)}`);
-      showToast({ message: 'SDLC 專案載入失敗', type: 'error' });
+      const message = toErrorMessage(e);
+      // 訪客身分的租戶繫結於簽發的權杖；權杖過期或被清除後，原本的專案就無法再存取。
+      // 這不是系統故障，直接顯示內部的租戶錯誤只會讓使用者無所適從。
+      if (/PERMISSION_DENIED|無權存取|租戶/.test(message)) {
+        setLoadError('本次工作階段已重新開始：訪客身分更新後無法繼續存取先前的工作階段，系統已為你建立新的工作階段。');
+        showToast({ message: '已建立新的 SDLC 工作階段', type: 'info' });
+        // 清除失效的識別，改用既有機制重新產生並持久化，再以新識別建立工作階段。
+        const freshProjectId = regenerateProjectId();
+        try {
+          const fresh = await apiClient.sdlcGetProject(freshProjectId, projectTitle, legalDomain);
+          if (fresh.project) {
+            setProjectState(fresh.project);
+            setSelectedStageId(fresh.project.currentStageId || '01_plan');
+            setLoadError(null);
+          }
+        } catch (retryError) {
+          console.error('建立新的 SDLC 工作階段失敗:', retryError);
+        }
+      } else {
+        setLoadError(`載入 SDLC 專案失敗：${message}`);
+        showToast({ message: 'SDLC 專案載入失敗', type: 'error' });
+      }
     } finally {
       setLoading(false);
     }

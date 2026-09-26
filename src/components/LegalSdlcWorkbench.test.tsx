@@ -137,3 +137,33 @@ describe('LegalSdlcWorkbench 專案識別持久化', () => {
     expect(alert).toHaveTextContent('伺服器未回傳專案');
   });
 });
+
+describe('訪客身分更新後的專案復原', () => {
+  it('無法存取原工作階段時必須改以新識別重建，且不得顯示內部租戶錯誤', async () => {
+    const projectId = 'sdlc_ui_11111111-2222-3333-4444-555555555555';
+    localStorage.setItem('judicial.sdlc.projectId', projectId);
+    const calls: string[] = [];
+    let attempt = 0;
+
+    sdlcGetProject.mockImplementation(async (id: string) => {
+      calls.push(id);
+      attempt += 1;
+      if (attempt === 1) {
+        throw new Error('禁止跨租戶存取案件或文件資源');
+      }
+      return { project: makeProject(id) };
+    });
+
+    render(<GlobalUIProvider><LegalSdlcWorkbench /></GlobalUIProvider>);
+
+    await waitFor(() => expect(calls.length).toBeGreaterThanOrEqual(2), { timeout: 5000 });
+
+    // 第二次必須使用不同的識別
+    expect(calls[0]).toBe(projectId);
+    expect(calls[1]).not.toBe(projectId);
+    // 新的識別必須已寫入 localStorage
+    expect(localStorage.getItem('judicial.sdlc.projectId')).not.toBe(projectId);
+    // 不得顯示內部的租戶／權限術語
+    expect(screen.queryByText(/無權存取|租戶|跨租戶/)).not.toBeInTheDocument();
+  });
+});

@@ -6,6 +6,9 @@ import {
   Menu,
   X,
   Gavel,
+  GitBranch,
+  MessagesSquare,
+  BookOpenCheck,
 } from 'lucide-react';
 import { useToolContext } from '../contexts/ToolContext';
 import { canonicalizeRoute } from '../types/navigation';
@@ -54,6 +57,26 @@ const coreEntries: NavItem[] = [
     sublabel: '幽靈法條與假判決精準攔截 · 支援 PDF',
     icon: FileCheck2,
   },
+  // 下列三個檢視在 App.tsx 與 canonicalizeRoute 中都已完整實作，
+  // 但先前沒有任何側欄或工具箱項目導覽過去，等於功能不可達。
+  {
+    id: 'process-guide',
+    label: '法理流程引導',
+    sublabel: '依案件類型逐步引導必備文件與管轄',
+    icon: BookOpenCheck,
+  },
+  {
+    id: 'sdlc',
+    label: 'SDLC 交付工作台',
+    sublabel: '規劃到部署的階段閘門與稽核軌跡',
+    icon: GitBranch,
+  },
+  {
+    id: 'agent-chat',
+    label: '律師對話助理',
+    sublabel: '以律師觀點逐題釐清案件事實',
+    icon: MessagesSquare,
+  },
 ];
 
 /** AppRoute.view 與側欄 NavItem.id 的對應，用於計算「常用功能」。 */
@@ -61,9 +84,9 @@ const ROUTE_VIEW_TO_ENTRY_ID: Record<string, string> = {
   analysis: 'unified',
   litigation: 'litigation',
   appeal: 'appeal',
-  'process-guide': 'guide',
+  'process-guide': 'process-guide',
   sdlc: 'sdlc',
-  'agent-chat': 'agentChat',
+  'agent-chat': 'agent-chat',
   checker: 'checker'
 };
 
@@ -102,6 +125,9 @@ const moduleColors: Record<string, string> = {
   litigation: 'var(--color-module-litigation)',
   appeal: 'var(--color-module-appeal)',
   checker: '#059669',
+  'process-guide': '#7c3aed',
+  sdlc: '#0891b2',
+  'agent-chat': '#be185d',
 };
 
 export default function Sidebar() {
