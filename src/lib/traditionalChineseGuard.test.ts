@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'fs';
+import path from 'path';
 import { containsSimplifiedChinese, findSimplifiedChinese, describeSimplifiedChinese } from './traditionalChineseGuard';
 import { verifyGeneratedDocument } from './generatedDocumentPipeline';
 import { buildRouterPrompt, buildQuestioningPrompt, buildSyllogismEnginePrompt } from '../prompts/legalProcessPrompts';
@@ -65,6 +67,16 @@ describe('所有 AI 產出入口都必須要求繁體中文', () => {
     const prompt = getRefinePrompt('原草稿', '改得更正式', []);
     expect(prompt).toContain('繁體中文');
     expect(prompt).toContain('不得轉為簡體中文');
+  });
+
+  it('律師對話助理的提示詞', () => {
+    const src = readFileSync(
+      path.resolve(__dirname, '../../server/services/agentChat.ts'),
+      'utf8'
+    );
+    // 這條路徑實測曾回覆「此时」「不当得利」等簡體中文
+    expect(src).toContain('以繁體中文回覆');
+    expect(src).toContain('containsSimplifiedChinese');
   });
 
   it('防線工作流的三個提示詞', () => {

@@ -20,6 +20,7 @@ import {
   enforceTriageConsistency,
 } from "../../src/lib/universalTriage.js";
 import { scrubPersonalInfo } from "../../src/lib/deidentifier.js";
+import { containsSimplifiedChinese } from "../../src/lib/traditionalChineseGuard.js";
 import { fetchFromOpenData } from "./judicialDataFetcher.js";
 import { isWithinServiceHours } from "./judicialServiceHours.js";
 import { OBJECTIVE_LEGAL_ANALYSIS_SYSTEM_PROMPT } from "../../src/prompts/objective-legal-analysis.js";
@@ -209,12 +210,22 @@ export async function handleAgentChat(
   // 6. Generate via LLM
   let llmText: string;
   try {
-    const aiPromise = defaultAIProvider.generate(prompt, { temperature: 0.3 });
-    const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("AGENT_CHAT_TIMEOUT")), 15000)
-    );
-    const response = await Promise.race([aiPromise, timeoutPromise]);
-    llmText = response.text;
+    const callOnce = async (text: string) => {
+      const aiPromise = defaultAIProvider.generate(text, { temperature: 0.3 });
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("AGENT_CHAT_TIMEOUT")), 15000)
+      );
+      const response = await Promise.race([aiPromise, timeoutPromise]);
+      return response.text;
+    };
+    llmText = await callOnce(prompt);
+    // 提示詞雖已要求繁體中文，模型仍偶爾以簡體中文回覆（實測出現「此时」「不当得利」）。
+    // 這裡重試一次並加重要求；仍失敗則交由後續的繁體檢查擋下，不交付簡體法律文字。
+    if (containsSimplifiedChinese(llmText)) {
+      llmText = await callOnce(
+        `${prompt}\n\n【重要】上一次回答出現了簡體中文。請全部改用繁體中文重新回答，僅輸出答案本身。`
+      );
+    }
   } catch (err) {
     console.error("[AgentChat] LLM generation failed:", err);
     return {
@@ -223,7 +234,21 @@ export async function handleAgentChat(
     };
   }
 
-  // 7. Citation Gate
+  // 7. 繁體中文閘門
+  // 與法律文件交付同一標準：台灣法律諮詢不得以簡體中文回覆。
+  if (containsSimplifiedChinese(llmText)) {
+    return {
+      success: true,
+      reply: "系統偵測到本次回覆含簡體中文用字，為確保法律用字正確，已暫停顯示回覆。請重新提問或稍後再試。",
+      disclaimer: getDisclaimer(sourceProvider),
+      usedRetrieval,
+      sourceProvider,
+      gateStatus: "FAIL",
+      followUpQuestions,
+    };
+  }
+
+  // 8. Citation Gate
   const verification = verifyLegalCitations(llmText);
   let gateStatus: "PASS" | "NEEDS_REVIEW" | "FAIL" = "NEEDS_REVIEW";
 
