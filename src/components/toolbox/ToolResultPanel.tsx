@@ -175,13 +175,7 @@ export const ToolResultPanel: React.FC<ToolResultPanelProps> = ({ result, curren
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleDownloadTxt = async () => {
-    if (hasPendingClaimSupport && !humanReviewConfirmed) {
-      return;
-    }
-    await assertPleadingDocumentDeliveryAllowed(
-      currentTool.id, result.pleadingDeliveryAuthorization, 'DOWNLOAD_TEXT', result.documentText
-    );
+  const handleDownloadTxt = () => runDeliveryGuarded('DOWNLOAD_TEXT', () => {
     const blob = new Blob([result.documentText], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -191,15 +185,9 @@ export const ToolResultPanel: React.FC<ToolResultPanelProps> = ({ result, curren
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-  };
+  });
 
-  const handleDownloadDoc = async () => {
-    if (hasPendingClaimSupport && !humanReviewConfirmed) {
-      return;
-    }
-    await assertPleadingDocumentDeliveryAllowed(
-      currentTool.id, result.pleadingDeliveryAuthorization, 'DOWNLOAD_WORD', result.documentText
-    );
+  const handleDownloadDoc = () => runDeliveryGuarded('DOWNLOAD_WORD', () => {
     // 輸出相容 Microsoft Word 之 HTML 格式（.doc）
     // 依民事訴訟書狀規則第3條：A4大小、上下左右邊界2.5公分、14號以上字體、固定行高25-30pt、底部頁碼
     const header = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
@@ -250,6 +238,32 @@ export const ToolResultPanel: React.FC<ToolResultPanelProps> = ({ result, curren
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  });
+
+
+  // 交付閘門拒絕時會拋錯。這些處理器綁在 onClick 上，React 不會等待其回傳的
+  // promise，若不在此攔截就會變成未處理例外：使用者按下載只會得到「沒反應」，
+  // 完全不知道原因。因此統一攔截並把可理解的訊息顯示出來。
+  const runDeliveryGuarded = async (action: 'COPY' | 'DOWNLOAD_TEXT' | 'DOWNLOAD_WORD' | 'PRINT', run: () => Promise<void> | void) => {
+    setCopyError(null);
+    if (hasPendingClaimSupport && !humanReviewConfirmed) {
+      setCopyError('請先完成人工複核後再交付本文件。');
+      return;
+    }
+    try {
+      await assertPleadingDocumentDeliveryAllowed(
+        currentTool.id, result.pleadingDeliveryAuthorization, action, result.documentText
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '';
+      setCopyError(
+        message.includes('P9') || message.includes('fingerprint')
+          ? '本文件的交付授權未通過 P9 最終守門員，拒絕交付。請重新產製後再試。'
+          : '交付檢核未通過，已停止匯出。'
+      );
+      return;
+    }
+    await run();
   };
 
   const handlePrint = async () => {
@@ -395,9 +409,9 @@ export const ToolResultPanel: React.FC<ToolResultPanelProps> = ({ result, curren
               <span>A4 列印</span>
             </button>
           </div>
-          {printBlockedNotice && (
+          {(printBlockedNotice || copyError) && (
             <p role="alert" className="w-full text-[11px] text-amber-800 bg-amber-50 border border-amber-300 rounded px-2 py-1.5">
-              {printBlockedNotice}
+              {printBlockedNotice || copyError}
             </p>
           )}
         </div>
