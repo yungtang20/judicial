@@ -178,6 +178,44 @@ function detectObsoleteOffenseName(sentence: string): ConsistencyViolation | nul
 }
 
 /**
+ * 把已廢止的舊罪名改寫為現行條號罪名。
+ *
+ * 與 `detectAnalysisContradictions` 的差別：追問文字是「向使用者提問的引導」，
+ * 不是交給當事人採信的法律論述，阻擋整句會中斷流程。
+ * 因此這裡採確定性改寫，確保舊稱不會出現在任何使用者可見的畫面上。
+ */
+export function normalizeObsoleteOffenseNames(text: string): string {
+  if (!text) return text;
+  return text
+    .replace(/和姦罪/g, '強制性交罪')
+    .replace(/強姦未遂犯/g, '強制性交罪未遂犯')
+    .replace(/強姦未遂/g, '強制性交未遂')
+    .replace(/強姦罪/g, '強制性交罪')
+    .replace(/構成強姦/g, '構成強制性交')
+    .replace(/是否構成強姦/g, '是否構成強制性交')
+    .replace(/(?<!強制性交)強姦(?!罪|未遂)/g, '強制性交');
+}
+
+/**
+ * 對分流載荷中所有使用者可見的字串欄位套用舊罪名改寫。
+ * LLM 分流結果可能出現在 `identifiedIssue`、`plainExplanation`、`legalBasis` 等欄位，
+ * 逐一手工處理容易漏掉，因此統一在此掃描。
+ */
+export function normalizeObsoleteOffenseNamesInPayload<T>(payload: T): T {
+  if (!payload || typeof payload !== 'object') return payload;
+  const source = payload as Record<string, unknown>;
+  const next: Record<string, unknown> = { ...source };
+  for (const [key, value] of Object.entries(source)) {
+    if (typeof value === 'string') {
+      next[key] = normalizeObsoleteOffenseNames(value);
+    } else if (Array.isArray(value) && value.every(item => typeof item === 'string')) {
+      next[key] = value.map(item => normalizeObsoleteOffenseNames(item));
+    }
+  }
+  return next as T;
+}
+
+/**
  * 檢查模型生成的法律分析是否與本機規則矛盾。
  * 命中任一條即視為阻斷級（BLOCK），呼叫端必須擋下該段分析。
  *

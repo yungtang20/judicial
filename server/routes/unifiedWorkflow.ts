@@ -23,7 +23,7 @@ import {
 } from "../../src/lib/universalTriage.js";
 import { formatLegalChapter } from "../../src/lib/legalChapterLabels.js";
 import { searchOfficialJudgments, verifyOfficialCitations } from "../services/officialCitationVerification.js";
-import { detectAnalysisContradictions, type ConsistencyViolation } from "../../src/lib/legalAnalysisConsistency.js";
+import { detectAnalysisContradictions, normalizeObsoleteOffenseNames, type ConsistencyViolation } from "../../src/lib/legalAnalysisConsistency.js";
 import { isBasicSafeUrl, verifyDnsSafe } from "./fetchUrl.js";
 import { resolveForensicWindowState } from "../../src/lib/universalTriage.js";
 import { toCalendarDate } from "../../src/lib/forensicGuidance.js";
@@ -286,7 +286,14 @@ async function runQuestioningNode(
     generationReason = "AI_PROVIDER_UNAVAILABLE_OR_INVALID";
   }
 
-  return { rawMessage, suggestedOptions, generationMode, generationReason };
+  // 追問文字由模型生成，可能沿用已廢止的「強姦罪」舊稱。
+  // 追問是引導而非法律論述，採確定性改寫而非阻擋，確保舊稱不進入使用者畫面。
+  return {
+    rawMessage: normalizeObsoleteOffenseNames(rawMessage),
+    suggestedOptions: suggestedOptions.map(option => normalizeObsoleteOffenseNames(option)),
+    generationMode,
+    generationReason
+  };
 }
 
 /**

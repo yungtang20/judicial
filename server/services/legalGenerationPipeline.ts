@@ -6,9 +6,11 @@ import {
 } from "../../src/lib/twLegalRagClient.js";
 import {
   verifyGeneratedDocument,
+  verifyGeneratedDocumentWithOfficialSources,
   assertGeneratedDocumentVerified,
   GeneratedDocumentVerification
 } from "../../src/lib/generatedDocumentPipeline.js";
+import { verifyOfficialCitations } from "./officialCitationVerification.js";
 import { defaultAIProvider } from "../../src/ai/providers/providerRegistry.js";
 import { UNIVERSAL_SYLLOGISM_RULES } from "../../src/prompts/universal-syllogism.js";
 import { scrubPersonalInfo } from "../../src/lib/deidentifier.js";
@@ -227,11 +229,15 @@ export class LegalGenerationPipeline {
     }
 
     // 步驟 4: 強制防幽靈檢核 (Verify & Fail-Closed)
+    // 本機法規種子僅收錄 24 條，未收錄者會被判為未驗證而擋下交付。
+    // 這裡補上全國法規資料庫的即時查核：本機查不到但官方確認有效的條文予以升級，
+    // 官方同樣查不到的仍維持未驗證並擋下（維持 fail-closed）。
     const strictAllowedOnly = (retrieval.allowedCitations?.length || 0) > 0;
-    const verification = verifyGeneratedDocument(extracted.documentText, {
-      allowedCitations: retrieval.allowedCitations,
-      strictAllowedOnly
-    });
+    const verification = await verifyGeneratedDocumentWithOfficialSources(
+      extracted.documentText,
+      { allowedCitations: retrieval.allowedCitations, strictAllowedOnly },
+      inputs => verifyOfficialCitations(inputs)
+    );
     const verified = assertGeneratedDocumentVerified(verification);
 
     // 步驟 5: 封裝結構回傳

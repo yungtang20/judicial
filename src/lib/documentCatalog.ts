@@ -57,9 +57,12 @@ const entries: DocumentCatalogEntry[] = [
     displayName: '刑事告訴狀線上產生器',
     categoryGroup: 'LABOR_CRIMINAL_CONTRACT',
     documentKind: 'COURT_PLEADING',
+    // 尚未建立經核准的書狀結構與 rule profile，canonical 管線沒有對應設定。
+    // 仍可選取的話，使用者填完表單按下產製必定收到 422 P9_FINAL_GATE_FAILED，
+    // 因此先停用選取；補齊核准結構後再改回 CANONICAL_P4_P9 並開啟 selectionEnabled。
     generationPath: 'UNSUPPORTED',
     enabled: true,
-    selectionEnabled: true,
+    selectionEnabled: false,
     requiresP9: true
   },
   {

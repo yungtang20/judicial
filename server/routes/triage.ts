@@ -1,5 +1,6 @@
 import { Router, Request, Response } from "express";
 import { buildIntelligentRuleBasedTriage, enforceTriageConsistency } from "../../src/lib/universalTriage.js";
+import { normalizeObsoleteOffenseNamesInPayload } from "../../src/lib/legalAnalysisConsistency.js";
 import { precheckLegalInput } from "../../src/lib/legalInputPrecheck.js";
 import { LEGAL_TOOLS } from "../../src/lib/legalToolRegistry.js";
 import { defaultLegalGenerationPipeline } from "../services/legalGenerationPipeline.js";
@@ -105,6 +106,8 @@ ${toolsSummary}
 
           // 移除上帝節點 (pleadingDraft)，僅針對實體法理分析進行引述檢驗
           documentText = payload.plainExplanation || "本件無特殊法理說明";
+          // LLM 可能沿用已廢止的「強姦罪」舊稱，於所有使用者可見欄位確定性改寫
+          payload = normalizeObsoleteOffenseNamesInPayload(payload);
         } catch {
           payload = buildIntelligentRuleBasedTriage(rawInput);
           documentText = payload?.plainExplanation || "本機規則安全檢核";

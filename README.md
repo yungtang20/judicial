@@ -119,6 +119,32 @@ playwright.config.ts
 
 此測試由獨立 CI job 執行，驗證工具箱交付、P9 fingerprint 防篡改與下載按鈕；fixture response 僅用於前端交付防護測試，不宣稱代替真實法律來源查核。`scripts/bundleDelivery.playwright.py` 保留為 Windows 本機人工工具，不是正式 CI gate。
 
+## 引用查核的官方升級路徑
+
+本機法規種子僅收錄 24 條，未收錄的引用原本一律 `verified: false` 而被 fail-closed 擋下。實測導致「存證信函」模板引用的民事訴訟法第249條第2項（真實且現行有效）永遠產製失敗。
+
+現在 `verifyGeneratedDocumentWithOfficialSources` 會在本機驗證之後，對「本機查不到、且未被判定為幽靈／明顯虛構」的引用補做全國法規資料庫即時查核：
+
+- 官方確認有效 → 升級為已驗證，附上官方來源與條文摘要。
+- 官方同樣查不到、或官方來源不可用 → 維持未驗證，仍然擋下交付。
+
+## 法律檢索端點
+
+`POST /api/legal-search` 供查詢外部法源。未設定 `TLR_ENABLED` 時一律回傳 `enabled: false` 與免責聲明，**不得以空結果冒充「查無此資料」**。
+
+## 產製類別一致性
+
+UI 可選的法院書狀類別必須有對應的 canonical 設定。`src/lib/documentCatalogParity.test.ts` 以不變量形式釘死這條規則：沒有核准結構與 rule profile 的類別（例如刑事告訴狀線上產生器）一律 `selectionEnabled: false`，避免使用者填完表單才收到 422。
+
+## 已廢止罪名
+
+模型可能沿用已廢止的「強姦罪」舊稱。系統分兩種處理：
+
+- 正式法律分析：屬法律論述，與本機規則矛盾時整段擋下並列出違規。
+- 動態追問與分流文字：屬引導，採確定性改寫為「強制性交罪」，不中斷流程。
+
+使用者自己的原話（`userNarrative`／`factHistory`）一律逐字保留，不做任何改寫。
+
 ## 覆蓋率統計範圍
 
 `npm run test:coverage` 的統計範圍包含 `src/lib/` 下的 `finalGate`、`reviewer`、`compliance` 三個 P4–P9 交付閘門目錄，並對 `pleadingExportGate.ts` 與 `pleadingFinalGate.ts` 設定 per-file 門檻（statements 90／lines 90／branches 85／functions 95）。P9 交付路徑不得以「不在統計內」的方式規避覆蓋率要求。

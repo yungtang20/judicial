@@ -1,0 +1,36 @@
+# 統一行尾，避免 Windows 工作副本持續出現 LF→CRLF 轉換警告，
+# 也避免不同平台的行尾差異造成無意義的整檔 diff。
+* text=auto eol=lf
+
+# 程式碼與設定
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.mjs text eol=lf
+*.cjs text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.py text eol=lf
+*.sh text eol=lf
+
+# 必須保持位元組原樣的檔案
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.zip binary
+*.gz binary
+*.odt binary
+*.docx binary
+*.xlsx binary

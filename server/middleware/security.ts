@@ -196,11 +196,24 @@ export function safeLogError(context: string, err: any, req?: Request): void {
 export function globalErrorHandler(err: any, req: Request, res: Response, _next: NextFunction) {
   safeLogError("GlobalErrorHandler", err, req);
   const isProd = process.env.NODE_ENV === "production";
-  const statusCode = err.status || 500;
+  const statusCode = err.status || err.statusCode || 500;
+  // body-parser 的 entity.too.large 只帶 status 不帶 code，會被誤報為 INTERNAL_SERVER_ERROR，
+  // 讓監控把「請求過大」誤判為伺服器故障。此處補上明確的用戶端錯誤碼。
+  const CLIENT_ERROR_CODES: Record<number, string> = {
+    400: "BAD_REQUEST",
+    401: "UNAUTHORIZED",
+    403: "FORBIDDEN",
+    404: "NOT_FOUND",
+    413: "PAYLOAD_TOO_LARGE",
+    429: "RATE_LIMITED"
+  };
+  const resolvedCode = err.code || CLIENT_ERROR_CODES[statusCode] || "INTERNAL_SERVER_ERROR";
 
   res.status(statusCode).json({
-    code: err.code || "INTERNAL_SERVER_ERROR",
-    message: isProd ? "伺服器處理異常，請稍後重試" : (err.message || "伺服器內部錯誤"),
+    code: resolvedCode,
+    message: isProd
+      ? (statusCode >= 500 ? "伺服器處理異常，請稍後重試" : (err.message || "請求無法處理"))
+      : (err.message || "伺服器內部錯誤"),
     requestId: req.id || (req.headers["x-request-id"] as string) || `req_${Date.now()}`,
     details: isProd ? undefined : err.stack
   });

@@ -2,9 +2,10 @@ import { describe, it, expect } from 'vitest';
 import {
   AnalysisConsistencyError,
   assertAnalysisConsistent,
-  detectAnalysisContradictions
+  detectAnalysisContradictions,
+  normalizeObsoleteOffenseNames,
+  normalizeObsoleteOffenseNamesInPayload
 } from './legalAnalysisConsistency';
-
 /** 妨害性自主公訴案：本機規則已判定為公訴罪，且屬性自主案件。 */
 const SEXUAL_AUTONOMY_CASE = { isPublicProsecution: true, isSexualAutonomyCase: true };
 /** 同為公訴罪但未標記性自主（僅供對照）。 */
@@ -80,5 +81,41 @@ describe('assertAnalysisConsistent', () => {
     } catch (error) {
       expect((error as AnalysisConsistencyError).violations.length).toBeGreaterThan(0);
     }
+  });
+});
+
+describe('normalizeObsoleteOffenseNames', () => {
+  it('把已廢止的強姦罪改寫為現行條號罪名', () => {
+    expect(normalizeObsoleteOffenseNames('是否構成強姦或脅迫罪')).toBe('是否構成強制性交或脅迫罪');
+    expect(normalizeObsoleteOffenseNames('強姦罪之要件')).toBe('強制性交罪之要件');
+    expect(normalizeObsoleteOffenseNames('和姦罪已廢止')).toBe('強制性交罪已廢止');
+    expect(normalizeObsoleteOffenseNames('強姦未遂亦罰')).toBe('強制性交未遂亦罰');
+  });
+
+  it('不得重複改寫已經正確的現行罪名', () => {
+    const text = '本案適用刑法第221條強制性交罪，判處有期徒刑。';
+    expect(normalizeObsoleteOffenseNames(text)).toBe(text);
+    expect(normalizeObsoleteOffenseNames('強制性交未遂')).toBe('強制性交未遂');
+  });
+
+  it('空字串安全處理', () => {
+    expect(normalizeObsoleteOffenseNames('')).toBe('');
+  });
+});
+
+describe('normalizeObsoleteOffenseNamesInPayload', () => {
+  it('對字串欄位與字串陣列一併改寫', () => {
+    const result = normalizeObsoleteOffenseNamesInPayload({
+      identifiedIssue: '強姦罪案件',
+      legalBasis: ['刑法第221條', '強姦罪'],
+      caseType: 'CRIMINAL_PUBLIC'
+    });
+    expect(result.identifiedIssue).toBe('強制性交罪案件');
+    expect(result.legalBasis).toEqual(['刑法第221條', '強制性交罪']);
+    expect(result.caseType).toBe('CRIMINAL_PUBLIC');
+  });
+
+  it('非物件輸入原樣回傳', () => {
+    expect(normalizeObsoleteOffenseNamesInPayload(null)).toBeNull();
   });
 });

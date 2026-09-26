@@ -14,6 +14,7 @@ import externalCitationRouter from "./routes/externalCitation.js";
 import legalProcessRouter from "./routes/legalProcess.js";
 import unifiedWorkflowRouter from "./routes/unifiedWorkflow.js";
 import agentChatRouter from "./routes/agentChat.js";
+import legalSearchRouter from "./routes/legalSearch.js";
 import draftRefinerRouter from "./routes/draftRefiner.js";
 import fetchUrlRouter from "./routes/fetchUrl.js";
 import { auditRouter } from "./routes/audit.js";
@@ -84,6 +85,7 @@ export function createExpressApp(): Express {
   app.use(draftRefinerRouter);
   app.use(fetchUrlRouter);
   app.use(auditRouter);
+  app.use(legalSearchRouter);
   app.use(officialTemplatesRouter);
   app.use("/api/sdlc", sdlcRouter);
 

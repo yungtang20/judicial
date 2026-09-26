@@ -61,6 +61,87 @@ export function verifyGeneratedDocument(
   };
 }
 
+export interface OfficialCitationEvidence {
+  citation: string;
+  type: string;
+  status: string;
+  source: string;
+  sourceUrl: string;
+  checkedAt: string;
+  snippet?: string;
+  contentHash?: string;
+}
+
+export interface OfficialCitationVerifier {
+  (inputs: Array<{ citation: string; type: 'STATUTE' | 'PRECEDENT' }>): Promise<{ evidence: OfficialCitationEvidence[] }>;
+}
+
+/**
+ * 在本機驗證之後，對「本機未收錄但未被判定為幽靈」的引用補做官方即時查核。
+ *
+ * 背景：本機法規種子僅收錄 24 條，未收錄者一律 `verified: false`，
+ * 會被 fail-closed 直接擋下。實測導致「存證信函」模板引用的
+ * 民事訴訟法第249條第2項（真實且現行有效）永遠產製失敗（422 GHOST_CITATION_BLOCKED）。
+ *
+ * 規則（維持 fail-closed）：
+ * - 只升級「本機查不到、且未被判定為幽靈／明顯虛構」的引用。
+ * - 官方來源同樣查不到的，維持未驗證，仍然擋下交付。
+ * - 官方來源不可用時不得降級放行。
+ */
+export async function verifyGeneratedDocumentWithOfficialSources(
+  documentText: string,
+  options: VerifyDocumentOptions,
+  officialVerify: OfficialCitationVerifier
+): Promise<GeneratedDocumentVerification> {
+  const local = verifyGeneratedDocument(documentText, options);
+  const results = local.antiGhostVerification.verifiedCitations;
+  const needsOfficialCheck = results.filter(citation => !citation.verified && !citation.isGhostOrFake);
+  if (needsOfficialCheck.length === 0) {
+    return local;
+  }
+
+  const official = await officialVerify(
+    needsOfficialCheck.map(citation => ({
+      citation: citation.citationText,
+      type: 'STATUTE' as const
+    }))
+  );
+
+  const authoritative = new Set(
+    official.evidence
+      .filter(item => ['VALID', 'VERIFIED', 'AUTHORITATIVE'].includes(item.status))
+      .map(item => item.citation)
+      .map(citation => citation.replace(/[（(][^）)]*[）)]/g, '').replace(/[\s　]/g, ''))
+  );
+
+  const upgraded = results.map(citation => {
+    if (citation.verified || citation.isGhostOrFake) return citation;
+    const key = citation.citationText.replace(/[（(][^）)]*[）)]/g, '').replace(/[\s　]/g, '');
+    if (!authoritative.has(key)) return citation;
+    const evidence = official.evidence.find(
+      item => item.citation.replace(/[（(][^）)]*[）)]/g, '').replace(/[\s　]/g, '') === key
+    );
+    return {
+      ...citation,
+      verified: true,
+      officialTitle: evidence?.snippet ? `${citation.officialTitle}（已於${evidence.source}確認）` : citation.officialTitle,
+      officialSourceUrl: evidence?.sourceUrl || citation.officialSourceUrl,
+      officialSnippet: evidence?.snippet || citation.officialSnippet,
+      claimSupportStatus: citation.claimSupportStatus
+    };
+  });
+
+  return {
+    documentText: local.documentText,
+    antiGhostVerification: {
+      totalCitationsChecked: local.antiGhostVerification.totalCitationsChecked,
+      ghostCitationsFound: local.antiGhostVerification.ghostCitationsFound,
+      verifiedCitations: upgraded,
+      verificationPassed: local.antiGhostVerification.ghostCitationsFound === 0 && upgraded.every(citation => citation.verified)
+    }
+  };
+}
+
 /** Shared generate → verify → return pipeline for legal documents. */
 export async function generateVerifiedDocument(
   generate: () => Promise<string> | string,
