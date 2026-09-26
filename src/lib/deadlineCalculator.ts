@@ -26,8 +26,34 @@ export function getNextWorkingDay(date: Date) {
   return { date: result, deferredDays };
 }
 
-export function calculateDeadline(recvDate: Date, statutoryDays: number, travelDays: number) {
+/**
+ * 假日表涵蓋的最後年份。
+ * 計算跨到此年之後，該年國定假日不在表內，期間末日的休息日判斷將不可靠。
+ */
+export const HOLIDAY_TABLE_COVERAGE_END_YEAR = 2026;
+
+export interface DeadlineResult {
+  date: Date;
+  deferredDays: number;
+  /**
+   * 期間末日落在假日表涵蓋範圍之外時為 true。
+   * 這時休息日判斷不足以依賴，必須提醒使用者人工確認，
+   * 否則期間末日可能算得太早而喪失上訴權利。
+   */
+  beyondHolidayCoverage: boolean;
+}
+
+export function calculateDeadline(
+  recvDate: Date,
+  statutoryDays: number,
+  travelDays: number
+): DeadlineResult {
   const deadline = new Date(recvDate);
   deadline.setDate(deadline.getDate() + statutoryDays + travelDays);
-  return getNextWorkingDay(deadline);
+  const next = getNextWorkingDay(deadline);
+  return {
+    date: next.date,
+    deferredDays: next.deferredDays,
+    beyondHolidayCoverage: next.date.getFullYear() > HOLIDAY_TABLE_COVERAGE_END_YEAR
+  };
 }
