@@ -13,7 +13,8 @@ import {
   Send,
   UserCheck,
   RefreshCw,
-  FolderGit2
+  FolderGit2,
+  Circle
 } from 'lucide-react';
 import {
   SDLC_STAGES,
@@ -100,8 +101,11 @@ export const LegalSdlcWorkbench: React.FC = () => {
   const [loadError, setLoadError] = useState<string | null>(null);
   
   // 審批 Modal 狀態
+  const [gateError, setGateError] = useState<string | null>(null);
   const [showGateModal, setShowGateModal] = useState<boolean>(false);
-  const [approverName, setApproverName] = useState<string>('資深執業律師 / 訴訟代理人');
+  // 簽署人不得預設為佔位字串。放行紀錄要能歸屬到實際的人，
+  // 先前預設「資深執業律師 / 訴訟代理人」等於讓任何人簽核都記同一個名字。
+  const [approverName, setApproverName] = useState<string>('');
   const [approvalNote, setApprovalNote] = useState<string>('已完整複核事實要件、證據對應與法條時效，符合交付與放行標準。');
 
   // 反饋回流 Modal 狀態
@@ -157,6 +161,7 @@ export const LegalSdlcWorkbench: React.FC = () => {
 
   const handleExecuteStage = async () => {
     try {
+      setGateError(null);
       setLoading(true);
       startLoading();
       const res = await apiClient.sdlcExecuteStage({
@@ -169,7 +174,9 @@ export const LegalSdlcWorkbench: React.FC = () => {
       }
       stopLoading({ message: '階段執行完成', type: 'success' });
     } catch (err: any) {
-      alert('階段執行錯誤: ' + (err?.message || '未知錯誤'));
+      // 不用阻斷式 alert()：它會凍結整個畫面且容易被忽略。
+      setGateError('階段執行錯誤：' + (err?.message || '未知錯誤'));
+      setShowGateModal(true);
       stopLoading({ message: '執行失敗', type: 'error' });
     } finally {
       setLoading(false);
@@ -193,7 +200,8 @@ export const LegalSdlcWorkbench: React.FC = () => {
       }
       stopLoading({ message: '放行成功', type: 'success' });
     } catch (err: any) {
-      alert('審批放行失敗: ' + (err?.message || '未知錯誤'));
+      // 不用阻斷式 alert()：它會凍結整個畫面且容易被忽略。
+      setGateError(err?.message || '未知錯誤');
       stopLoading({ message: '放行失敗', type: 'error' });
     } finally {
       setLoading(false);
@@ -218,7 +226,8 @@ export const LegalSdlcWorkbench: React.FC = () => {
       }
       stopLoading({ message: '反饋已觸發', type: 'success' });
     } catch (err: any) {
-      alert('觸發閉環反饋失敗: ' + (err?.message || '未知錯誤'));
+      // 不用阻斷式 alert()：它會凍結整個畫面且容易被忽略。
+      setGateError('觸發閉環反饋失敗：' + (err?.message || '未知錯誤'));
       stopLoading({ message: '反饋失敗', type: 'error' });
     } finally {
       setLoading(false);
@@ -581,11 +590,21 @@ export const LegalSdlcWorkbench: React.FC = () => {
               <div className="font-semibold text-amber-400">
                 必要檢核要件 (Checkpoints)：
               </div>
+              {/* 這裡沒有任何可輸入的欄位，卻用綠色打勾呈現，
+                  看起來像「已核實」。改為中性的待核實標示，避免誤導。 */}
               <ul className="space-y-1 text-slate-300">
+                {(!currentGate?.requiredCheckpoints || currentGate.requiredCheckpoints.length === 0) && (
+                  <li className="text-amber-300">
+                    本階段尚未載入檢核要件清單。請於放行意見中自行列出應確認事項。
+                  </li>
+                )}
                 {currentGate?.requiredCheckpoints.map((cp, i) => (
-                  <li key={i} className="flex items-center gap-2">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                    {cp}
+                  <li key={i} className="flex items-start gap-2">
+                    <Circle className="w-3.5 h-3.5 mt-0.5 shrink-0 text-amber-400" />
+                    <span>
+                      {cp}
+                      <span className="ml-1.5 text-amber-300 text-[10px]">（請於放行意見中逐項說明）</span>
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -598,6 +617,7 @@ export const LegalSdlcWorkbench: React.FC = () => {
                   type="text"
                   value={approverName}
                   onChange={(e) => setApproverName(e.target.value)}
+                  placeholder="請填寫實際簽署人姓名（放行紀錄將記錄此人）"
                   className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500"
                 />
               </div>
@@ -613,6 +633,12 @@ export const LegalSdlcWorkbench: React.FC = () => {
               </div>
             </div>
 
+            {gateError && (
+              <p role="alert" className="text-xs text-rose-300 bg-rose-950/60 border border-rose-500/40 rounded-lg p-2.5">
+                放行失敗：{gateError}
+              </p>
+            )}
+
             <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
               <button
                 onClick={() => setShowGateModal(false)}
@@ -622,7 +648,9 @@ export const LegalSdlcWorkbench: React.FC = () => {
               </button>
               <button
                 onClick={handleApproveGate}
-                disabled={loading}
+                // 審查人姓名等同簽名，未填不得放行。
+                // 先前只在 loading 時停用，等於可以匿名放行階段。
+                disabled={loading || !approverName.trim()}
                 className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-lg transition flex items-center gap-1.5"
               >
                 {loading && <RefreshCw className="w-3 h-3 animate-spin" />}
