@@ -7,6 +7,7 @@ import { ingestSeedCorpus } from "../services/corpusIngest.js";
 import { RuntimeSchemaValidator } from "../../src/domain/workflow/runtimeSchemaValidator.js";
 import { scrubPersonalInfo } from "../../src/lib/deidentifier.js";
 import { searchOfficialJudgments } from "../services/officialCitationVerification.js";
+import { isSameCaseNumber, looksLikeCaseNumber } from '../../src/lib/caseNumberMatch.js';
 
 const router = Router();
 
@@ -48,20 +49,33 @@ async function handleSearchPrecedents(req: Request, res: Response) {
       const officialQuery = scrubPersonalInfo(normalized || rawQuery).slice(0, 120);
       const official = await searchOfficialJudgments(officialQuery, { timeoutMs: 8000, maxResults: 3 });
       if (official.results.length > 0) {
+        // 使用者輸入的是特定字號時，必須明確告知是否精確命中。
+        // 實測：查「最高法院98年度台上字第1045號」會回 3 筆完全無關的近期裁判，
+        // 若不標示，律師會誤以為找到了該案。
+        const exactQueryRequested = looksLikeCaseNumber(rawQuery);
+        const mapped = official.results.map(item => ({
+          caseNumber: item.caseNumber,
+          courtName: item.courtName,
+          summary: item.summary,
+          relevance: "司法院關鍵字檢索結果；是否適用本案仍須逐案比對事實與爭點",
+          keyTakeaway: "請開啟官方裁判全文，確認理由段與本案事實是否相符",
+          sourceUrl: item.sourceUrl,
+          checkedAt: item.checkedAt,
+          contentHash: item.contentHash,
+          verificationStatus: "VERIFIED",
+          exactMatch: exactQueryRequested ? isSameCaseNumber(rawQuery, item.caseNumber) : undefined
+        }));
+        const exactHit = exactQueryRequested && mapped.some(item => item.exactMatch === true);
         return res.json({
-          precedents: official.results.map(item => ({
-            caseNumber: item.caseNumber,
-            courtName: item.courtName,
-            summary: item.summary,
-            relevance: "司法院關鍵字檢索結果；是否適用本案仍須逐案比對事實與爭點",
-            keyTakeaway: "請開啟官方裁判全文，確認理由段與本案事實是否相符",
-            sourceUrl: item.sourceUrl,
-            checkedAt: item.checkedAt,
-            contentHash: item.contentHash,
-            verificationStatus: "VERIFIED"
-          })),
+          precedents: mapped,
           searchKeywords: [officialQuery].filter(Boolean),
-          notice: "結果直接取自司法院裁判書系統；存在性已查證，法律關聯性仍須人工審閱",
+          exactQueryRequested,
+          exactQueryMatched: exactQueryRequested ? exactHit : undefined,
+          notice: exactQueryRequested
+            ? (exactHit
+                ? '已精確命中查詢的裁判字號；其餘結果為關鍵字相近案件，請勿混用。'
+                : '查無查詢的裁判字號；下列結果僅為關鍵字相近案件，請勿視為已找到該案。')
+            : '結果直接取自司法院裁判書系統；存在性已查證，法律關聯性仍須人工審閱',
           provider: "judicial-official",
           officialSearch: official
         });

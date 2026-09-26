@@ -418,10 +418,11 @@ export function useSmartAppealAssistant() {
         setPrecedents(precedentList.map((p: any, idx: number) => ({
           id: `p_${Date.now()}_${idx}`,
           type: p.type || '權威實務',
-          citation: p.citation || '',
+          citation: p.citation || p.caseNumber || '',
           summary: p.summary || '',
           applicationReason: p.applicationReason || '',
-          selected: true
+          // 精確命中旗標必須帶到清單中，UI 才能區分「找到該案」與「僅關鍵字相近」
+          exactMatch: p.exactMatch === true
         })));
       }
     } catch (err: any) {
