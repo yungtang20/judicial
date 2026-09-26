@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { copyToClipboard } from '../lib/citationFormatter';
 import html2canvas from 'html2canvas';
 import {
   Calendar,
@@ -168,6 +169,7 @@ export default function AppealDeadlineTool() {
   const [appealNoticeDay, setAppealNoticeDay] = useState<number | ''>('');
 
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // 輔助陣列
@@ -289,9 +291,17 @@ ${reasonDeadlineDate ? `補提上訴理由書最晚期限：${formatROCDate(reas
 法律依據：司法院規範與民法第120條、第122條；相關各訴訟法救濟期間規定。
 （本試算結果僅供遞狀時程參考，請務必提早遞狀避免爭議）`;
 
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
+    // 複製失敗時不得顯示「已複製」；改用具備備援機制的工具並依實際結果回報。
+    void (async () => {
+      const ok = await copyToClipboard(text);
+      if (!ok) {
+        setCopyError('複製失敗，請手動選取文字後複製。');
+        return;
+      }
+      setCopyError(null);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    })();
   };
 
   const currentRules = STATUTORY_RULES[litigationType];

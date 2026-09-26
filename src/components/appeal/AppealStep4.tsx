@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { copyToClipboard } from '../../lib/citationFormatter';
 import { ShieldCheck, CheckCircle2 } from "lucide-react";
 import { AntiGhostBadge } from "../AntiGhostBadge";
 import { LegalSourcesDisplay } from "../LegalSourcesDisplay";
@@ -9,6 +10,7 @@ import { fetchWithAuth } from '../../lib/apiClient';
 
 export function AppealStep4({ ctx }: { ctx: AppealStepContext }) {
   const [tlrStatus, setTlrStatus] = useState<'loading' | 'enabled' | 'disabled' | 'unknown'>('loading');
+  const [copyError, setCopyError] = useState<string | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -136,7 +138,10 @@ export function AppealStep4({ ctx }: { ctx: AppealStepContext }) {
                 <button
                   disabled={!isHumanApproved}
                   onClick={() => {
-                    if (isHumanApproved) navigator.clipboard.writeText(generatedPetition);
+                    // 複製失敗時不得假裝成功；改用��備援機制的工具並依實際結果回報
+                    if (isHumanApproved) void copyToClipboard(generatedPetition).then(ok => {
+                      if (!ok) setCopyError('複製失敗，請手動選取文字後複製。');
+                    });
                   }}
                   className={`${isHumanApproved ? 'bg-[var(--color-surface-overlay)] border border-[var(--color-border-strong)] text-[var(--color-text-secondary)] hover:bg-[var(--color-border-strong)]' : 'bg-gray-400 cursor-not-allowed'} px-3 py-2 rounded text-xs font-bold`}
                 >
@@ -147,7 +152,9 @@ export function AppealStep4({ ctx }: { ctx: AppealStepContext }) {
                   onClick={() => {
                     const md = `| 項次 | 爭點類型與名稱 | 原審判決/原決定認定內容 | 我方上訴/覆審指摘不服理由 | 對應證據編號 | 引用法條與實務見解 | 攻防定位提示 |\n|---|---|---|---|---|---|---|\n` +
                       issues.map((i, idx) => `| ${idx + 1} | [${i.issueType || '爭點'}] ${i.title} | ${i.originalHolding} | ${i.appealArgument} | ${i.relatedEvidenceCodes || '-'} | ${i.legalBasis || '-'} | ${i.legalStrength === 'NEED_SUPPLEMENT' ? '⚠️ 需補充證據' : '🎯 重點攻擊'} |`).join('\n');
-                    navigator.clipboard.writeText(md);
+                    void copyToClipboard(md).then(ok => {
+                      if (!ok) setCopyError('複製失敗，請手動選取文字後複製。');
+                    });
                   }}
                   className="bg-amber-100 border border-amber-300 text-[var(--color-status-warning)] px-3 py-2 rounded text-xs font-bold hover:bg-amber-200"
                 >
@@ -156,7 +163,9 @@ export function AppealStep4({ ctx }: { ctx: AppealStepContext }) {
               ) : (
                 <button
                   onClick={() => {
-                    navigator.clipboard.writeText(buildEvidenceTableMarkdown(evidences));
+                    void copyToClipboard(buildEvidenceTableMarkdown(evidences)).then(ok => {
+                      if (!ok) setCopyError('複製失敗，請手動選取文字後複製。');
+                    });
                   }}
                   className="bg-blue-100 border border-blue-300 text-[var(--color-status-info)] px-3 py-2 rounded text-xs font-bold hover:bg-blue-200"
                 >

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { copyToClipboard } from '../lib/citationFormatter';
 import { DefenseHeader } from './defense/DefenseHeader';
 import { WorkflowFlowchart } from './defense/WorkflowFlowchart';
 import { CaseMetadataPanel } from './defense/CaseMetadataPanel';
@@ -132,6 +133,7 @@ export const DefenseWorkflowTool: React.FC = () => {
   const [isLoadingMineScan, setIsLoadingMineScan] = useState<boolean>(false);
   const [isLoadingPleading, setIsLoadingPleading] = useState<boolean>(false);
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
+  const [copyError, setCopyError] = useState<string | null>(null);
   const [workflowError, setWorkflowError] = useState<string | null>(null);
 
   // AI Outputs
@@ -298,9 +300,17 @@ export const DefenseWorkflowTool: React.FC = () => {
 
   // Copy helper
   const handleCopyText = (text: string, id: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedSection(id);
-    setTimeout(() => setCopiedSection(null), 2000);
+    // 複製失敗時不得顯示「已複製」；改用具備備援機制的工具並依實際結果回報。
+    void (async () => {
+      const ok = await copyToClipboard(text);
+      if (!ok) {
+        setCopyError('複製失敗，請手動選取文字後複製。');
+        return;
+      }
+      setCopyError(null);
+      setCopiedSection(id);
+      setTimeout(() => setCopiedSection(null), 2000);
+    })();
   };
 
   // Export helper

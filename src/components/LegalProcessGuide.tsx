@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { copyToClipboard } from '../lib/citationFormatter';
 import { 
   Compass, 
   ShieldAlert, 
@@ -72,6 +73,7 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
   } | null>(null);
   const [isLoadingSyllogism, setIsLoadingSyllogism] = useState<boolean>(false);
   const [isCopied, setIsCopied] = useState<boolean>(false);
+  const [copyError, setCopyError] = useState<string | null>(null);
   const [processError, setProcessError] = useState<string | null>(null);
 
   // 即時關鍵詞過濾檢測
@@ -218,9 +220,15 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
     }
   };
 
-  const handleCopyAnalysis = () => {
+  const handleCopyAnalysis = async () => {
     if (!syllogismResult?.analysis) return;
-    navigator.clipboard.writeText(syllogismResult.analysis);
+    // 複製失敗時不得顯示「已複製」；改用具備備援機制的工具並依實際結果回報。
+    const ok = await copyToClipboard(syllogismResult.analysis);
+    if (!ok) {
+      setCopyError('複製失敗，請手動選取文字後複製。');
+      return;
+    }
+    setCopyError(null);
     setIsCopied(true);
     setTimeout(() => setIsCopied(false), 2000);
   };
@@ -988,6 +996,7 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
                         </>
                       )}
                     </button>
+                    {copyError && <span role="alert" className="text-[11px] text-rose-300">{copyError}</span>}
                   </div>
                   <div className="text-xs text-slate-200 leading-relaxed whitespace-pre-line bg-slate-900/40 p-3.5 rounded-xl border border-slate-800/80">
                     {syllogismResult.analysis}

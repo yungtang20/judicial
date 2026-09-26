@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { copyToClipboard } from '../lib/citationFormatter';
 import { UnifiedHeader } from './unified/UnifiedHeader';
 import { HistoryModal } from './unified/HistoryModal';
 import { UnifiedProgress } from './unified/UnifiedProgress';
@@ -95,6 +96,7 @@ export const UnifiedEntry: React.FC = () => {
   const [supplementInput, setSupplementInput] = useState<string>('');
   const [showDocTypeModal, setShowDocTypeModal] = useState<boolean>(false);
   const [isCopied, setIsCopied] = useState<boolean>(false);
+  const [copyError, setCopyError] = useState<string | null>(null);
   const [acknowledgeSafetyInSession, setAcknowledgeSafetyInSession] = useState<boolean>(false);
   const [aiConfig, setAiConfig] = useState<AIProviderConfigDraft>({
     providerType: 'custom',
@@ -400,9 +402,15 @@ export const UnifiedEntry: React.FC = () => {
     setAcknowledgeSafetyInSession(false);
   };
 
-  const handleCopyAnalysis = () => {
+  const handleCopyAnalysis = async () => {
     if (!workflowState?.syllogism?.fullAnalysis) return;
-    navigator.clipboard.writeText(workflowState.syllogism.fullAnalysis);
+    // 複製失敗時不得顯示「已複製」；改用具備備援機制的工具並依實際結果回報。
+    const ok = await copyToClipboard(workflowState.syllogism.fullAnalysis);
+    if (!ok) {
+      setCopyError('複製失敗，請手動選取文字後複製。');
+      return;
+    }
+    setCopyError(null);
     setIsCopied(true);
     setTimeout(() => setIsCopied(false), 2000);
   };
@@ -424,7 +432,7 @@ export const UnifiedEntry: React.FC = () => {
   }, [workflowState?.syllogism]);
 
 
-  const sharedProps = { inputNarrative, setInputNarrative, isSubmitting, setIsSubmitting, workflowState, setWorkflowState, supplementInput, setSupplementInput, isCopied, setIsCopied, acknowledgeSafetyInSession, setAcknowledgeSafetyInSession, aiConfig, setAiConfig, isNode2Open, setIsNode2Open, isNode4Open, setIsNode4Open, isNode5Open, setIsNode5Open, isNode6Open, setIsNode6Open, customPreset, setCustomPreset, showCustomPresetModal, setShowCustomPresetModal, editPresetTitle, setEditPresetTitle, editPresetNarrative, setEditPresetNarrative, showHistory, setShowHistory, historyList, setHistoryList, handleExecuteWorkflow, handleSupplementFact, handleProceedFromSafety, handleResetWorkflow, handleCopyAnalysis, loadFromHistory, handleSaveCurrentAsCustomPreset, handleSelectSuggestedOption, handleSaveCustomPreset, handleToggleAllNodes, defaultSample, handleSelectTool, saveCrossFeatureContext, exportAsHtml, exportAsText, printReport, deleteFromHistory, clearHistory, loadHistory, showDocTypeModal, setShowDocTypeModal };
+  const sharedProps = { inputNarrative, setInputNarrative, isSubmitting, setIsSubmitting, workflowState, setWorkflowState, supplementInput, setSupplementInput, isCopied, setIsCopied, copyError, setCopyError, acknowledgeSafetyInSession, setAcknowledgeSafetyInSession, aiConfig, setAiConfig, isNode2Open, setIsNode2Open, isNode4Open, setIsNode4Open, isNode5Open, setIsNode5Open, isNode6Open, setIsNode6Open, customPreset, setCustomPreset, showCustomPresetModal, setShowCustomPresetModal, editPresetTitle, setEditPresetTitle, editPresetNarrative, setEditPresetNarrative, showHistory, setShowHistory, historyList, setHistoryList, handleExecuteWorkflow, handleSupplementFact, handleProceedFromSafety, handleResetWorkflow, handleCopyAnalysis, loadFromHistory, handleSaveCurrentAsCustomPreset, handleSelectSuggestedOption, handleSaveCustomPreset, handleToggleAllNodes, defaultSample, handleSelectTool, saveCrossFeatureContext, exportAsHtml, exportAsText, printReport, deleteFromHistory, clearHistory, loadHistory, showDocTypeModal, setShowDocTypeModal };
   const hasResult = Boolean(workflowState?.syllogism);
 
   return (

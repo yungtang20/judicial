@@ -15,6 +15,7 @@ export const SyllogismNode: React.FC<SyllogismNodeProps> = (props) => {
     isNode5Open,
     setIsNode5Open,
     handleCopyAnalysis,
+    copyError,
     exportAsHtml,
     exportAsText,
     printReport
@@ -54,6 +55,7 @@ export const SyllogismNode: React.FC<SyllogismNodeProps> = (props) => {
               {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
               <span>{isCopied ? '已複製' : '複製'}</span>
             </button>
+            {copyError && <span role="alert" className="text-[11px] text-rose-300">{copyError}</span>}
             <button
               onClick={() => exportAsHtml(workflowState)}
               className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition-colors cursor-pointer"

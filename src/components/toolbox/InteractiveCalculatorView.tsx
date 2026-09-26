@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { copyToClipboard } from '../../lib/citationFormatter';
 import { 
   Calculator, 
   BookOpen, 
@@ -28,6 +29,7 @@ export const InteractiveCalculatorView: React.FC<InteractiveCalculatorViewProps>
   });
 
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'calc' | 'guide'>('calc');
 
   const handleInputChange = (id: string, value: any) => {
@@ -37,9 +39,17 @@ export const InteractiveCalculatorView: React.FC<InteractiveCalculatorViewProps>
   const result = config.calculate(inputs);
 
   const handleCopyClause = () => {
-    navigator.clipboard.writeText(result.legalClause);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    // 複製失敗時不得顯示「已複製」；改用具備備援機制的工具並依實際結果回報。
+    void (async () => {
+      const ok = await copyToClipboard(result.legalClause);
+      if (!ok) {
+        setCopyError('複製失敗，請手動選取文字後複製。');
+        return;
+      }
+      setCopyError(null);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    })();
   };
 
   return (
@@ -50,6 +60,7 @@ export const InteractiveCalculatorView: React.FC<InteractiveCalculatorViewProps>
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-500/10 text-blue-400 text-xs font-semibold mb-2">
             <Calculator className="w-3.5 h-3.5" />
             <span>{config.categoryName}</span>
+                {copyError && <span role="alert" className="text-[11px] text-rose-300">{copyError}</span>}
           </div>
           <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">{config.title}</h2>
           <p className="mt-1 text-xs sm:text-sm text-slate-400">{config.subtitle}</p>

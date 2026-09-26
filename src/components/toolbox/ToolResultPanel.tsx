@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { copyToClipboard } from '../../lib/citationFormatter';
 import { Copy, Download, Check, Printer, FileText } from 'lucide-react';
 import { ToolDefinition } from '../../lib/legalToolRegistry';
 import type { LegalToolboxResult } from '../../types';
@@ -35,6 +36,7 @@ export interface ToolResultPanelProps {
 export const ToolResultPanel: React.FC<ToolResultPanelProps> = ({ result, currentTool, isVerifyingAi, verifyNotice, onFullVerify, isLoading, generationStage }) => {
   const [copied, setCopied] = useState(false);
   const [printBlockedNotice, setPrintBlockedNotice] = useState<string | null>(null);
+  const [copyError, setCopyError] = useState<string | null>(null);
   const [verifiedResult, setVerifiedResult] = useState<{
     result: LegalToolboxResult;
     state: 'ALLOWED' | 'BLOCKED';
@@ -163,7 +165,12 @@ export const ToolResultPanel: React.FC<ToolResultPanelProps> = ({ result, curren
     await assertPleadingDocumentDeliveryAllowed(
       currentTool.id, result.pleadingDeliveryAuthorization, 'COPY', result.documentText
     );
-    await navigator.clipboard.writeText(result.documentText);
+    // 複製失敗時不得顯示「已複製」；改用具備備援機制的工具並依實際結果回報。
+    if (!await copyToClipboard(result.documentText)) {
+      setCopyError('複製失敗，請手動選取文字後複製。');
+      return;
+    }
+    setCopyError(null);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

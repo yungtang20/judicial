@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { copyToClipboard } from '../lib/citationFormatter';
 import { 
   ShieldAlert, 
   ShieldCheck, 
@@ -52,6 +53,7 @@ export const LegalDocAiChecker: React.FC = () => {
   } | null>(null);
   const [filterType, setFilterType] = useState<'ALL' | 'GHOST_ONLY' | 'VERIFIED_ONLY'>('ALL');
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState<string | null>(null);
   const [externalResults, setExternalResults] = useState<ExternalCitationResult[] | null>(null);
   const [isExternalChecking, setIsExternalChecking] = useState(false);
   const [externalConsent, setExternalConsent] = useState(false);
@@ -98,9 +100,17 @@ export const LegalDocAiChecker: React.FC = () => {
     }, 600);
   };
 
-  const handleCopySanitized = () => {
+  const handleCopySanitized = async () => {
     if (!scanResult?.sanitizedText) return;
-    navigator.clipboard.writeText(scanResult.sanitizedText);
+    // 先前直接呼叫 navigator.clipboard.writeText 且未接錯誤處理。
+    // 寫入失敗時（例如權限被拒或非安全上下文）畫面仍會顯示「已複製」，
+    // 但其實一個字都沒複製。使用具備備援機制的工具並依實際結果回報。
+    const ok = await copyToClipboard(scanResult.sanitizedText);
+    if (!ok) {
+      setCopyError('複製失敗，請手動選取文字後複製。');
+      return;
+    }
+    setCopyError(null);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -426,6 +436,7 @@ export const LegalDocAiChecker: React.FC = () => {
                   {copied ? <Check className="w-3.5 h-3.5 text-emerald-300" /> : <Copy className="w-3.5 h-3.5" />}
                   {copied ? '已複製安全修正版' : '複製安全修正版書狀'}
                 </button>
+                {copyError && <span role="alert" className="text-[11px] text-rose-300">{copyError}</span>}
               </div>
             )}
           </div>
