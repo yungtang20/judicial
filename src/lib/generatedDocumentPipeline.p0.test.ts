@@ -11,6 +11,6 @@ describe('P0 ghost citation delivery boundary', () => {
         ghostCount: 1,
         results: [{ citationText: '民法第999條', verified: false, isGhostOrFake: true }] as any
       })
-    )).rejects.toThrow('GHOST_CITATION_BLOCKED');
+    )).rejects.toThrow(/法律文件引用檢核未通過/);
   });
 });

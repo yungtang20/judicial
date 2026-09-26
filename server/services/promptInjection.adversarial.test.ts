@@ -21,6 +21,6 @@ describe("Prompt Injection Protection", () => {
       ragQuery: "Test",
       buildPrompt: () => maliciousUserInput,
       aiProvider: maliciousAIProvider
-    })).rejects.toThrow('法律文件引用檢核未通過，拒絕回傳未確認引用文件');
+    })).rejects.toThrow(/法律文件引用檢核未通過/);
   });
 });

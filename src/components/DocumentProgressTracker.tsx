@@ -98,9 +98,9 @@ export const DocumentProgressTracker: React.FC<DocumentProgressTrackerProps> = (
         />
       </div>
 
-      {/* 錯誤提示與返回按鈕 */}
+      {/* 錯誤提示與重試：role="alert" 讓螢幕閱讀器在產製失敗時立即朗讀 */}
       {errorMessage && (
-        <div className="mt-3 p-3 bg-rose-950/40 border border-rose-700/40 rounded-xl space-y-1.5 text-xs text-rose-200">
+        <div role="alert" className="mt-3 p-3 bg-rose-950/40 border border-rose-700/40 rounded-xl space-y-1.5 text-xs text-rose-200">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
             <span className="font-semibold">
@@ -108,10 +108,7 @@ export const DocumentProgressTracker: React.FC<DocumentProgressTrackerProps> = (
             </span>
           </div>
           {typeof errorMessage !== 'string' && (
-            <p className="pl-6 leading-5 text-rose-200/80">
-              {errorMessage.guidance}
-              {errorMessage.retryable && '（此問題多為暫時性，可直接再次產製）'}
-            </p>
+            <p className="pl-6 leading-5 text-rose-200/80">{errorMessage.guidance}</p>
           )}
           <div className="pl-6 flex items-center gap-2 pt-0.5">
             {onResetToInput && (

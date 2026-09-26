@@ -146,7 +146,7 @@ describe('LegalGenerationPipeline Unit Tests', () => {
     await expect(pipeline.execute({
       ragQuery: '侵權責任',
       buildPrompt: () => '生成答辯'
-    })).rejects.toThrow('法律文件引用檢核未通過，拒絕回傳未確認引用文件');
+    })).rejects.toThrow(/法律文件引用檢核未通過/);
   });
 
   it('safely uses fallback when AI generation fails, and verifies fallback document', async () => {
