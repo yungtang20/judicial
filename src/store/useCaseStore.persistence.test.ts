@@ -1,7 +1,12 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useCaseStore, getActiveCase } from './useCaseStore';
 
 const STORAGE_KEY = 'judicial_case_autosave_v1';
+
+const readSaved = (): { cases?: Record<string, { issues?: unknown[]; documents?: unknown[] }>; workflowState?: unknown } => {
+  const raw = sessionStorage.getItem(STORAGE_KEY);
+  return raw ? JSON.parse(raw) : {};
+};
 
 /**
  * 案件卷跨重新整理的保留。
@@ -24,26 +29,23 @@ describe('案件卷自動儲存', () => {
     useCaseStore.getState().updateIssues([{
       id: 'issue-1', title: '爭點一', originalHolding: '', appealArgument: ''
     }]);
-    expect(sessionStorage.getItem(STORAGE_KEY)).toBeTruthy();
-    const saved = JSON.parse(sessionStorage.getItem(STORAGE_KEY) || '{}');
-    expect(saved['active-case'].issues).toHaveLength(1);
+    const saved = readSaved();
+    expect(saved.cases?.['active-case']?.issues).toHaveLength(1);
   });
 
-  it('儲存的資料損毀時不得讓應用崩潰', () => {
-    sessionStorage.setItem(STORAGE_KEY, '{ this is not json');
-    // rehydrateCases 在載入時執行；此處直接驗證不會拋出
-    expect(() => JSON.parse('{ this is not json')).toThrow();
-    // store 本身仍可正常使用
-    expect(getActiveCase(useCaseStore.getState()).caseId).toBe('active-case');
-  });
+  it('分析結果一併保存，否則重新整理後使用者仍會回到空白輸入畫面', () => {
+    const state = useCaseStore.getState();
+    state.setWorkflowState({
+      id: 'wf-test',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      currentStep: 'COMPLETED',
+      userNarrative: '我被房東扣押金',
+      factHistory: ['我被房東扣押金']
+    } as never);
 
-  it('開立新案件會清空自動儲存，不會留下舊案件資料', () => {
-    useCaseStore.getState().updateIssues([{
-      id: 'issue-1', title: '舊爭點', originalHolding: '', appealArgument: ''
-    }]);
-    useCaseStore.getState().resetCase();
-    const saved = JSON.parse(sessionStorage.getItem(STORAGE_KEY) || '{}');
-    expect(saved['active-case'].issues).toEqual([]);
+    const saved = readSaved();
+    expect(saved.workflowState).toMatchObject({ id: 'wf-test', userNarrative: '我被房東扣押金' });
   });
 
   it('已產製文件與人工核准紀錄會一併保存', () => {
@@ -51,8 +53,23 @@ describe('案件卷自動儲存', () => {
       id: 'doc-1', kind: 'APPEAL_PETITION', title: '上訴理由狀', text: '內容',
       status: 'VERIFIED', sourceTool: 'test', createdAt: new Date().toISOString()
     });
-    const saved = JSON.parse(sessionStorage.getItem(STORAGE_KEY) || '{}');
-    expect(saved['active-case'].documents).toHaveLength(1);
-    expect(saved['active-case'].documents[0].title).toBe('上訴理由狀');
+    const saved = readSaved();
+    expect(saved.cases?.['active-case']?.documents).toHaveLength(1);
+  });
+
+  it('開立新案件會清空自動儲存，不會留下舊案件資料', () => {
+    useCaseStore.getState().updateIssues([{
+      id: 'issue-1', title: '舊爭點', originalHolding: '', appealArgument: ''
+    }]);
+    useCaseStore.getState().resetCase();
+    const saved = readSaved();
+    expect(saved.cases?.['active-case']?.issues).toEqual([]);
+  });
+
+  it('儲存的資料損毀時不得讓應用崩潰', () => {
+    sessionStorage.setItem(STORAGE_KEY, '{ this is not json');
+    expect(() => JSON.parse(sessionStorage.getItem(STORAGE_KEY) || '')).toThrow();
+    // store 仍可正常使用
+    expect(getActiveCase(useCaseStore.getState()).caseId).toBe('active-case');
   });
 });

@@ -78,40 +78,46 @@ const initialCase = createInitialCase();
  */
 const CASE_STORAGE_KEY = 'judicial_case_autosave_v1';
 
-function rehydrateCases(): Record<string, CaseContext> {
-  if (typeof sessionStorage === 'undefined') return { [CASE_ID]: initialCase };
+function rehydrateCases(): { cases: Record<string, CaseContext>; workflowState: LegalWorkflowState | null } {
+  if (typeof sessionStorage === 'undefined') return { cases: { [CASE_ID]: initialCase }, workflowState: null };
   try {
     const raw = sessionStorage.getItem(CASE_STORAGE_KEY);
-    if (!raw) return { [CASE_ID]: initialCase };
+    if (!raw) return { cases: { [CASE_ID]: initialCase }, workflowState: null };
     const parsed: unknown = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object') return { [CASE_ID]: initialCase };
-    const record = parsed as Record<string, CaseContext>;
-    const restored = record[CASE_ID];
+    if (!parsed || typeof parsed !== 'object') return { cases: { [CASE_ID]: initialCase }, workflowState: null };
+    const envelope = parsed as { cases?: Record<string, CaseContext>; workflowState?: LegalWorkflowState | null };
+    const record = envelope.cases;
+    const restored = record?.[CASE_ID];
     if (!restored || typeof restored !== 'object' || !Array.isArray(restored.documents)) {
-      return { [CASE_ID]: initialCase };
+      return { cases: { [CASE_ID]: initialCase }, workflowState: null };
     }
-    return { [CASE_ID]: { ...initialCase, ...restored } };
+    // 分析結果一併還原，否則重新整理後案件卷雖在，使用者仍會回到空白輸入畫面
+    const restoredWorkflow = envelope.workflowState;
+    const validWorkflow = restoredWorkflow && typeof restoredWorkflow === 'object' && Array.isArray(restoredWorkflow.factHistory)
+      ? restoredWorkflow
+      : null;
+    return { cases: { [CASE_ID]: { ...initialCase, ...restored } }, workflowState: validWorkflow };
   } catch {
     // 讀取失敗一律退回空白案件，不得讓儲存的問題中斷應用
-    return { [CASE_ID]: initialCase };
+    return { cases: { [CASE_ID]: initialCase }, workflowState: null };
   }
 }
 
-function persistCases(cases: Record<string, CaseContext>): void {
+function persistState(state: { cases: Record<string, CaseContext>; workflowState: LegalWorkflowState | null }): void {
   if (typeof sessionStorage === 'undefined') return;
   try {
-    sessionStorage.setItem(CASE_STORAGE_KEY, JSON.stringify(cases));
+    sessionStorage.setItem(CASE_STORAGE_KEY, JSON.stringify(state));
   } catch {
     // 配額爆滿或隱私模式：自動儲存失敗不得中斷操作
   }
 }
 
-const rehydratedCases = rehydrateCases();
+const rehydrated = rehydrateCases();
 export const useCaseStore = create<CaseStore>((set, get) => ({
   activeCaseId: CASE_ID,
-  workflowState: null,
+  workflowState: rehydrated.workflowState,
   setWorkflowState: (workflowState) => set({ workflowState }),
-  cases: rehydratedCases,
+  cases: rehydrated.cases,
   // 開立新案件是使用者明確動作，因此這裡才允許連同工作流狀態與產物一起清除
   resetCase: () => set({ activeCaseId: CASE_ID, workflowState: null, cases: { [CASE_ID]: createInitialCase() } }),
   saveTriage: (facts, result) => set((state) => {
@@ -237,10 +243,12 @@ export const useCaseStore = create<CaseStore>((set, get) => ({
   }
 }));
 
-// 任何案件卷變更都立即自動儲存，確保重新整理不會遺失工作成果。
+// 案件卷或分析結果任一變更都立即自動儲存，確保重新整理不會遺失工作成果。
 // 訂閱在 store 建立後註冊，避免 rehydrate 階段寫回造成回圈。
 useCaseStore.subscribe((state, prev) => {
-  if (state.cases !== prev.cases) persistCases(state.cases);
+  if (state.cases !== prev.cases || state.workflowState !== prev.workflowState) {
+    persistState({ cases: state.cases, workflowState: state.workflowState });
+  }
 });
 
 export const getActiveCase = (state: CaseStore): CaseContext => state.cases[state.activeCaseId] || initialCase;
