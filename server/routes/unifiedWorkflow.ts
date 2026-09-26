@@ -12,6 +12,7 @@ import { retrieve } from "../services/legalRetrieval.js";
 import { verifyLegalCitations } from "../../src/lib/citationVerifier.js";
 import { verifyExternalPrecedents } from "../../src/lib/externalCitationVerifier.js";
 import type { ExternalCitationResult } from "../../src/lib/externalCitationVerifier.js";
+import { containsSimplifiedChinese } from "../../src/lib/traditionalChineseGuard.js";
 import { 
   LegalWorkflowState, 
   createInitialWorkflowState 
@@ -277,6 +278,12 @@ async function runQuestioningNode(
         .slice(0, 5)
       : [];
     if (!rawMessage || suggestedOptions.length < 2) throw new Error("AI_QUESTION_FORMAT_INVALID");
+    // 繁體中文要求：模型偶爾以簡體中文回覆。繁簡並非一對一（发可對應發／髮、
+    // 后可對應後／后），自行轉換會靜默產出錯誤法律文字，因此不做字元轉換，
+    // 改為退回本系統自撰的繁體中文規則備援。
+    if (containsSimplifiedChinese(rawMessage) || suggestedOptions.some(containsSimplifiedChinese)) {
+      throw new Error("AI_QUESTION_SIMPLIFIED_CHINESE");
+    }
   } catch (err) {
     console.warn("[UnifiedWorkflow] AI QuestioningNode 異常或逾時，採用缺件導向規則備援:", err instanceof Error ? err.message : "UNKNOWN");
     const fallback = buildRuleBasedQuestioning(missing);

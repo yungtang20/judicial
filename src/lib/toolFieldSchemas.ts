@@ -688,7 +688,19 @@ export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
     },
     {
       "key": "interestRate",
-      "label": "利息起算日",
+      "label": "約定週年利率（%）",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "loanDate",
+      "label": "借款日",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "dueDate",
+      "label": "清償期日",
       "type": "text",
       "showAiSuggest": true
     },

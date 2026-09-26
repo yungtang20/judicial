@@ -1,5 +1,6 @@
 import { verifyLegalCitations, VerifyCitationsOptions } from './citationVerifier.js';
 import { interceptVerifiedCitationResults } from './generation/ghostCitationInterceptor.js';
+import { containsSimplifiedChinese, describeSimplifiedChinese } from './traditionalChineseGuard.js';
 
 export interface GeneratedDocumentVerification {
   documentText: string;
@@ -32,6 +33,12 @@ export function verifyGeneratedDocument(
 ): GeneratedDocumentVerification {
   if (!documentText.trim()) {
     throw new Error('法律文件生成結果為空，拒絕回傳未檢核文件');
+  }
+
+  // 繁體中文是台灣法律文件的硬性要求。簡體字進入交付等同交付錯誤文件，
+  // 與幽靈法條同級，採 fail-closed 阻擋。
+  if (containsSimplifiedChinese(documentText)) {
+    throw new Error(describeSimplifiedChinese('產製文件', documentText));
   }
 
   let verifyFn: Verifier = verifyLegalCitations;
