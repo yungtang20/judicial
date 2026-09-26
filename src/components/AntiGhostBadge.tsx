@@ -77,7 +77,7 @@ export const AntiGhostBadge: React.FC<AntiGhostBadgeProps> = ({
               ? `已檢驗 ${total} 處 · ${ghosts} 處幽靈法條，不得用於主張`
               : unverified > 0
                 ? `已檢驗 ${total} 處 · ${unverified} 處未查證，請人工確認`
-                : total > 0 ? `已檢驗 ${total} 處法規/字號 · 0 處幽靈` : '司法院實體法條規則檢核通過'}
+                : total > 0 ? `已檢驗 ${total} 處法規/字號 · 0 處幽靈` : '本文件未引用法條或裁判，無須引用查核'}
           </span>
           {citations.length > 0 && (
             <button

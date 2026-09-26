@@ -57,6 +57,21 @@ describe('引用掃描徽章反映實際結果', () => {
     expect(screen.getByText(/0 處幽靈/)).toBeTruthy();
   });
 
+  it('零引用時不得宣稱查核通過，應如實說明無須查核', () => {
+    render(
+      <AntiGhostBadge
+        verification={{
+          totalCitationsChecked: 0,
+          ghostCitationsFound: 0,
+          verifiedCitations: []
+        }}
+      />
+    );
+    // 「檢核通過」暗示有東西被查核了，但實際上零引用、什麼都沒查
+    expect(screen.queryByText(/查核通過/)).toBeNull();
+    expect(screen.getByText(/未引用法條或裁判/)).toBeTruthy();
+  });
+
   it('有未查證但非幽靈的引用時必須提示人工確認', () => {
     render(
       <AntiGhostBadge
