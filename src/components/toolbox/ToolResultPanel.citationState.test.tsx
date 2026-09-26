@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ToolResultPanel } from './ToolResultPanel';
 import { LEGAL_TOOLS } from '../../lib/legalToolRegistry';
 import type { LegalToolboxResult } from '../../types';
@@ -64,5 +64,24 @@ describe('工具箱引用狀態反映實際結果', () => {
       ]
     });
     expect(screen.getByText('引用檢查未發現異常')).toBeTruthy();
+  });
+});
+
+describe('列印路徑', () => {
+  it('彈出視窗被攔截時必須提示使用者，不得靜默無反應', async () => {
+    const originalOpen = window.open;
+    // 模擬瀏覽器攔截彈出視窗
+    window.open = () => null;
+    try {
+      renderPanel({ totalCitationsChecked: 0, ghostCitationsFound: 0, verifiedCitations: [] });
+      fireEvent.click(screen.getByText('A4 列印'));
+      await waitFor(() => {
+        expect(screen.getByRole('alert').textContent).toContain('瀏覽器擋下了列印視窗');
+      });
+      // 必須告訴使用者替代做法
+      expect(screen.getByRole('alert').textContent).toMatch(/TXT|Word/);
+    } finally {
+      window.open = originalOpen;
+    }
   });
 });

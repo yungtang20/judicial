@@ -34,6 +34,7 @@ export interface ToolResultPanelProps {
 
 export const ToolResultPanel: React.FC<ToolResultPanelProps> = ({ result, currentTool, isVerifyingAi, verifyNotice, onFullVerify, isLoading, generationStage }) => {
   const [copied, setCopied] = useState(false);
+  const [printBlockedNotice, setPrintBlockedNotice] = useState<string | null>(null);
   const [verifiedResult, setVerifiedResult] = useState<{
     result: LegalToolboxResult;
     state: 'ALLOWED' | 'BLOCKED';
@@ -248,11 +249,24 @@ export const ToolResultPanel: React.FC<ToolResultPanelProps> = ({ result, curren
     if (hasPendingClaimSupport && !humanReviewConfirmed) {
       return;
     }
-    await assertPleadingDocumentDeliveryAllowed(
-      currentTool.id, result.pleadingDeliveryAuthorization, 'PRINT', result.documentText
-    );
-    const printWindow = window.open('', '', 'height=900,width=850');
-    if (!printWindow) return;
+    // 列印視窗必須在使用者手勢的同一個任務中開啟。
+    // 先前在 await 交付檢核之後才 window.open，該 await 會讓呼叫離開手勢情境，
+    // 彈出視窗攔截器因此擋下視窗，而當時只有 `if (!printWindow) return;`，
+    // 使用者按了列印卻完全沒有反應，也沒有任何說明。
+    // 改成先同步開窗，檢核若不放行就關掉視窗並告知。
+    const printWindow = window.open('', '_blank', 'height=900,width=850');
+    if (!printWindow) {
+      setPrintBlockedNotice('瀏覽器擋下了列印視窗。請改用「TXT」或「Word」下載檔案後再列印。');
+      return;
+    }
+    try {
+      await assertPleadingDocumentDeliveryAllowed(
+        currentTool.id, result.pleadingDeliveryAuthorization, 'PRINT', result.documentText
+      );
+    } catch (error) {
+      printWindow.close();
+      throw error;
+    }
     printWindow.document.write('<!DOCTYPE html><html><head><title>' + escapeHtmlText(result.title || currentTool.name) + '</title>');
     // 依民事訴訟書狀規則第3條：A4大小、上下左右邊界2.5公分、14號以上字體、固定行高25-30pt
     printWindow.document.write(`
@@ -285,6 +299,7 @@ export const ToolResultPanel: React.FC<ToolResultPanelProps> = ({ result, curren
     printWindow.document.write('</body></html>');
     printWindow.document.close();
     printWindow.focus();
+    setPrintBlockedNotice(null);
     setTimeout(() => {
       printWindow.print();
     }, 250);
@@ -373,6 +388,11 @@ export const ToolResultPanel: React.FC<ToolResultPanelProps> = ({ result, curren
               <span>A4 列印</span>
             </button>
           </div>
+          {printBlockedNotice && (
+            <p role="alert" className="w-full text-[11px] text-amber-800 bg-amber-50 border border-amber-300 rounded px-2 py-1.5">
+              {printBlockedNotice}
+            </p>
+          )}
         </div>
 
         {/* 檢核狀態列：極簡條列化，移除繁複背景 */}

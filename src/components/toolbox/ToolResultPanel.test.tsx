@@ -8,6 +8,11 @@ import { fingerprintReviewPayload } from '../../lib/reviewer/pleadingReviewer';
 
 describe('ToolResultPanel Export & Print Actions', () => {
   const mockTool = LEGAL_TOOLS[0];
+  // 列印成功路徑必須用非 P9 工具。mockTool 是 JUDICIAL_CIVIL_TEMPLATE（requiresP9=true），
+  // 其交付判定本來就是拒絕（documentFingerprint 不符）。
+  // 舊的列印測試之所以「通過」，是因為守衛在開窗之前就拋錯、而失敗被靜默吞掉，
+  // 等於斷言了一次不會發生的成功。
+  const mockPrintTool = LEGAL_TOOLS.find(tool => tool.id === 'UNIVERSAL_AI_PLEADING')!;
   const readyAuthorization: PleadingDeliveryAuthorization = {
     finalGateStatus: 'READY',
     exportPolicy: 'READY_ONLY',
@@ -157,14 +162,15 @@ describe('ToolResultPanel Export & Print Actions', () => {
         close: closeMock
       },
       focus: focusMock,
-      print: printMock
+      print: printMock,
+      close: closeMock
     } as unknown as Window));
     Object.defineProperty(window, 'open', { configurable: true, value: openMock });
 
     render(
       <ToolResultPanel
-        result={mockResult}
-        currentTool={mockTool}
+        result={{ ...mockResult, pleadingDeliveryAuthorization: undefined }}
+        currentTool={mockPrintTool}
         isVerifyingAi={false}
         verifyNotice={null}
         onFullVerify={vi.fn()}
@@ -174,8 +180,9 @@ describe('ToolResultPanel Export & Print Actions', () => {
     const printBtn = await screen.findByText('A4 列印');
     fireEvent.click(printBtn);
 
+    // 視窗先同步開啟、寫入在交付檢核之後的 microtask 執行，因此需等待
     await vi.waitFor(() => expect(openMock).toHaveBeenCalled());
-    expect(writeMock).toHaveBeenCalled();
+    await vi.waitFor(() => expect(writeMock).toHaveBeenCalled());
   });
 
   it('blocks a READY authorization replayed against modified document text', async () => {
