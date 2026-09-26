@@ -43,11 +43,6 @@ const BY_CODE: Record<string, ToolboxErrorPresentation> = {
     guidance: '該類書狀的格式與合規結構尚未完成核准，因此無法產製。請改用其他可用的工具類型。',
     retryable: false
   },
-  UNKNOWN_TOOLBOX_CATEGORY: {
-    message: '不支援這個工具類別。',
-    guidance: '請重新選擇左側的工具項目後再試。',
-    retryable: false
-  },
   TOOLBOX_CATEGORY_REQUIRED: {
     message: '請先選擇要產製的工具類別。',
     guidance: '請於左側點選工具後再按產製。',
@@ -62,6 +57,14 @@ const BY_CODE: Record<string, ToolboxErrorPresentation> = {
     message: '輸入內容包含無法確認的法律條號。',
     guidance: '請確認條號是否正確，或移除無法確認的引用後再試。',
     retryable: false
+  },
+  // express-rate-limit 直接回應時使用 RATE_LIMIT_EXCEEDED；
+  // 經由全域錯誤處理器時統一為 RATE_LIMITED。兩者必須對應到同一句話，
+  // 否則使用者會看到無法理解的代碼名稱。
+  RATE_LIMIT_EXCEEDED: {
+    message: '請求過於頻繁，請稍候再試。',
+    guidance: '請等待約一分鐘後再次產製。',
+    retryable: true
   },
   RATE_LIMITED: {
     message: '請求過於頻繁，請稍候再試。',

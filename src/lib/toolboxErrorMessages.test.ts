@@ -53,3 +53,14 @@ describe('presentToolboxError', () => {
     expect(result.guidance).toBeTruthy();
   });
 });
+
+describe('速率限流代碼一致性', () => {
+  it('express-rate-limit 與全域錯誤處理器兩種代碼都必須對應同一句話', () => {
+    const fromLimiter = presentToolboxError('RATE_LIMIT_EXCEEDED');
+    const fromHandler = presentToolboxError('RATE_LIMITED');
+    expect(fromLimiter.message).toBe(fromHandler.message);
+    expect(fromLimiter.retryable).toBe(true);
+    expect(fromHandler.retryable).toBe(true);
+    expect(fromLimiter.message).not.toMatch(/RATE_LIMIT/);
+  });
+});
