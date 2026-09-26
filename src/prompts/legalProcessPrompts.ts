@@ -2,6 +2,8 @@
  * 法律案件分流、動態追問與三段論涵攝引擎提示詞 (3-Node Legal Process Prompts)
  */
 
+import { TRADITIONAL_CHINESE_REQUIREMENT } from './languageRequirements';
+
 export interface RouterEvaluationResult {
   domain: '刑事' | '民事' | '家事' | '行政' | string;
   chapter: string;
@@ -32,7 +34,7 @@ export function buildRouterPrompt(userInput: string): string {
 }
 
 判斷標準：
-- 所有欄位值一律使用繁體中文。台灣法律系統不使用簡體中文，輸出簡體字將被視為不合格。
+- ${TRADITIONAL_CHINESE_REQUIREMENT}
 - is_sensitive：若案情涉及性侵害、家庭暴力、跟蹤騷擾，必須為 true。
 - is_complete：若缺少「人、事、時、地、證據」中的關鍵要素，導致無法判斷是否成罪或侵權，必須為 false。
 - has_judgment：若使用者提到「收到判決」、「法官判了」、「已經宣判」等字眼，代表已經有第一審判決，必須為 true。
@@ -52,7 +54,7 @@ export function buildQuestioningPrompt(missingElements: string[], userInput: str
 缺失事實：${JSON.stringify(missingElements, null, 2)}
 原始案情：${userInput}
 要求：
-1. 全部文字一律使用繁體中文，簡體中文一律視為不合格輸出。
+1. ${TRADITIONAL_CHINESE_REQUIREMENT}
 2. 先簡短確認目前理解的現狀（一句話即可）。
 3. 說明為什麼需要補充這些資訊（例如：這決定了是否適用家暴法或影響罪名判定）。
 4. 提出封閉式問題，並在尾附上 2~3 個 [選項按鈕] 供使用者點選。`;
@@ -81,6 +83,6 @@ export function buildSyllogismEnginePrompt(legalElements: string, userFacts: str
 約束：
 絕對禁止編造用戶未提供的事實。若事實與要件有落差，必須在涵攝中明確指出。
 
-全部輸出一律使用繁體中文。簡體中文在台灣法律文件視為不合格，將被系統阻擋交付。
+${TRADITIONAL_CHINESE_REQUIREMENT}
 `;
 }

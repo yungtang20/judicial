@@ -1,4 +1,5 @@
 import { UNIVERSAL_SYLLOGISM_RULES } from "../../src/prompts/universal-syllogism.js";
+import { TRADITIONAL_CHINESE_REQUIREMENT } from '../../src/prompts/languageRequirements.js';
 import { Router, Request, Response } from "express";
 import { defaultAIProvider as configuredAIProvider } from "../../src/ai/providers/providerRegistry.js";
 import { normalizeTaiwanCaseQuery } from "../services/judicialCrawler.js";
@@ -104,6 +105,7 @@ async function handleSearchPrecedents(req: Request, res: Response) {
 1. 你「只能」針對以下提供的真實檢索裁判進行分析，嚴禁憑空捏造或引用任何未列出的案號！
 2. 每筆 precedent 必須完整保留來源網址 sourceUrl。
 3. 若檢索片段不足以佐證，請如實於 relevance 或 summary 說明，不得虛構判決內容。
+4. ${TRADITIONAL_CHINESE_REQUIREMENT}
 
 【使用者檢索需求】
 檢索輸入：${rawQuery}（正規化案號：${normalized}）

@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { containsSimplifiedChinese, findSimplifiedChinese, describeSimplifiedChinese } from './traditionalChineseGuard';
 import { verifyGeneratedDocument } from './generatedDocumentPipeline';
 import { buildRouterPrompt, buildQuestioningPrompt, buildSyllogismEnginePrompt } from '../prompts/legalProcessPrompts';
+import { getBPointTriagePrompt, getMineScanPrompt } from '../prompts/defense-workflow';
+import { getRefinePrompt } from './generation/draftRefiner';
 
 /**
  * 繁體中文用字防線。
@@ -49,5 +51,24 @@ describe('提示詞層強制繁體中文', () => {
     expect(buildRouterPrompt('案情')).toContain('繁體中文');
     expect(buildQuestioningPrompt(['缺少時間'], '案情')).toContain('繁體中文');
     expect(buildSyllogismEnginePrompt('民法第479條', '借方未還款')).toContain('繁體中文');
+  });
+});
+
+describe('所有 AI 產出入口都必須要求繁體中文', () => {
+  it('工作流三節點提示詞', () => {
+    expect(buildRouterPrompt('案情')).toContain('繁體中文');
+    expect(buildQuestioningPrompt(['缺少時間'], '案情')).toContain('繁體中文');
+    expect(buildSyllogismEnginePrompt('民法第479條', '借方未還款')).toContain('繁體中文');
+  });
+
+  it('草稿精修提示詞：漏掉會讓精修恆定失敗（實測產出含「费」等簡體字被交付閘門擋下）', () => {
+    const prompt = getRefinePrompt('原草稿', '改得更正式', []);
+    expect(prompt).toContain('繁體中文');
+    expect(prompt).toContain('不得轉為簡體中文');
+  });
+
+  it('防線工作流的三個提示詞', () => {
+    expect(getBPointTriagePrompt('案情')).toContain('繁體中文');
+    expect(getMineScanPrompt('案情')).toContain('繁體中文');
   });
 });

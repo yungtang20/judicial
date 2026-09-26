@@ -4,12 +4,29 @@ import {
   type GeneratedDocumentVerification,
   type OfficialCitationVerifier
 } from '../generatedDocumentPipeline';
+import { TRADITIONAL_CHINESE_REQUIREMENT } from '../../prompts/languageRequirements';
 import { interceptVerifiedCitationResults } from './ghostCitationInterceptor';
 
 export type DraftRefinementGenerator = (prompt: string) => Promise<string>;
 
 function isAllowedCitation(citationText: string, allowedCitations: string[]) {
   return allowedCitations.some(allowed => allowed === citationText || allowed.includes(citationText) || citationText.includes(allowed));
+}
+/**
+ * 組裝草稿精修提示詞。
+ *
+ * 繁體中文要求不可省略：缺了這一句，模型會以簡體中文回覆，產出的簡體字
+ * 會在交付閘門被擋下，精修功能等於恆定失敗。抽出成函式是為了能直接測試。
+ */
+export function getRefinePrompt(draftText: string, instruction: string, allowedCitations: string[]): string {
+  return [
+    '請只微調以下法律草稿的語氣、結構或事實細節。',
+    '禁止新增、改寫或推測任何不在允許引用白名單內的法條或裁判。',
+    `${TRADITIONAL_CHINESE_REQUIREMENT}並保留原草稿既有的繁體用字，不得轉為簡體中文。`,
+    `允許引用：${allowedCitations.join('、') || '無'}`,
+    `原草稿：${draftText}`,
+    `修改要求：${instruction}`
+  ].join('\n');
 }
 
 export async function refineVerifiedDraft(
@@ -24,13 +41,7 @@ export async function refineVerifiedDraft(
    */
   officialVerify?: OfficialCitationVerifier
 ): Promise<GeneratedDocumentVerification> {
-  const refinedText = await generate([
-    '請只微調以下法律草稿的語氣、結構或事實細節。',
-    '禁止新增、改寫或推測任何不在允許引用白名單內的法條或裁判。',
-    `允許引用：${allowedCitations.join('、') || '無'}`,
-    `原草稿：${draftText}`,
-    `修改要求：${instruction}`
-  ].join('\n'));
+  const refinedText = await generate(getRefinePrompt(draftText, instruction, allowedCitations));
   const options = { allowedCitations, strictAllowedOnly: true };
   const verified = officialVerify
     ? await verifyGeneratedDocumentWithOfficialSources(refinedText, options, officialVerify)
