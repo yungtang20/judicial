@@ -3,6 +3,7 @@ import {
   FileText, Check, Copy, Download, Search, AlertTriangle, 
   FolderLock, ArrowRight, BookOpen, Clock, Printer, LayoutTemplate, Sparkles, Scale, SearchCheck, CheckCircle2, ShieldCheck, HandHeart
 } from 'lucide-react';
+import { presentToolboxError, type ToolboxErrorPresentation } from '../lib/toolboxErrorMessages';
 import { LEGAL_TOOLS } from '../lib/legalToolRegistry';
 // NOTE: This file utilizes LEGAL_TOOLS.length indirectly via ToolboxHeader
 import { LegalToolboxResult } from '../types';
@@ -91,7 +92,7 @@ export const LegalToolbox: React.FC<{ initialToolId?: string; initialFacts?: str
   const [generationStage, setGenerationStage] = useState<DocumentGenerationStage>('input');
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<LegalToolboxResult | null>(null);
-  const [generateError, setGenerateError] = useState<string | null>(null);
+  const [generateError, setGenerateError] = useState<ToolboxErrorPresentation | null>(null);
   const generationRequestRef = useRef(0);
   const verificationRequestRef = useRef(0);
 
@@ -169,9 +170,12 @@ export const LegalToolbox: React.FC<{ initialToolId?: string; initialFacts?: str
       clearTimeout(formattingTimer);
       if (requestId !== generationRequestRef.current || activeToolId !== submittedToolId) return;
       console.error('Toolbox generate error:', err);
+      // 伺服端回應的是英文內部訊息，轉成使用者看得懂且知道下一步怎麼做的說明。
+      const code = typeof err?.code === 'string' ? err.code : undefined;
+      const presentation = presentToolboxError(code, err?.message);
       setGenerationStage('error');
-      setGenerateError(err?.message || '文件產製未通過法規引用驗證，請稍候重試或調整案情內容');
-      stopLoading({ message: '產製失敗', type: 'error' });
+      setGenerateError(presentation);
+      stopLoading({ message: presentation.message, type: 'error' });
     } finally {
       if (requestId === generationRequestRef.current) setIsLoading(false);
     }
@@ -342,6 +346,7 @@ export const LegalToolbox: React.FC<{ initialToolId?: string; initialFacts?: str
                   setGenerationStage('input');
                   setGenerateError(null);
                 }}
+                onRetry={handleGenerate}
               />
             </div>
 

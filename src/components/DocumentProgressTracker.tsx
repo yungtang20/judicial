@@ -7,8 +7,10 @@ export type DocumentGenerationStage = 'input' | 'analyzing' | 'formatting' | 're
 interface DocumentProgressTrackerProps {
   currentStage: DocumentGenerationStage;
   className?: string;
-  errorMessage?: string | null;
+  errorMessage?: string | { message: string; guidance: string; retryable: boolean } | null;
   onResetToInput?: () => void;
+  /** 暫時性故障時提供「立即重試」，讓使用者不必回到表單重填。 */
+  onRetry?: () => void;
 }
 
 const STAGE_LABELS: Record<DocumentGenerationStage, { title: string; desc: string }> = {
@@ -23,7 +25,8 @@ export const DocumentProgressTracker: React.FC<DocumentProgressTrackerProps> = (
   currentStage,
   className = '',
   errorMessage,
-  onResetToInput
+  onResetToInput,
+  onRetry
 }) => {
   const getProgressPercentage = () => {
     switch (currentStage) {
@@ -97,20 +100,39 @@ export const DocumentProgressTracker: React.FC<DocumentProgressTrackerProps> = (
 
       {/* 錯誤提示與返回按鈕 */}
       {errorMessage && (
-        <div className="mt-3 p-3 bg-rose-950/40 border border-rose-700/40 rounded-xl flex items-center justify-between gap-3 text-xs text-rose-200">
+        <div className="mt-3 p-3 bg-rose-950/40 border border-rose-700/40 rounded-xl space-y-1.5 text-xs text-rose-200">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-            <span>{errorMessage}</span>
+            <span className="font-semibold">
+              {typeof errorMessage === 'string' ? errorMessage : errorMessage.message}
+            </span>
           </div>
-          {onResetToInput && (
-            <button
-              onClick={onResetToInput}
-              type="button"
-              className="px-2.5 py-1 bg-rose-800/60 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold transition-colors shrink-0"
-            >
-              返回修改
-            </button>
+          {typeof errorMessage !== 'string' && (
+            <p className="pl-6 leading-5 text-rose-200/80">
+              {errorMessage.guidance}
+              {errorMessage.retryable && '（此問題多為暫時性，可直接再次產製）'}
+            </p>
           )}
+          <div className="pl-6 flex items-center gap-2 pt-0.5">
+            {onResetToInput && (
+              <button
+                onClick={onResetToInput}
+                type="button"
+                className="px-2.5 py-1 bg-rose-800/60 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold transition-colors shrink-0"
+              >
+                返回修改
+              </button>
+            )}
+            {typeof errorMessage !== 'string' && errorMessage.retryable && onRetry && (
+              <button
+                onClick={onRetry}
+                type="button"
+                className="px-2.5 py-1 bg-rose-500/70 hover:bg-rose-500 text-white rounded-xl text-xs font-semibold transition-colors shrink-0"
+              >
+                立即重試
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>
