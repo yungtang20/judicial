@@ -37,16 +37,57 @@ describe('支付命令：表單欄位足以完成產製', () => {
         throw err;
       }
     }
-    // 若確實有缺漏，這些欄位必須出現在表單中，使用者才有辦法補齊
+    // 若確實有缺漏，使用者必須在表單上有辦法補齊。
+    // 內部段落名稱與表單欄位名稱不一定相同，對應關係在此明確列出。
+    const FIELD_TO_FORM_KEYS: Record<string, string[]> = {
+      date: ['documentDate'],
+      signature: ['signature', 'creditorName'],
+      'parties[0].address': ['creditorAddress'],
+      'parties[1].address': ['debtorAddress'],
+      evidence: ['evidenceDetails'],
+      court: ['courtName'],
+      subject_and_facts: ['incidentDetails']
+    };
     for (const item of blocking) {
-      expect(
-        keys,
-        `管線要求「${item.field}」，但表單沒有這個欄位，使用者無從補齊：${item.reason}`
-      ).toContain(item.field);
+      for (const key of FIELD_TO_FORM_KEYS[item.field] || [item.field]) {
+        expect(
+          keys,
+          `管線要求「${item.field}」，但表單沒有「${key}」欄位，使用者無從補齊：${item.reason}`
+        ).toContain(key);
+      }
     }
   });
 
   it('金額必須是正數', () => {
     expect(keys).toContain('debtAmount');
+  });
+});
+
+describe('支付命令產出內容不得遺漏使用者填寫的資料', () => {
+  it('原因事實、利息與清償期日都必須出現在書狀中', async () => {
+    const result = await executeCanonicalPleadingPipeline('PAYMENT_ORDER_PETITION', {
+      creditorName: '王大明',
+      creditorAddress: '臺北市中山區南京東路一段1號',
+      debtorName: '李小華',
+      debtorAddress: '新北市中和區中正路100號',
+      debtAmount: '350,000',
+      interestRate: '3.5',
+      loanDate: '113年1月10日',
+      dueDate: '113年7月10日',
+      courtName: '臺灣臺北地方法院',
+      evidenceDetails: '借據乙紙\n匯款紀錄乙紙',
+      incidentDetails: '債務人於民國113年1月10日借款新臺幣350,000元，屢催不還。'
+    });
+    const doc = result.documentText;
+    // 使用者寫的原因事實不得被靜默丟棄
+    expect(doc).toContain('債務人於民國113年1月10日借款');
+    // 聲明必須載明利息與起算日，否則相對人無從知道要付多少利息
+    expect(doc).toContain('350,000');
+    expect(doc).toContain('113年7月10日');
+    expect(doc).toContain('3.5');
+    // 住址、法院、簽署人
+    expect(doc).toContain('南京東路一段1號');
+    expect(doc).toContain('中正路100號');
+    expect(doc).toContain('臺灣臺北地方法院');
   });
 });

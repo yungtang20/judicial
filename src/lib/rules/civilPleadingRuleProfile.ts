@@ -234,6 +234,20 @@ export const CIVIL_PLEADING_RULES: ContentRule[] = [
     sourceReference: CIVIL_PROCEDURE_244,
     targetSection: 'complaint_optional_details',
     description: '起訴狀內宜記載因定法院管轄及其適用程序所必要之事項，以及第二百六十五條所定準備言詞辯論之事項。'
+  }),
+  // 民事聲請書狀依民訴法第116條第1項第5款準用起訴狀關於原因事實的記載要求。
+  // 少了這條規則，motion 類書狀不會渲染原因事實，使用者在表單填寫的
+  // 「請求原因事實」會被靜默丟棄。
+  // 法源僅引第116條：第508條只決定支付命令的聲請資格，不是欄位對應依據。
+  defineRule({
+    id: 'CIVIL_116_5_MOTION',
+    basis: '民事訴訟法第116條第1項第5款準用',
+    level: 'REQUIRED',
+    appliesTo: ['civil'],
+    pleadingTypes: ['motion'],
+    sourceReference: CIVIL_PROCEDURE_116,
+    targetSection: 'subject_and_facts',
+    description: '民事聲請書狀應表明請求之原因事實。'
   })
 ];
 

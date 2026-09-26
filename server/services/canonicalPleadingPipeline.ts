@@ -91,9 +91,20 @@ export async function executeCanonicalPleadingPipeline(categoryKey: string, rawP
 
   const factContent = text(params, 'facts', 'incidentDetails', 'caseContext');
   const claimAmount = text(params, 'claimAmount', 'claimTotalAmount', 'debtAmount');
-  const claimStatement = text(params, 'claimStatement') || (
-    claimAmount ? `${config.claimLabel}：請求給付 ${claimAmount}` : ''
-  );
+  // 金錢請求的聲明若只寫「請求給付 350,000」，並不足以讓相對人知道
+  // 還要負擔多少利息。因此在使用者已填寫利率或清償期日時一併載明；
+  // 未填寫的項目不臆造，直接略過。
+  const interestRate = text(params, 'interestRate');
+  const dueDate = text(params, 'dueDate');
+  const claimStatement = text(params, 'claimStatement') || (claimAmount
+    ? [
+        `${config.claimLabel}：請求給付新臺幣 ${claimAmount} 元`,
+        interestRate && dueDate
+          ? `，及自民國 ${dueDate} 起至清償日止按週年利率百分之${interestRate}計算之利息`
+          : '',
+        '。'
+      ].join('')
+    : '');
   const evidence = evidenceFrom(params, 'evidence', 'evidenceDetails', 'evidenceList');
   const attachments = evidenceFrom(params, 'attachments', 'attachmentDetails');
   const factId = factContent ? randomUUID() : '';
@@ -118,7 +129,9 @@ export async function executeCanonicalPleadingPipeline(categoryKey: string, rawP
     claims: claimStatement ? [{
       id: claimId,
       statement: claimStatement,
-      factIds: factId && config.pleadingType === 'complaint' ? [factId] : [],
+      // 原因事實必須被聲明引用才會渲染到書狀。先前只在 complaint 類型引用，
+      // 導致 motion 類（如支付命令聲請狀）使用者的「請求原因事實」被靜默丟棄。
+      factIds: factId ? [factId] : [],
       evidenceIds: evidence.map(item => item.id)
     }] : [],
     facts: factContent ? [{
