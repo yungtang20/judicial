@@ -25,6 +25,7 @@ import { verifyLegalCitations } from '../lib/services/citationCheck';
 import { CitationVerificationResult } from '../types';
 import { ExternalCitationResult } from '../lib/services/citationCheck';
 import { extractPdfText } from '../lib/pdfUtils';
+import { fetchWithAuth } from '../lib/apiClient';
 
 export const LegalDocAiChecker: React.FC = () => {
   const defaultSampleDoc = `民事準備書狀（範例）
@@ -112,7 +113,7 @@ export const LegalDocAiChecker: React.FC = () => {
     }
     setIsExternalChecking(true);
     try {
-      const response = await fetch('/api/external-citations/verify', {
+      const response = await fetchWithAuth('/api/external-citations/verify', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ citations, consent: externalConsent })
       });

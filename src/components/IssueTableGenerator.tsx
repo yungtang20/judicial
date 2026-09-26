@@ -6,6 +6,7 @@ import { issueRowsFromCase, issueRowsToCase, type IssueEditorRow } from '../lib/
 import { AttachmentHeaderFields, type AttachmentHeaderValues } from './appeal/AttachmentHeaderFields';
 import { IssueEditorList } from './appeal/IssueEditorList';
 import { ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { fetchWithAuth } from '../lib/apiClient';
 
 
 interface IssueTableGeneratorProps {
@@ -86,7 +87,7 @@ export default function IssueTableGenerator({ initialFacts, initialIssueSummary 
     setIsVerifyingAi(true);
     setVerifyNotice(null);
     try {
-      const res = await fetch('/api/toolbox/verify-citations', {
+      const res = await fetchWithAuth('/api/toolbox/verify-citations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ documentText: issueTextCombined })

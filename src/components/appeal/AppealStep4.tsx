@@ -5,13 +5,14 @@ import { LegalSourcesDisplay } from "../LegalSourcesDisplay";
 import { Badge } from "../ui/Badge";
 import type { AppealStepContext } from './appealStepContext';
 import { buildEvidenceTableMarkdown, evidenceTableCells } from '../../lib/caseRowAdapters';
+import { fetchWithAuth } from '../../lib/apiClient';
 
 export function AppealStep4({ ctx }: { ctx: AppealStepContext }) {
   const [tlrStatus, setTlrStatus] = useState<'loading' | 'enabled' | 'disabled' | 'unknown'>('loading');
 
   useEffect(() => {
     const controller = new AbortController();
-    fetch('/api/health', { signal: controller.signal })
+    fetchWithAuth('/api/health', { signal: controller.signal })
       .then(async response => {
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();

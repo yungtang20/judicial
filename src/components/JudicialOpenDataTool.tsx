@@ -3,6 +3,7 @@ import { Database, Key, List, FileText, CheckCircle2, AlertCircle, RefreshCw, Do
 import { withJudgmentCache, clearJudgmentCache, getJudgmentCacheStats } from '../lib/cache/judgmentCache';
 import { saveJdgToken, getValidJdgToken, saveMemberToken, getValidMemberToken } from '../lib/cache/judicialTokenStore';
 import { formatStandardCourtCitation, buildPleadingCitationSnippet, copyToClipboard } from '../lib/citationFormatter';
+import { fetchWithAuth } from '../lib/apiClient';
 
 interface JudicialCategory {
   categoryNo: string;
@@ -105,7 +106,7 @@ export default function JudicialOpenDataTool() {
       setMemberToken(validMember);
     }
 
-    fetch('/api/judicial/env-status')
+    fetchWithAuth('/api/judicial/env-status')
       .then((res) => res.json())
       .then((data) => {
         if (data.configured) {
@@ -123,7 +124,7 @@ export default function JudicialOpenDataTool() {
       const cacheRes = await withJudgmentCache(
         'judicial_categories_list',
         async () => {
-          const res = await fetch('/api/judicial/categories');
+          const res = await fetchWithAuth('/api/judicial/categories');
           const data = await res.json();
           if (!Array.isArray(data)) throw new Error('取得分類失敗：' + JSON.stringify(data));
           return data;
@@ -152,7 +153,7 @@ export default function JudicialOpenDataTool() {
       const cacheRes = await withJudgmentCache(
         `judicial_res_${catNo}`,
         async () => {
-          const res = await fetch(`/api/judicial/categories/${catNo}/resources`);
+          const res = await fetchWithAuth(`/api/judicial/categories/${catNo}/resources`);
           const data = await res.json();
           return Array.isArray(data) ? data : [];
         },
@@ -176,7 +177,7 @@ export default function JudicialOpenDataTool() {
     setSelectedFileSetId(fileSetId);
     setFileLoading(true);
     try {
-      const res = await fetch(`/api/judicial/fileset/${fileSetId}?top=${fileTop}&skip=${fileSkip}`);
+      const res = await fetchWithAuth(`/api/judicial/fileset/${fileSetId}?top=${fileTop}&skip=${fileSkip}`);
       const text = await res.text();
       setFileContent(text);
     } catch (err: any) {
@@ -191,7 +192,7 @@ export default function JudicialOpenDataTool() {
     setMemberAuthLoading(true);
     setMemberAuthError('');
     try {
-      const res = await fetch('/api/judicial/member-token', {
+      const res = await fetchWithAuth('/api/judicial/member-token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ account, password })
@@ -216,7 +217,7 @@ export default function JudicialOpenDataTool() {
     setJdgAuthLoading(true);
     setJdgAuthError('');
     try {
-      const res = await fetch('/api/judicial/jdg/auth', {
+      const res = await fetchWithAuth('/api/judicial/jdg/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user: account, password })
@@ -247,7 +248,7 @@ export default function JudicialOpenDataTool() {
       const cacheRes = await withJudgmentCache(
         'judicial_jlist_recent',
         async () => {
-          const res = await fetch('/api/judicial/jdg/jlist', {
+          const res = await fetchWithAuth('/api/judicial/jdg/jlist', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token: jdgToken })
@@ -291,7 +292,7 @@ export default function JudicialOpenDataTool() {
       const cacheRes = await withJudgmentCache(
         `jdoc_${targetJid.trim()}`,
         async () => {
-          const res = await fetch('/api/judicial/jdg/jdoc', {
+          const res = await fetchWithAuth('/api/judicial/jdg/jdoc', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token: jdgToken, j: targetJid })

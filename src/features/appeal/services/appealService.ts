@@ -1,6 +1,7 @@
 import { parsePdfFile } from "../../../lib/pdfUtils";
 import { scrubPersonalInfo } from "../../../lib/deidentifier";
 import { IssueRow, EvidenceRow, PrecedentItem } from "../types";
+import { fetchWithAuth } from '../../../lib/apiClient';
 
 export interface AppealAnalysisParams {
   rawText: string;
@@ -33,7 +34,7 @@ export class AppealService {
    * 發起判決分析 API 呼叫
    */
   public static async analyzeJudgment(judgmentText: string, courtName?: string) {
-    const res = await fetch('/api/analyze-judgment', {
+    const res = await fetchWithAuth('/api/analyze-judgment', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ judgmentText, targetCourt: courtName })
@@ -49,7 +50,7 @@ export class AppealService {
    * 發起上訴理由書產製 API 呼叫
    */
   public static async generatePetition(params: Record<string, unknown>) {
-    const res = await fetch('/api/generate-appeal-petition', {
+    const res = await fetchWithAuth('/api/generate-appeal-petition', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(params)

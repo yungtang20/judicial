@@ -11,6 +11,7 @@ import { LEGAL_TOOLS } from '../lib/legalToolRegistry';
 import { useCaseStore } from '../store/useCaseStore';
 import { useToolContext } from '../contexts/ToolContext';
 import type { LegacyToolSelectionData } from '../types/navigation';
+import { fetchWithAuth } from '../lib/apiClient';
 import { 
   Compass, 
   Search, 
@@ -95,7 +96,7 @@ export const LegalGuideHome: React.FC = () => {
     setCopiedDraft(false);
 
     try {
-      const res = await fetch('/api/triage/universal', {
+      const res = await fetchWithAuth('/api/triage/universal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: q })
