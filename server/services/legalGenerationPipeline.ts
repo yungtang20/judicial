@@ -202,6 +202,8 @@ export interface PipelineExecutionOptions<T = any> {
    * 將 AI 返回之 raw text 解析為待檢驗之 documentText 及可選的 payload
    */
   parseResponse?: (rawText: string) => { documentText: string; payload?: T };
+  /** 設為 false 可停用簡體中文的再生成機會（測試用）。 */
+  simplifiedRetry?: boolean;
   /**
    * 當 AI 服務調用失敗時之降級生成函式，返回之 documentText 仍將嚴格執行檢驗
    */
@@ -275,6 +277,29 @@ export class LegalGenerationPipeline {
         }
       );
       rawGeneratedText = aiRes.text || '';
+
+      // 模型偶爾仍以簡體中文產出法律文件。與對話路徑一致，
+      // 先給一次明確要求改用繁體的再生成機會；
+      // 仍失敗才由步驟 4b 的繁體閘門擋下。
+      // 先前只有對話路徑有這個再生成機會，法律文件路徑（正確性要求更高）
+      // 卻直接退回範本——等於放棄了大多數只需換個用字就能通過的產出。
+      if (containsSimplifiedChinese(rawGeneratedText) && options.simplifiedRetry !== false) {
+        console.warn("[LegalPipeline] 產出含簡體中文，要求模型改用繁體重新生成");
+        const retryRes = await executeWithResilience(
+          () => provider.generate(
+            `${sanitizedPrompt}\n\n【重要】上一次回答出現了簡體中文。` +
+            '請全部改用繁體中文重新回答，僅輸出答案本身。'
+          ),
+          {
+            timeoutMs: AI_TIMEOUT_MS,
+            maxRetries: 0,
+            breaker: aiBreaker,
+            fallbackMessage: 'AI 服務暫時無法連線，已啟動安全保護機制，請稍後再試'
+          }
+        );
+        rawGeneratedText = retryRes.text || '';
+      }
+
       if (options.parseResponse) {
         extracted = options.parseResponse(rawGeneratedText);
       } else {
