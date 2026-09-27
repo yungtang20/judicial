@@ -31,8 +31,12 @@ export function formatStandardCourtCitation(rawCitation: string, defaultType: st
       .replace(/(\d+)\s*號/, '$1 號');
   }
 
-  // 比對常見簡稱："112台上2409" 或 "112 台上 2409"
-  const supremeMatch = str.match(/^(\d{2,3})\s*(台上|台抗|台再|台聲)\s*(\d+)$/);
+  // 比對常見簡稱。
+  //
+  // 最高法院再審的實際字號是「台上再」，
+  // 先前清單寫的是「台再」，「台上」先匹配後接不上數字而整組失敗，
+  // 導致 112台上再2409 完全沒有被格式化。
+  const supremeMatch = str.match(/^(\d{2,3})\s*(台上再|台上|台抗|台再|台聲)\s*(\d+)$/);
   if (supremeMatch) {
     const [, yr, word, num] = supremeMatch;
     const isCivilOrCriminal = word.includes('抗') ? '裁定' : '判決';
@@ -44,6 +48,25 @@ export function formatStandardCourtCitation(rawCitation: string, defaultType: st
   if (highMatch) {
     const [, yr, word, num] = highMatch;
     return `高等法院 ${yr} 年度${word}字第 ${num} 號判決`;
+  }
+
+  // 地方法院簡稱："112北訴123"、"112士訴45"、"112訴67"。
+  // 這些字號的法院代碼無法從字號本身推回是哪一間地院
+  //（例如「訴」可能是臺北、臺中、臺南等地院），
+  // 因此只整理格式並標明法院名稱未載明，不臆測所屬法院。
+  // 前置代碼可為零到三字：北訴、士訴、重訴，或僅「訴」。
+  const districtMatch = str.match(/^(\d{2,3})\s*([^\d\s]{0,3}(?:易訴|勞訴|刑訴|少訴|交訴|破訴|再訴|重訴|訴))\s*(\d+)$/);
+  if (districtMatch) {
+    const [, yr, word, num] = districtMatch;
+    return `${yr} 年度${word}字第 ${num} 號（地方法院，法院名稱未載明）`;
+  }
+
+  // 已含年度與字號但未載明法院："112年度台上字第2409號"
+  // 去掉尾端的「字」，否則會組成「台上字第字第」。
+  const yearOnly = str.match(/^(\d{2,3})\s*年度\s*([^\d\s]{1,4}?)字?\s*第?\s*(\d+)\s*號?$/);
+  if (yearOnly) {
+    const [, yr, word, num] = yearOnly;
+    return `${yr} 年度${word}字第 ${num} 號（法院名稱未載明）`;
   }
 
   return str;
