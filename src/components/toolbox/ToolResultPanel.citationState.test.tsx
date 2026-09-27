@@ -145,3 +145,39 @@ describe('未完成的書狀不得交付', () => {
     }
   });
 });
+
+/**
+ * 阻擋交付時必須指出尚未填寫的欄位名稱。
+ *
+ * 案例專屬的表單預設值已全面清空（自書遺囑、拋棄遺產權、離婚協議書、
+ * 借據皆為具法律效力的文件，預填會讓使用者把捏造的姓名地址送到法院）。
+ * 若只說「請補齊」，使用者得自行回頭數文件裡的待填標記才知道要填什麼。
+ */
+describe('未填欄位的明確指引', () => {
+  it('阻擋訊息必須列出尚未填寫的欄位名稱', async () => {
+    render(
+      <ToolResultPanel
+        result={{ ...base, documentText: '遺囑\n姓名：（待填寫）\n身分證：（待填寫）' } as unknown as LegalToolboxResult}
+        currentTool={currentTool}
+        isVerifyingAi={false}
+        verifyNotice={null}
+        onFullVerify={() => {}}
+        formValues={{}} 
+      />
+    );
+    const created: Blob[] = [];
+    const original = URL.createObjectURL;
+    URL.createObjectURL = (blob: Blob) => { created.push(blob); return original.call(URL, blob); };
+    try {
+      fireEvent.click(document.getElementById('btn-download-txt')!);
+      await waitFor(() => expect(screen.getByRole('alert')).toBeTruthy());
+      const text = screen.getByRole('alert').textContent || '';
+      // 必須明確說出缺哪些欄位，而不是只說「請補齊」
+      expect(text).toMatch(/尚未填寫/);
+      expect(text.length).toBeGreaterThan(20);
+      expect(created.length).toBe(0);
+    } finally {
+      URL.createObjectURL = original;
+    }
+  });
+});

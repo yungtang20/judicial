@@ -405,6 +405,7 @@ export const LegalToolbox: React.FC<{ initialToolId?: string; initialFacts?: str
                 onFullVerify={() => handleFullVerify()}
                 isLoading={isLoading || generationStage === 'analyzing' || generationStage === 'formatting'}
                 generationStage={generationStage}
+                formValues={formInputs as Record<string, string>}
               />
             </div>
           </div>

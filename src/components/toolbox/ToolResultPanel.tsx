@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { TOOL_FIELD_SCHEMAS } from '../../lib/toolFieldSchemas';
 import { copyToClipboard } from '../../lib/citationFormatter';
 import { Copy, Download, Check, Printer, FileText } from 'lucide-react';
 import { ToolDefinition } from '../../lib/legalToolRegistry';
@@ -25,6 +26,8 @@ function escapeHtmlText(value: string): string {
 export interface ToolResultPanelProps {
   result: LegalToolboxResult | null;
   currentTool: ToolDefinition;
+  /** 目前表單各欄位的值，用於在阻擋交付時指出尚未填寫的欄位名稱 */
+  formValues?: Record<string, string>;
   isVerifyingAi: boolean;
   verifyNotice: string | null;
   onFullVerify: () => void;
@@ -36,7 +39,7 @@ export interface ToolResultPanelProps {
 /** 書狀模板在未取得使用者資料時留下的待填標記 */
 export const UNFILLED_FIELD_MARKER = '（待填寫）';
 
-export const ToolResultPanel: React.FC<ToolResultPanelProps> = ({ result, currentTool, isVerifyingAi, verifyNotice, onFullVerify, isLoading, generationStage }) => {
+export const ToolResultPanel: React.FC<ToolResultPanelProps> = ({ result, currentTool, isVerifyingAi, verifyNotice, onFullVerify, isLoading, generationStage, formValues = {} }) => {
   const [copied, setCopied] = useState(false);
   const [printBlockedNotice, setPrintBlockedNotice] = useState<string | null>(null);
   const [copyError, setCopyError] = useState<string | null>(null);
@@ -258,8 +261,19 @@ export const ToolResultPanel: React.FC<ToolResultPanelProps> = ({ result, curren
     // 使用者可能把缺欄位的草稿當成完整書狀提交法院。
     // 這與專案既有的 P9 fail-closed 原則一致：未完成的東西不得交付。
     if (result.documentText.includes(UNFILLED_FIELD_MARKER)) {
+      // 直接列出未填的欄位名稱。
+      // 案例專屬的表單預設值已全面清空（自書遺囑、拋棄遺產權、離婚協議書、
+      // 借據等都是具法律效力的文件，預填會讓使用者把捏造的姓名地址送到法院）。
+      // 若只說「請補齊」，使用者得自行回頭數文件裡的待填標記才知道要填什麼。
+      const schema = TOOL_FIELD_SCHEMAS[currentTool.id] || [];
+      const missingLabels = schema
+        .filter(field => !String(formValues[field.key] ?? '').trim())
+        .map(field => field.label);
+      const hint = missingLabels.length
+        ? `尚未填寫：${missingLabels.join('、')}。`
+        : '';
       setCopyError(
-        `本文件仍有未填寫的欄位（標示為${UNFILLED_FIELD_MARKER}），請先補齊後再交付，避免把缺欄位的草稿當成完整書狀。`
+        `${hint}本文件仍有未填寫的欄位（標示為${UNFILLED_FIELD_MARKER}），請先補齊後再交付，避免把缺欄位的草稿當成完整書狀。`
       );
       return;
     }
