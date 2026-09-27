@@ -137,6 +137,14 @@ router.post("/api/process/router", async (req: Request, res: Response) => {
       result = evaluateRouterFallback(trimmedInput);
     }
 
+    // 繁體中文閘門：路由結果的 chapter、cause、legalBasis 都會顯示給使用者。
+    // 先前只保護了 missing_elements，漏掉這幾個同樣會顯示的欄位
+    // （實測統一入口的結果出現「当」字）。
+    if (containsSimplifiedChinese([result.chapter, result.cause, ...(result.missing_elements || [])].filter(Boolean).join(''))) {
+      console.warn("[LegalProcess] 路由輸出含簡體中文，缺漏清單改用繁體預設");
+      result.missing_elements = defaultMissingElementsPrompt;
+    }
+
     // 啟發式安全保險 (Heuristic Guardrail)：檢查性侵害、家暴或跟蹤騷擾，若吻合則強制 is_sensitive = true
     const kwFilter = filterSensitiveKeywords(trimmedInput);
     if (

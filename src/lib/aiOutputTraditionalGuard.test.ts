@@ -65,6 +65,7 @@ describe('每個模型輸出指派點都有對應的檢查', () => {
     { file: 'routes/unifiedWorkflow.ts', assignment: 'rawMessage = response.text', guard: 'containsSimplifiedChinese(rawMessage)' },
     { file: 'routes/unifiedWorkflow.ts', assignment: 'const options = JSON.parse(jsonStr)', guard: 'containsSimplifiedChinese(String(option))' },
     { file: 'routes/legalProcess.ts', assignment: 'rawMessage = response.text', guard: 'containsSimplifiedChinese(rawMessage)' },
+    { file: 'routes/legalProcess.ts', assignment: '路由 chapter/cause/missing_elements', guard: 'result.chapter, result.cause' },
     { file: 'routes/legalProcess.ts', assignment: 'analysis = response.text', guard: 'containsSimplifiedChinese(analysis)' },
     { file: 'routes/judicial.ts', assignment: 'Array.isArray(parsed.precedents)', guard: 'containsSimplifiedChinese([p.summary, p.relevance, p.keyTakeaway]' },
     { file: 'routes/defense.ts', assignment: 'parsed = JSON.parse(cleaned)', guard: 'containsSimplifiedChinese(JSON.stringify(parsed))' }
