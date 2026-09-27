@@ -1,4 +1,5 @@
 import { Router, Request, Response } from "express";
+import { containsSimplifiedChinese } from "../../src/lib/traditionalChineseGuard.js";
 import { defaultAIProvider } from "../../src/ai/providers/providerRegistry.js";
 import {
   buildRouterPrompt,
@@ -79,15 +80,31 @@ function evaluateRouterFallback(trimmedInput: string): RouterEvaluationResult {
     cause = "返還租賃押金與租約終止爭議";
   }
 
+  // 這份清單會直接呈現給使用者，模型偶爾以簡體中文回覆
+  // （實測出現「缺乏当事人資訊（人）」）。缺漏清單是引導文字而非法律主張，
+  // 因此可在本地重新建構，不需因字體問題讓整個路由失敗。
+  const missingForDisplay = missing.length > 0 ? missing : (trimmedInput.length < 30 ? ["具體事發經過細節"] : []);
+
   return {
     domain,
     chapter,
     cause,
     is_sensitive: isSensitive,
     is_complete: isComplete,
-    missing_elements: missing.length > 0 ? missing : (trimmedInput.length < 30 ? ["具體事發經過細節"] : [])
+    missing_elements: missingForDisplay.some(containsSimplifiedChinese)
+      ? defaultMissingElementsPrompt
+      : missingForDisplay
   };
 }
+
+/** 模型回覆含簡體中文時使用的繁體預設缺漏指引（依人、事、時、地、證五要素） */
+const defaultMissingElementsPrompt = [
+  '缺乏當事人資訊（人）',
+  '缺乏事件詳細經過（事）',
+  '缺乏發生時間（時）',
+  '缺乏發生地點（地）',
+  '缺乏證據描述（證據）'
+];
 
 /**
  * 節點 1：智能路由與完整度檢查
@@ -186,11 +203,22 @@ router.post("/api/process/question", async (req: Request, res: Response) => {
       options = ["事件發生在最近3天內", "對方是我的配偶或同住伴侶", "已有留下就醫或對話紀錄"];
     }
 
+    // 追問文字與選項都會直接顯示給使用者。
+    // 模型偶爾以簡體中文回覆；此時以通用繁體追問取代，
+    // 不得因字體問題讓整個追問節點失敗（使用者就完全卡在第二步）。
+    const hasSimplified = containsSimplifiedChinese(rawMessage) || options.some(containsSimplifiedChinese);
+    const displayedMessage = hasSimplified
+      ? "為了更精準評估您的法律救濟途徑，請補充下列關鍵事實：事件發生的具體時間、發生地點、與對方的關係身分，以及您目前已保全的證據。\n\n請選擇以下最符合您目前狀況的描述。"
+      : rawMessage;
+    const displayedOptions = hasSimplified
+      ? ["已掌握明確的時間與地點", "對方為房東／債權人／雇主等契約關係人", "已保存對話、錄音或書面紀錄"]
+      : options;
+
     return res.json({
       success: true,
       data: {
-        rawMessage,
-        suggestedOptions: options
+        rawMessage: displayedMessage,
+        suggestedOptions: displayedOptions
       }
     });
   } catch (error: any) {
