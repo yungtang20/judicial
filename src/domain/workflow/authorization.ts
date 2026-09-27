@@ -59,19 +59,34 @@ const HTTP_ROLE_TO_WORKFLOW_ROLE: Record<string, Role> = {
  */
 export interface SandboxApprovalGrant {
   scope: 'SDLC_SANDBOX';
-  environment: 'NON_PRODUCTION';
-  grantedBy: 'REQUIRE_AUTH_SANDBOX_POLICY';
+  /**
+   * 授予沙盒的環境。
+   * 正式環境亦可能授予（當管理者明確設定 ALLOW_GUEST_MODE=true），
+   * 因為安全性由角色權限結構保證，而非由環境判斷保證。
+   */
+  environment: 'NON_PRODUCTION' | 'PRODUCTION';
+  grantedBy: 'REQUIRE_AUTH_SANDBOX_POLICY' | 'ALLOW_GUEST_MODE_POLICY';
   guestSessionId: string;
 }
 
 /** 具名型別守衛：僅接受完整且合法的沙盒核准授予書 */
 export function isSandboxApprovalGrant(value: unknown): value is SandboxApprovalGrant {
   if (!isStringRecord(value)) return false;
-  return value['scope'] === 'SDLC_SANDBOX'
-    && value['environment'] === 'NON_PRODUCTION'
-    && value['grantedBy'] === 'REQUIRE_AUTH_SANDBOX_POLICY'
-    && typeof value['guestSessionId'] === 'string'
-    && value['guestSessionId'].length > 0;
+  if (value['scope'] !== 'SDLC_SANDBOX') return false;
+  if (typeof value['guestSessionId'] !== 'string') return false;
+
+  // 環境與授予來源必須成對：正式環境只可能由 ALLOW_GUEST_MODE 政策授予，
+  // 非正式環境只可能由 REQUIRE_AUTH 沙盒政策授予。
+  // 逐項獨立接受會讓偽造者得以把任意一項換掉而不被察覺。
+  const 環境 = value['environment'];
+  const 授予來源 = value['grantedBy'];
+  if (環境 === 'PRODUCTION') {
+    return 授予來源 === 'ALLOW_GUEST_MODE_POLICY';
+  }
+  if (環境 === 'NON_PRODUCTION') {
+    return 授予來源 === 'REQUIRE_AUTH_SANDBOX_POLICY';
+  }
+  return false;
 }
 
 /** 具名型別守衛：僅接受一般物件（排除 null 與陣列） */
@@ -292,7 +307,26 @@ export function extractApprovalContextFromRequest(req: any, isProd: boolean): Ap
  * 此為唯一允許簽發沙盒核准授予書的環境；production 一律 fail-closed，不存在沙盒路徑。
  */
 export function isGuestSandboxEnvironment(env: Record<string, string | undefined> = process.env): boolean {
-  return env['REQUIRE_AUTH'] === 'true' && env['NODE_ENV'] !== 'production';
+  if (env['REQUIRE_AUTH'] !== 'true') return false;
+
+  // 非正式環境維持原行為。
+  if (env['NODE_ENV'] !== 'production') return true;
+
+  // 正式環境：先前一律視為非沙盒，結果是正式站上每個訪客的
+  // SDLC 交付工作台都是死的——「AI 執行本階段交付」固定回報
+  // 「角色 [ANALYST] 無權執行 [GENERATE]」，而 ANALYST 只有 READ/ANALYZE。
+  // 首頁卻仍把它列為主要功能。
+  //
+  // 安全性不由此環境判斷保證，而由角色權限結構保證：
+  // SANDBOX 的權限清單為 READ/ANALYZE/GENERATE/VERIFY/SANDBOX_APPROVE，
+  // 結構上不可能取得 APPROVE / DEPLOY / ADMIN；且沙盒核准還需
+  // actorType=HUMAN、SDLC 階段門閥前綴與有效的 sandboxGrant 才成立。
+  // 稽核紀錄亦以 approvalPath=SANDBOX_GUEST 明確區隔於人工審批。
+  //
+  // 因此以「管理者是否明確開啟訪客模式」為判準：
+  // 未設定 ALLOW_GUEST_MODE 時 /api/auth/guest 會回 403，
+  // 訪客根本拿不到權杖，此路徑不可達——fail-closed 仍然成立。
+  return env['ALLOW_GUEST_MODE'] === 'true';
 }
 
 /**
@@ -327,8 +361,8 @@ export function extractSandboxAwareApprovalContext(
     source: 'SANDBOX_GUEST_POLICY',
     sandboxGrant: {
       scope: 'SDLC_SANDBOX',
-      environment: 'NON_PRODUCTION',
-      grantedBy: 'REQUIRE_AUTH_SANDBOX_POLICY',
+      environment: env['NODE_ENV'] === 'production' ? 'PRODUCTION' : 'NON_PRODUCTION',
+      grantedBy: env['NODE_ENV'] === 'production' ? 'ALLOW_GUEST_MODE_POLICY' : 'REQUIRE_AUTH_SANDBOX_POLICY',
       guestSessionId
     }
   };

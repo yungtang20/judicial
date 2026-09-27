@@ -263,9 +263,22 @@ describe('Sandbox Role Permission Matrix (guest sandbox, non-production)', () =>
 
   it('rejects malformed sandbox grants', () => {
     expect(isSandboxApprovalGrant(undefined)).toBe(false);
-    expect(isSandboxApprovalGrant({ ...createSandboxContext().sandboxGrant, environment: 'PRODUCTION' })).toBe(false);
+    // 授予來源不得為用戶端自報
     expect(isSandboxApprovalGrant({ ...createSandboxContext().sandboxGrant, grantedBy: 'CLIENT_HEADER' })).toBe(false);
+    // 環境與授予來源必須成對出現：
+    // PRODUCTION 只能搭配 ALLOW_GUEST_MODE_POLICY，反之亦然。
+    expect(isSandboxApprovalGrant({
+      ...createSandboxContext().sandboxGrant, environment: 'PRODUCTION'
+    })).toBe(false);
+    expect(isSandboxApprovalGrant({
+      ...createSandboxContext().sandboxGrant, grantedBy: 'ALLOW_GUEST_MODE_POLICY'
+    })).toBe(false);
     expect(isSandboxApprovalGrant(createSandboxContext().sandboxGrant)).toBe(true);
+    expect(isSandboxApprovalGrant({
+      ...createSandboxContext().sandboxGrant,
+      environment: 'PRODUCTION',
+      grantedBy: 'ALLOW_GUEST_MODE_POLICY'
+    })).toBe(true);
   });
 });
 
@@ -276,11 +289,19 @@ describe('Sandbox Environment Detection & Context Extraction', () => {
     body: { role: 'ADMIN' }
   };
 
-  it('only treats REQUIRE_AUTH with a non-production runtime as the sandbox environment', () => {
+  it('沙盒環境需 REQUIRE_AUTH 為 true', () => {
     expect(isGuestSandboxEnvironment(SANDBOX_ENV)).toBe(true);
-    expect(isGuestSandboxEnvironment({ REQUIRE_AUTH: 'true', NODE_ENV: 'production' })).toBe(false);
     expect(isGuestSandboxEnvironment({ REQUIRE_AUTH: 'false', NODE_ENV: 'test' })).toBe(false);
     expect(isGuestSandboxEnvironment({ NODE_ENV: 'test' })).toBe(false);
+  });
+
+  it('正式環境須由管理者明確開啟訪客模式才是沙盒環境', () => {
+    // 先前正式環境一律視為非沙盒，導致正式站上訪客的 SDLC 工作台恆為死路
+    // （ANALYST 無 GENERATE 權限），但首頁仍列為主要功能。
+    expect(isGuestSandboxEnvironment({ REQUIRE_AUTH: 'true', NODE_ENV: 'production' })).toBe(false);
+    expect(isGuestSandboxEnvironment({
+      REQUIRE_AUTH: 'true', NODE_ENV: 'production', ALLOW_GUEST_MODE: 'true'
+    })).toBe(true);
   });
 
   it('downgrades guest identities to the sandbox role and issues a sandbox grant', () => {

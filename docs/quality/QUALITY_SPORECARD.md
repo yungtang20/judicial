@@ -125,3 +125,48 @@
 這次卻在寫新掃描器時重蹈覆辙。已修正為先剝除註解再掃描。
 
 已驗證修正後的掃描器有效：注入違規寫法後測試正確失敗。
+
+### 21. 正式站上 SDLC 交付工作台恆為死路
+
+在正式環境實測「AI 執行本階段交付」，固定失敗：
+
+```
+放行失敗：階段執行錯誤：權限不足：角色 [ANALYST] 無權執行 [GENERATE]
+```
+
+根因：
+
+- 訪客權杖的 `client` 角色對應到 workflow 的 `ANALYST`
+- `ROLE_PERMISSIONS.ANALYST = ['READ', 'ANALYZE']`，不含 `GENERATE`
+- `isGuestSandboxEnvironment` 原先要求 `NODE_ENV !== 'production'`，
+  因此正式環境的訪客永遠不會被降級為 `SANDBOX`
+- 而 `SANDBOX` 角色的權限是 `['READ','ANALYZE','GENERATE','VERIFY','SANDBOX_APPROVE']`
+
+`render.yaml` 同時設定 `NODE_ENV=production` 與 `ALLOW_GUEST_MODE=true`，
+結果是**首頁列為主要功能的 SDLC 交付工作台，在正式站上對每個訪客都是死的**。
+先前只測過「能不能載入」，沒有測過「核心動作能不能執行」，所以沒發現。
+
+#### 安全性並未因此降低
+
+安全性由**角色權限結構**保證，不由此環境判斷保證：
+
+- `SANDBOX` 的權限清單結構上不含 `APPROVE`／`DEPLOY`／`ADMIN`
+- 沙盒核准另需 `actorType=HUMAN`、SDLC 階段門閥前綴與有效 `sandboxGrant`
+- 稽核紀錄以 `approvalPath=SANDBOX_GUEST` 明確區隔於人工審批
+
+因此改以「管理者是否明確設定 `ALLOW_GUEST_MODE=true`」為判準。
+未設定該變數時 `/api/auth/guest` 會回 403，訪客根本拿不到權杖，
+此路徑不可達——fail-closed 仍然成立。
+
+已新增 `productionGuestSandbox.test.ts` 逐一驗證上述邊界，
+並把 `sandboxGrant` 的 `environment` 與 `grantedBy` 改為**必須成對**，
+避免偽造者只替換其中一項。
+
+#### 正式環境實測對照
+
+| | 修正前 | 修正後 |
+|---|---|---|
+| 執行階段交付 | 權限不足：角色 [ANALYST] 無權執行 [GENERATE] | 產出 v1 INTENT 工件 |
+| 本階段工件版本數 | 0 | 1（驗證狀態 PASS） |
+
+AI 在無事實輸入時正確標示「[待確認]」而非捏造事實。
