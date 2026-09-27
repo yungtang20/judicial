@@ -39,6 +39,48 @@ export interface AuditLogEntry {
   metadata?: Record<string, unknown>;
 }
 
+/**
+ * 目前部署平台的檔案系統是否為短暫磁碟。
+ *
+ * Render 存在此環境變數即代表其檔案系統在重新部署時會被清除。
+ */
+export function isEphemeralDisk(): boolean {
+  return typeof process.env.RENDER !== 'undefined';
+}
+
+export interface PersistenceDescription {
+  mode: "sqlite" | "memory";
+  /** 寫入磁碟而非記憶體——僅代表本次執行期間不會遺失。 */
+  durable: boolean;
+  /** 是否能跨重啟保留。 */
+  survivesRestart: boolean;
+  /** 部署環境的限制說明，供管理者判斷。 */
+  caveat: string;
+}
+
+/**
+ * 判定稽核記錄的持久性。
+ *
+ * 抽出為純函式，使判斷邏輯得以獨立測試——
+ * 直接依賴服務的執行期狀態會讓測試在記憶體模式下整段跳過，
+ * 等於沒有測到真正要防的行為。
+ */
+export function describePersistence(
+  mode: "sqlite" | "memory",
+  dbPath: string | undefined,
+  ephemeralDisk: boolean
+): PersistenceDescription {
+  const durable = mode === "sqlite" && dbPath !== undefined && dbPath !== ":memory:";
+  const survivesRestart = durable && !ephemeralDisk;
+  const caveat = !durable
+    ? '稽核記錄僅存在於記憶體，重新啟動後即遺失。'
+    : ephemeralDisk
+      ? '目前部署於短暫磁碟環境（Render）：稽核記錄會在重新部署或重啟時被清除，'
+        + '若需長期留存請掛載 persistent disk 或改用外部資料庫。'
+      : '稽核記錄寫入磁碟；若該磁碟為容器暫存空間，重新部署後仍可能遺失，請確認部署環境已掛載持久磁碟。';
+  return { mode, durable, survivesRestart, caveat };
+}
+
 export class AuditLogService {
   private static db: any = null;
   private static logs: AuditLogEntry[] = [];
@@ -94,12 +136,28 @@ export class AuditLogService {
 
   private static activeDbPath: string | undefined;
 
-  public static getPersistenceStatus(): { mode: "sqlite" | "memory"; durable: boolean; error?: string; path?: string } {
+  public static getPersistenceStatus(): {
+    mode: "sqlite" | "memory";
+    /** 寫入磁碟而非記憶體——僅代表本次執行期間不會遺失。 */
+    durable: boolean;
+    /**
+     * 是否能跨重啟保留。
+     * Render 免費方案等環境的檔案系統是短暫的，重新部署即清除。
+     * 健康檢查是管理者判斷稽核記錄可信度的地方，
+     * 不可僅以「寫入磁碟」宣稱為持久保存。
+     */
+    survivesRestart: boolean;
+    /** 部署環境的限制說明，供管理者判斷。 */
+    caveat: string;
+    error?: string;
+    path?: string;
+  } {
     this.initDb();
-    // durable = 實際寫入非 :memory: 的磁碟路徑。fallback 至 data/audit_logs.sqlite
-    // 亦為磁碟持久化；是否長期保留取決於部署環境 (Render 無 persistent disk 會清除)。
-    const durable = this.persistenceMode === "sqlite" && this.activeDbPath !== undefined && this.activeDbPath !== ":memory:";
-    return { mode: this.persistenceMode, durable, error: this.persistenceError, path: this.activeDbPath };
+    return {
+      ...describePersistence(this.persistenceMode, this.activeDbPath, isEphemeralDisk()),
+      error: this.persistenceError,
+      path: this.activeDbPath
+    };
   }
 
   /**

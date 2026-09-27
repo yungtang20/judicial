@@ -585,3 +585,48 @@ useSmartAppealAssistant 9 處。
 templateId、sourceHash、artifactFingerprint、mimeType、fileName，
 因此實際交付仍會被擋下。此處暫不變更，避免在沒有實際觸發路徑的情況下
 改動 P9 判定——那是 fail-closed 的核心，應有真實案例再動。
+
+### 17. 健康檢查對稽核記錄的持久性過度宣稱
+
+用 `render.yaml` 的完整環境變數模擬實際部署時，健康檢查回報：
+
+```json
+"auditPersistence": { "mode": "sqlite", "durable": true, "path": "...audit_logs.sqlite" }
+```
+
+管理者會據此認為稽核記錄能長期留存。但本專案的部署目標
+**Render 免費方案使用短暫檔案系統**，重新部署即清除所有資料。
+
+健康檢查正是管理者判斷稽核記錄可信度的地方，
+不可僅以「寫入磁碟而非記憶體」就宣稱為持久保存。
+
+修正：拆出 `survivesRestart` 與 `caveat`，
+並在短暫磁碟環境明確說明會被清除、以及該怎麼處理。
+
+以 `RENDER=true` 模擬部署後的實際輸出：
+
+```json
+{
+  "mode": "sqlite",
+  "durable": true,
+  "survivesRestart": false,
+  "caveat": "目前部署於短暫磁碟環境（Render）：稽核記錄會在重新部署或重啟時被清除，若需長期留存請掛載 persistent disk 或改用外部資料庫。"
+}
+```
+
+### 這一輪我自己也犯了同樣的錯
+
+第一版測試直接依賴服務的執行期狀態，而測試環境使用 `:memory:`，
+於是我寫的 `if (s.durable)` 條件讓**核心斷言整段被跳過**——
+把過度宣稱還原回去測試仍然全綠。
+
+這正是本專案一路在清理的那種空轉測試，又出現在我自己新寫的測試上。
+已把判斷邏輯抽成純函式 `describePersistence(mode, path, ephemeralDisk)`，
+使測試不受執行期環境影響。重驗後還原過度宣稱，測試正確失敗。
+
+### 同時確認部署設定可用
+
+以 `render.yaml` 的完整環境變數（NODE_ENV=production、AI_PROVIDER=agnes、
+ALLOW_GUEST_MODE、JWT_SECRET、AGNES_*、APP_URL）啟動：
+伺服器正常啟動、健康檢查回 HEALTHY、首頁 HTTP 200。
+AI 提供商的健康檢查也誠實標示「契約已設定，但未驗證線上相容性」。
