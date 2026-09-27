@@ -1,8 +1,39 @@
+// 常見於散文的功能詞；中文姓名不會以這些字開頭或結尾
+const NOT_PARTY_NAME = new Set([
+  '卻', '遲', '未', '不', '必', '也', '就', '而', '且', '或', '等', '被', '把', '將', '應', '須', '要',
+  '有', '沒', '還', '只', '更', '又', '很', '已', '經', '曾', '正', '在', '於', '與', '對', '給', '讓',
+  '使', '由', '因', '所', '其', '他', '者', '上', '下', '前', '後', '中', '來', '去', '出', '為', '該', '本'
+]);
+
+/**
+ * 從正則抓到的字串取出真正的姓名。
+ * 遇到功能詞即停止（「被告李四龍於民國」取到「李四龍」），
+ * 若開頭就是功能詞或含遮蔽符號，代表抓到的是散文而非姓名，回傳空字串。
+ */
+function trimToPartyName(captured: string): string {
+  let taken = "";
+  for (const ch of captured) {
+    if (NOT_PARTY_NAME.has(ch)) break;
+    taken += ch;
+    if (taken.length >= 4) break;
+  }
+  // 遮蔽符號（○○○）不是姓名
+  if (/[○●◎]/.test(taken)) return "";
+  return taken.length >= 2 ? taken : "";
+}
+
 // 智慧案件事實故事化生成器（綜合被害人、涉嫌人/被告、證人多方觀點，以小說紀實故事體裁呈現）
 function generateStorytellingNarrative(judgmentText: string, courtName: string, caseNo: string, isCriminal: boolean, isCriminalComp: boolean, isAdmin: boolean): string {
   // 嘗試從判決書提取關鍵當事人資訊
-  const defendantMatch = judgmentText.match(/(?:被告|上訴人即被告|受判決人)\s*([\u4e00-\u9fa5]{2,4})/);
-  const defendantName = defendantMatch ? defendantMatch[1] : "涉案當事人";
+  // 判決書常以「乙○○」遮蔽姓名。原先的正則遇到遮蔽符號會跨過去抓後面的散文，
+  // 實測「原告已依約支付價款，被告卻遲未交付」把「卻遲未交」當成被告姓名，
+  // 直接出現在產出的故事裡。
+  // 修正：先要求姓名後方必須是非中文字元（句點、空白等），
+  // 抓不到就使用中性稱呼，不猜測。
+  const defendantMatch = judgmentText.match(
+    /(?:被告|上訴人即被告|受判決人)\s*([\u4e00-\u9fa5○●◎]{1,8})/
+  );
+  const defendantName = trimToPartyName(defendantMatch ? defendantMatch[1] : "") || "涉案當事人";
 
   const victimMatch = judgmentText.match(/(?:告訴人|被害人|代號\s*[\w\d]+|Ａ女|A女|Ｂ女|B女|被害者)\s*([\u4e00-\u9fa5\w\d]{1,6})/i);
   const victimName = victimMatch ? victimMatch[1] : (isCriminal ? "被害人" : "相對人");
