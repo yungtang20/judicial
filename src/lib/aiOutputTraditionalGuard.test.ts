@@ -198,8 +198,20 @@ describe('前端與工具模組的文案用字', () => {
           .split('\n')
           .map(line => line.replace(/\/\/.*$/, ''))
           .join('\n');
+        // 兩種來源都要掃：
+        // 1. 引號包住的字串常值。
+        // 2. JSX 元素文字，例如 <div>不当得利</div>。
+        //    React 中使用者可見的中文有相當比例是這種寫法，
+        //    只掃字串常值會整批漏掉。
+        //    JSX 僅存在於 .tsx；.ts 中的 > 來自箭頭函式，套用會誤判。
         const literals = [...code.matchAll(/[「"']([^"'「」\r\n]{3,})[」"']/g)].map(m => m[1]);
-        const bad = [...new Set(literals)].filter(v => /[\u4e00-\u9fff]/.test(v) && containsSimplifiedChinese(v));
+        if (/\.tsx$/.test(full)) {
+          for (const m of code.matchAll(/>([^<>{}]*[\u4e00-\u9fff][^<>{}]*)</g)) {
+            literals.push(m[1]);
+          }
+        }
+        const bad = [...new Set(literals.map(v => v.trim()))]
+          .filter(v => v && /[\u4e00-\u9fff]/.test(v) && containsSimplifiedChinese(v));
         for (const v of bad) offenders.push(`${path.relative(SRC, full)}: ${v.slice(0, 40)}`);
       }
     };
