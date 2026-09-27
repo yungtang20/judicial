@@ -26,6 +26,10 @@ describe('ToolResultPanel Export & Print Actions', () => {
     authorizedActions: ['RETURN', 'COPY', 'DOWNLOAD_TEXT', 'DOWNLOAD_WORD', 'PRINT']
   };
   const mockResult = {
+    // 夾具必須完整符合 LegalToolboxResult：先前缺少 toolCategory 與 disclaimer，
+    // 在沒有 React 型別定義時不會被發現。
+    toolCategory: 'DEBT',
+    disclaimer: '本文件僅供參考，重要事項請諮詢專業律師。',
     title: '存證信函測試',
     documentText: '一、主旨：請求返還借款。\n二、說明：查台端向本人借款新台幣壹拾萬元整...',
     antiGhostVerification: {

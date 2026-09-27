@@ -2,6 +2,8 @@
  * Core type definitions for Smart Appeal Assistant.
  */
 
+import type { LegalSearchSources } from './lib/twLegalRagClient';
+
 export interface IssueRow {
     id: string;
     issueType?: string;
@@ -141,6 +143,14 @@ export interface GeneratedPleadingResult {
     ghostCitationsFound: number;
     verifiedCitations: CitationVerificationResult[];
   };
+  /**
+   * 檢索來源資訊。伺服器端在產製時會附上（見 server/routes/defense.ts），
+   * 先前型別未宣告，導致 Stage5PleadingOutput 取用時產生型別錯誤。
+   */
+  legalSources?: LegalSearchSources;
+  isExternalRetrievalUsed?: boolean;
+  retrievalStatusMessage?: string;
+  allowedCitations?: string[];
 }
 
 /**

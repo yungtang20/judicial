@@ -10,10 +10,11 @@ export interface Stage5PleadingOutputProps {
   setActiveOutputTab: (t: 'LAWYER' | 'PERSONAL') => void;
   lawyerPleading: GeneratedPleadingResult | null;
   personalPleading: GeneratedPleadingResult | null;
-  handleGeneratePleading: (type: 'LAWYER' | 'PERSONAL') => void;
+  handleGeneratePleading: (type: 'LAWYER_PLEADING' | 'CLIENT_PERSONAL_REPORT') => void | Promise<void>;
   verifyNotice: string | null;
   setVerifyNotice: (notice: string | null) => void;
-  handleFullVerify: (text: string) => void;
+  /** 具名引數為選用：可指定目標分頁與要檢驗的書狀文字。 */
+  handleFullVerify: (targetTab?: 'LAWYER' | 'PERSONAL' | 'LAWYER_PLEADING' | 'CLIENT_PERSONAL_REPORT', textToVerify?: string) => void | Promise<void>;
   isVerifyingAi: boolean;
   copiedSection: string | null;
   handleCopyText: (text: string, id: string) => void;

@@ -12,7 +12,7 @@ export interface Stage3CommunicationProps {
   isLoadingMineScan: boolean;
   copiedSection: string | null;
   handleCopyText: (text: string, id: string) => void;
-  handleGeneratePleading: (type: 'LAWYER' | 'PERSONAL') => void;
+  handleGeneratePleading: (type: 'LAWYER_PLEADING' | 'CLIENT_PERSONAL_REPORT') => void | Promise<void>;
   isLoadingPleading: boolean;
 }
 

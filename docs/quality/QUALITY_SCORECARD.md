@@ -892,3 +892,58 @@ AI 在無事實輸入時正確標示「[待確認]」而非捏造事實。
 
 共同點都是：**我接受了單一量測的結果，沒有先確認量測本身指向同一個對象。**
 修正方式也一致——把「量測的一致性」變成可自動檢查的對象。
+
+### 23. 防禦分流後整個應用變成空白畫面
+
+在正式環境測試「雙軌訴訟防禦」的 B 點分流後，
+**整個應用變成完全空白**：`#root` 有 0 個子節點、頁面文字長度 0，
+且沒有任何錯誤訊息或 console 輸出。
+
+根因是資料契約不一致。`Stage2Triage` 存取：
+
+- `triageResult.extractedFacts` —— 該欄位不存在，實際是 `concreteFacts`
+- `triageResult.evidenceRequirements` —— 型別與 API 回應中都不存在
+
+對 `undefined` 取 `.length` 與 `.map` 會在 render 時拋出例外；
+專案沒有錯誤邊界，React 因此卸載整棵樹。
+
+這是本專案最嚴重的可用性缺陷：單一元件的欄位拼字錯誤，
+讓使用者整個應用變成空白且不知原因。
+
+#### 修正
+
+1. 改用實際存在的欄位（`concreteFacts` 與 `unfruitfulPoints`），
+   並依其物件結構正確渲染（先前把物件當字串直接輸出）
+2. 待舉證清單改由 `concreteFacts.pendingProof` 彙整
+3. **新增全域錯誤邊界**（`ErrorBoundary.tsx` + `main.tsx`）：
+   即使日後再有元件拋出例外，也只會影響該區段，
+   並顯示可讀訊息與「重試／重新載入」按鈕，不再整頁空白
+
+正式環境實測（載入借款自認爭議範例並執行 B 點分流）：
+
+| | 修正前 | 修正後 |
+|---|---|---|
+| 頁面文字長度 | 0（空白） | 1466 |
+| 步驟 | 停滯於輸入階段 | 事實與風險分類 |
+| 判定結果 | 無法顯示 | 信心分數 88%，事實、關係人、證據線索、待舉證完整呈現 |
+
+#### 為何 tsc 沒有抓到
+
+**`@types/react` 根本沒有安裝。**
+
+React 19 不再隨包附帶型別，而 `React.FC<Props>` 在缺少型別時不會約束 props，
+解構出的 props 一律是 `any`——**整個 UI 層沒有任何型別檢查**。
+所以 `props.triageResult.extractedFacts` 這種不存在的欄位，
+tsc 完全不會攔截。
+
+實測確認：安裝前，`React.FC<{n: number}>` 中存取 `n.notAField` 不報錯；
+一般型別錯誤（如 `const x: number = '字串'`）則會被攔截，
+證明缺口只在 React 層。
+
+安裝 `@types/react` 與 `@types/react-dom` 後，**立刻浮現 23 個既有型別錯誤**，
+包含同型的欄位存取問題（`GeneratedPleadingResult` 上的
+`legalSources`／`allowedCitations` 等四個欄位）與
+`handleGeneratePleading` 的簽章不一致。已逐一修正，現為 0 錯誤。
+
+這也說明：先前「tsc 通過」這句話為真，但涵蓋範圍只有非 React 的部分。
+**與先前「我的驗證清單太窄」是同一個家族——這次是工具本身缺了一個必要依賴。**

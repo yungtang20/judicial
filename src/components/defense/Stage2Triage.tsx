@@ -13,6 +13,17 @@ export const Stage2Triage: React.FC<Stage2TriageProps> = ({
 }) => {
   if (!triageResult) return null;
 
+  // 待舉證清單由實際存在的 concreteFacts.pendingProof 彙整而來。
+  // 先前這裡存取 evidenceRequirements——該欄位在 DefenseTriageResult
+  // 與 API 回應中都不存在，render 時對 undefined 取值會拋出例外；
+  // 專案沒有錯誤邊界，於是整棵 React 樹被卸載，畫面變成空白。
+  const 待舉證清單 = triageResult.concreteFacts
+    .filter(f => Boolean(f.pendingProof))
+    .map(f => ({
+      fact: f.factDescription,
+      advice: f.pendingProof
+    }));
+
   return (
     <div className="bg-[var(--color-surface-overlay)] border border-[var(--color-border-subtle)] rounded-xl p-6 shadow-sm space-y-6 animate-fadeIn">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[var(--color-border-subtle)] gap-3">
@@ -55,12 +66,29 @@ export const Stage2Triage: React.FC<Stage2TriageProps> = ({
             <CheckCircle2 className="w-4 h-4 text-emerald-500" />
             有效事實萃取 (Track 1)
           </div>
-          {triageResult.extractedFacts.length > 0 ? (
+          {triageResult.concreteFacts.length > 0 ? (
             <ul className="space-y-2">
-              {triageResult.extractedFacts.map((fact: string, idx: number) => (
-                <li key={idx} className="flex items-start gap-2 text-sm text-[var(--color-text-secondary)] p-2.5 rounded-lg bg-[var(--color-surface-raised)] border border-[var(--color-border-subtle)]">
+              {triageResult.concreteFacts.map((fact, idx) => (
+                <li key={fact.id || idx} className="flex items-start gap-2 text-sm text-[var(--color-text-secondary)] p-2.5 rounded-lg bg-[var(--color-surface-raised)] border border-[var(--color-border-subtle)]">
                   <span className="text-emerald-500 font-bold mt-0.5">•</span>
-                  <span>{fact}</span>
+                  <span>
+                    <span className="font-medium">{fact.factDescription}</span>
+                    {fact.involvedParties && (
+                      <span className="block text-xs text-[var(--color-text-muted)]">
+                        關係人：{fact.involvedParties}
+                      </span>
+                    )}
+                    {fact.evidenceClues && (
+                      <span className="block text-xs text-[var(--color-text-muted)]">
+                        證據線索：{fact.evidenceClues}
+                      </span>
+                    )}
+                    {fact.pendingProof && (
+                      <span className="block text-xs text-amber-700">
+                        待舉證：{fact.pendingProof}
+                      </span>
+                    )}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -77,10 +105,20 @@ export const Stage2Triage: React.FC<Stage2TriageProps> = ({
           </div>
           {triageResult.unfruitfulPoints.length > 0 ? (
             <ul className="space-y-2">
-              {triageResult.unfruitfulPoints.map((point: string, idx: number) => (
-                <li key={idx} className="flex items-start gap-2 text-sm text-[var(--color-text-secondary)] p-2.5 rounded-lg bg-[var(--color-surface-raised)] border border-[var(--color-border-subtle)] opacity-80">
+              {triageResult.unfruitfulPoints.map((point, idx) => (
+                <li key={point.id || idx} className="flex items-start gap-2 text-sm text-[var(--color-text-secondary)] p-2.5 rounded-lg bg-[var(--color-surface-raised)] border border-[var(--color-border-subtle)] opacity-80">
                   <span className="text-[var(--color-text-muted)] font-bold mt-0.5">•</span>
-                  <span>{point}</span>
+                  <span>
+                    <span className="font-medium">{point.point}</span>
+                    {point.whyUnfruitful && (
+                      <span className="block text-xs text-[var(--color-text-muted)]">{point.whyUnfruitful}</span>
+                    )}
+                    {point.judgePerspectiveRisk && (
+                      <span className="block text-xs text-amber-700">
+                        審視者觀點風險：{point.judgePerspectiveRisk}
+                      </span>
+                    )}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -96,15 +134,21 @@ export const Stage2Triage: React.FC<Stage2TriageProps> = ({
           <FileText className="w-4 h-4 text-blue-600" /> 待舉證/待釐清清單
         </h4>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {triageResult.evidenceRequirements.map((req: any, idx: number) => (
-            <div key={idx} className="p-3 rounded-lg bg-[var(--color-status-info-bg)] border border-[var(--color-status-info)]/30 flex flex-col gap-1.5">
-              <div className="font-semibold text-xs text-[var(--color-status-info)]">{req.issue}</div>
-              <div className="text-xs text-[var(--color-text-secondary)] flex items-start gap-1">
-                <ChevronRight className="w-3.5 h-3.5 shrink-0 text-blue-400 mt-0.5" />
-                <span>建議：{req.suggestion}</span>
+          {待舉證清單.length > 0 ? (
+            待舉證清單.map((item, idx) => (
+              <div key={idx} className="p-3 rounded-lg bg-[var(--color-status-info-bg)] border border-[var(--color-status-info)]/30 flex flex-col gap-1.5">
+                <div className="font-semibold text-xs text-[var(--color-status-info)]">{item.fact}</div>
+                <div className="text-xs text-[var(--color-text-secondary)] flex items-start gap-1">
+                  <ChevronRight className="w-3.5 h-3.5 shrink-0 text-blue-400 mt-0.5" />
+                  <span>建議：{item.advice}</span>
+                </div>
               </div>
+            ))
+          ) : (
+            <div className="col-span-full text-sm text-[var(--color-text-muted)] italic p-3 text-center border border-dashed rounded-lg bg-[var(--color-surface-raised)]">
+              本次分析未列出待舉證事項。
             </div>
-          ))}
+          )}
         </div>
       </div>
     </div>

@@ -477,7 +477,7 @@ export default function JudicialOpenDataTool() {
                 <p className="text-xs text-[var(--color-text-muted)]">取得司法院公開資料集類別及包含之檔案資源描述</p>
               </div>
               <button
-                onClick={fetchCategories}
+                onClick={() => { void fetchCategories(); }}
                 disabled={catLoading}
                 className="px-4 py-2 bg-[var(--color-brand-primary)] text-white text-xs font-semibold rounded-md hover:opacity-90 transition flex items-center gap-1.5 disabled:opacity-50"
               >

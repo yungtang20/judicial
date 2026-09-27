@@ -4,7 +4,8 @@ import { CheckCircle2, AlertCircle, Info } from 'lucide-react';
 
 interface ToastOptions {
   message: string;
-  type?: 'success' | 'error' | 'info';
+  /** 與 userNotice 的 NoticeTone 保持一致，避免兩處語氣定義分歧。 */
+  type?: 'info' | 'success' | 'error' | 'warning';
   duration?: number;
 }
 

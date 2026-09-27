@@ -5,7 +5,7 @@ import type { MineScanResult } from '../../types';
 
 export interface Stage4MineScanProps {
   mineScanResult: MineScanResult | null;
-  handleGeneratePleading: (type: 'LAWYER' | 'PERSONAL') => void;
+  handleGeneratePleading: (type: 'LAWYER_PLEADING' | 'CLIENT_PERSONAL_REPORT') => void | Promise<void>;
   isLoadingPleading: boolean;
   copiedSection: string | null;
   handleCopyText: (text: string, id: string) => void;
