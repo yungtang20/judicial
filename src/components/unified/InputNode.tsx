@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { CaseBackupPanel } from './CaseBackupPanel';
 import {
   Send, Sparkles, FileText, Loader2, Edit3
 } from 'lucide-react';
@@ -76,6 +77,7 @@ export const InputNode: React.FC<InputNodeProps> = (props) => {
               >
                 儲存目前內容
               </button>
+              <CaseBackupPanel />
             </div>
           </div>
 
