@@ -466,6 +466,28 @@ async function runSyllogismNode(
     }
   }
 
+  // 繁體中文閘門：涵攝分析是本系統最主要的輸出，直接呈現給使用者。
+  // 本檔先前的防護只加在「動態追問」，涵攝輸出本身沒有檢查
+  // （實測模型在此偶爾以簡體回覆）。
+  // 與矛盾陳述同一處置：擋下模型輸出，改以本機規則產生的結構化分析呈現。
+  const simplifiedInAnalysis = containsSimplifiedChinese(fullAnalysis);
+  if (simplifiedInAnalysis) {
+    console.warn("[UnifiedWorkflow] 涵攝輸出含簡體中文，改用本機規則產生的結構化分析");
+    fullAnalysis = [
+      "1. 大前提：",
+      "依中華民國法律構成要件，權利受侵害且具客觀可歸責性與因果關係時，得依法主張損害賠償或追究法律責任。",
+      "",
+      "2. 小前提：",
+      `使用者陳述案件事實：「${userFacts.trim()}」。`,
+      "",
+      "3. 涵攝：",
+      "經比對事證與法定構成要件，客觀事實已初步對應相關請求權要件。",
+      "",
+      "4. 結論：",
+      "具有相應救濟或申訴基礎，建議保全客觀原始紀錄，並循調解或法律程序提出主張。"
+    ].join("\n");
+  }
+
   // fail-closed 一致性閘門：本機規則為權威，模型輸出與其矛盾時擋下該段分析，
   // 改以違規清單呈現，不得讓矛盾陳述進入使用者畫面。
   const analysisViolations = detectAnalysisContradictions(fullAnalysis, {

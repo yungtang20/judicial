@@ -33,6 +33,14 @@ const AI_CALLERS = walk(SERVER).filter(f => {
 });
 
 describe('AI 生成端點的繁體中文防護', () => {
+  it('每個把模型回覆指派給輸出欄位的地方都必須有繁體檢查', () => {
+    // 檔案層級的檢查抓不到「同一檔案內只保護部分輸出」的情況。
+    // 先前 unifiedWorkflow 只保護動態追問，涵攝分析（主要輸出）卻沒有，
+    // 檔案層級檢查會誤判為已保護。
+    const workflow = readFileSync(path.resolve(SERVER, 'routes/unifiedWorkflow.ts'), 'utf8');
+    expect(workflow, '涵攝輸出 fullAnalysis 未受繁體檢查').toContain('containsSimplifiedChinese(fullAnalysis)');
+  });
+
   it('呼叫 AI 供應器的檔案都必須含繁體中文防護（含經共用管線間接覆蓋）', () => {
     // 直接防護，或走共用管線（管線本身已有閘門），或委派給已有閘門的底層模組
     const GUARDED_LIB = ['lib/generation/draftRefiner', 'lib/traditionalChineseGuard'];
