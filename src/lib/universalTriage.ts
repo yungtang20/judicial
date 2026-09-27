@@ -12,11 +12,17 @@ export function buildIntelligentRuleBasedTriage(query: string) {
     const q = (query || "").toLowerCase();
     
     // 1. 寵物/動物傷害 (純民事侵權，無刑事責任，非告訴乃論)
-    if (q.includes("貓") || q.includes("狗") || q.includes("寵物") || (q.includes("咬") && !q.includes("人咬人")) || q.includes("動物")) {
+    // 動物相關爭議不一定有咬傷。先前只要出現貓、狗、寵物、動物就一律標為
+    // 「咬傷」，使得「愛犬被車撞死」「貓走失」「狗吠嚇到我跌倒」都被說成遭咬傷。
+    const hasAnimal = ["貓", "狗", "寵物", "動物"].some(k => q.includes(k));
+    const hasBite = ["咬", "咬傷", "咬到", "被咬"].some(k => q.includes(k)) && !q.includes("人咬人");
+    if (hasAnimal || hasBite) {
       const cat = "CIVIL_PET_DISPUTE";
       const fallbackDoc = buildFallbackToolboxResult(cat, { incidentDetails: query, searchQuery: query });
       return {
-        identifiedIssue: "寵物遭鄰犬/動物咬傷侵權損害賠償爭議",
+        identifiedIssue: hasBite
+          ? "寵物遭鄰犬/動物咬傷侵權損害賠償爭議"
+          : "動物相關民事侵權損害賠償爭議",
         category: cat,
         caseType: "CIVIL",
         litigationNatureText: "💼 純民事事件（動物占有人侵權損害賠償，無刑事責任）",
@@ -30,19 +36,31 @@ export function buildIntelligentRuleBasedTriage(query: string) {
         isPublicProsecution: false,
         statuteOfLimitations: "民事侵權行為損害賠償請求權時效為 2 年（民法第197條）。純財物/寵物受損事件無刑事犯罪（刑法毀損不罰過失），【絕非刑事告訴乃論罪】。",
         timeLimit: "民事侵權請求權時效為 2 年（民法第197條）",
-        plainExplanation: "鄰居飼養之犬隻咬傷您的寵物貓，依民法第190條規定，動物占有人（飼主）對其動物所加損害應負賠償責任。在法律上寵物屬所有物（財產權客體），且刑法毀損罪不罰過失，因此【純屬民事侵權損害賠償事件，無刑事犯罪責任，亦非刑事告訴乃論】。您可以向加害犬隻飼主請求全額賠償寵物緊急救治、手術診療之必要醫療費用，以及減少之價額。請求時效為知悉損害及賠償義務人起 2 年。",
-        recommendedAction: "1. 保全動物醫院診斷證明與醫療收據 2. 調閱監視器錄影 3. 寄發存證信函或向法院簡易庭起訴請求賠償。",
-        suggestedActions: [
+        plainExplanation: hasBite
+          ? "鄰居飼養之犬隻咬傷您的寵物貓，依民法第190條規定，動物占有人（飼主）對其動物所加損害應負賠償責任。在法律上寵物屬所有物（財產權客體），且刑法毀損罪不罰過失，因此【純屬民事侵權損害賠償事件，無刑事犯罪責任，亦非刑事告訴乃論】。您可以向加害犬隻飼主請求全額賠償寵物緊急救治、手術診療之必要醫療費用，以及減少之價額。請求時效為知悉損害及賠償義務人起 2 年。"
+          : "本案為動物相關的民事侵權損害賠償事件，未涉及咬傷。動物占有人（飼主）依民法第190條對其動物所加損害應負賠償責任，無論是動物造成的人身傷害或財物損失。動物在法律上屬所有物（財產權客體），且刑法毀損罪不罰過失，因此【純屬民事事件，無刑事告訴乃論問題】。請先確認損害發生的具體事實與時間，並保全現場證據。請求時效為知悉損害及賠償義務人起 2 年。",
+        recommendedAction: hasBite
+          ? "1. 保全動物醫院診斷證明與醫療收據 2. 調閱監視器錄影 3. 寄發存證信函或向法院簡易庭起訴請求賠償。"
+          : "1. 確認損害發生的具體事實與時間 2. 保全現場照片、監視器錄影或鑑價證明 3. 寄發存證信函或向法院簡易庭起訴請求賠償。",
+        suggestedActions: hasBite ? [
           "第一時間取得動物醫院正式診斷證明書、病歷及急救手術費用明細收據正本",
           "調閱現場路口或店家監視器錄影畫面，並拍攝寵物傷勢與加害犬隻照片保全證據",
-          "確認加害犬隻飼主身分，寄發存證信函催告限期賠償醫療費用",
-          "若對方拒不賠償，向管轄地方法院民事簡易庭具狀提起「民事損害賠償起訴狀」或聲請鄉鎮市調解"
+          "確認加害犬隻飼主身分，寄發存證信函催告限期賠償醫療費用"
+        ] : [
+          "確認損害發生的具體事實、時間與地點，記錄受損物品或傷害情形",
+          "拍攝現場照片、調閱監視器錄影，必要時申請鑑價或鑑定",
+          "確認動物占有人（飼主）身分，寄發存證信函催告限期賠償"
         ],
-        evidenceChecklist: [
+        evidenceChecklist: hasBite ? [
           "動物醫院診斷證明書、病歷及手術醫療費用收據正本",
           "寵物受傷部位照片及現場事發監視器錄影光碟",
           "寵物晶片登記證明文件（證明原告所有權）",
           "與對造飼主協商溝通之對話紀錄截圖或存證信函影本"
+        ] : [
+          "損害發生的現場照片與監視器錄影（證明事實與時間）",
+          "受損物品的購買憑證、估價單或鑑定報告（證明損害額）",
+          "動物所有權或飼養事實證明（晶片登記、購買憑證、鄰里證明）",
+          "與動物占有人（飼主）協商之對話紀錄或存證信函影本"
         ],
         targetToolCategory: cat,
         recommendedToolId: cat,
@@ -140,7 +158,11 @@ export function buildIntelligentRuleBasedTriage(query: string) {
     }
 
     // 4. 車禍案件 (受傷為過失傷害告訴乃論；純車損為純民事)
-    if (q.includes("車禍") || q.includes("撞到") || q.includes("擦撞") || q.includes("車損") || q.includes("過失傷害")) {
+    // 車禍分支必須真的有車輛情境。先前把「過失傷害」也納入，
+    // 使得沒有車輛的過失傷害（例如走樓梯滑倒）被歸為車禍事故，
+    // 並引用道路交通安全規則與刑事告訴，與案情不符。
+    const hasVehicle = ["車禍", "撞到", "擦撞", "車損", "車輛", "機車", "汽車", "騎車", "開車", "行人"].some(k => q.includes(k));
+    if (hasVehicle || (q.includes("過失傷害") && ["車", "機車", "汽車", "騎", "駕"].some(k => q.includes(k)))) {
       const hasInjury = q.includes("傷") || q.includes("骨折") || q.includes("痛") || q.includes("住院") || q.includes("急診") || q.includes("人受傷");
       if (hasInjury) {
         const cat = "CRIMINAL_COMPLAINT_TRAFFIC";

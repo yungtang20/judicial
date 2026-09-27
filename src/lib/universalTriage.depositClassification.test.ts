@@ -57,3 +57,54 @@ describe('租賃類案件的爭議分類', () => {
     expect(r.identifiedIssue).toContain('修繕爭議');
   });
 });
+
+/**
+ * 車禍分類必須真的有車輛情境。
+ *
+ * 實測：先前「過失傷害」被納入車禍分支的判斷式，
+ * 使得沒有車輛的過失傷害（例如走樓梯滑倒）被歸為車禍事故，
+ * 法律依據引用「道路交通安全規則」、案件性質標為刑事告訴乃論，與案情不符。
+ */
+describe('車禍分類必須有車輛情境', () => {
+  it('明確的車禍仍歸為車禍', () => {
+    const r = buildIntelligentRuleBasedTriage('我騎機車在路口被對向機車撞到，腿部骨折住院。');
+    expect(r.identifiedIssue).toContain('車禍');
+  });
+
+  it('沒有車輛的過失傷害不得歸為車禍', () => {
+    const r = buildIntelligentRuleBasedTriage('我在賣場走樓梯滑倒受傷，業主未設警示標示，屬過失傷害。');
+    expect(r.identifiedIssue).not.toContain('車禍');
+    expect(r.legalBasis.join('、')).not.toContain('道路交通安全規則');
+  });
+});
+
+/**
+ * 動物相關爭議不一定有咬傷。
+ *
+ * 實測：「愛犬被機車撞死」「貓走失」「狗吠嚇到我跌倒」
+ * 三種完全沒有咬傷的案件都被標為「寵物遭鄰犬/動物咬傷」，
+ * 說明文字要求動物醫院診斷證明，與案情無關。
+ */
+describe('動物案件的分類須反映是否真有咬傷', () => {
+  it('明確的咬傷維持原有分類', () => {
+    const r = buildIntelligentRuleBasedTriage('鄰居的狗咬傷我的貓，貓尾巴骨折需要手術。');
+    expect(r.identifiedIssue).toContain('咬傷');
+  });
+
+  it('愛犬被車撞死不應說成遭咬傷', () => {
+    const r = buildIntelligentRuleBasedTriage('對方養狗未拴繩，愛犬被機車撞死，要求賠償。');
+    expect(r.identifiedIssue).not.toContain('咬傷');
+  });
+
+  it('貓走失不應說成遭咬傷', () => {
+    const r = buildIntelligentRuleBasedTriage('我的貓走失了，鄰居說看到跑進他家院子。');
+    expect(r.identifiedIssue).not.toContain('咬傷');
+  });
+
+  it('狗吠嚇到跌倒的證據清單不應要求動物醫院診斷', () => {
+    const r = buildIntelligentRuleBasedTriage('鄰居養的狗吠嚇到我，我驚嚇跌倒受傷。');
+    const evidence = r.evidenceChecklist.join('、');
+    expect(evidence).not.toContain('動物醫院');
+    expect(evidence).toMatch(/現場照片|監視器/);
+  });
+});
