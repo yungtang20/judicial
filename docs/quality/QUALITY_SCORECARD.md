@@ -1,22 +1,30 @@
 # Judicial Quality Scorecard
 
-評分日期：2026-09-25。評分必須由當次可重現證據支持，不得把計畫、舊報告或未取得的遠端結果算成完成。
+評分日期：2026-09-27。評分必須由當次可重現證據支持，不得把計畫、舊報告或未取得的遠端結果算成完成。
 
-## 2026-09-25 現況證據
+## 2026-09-27 現況證據
 
-- `npm run lint`：通過。
-- `npm test`：160 個測試檔、1019 項測試全部通過。
-- `npm run test:coverage`：Statements 90.68%、Branches 83.78%、Functions 94.63%、Lines 92.04%。
-- `npm run test:eval`：13 項治理測試通過。
-- `npm run test:e2e`：3 項 canonical case cutover、route handoff 與 citation rejection E2E 通過。
-- `npm run test:ui:e2e`：1 項 Browser E2E 通過。
-- `npm run test:ssrf`：21 個高風險網址與 4 個合法網址通過，直接使用 production exports。
+- `npm run lint`（tsc --noEmit）：通過。
+- `npm test`：**213 個測試檔、1341 項測試**全部通過。
+- 覆蓋率：Statements 91.69%、Branches 85.19%、Functions 94.71%、Lines 93.21%。
+- `npm run test:eval`、`npm run test:e2e`、`npm run test:ui:e2e`、`npm run test:ssrf`：全部通過。
 - `npm run build`：Production 前後端建置通過。
 - `npm audit --omit=dev --audit-level=high`：0 vulnerabilities。
-- 覆蓋率範圍已納入 navigation、appeal adapter、retrieval math、共用附表標頭 component，以及 P9 交付閘門鏈的 `src/lib/finalGate/`、`src/lib/reviewer/`、`src/lib/compliance/` 三個目錄；完整 UI 與 server runtime 尚未全部納入 denominator。
-- 覆蓋率門檻除全域數值外，另對信任邊界檔案設定 per-file 門檻：SDLC orchestrator、external citation verifier，以及 P9 交付閘門核心的 `pleadingExportGate.ts` 與 `pleadingFinalGate.ts`（statements 90／branches 85／functions 95／lines 90）。
-- 測試收集範圍已涵蓋 `src/`、`server/` 與 `scripts/**/*.test.ts`；`scripts/sync-official-templates.test.mjs` 為 `node:test` 架構的獨立腳本測試，不由 vitest 收集執行。
-- 遠端 GitHub Actions、Render deploy 與正式環境 UI 尚未於本輪重新驗證；不得視為本機證據。
+- 以 `render.yaml` 的完整環境變數（NODE_ENV=production、AI_PROVIDER=agnes、
+  ALLOW_GUEST_MODE、JWT_SECRET、AGNES_*、APP_URL）實測啟動：伺服器正常、
+  `/api/health` 回 HEALTHY、首頁 HTTP 200。
+- 啟動安全校驗：production 缺少 JWT_SECRET、長度不足 32 字元、
+  使用已知不安全密鑰、或唯一字元少於 8 種時均拒絕啟動。
+- 訪客認證：production + ALLOW_GUEST_MODE=true 時前端自動取得權杖並重試；
+  未啟用訪客模式時回報可行動訊息而非無定義的 401。
+- 以正式建置產物模擬真人操作，逐一載入 10 個功能入口，
+  零 console 錯誤；實際產製民事起訴狀、執行幽靈法條攔截、
+  法定期間試算、扶養費與裁判費試算。
+- **防護測試的有效性已逐一驗證**：對每條掃描型與守護型測試植入真實缺陷，
+  確認對應測試確實會失敗。過程中修掉多個無效掃描器
+  （詳見下方各節）。
+- 遠端 GitHub Actions 與 Render 實際部署尚未於本輪重新驗證；
+  不得視為本機證據。
 
 ## 評分規準
 
@@ -30,15 +38,24 @@
 
 | 指標 | 本輪分數 | 9 分／2 分 Gate | 當次證據與缺口 |
 |---|---:|---:|---|
-| 1. 專案成熟度 | 8 | CI 等價檢查全確版本、依賴稽核無已知可修補項目、文件與部署契約一致 | 本機 lint/test/coverage/eval/E2E/SSRF/build/audit 通過；遠端 CI 與 deploy 尚未重跑。 |
-| 2. 架構成熟度 | 8 | UI/API/provider/domain/trust boundaries 有 source of truth、fail-closed 契約與直接測試 | 已重新審核並修復 tenant、SSRF、canonical case cutover、handoff 與 P9 artifact 綁定；仍待修復後 final review。 |
-| 3. 程式品質 | 8 | typecheck/build 全綠；已發現 bug 有 regression test；關鍵錯誤路徑有 assertions | 1019 項完整測試通過；本輪新增 tenant、SSRF、case cutover、appeal scope、evidence handoff、citation fail-closed 與 P9 artifact 回歸測試。 |
-| 4. 文件品質 | 8 | README、architecture、security、deployment 與 code 一致；限制與 UNKNOWN 明示 | 本檔已同步當次證據；遠端狀態明確標為 UNVERIFIED。 |
-| 5. 安全性 | 8 | production audit PASS；auth/tenant/PII/SSRF/citation fail-closed tests PASS | audit 0 vulnerabilities；tenant 與 SSRF 對抗測試通過；遠端正式環境尚未重驗。 |
-| 6. 可維護性 | 8 | 高風險執行路徑已拆 coherent boundaries；資料型大檔有完整性測試；剩餘 hotspot 有明確 owner/gate | 本輪修復集中於責任層，未新增 production依賴；coverage 弱區仍需後續補足。 |
-| 7. 整合度 | 7 | CI/Render/README clean-install 與 Node 契約一致，且目標 runtime 驗證通過 | 本機整合與 Browser E2E 通過；遠端 CI、Render 與正式 health/UI 尚未重驗。 |
-| 8. 覆蓋率 | 8 | 全域 statements/lines ≥85、branches ≥75、functions ≥90；SDLC orchestrator、external verifier 與 P9 交付閘門核心（`pleadingExportGate`、`pleadingFinalGate`）有專屬風險門檻 | 90.68% statements、83.78% branches、94.63% functions、92.04% lines；finalGate／reviewer／compliance 已納入 denominator 並加上 per-file 門檻且已重跑通過；完整 UI runtime 尚未納入 denominator。 |
-| 9. 技術債（越高越嚴重） | 3 | ≤2：沒有可立即修補 advisory；跨平台 lock/runtime 契約有結論；最高風險 hotspot 已降低或被直接 gate | 本輪已修復審核發現的 P1/P2；仍待最後獨立複核。coverage 弱區、遠端驗證與完整 UI/server gate 仍待補足。 |
+| 1. 專案成熟度 | 8 | CI 等價檢查全確版本、依賴稽核無已知可修補項目、文件與部署契約一致 | 本機 lint/test/coverage/eval/E2E/SSRF/build/audit 通過；部署設定已以實際環境變數驗證可啟動；遠端 CI 與 deploy 尚未重跑。 |
+| 2. 架構成熟度 | 8 | UI/API/provider/domain/trust boundaries 有 source of truth、fail-closed 契約與直接測試 | 修復 tenant、SSRF、canonical case cutover、handoff、P9 artifact 綁定，以及 AI 權限、訪客認證、範本清單讀取等 fail-closed 路徑；每項均以逐條植入缺陷的方式驗證有效。 |
+| 3. 程式品質 | 8 | typecheck/build 全綠；已發現 bug 有 regression test；關鍵錯誤路徑有 assertions | 1341 項完整測試通過。本輪修正 15 個真實缺陷：押金誤判刑事、起訴狀硬寫借貸事實、零引用書狀被標為完成、假日表涵蓋範圍高估、AI 設定錯誤回報為逾時、安全分流預設性侵害與配偶、13 處原生對話框、繁體防護未掃元件與 JSX 文字、扶養費未揭露基準年度、二審裁判費未分流、裁判字號漏再審與地院、範本清單讀取會改寫檔案、健康檢查對稽核持久性過度宣稱。每項均附回歸測試。 |
+| 4. 文件品質 | 8 | README、architecture、security、deployment 與 code 一致；限制與 UNKNOWN 明示 | 本檔已同步當次證據；健康檢查已能誠實揭露短暫磁碟限制；遠端狀態明確標為 UNVERIFIED。 |
+| 5. 安全性 | 8 | production audit PASS；auth/tenant/PII/SSRF/citation fail-closed tests PASS | audit 0 vulnerabilities；tenant、SSRF、個資遮蔽、幽靈法條逐項驗證有效。修正 AI 可取得 ADMIN 權限（AGENTS.md 第一條硬性規則原本無測試保護）等三個無測試保護的缺口。 |
+| 6. 可維護性 | 8 | 高風險執行路徑已拆 coherent boundaries；資料型大檔有完整性測試；剩餘 hotspot 有明確 owner/gate | 未新增 production 依賴。防護掃描範圍與擷取規則本身已成為可驗證對象（`guardScanCoverage`、`regressionLedger`），避免量測範圍被縮窄而無人察覺。 |
+| 7. 整合度 | 8 | CI/Render/README clean-install 與 Node 契約一致，且目標 runtime 驗證通過 | 以 render.yaml 環境變數實測啟動通過；Browser E2E 通過。遠端 CI 與正式站仍待驗證。 |
+| 8. 覆蓋率 | 8 | 全域 statements/lines ≥85、branches ≥75、functions ≥90；關鍵信任邊界檔案有專屬門檻 | 91.69% statements、85.19% branches、94.71% functions、93.21% lines。本輪依覆蓋率報告找出最薄弱區域（citationFormatter 57.7% 分支、apiClient 55.5%、officialTemplateManifest 60.7%）並補足測試與修正。 |
+| 9. 技術債（越高越嚴重） | 3 | ≤2：沒有可立即修補 advisory；跨平台 lock/runtime 契約有結論；最高風險 hotspot 已降低或被直接 gate | 本輪修復 15 個真實缺陷並為每個建立回歸保護；未發現可立即修補的安全 advisory。剩餘：`classifyTemplateP9Readiness` 對 P9_READY 直接放行的設計（目前無觸發路徑，且交付閘門會獨立驗證）、遠端 CI 與正式站尚未實測。 |
+
+
+## 評分規準
+
+- `9`：沒有已知重大缺口，且至少有兩種直接、可重現證據；任何影響結論的 `UNKNOWN` 都會限制分數。
+- `8`：核心能力可靠，但仍有一項實質缺口、證據漂移或未驗證外部狀態。
+- `7`：能運作且有測試，但存在多項集中風險或部署重現性不足。
+- 技術債反向計分；`0–2` 代表沒有已知可立即修補的安全 advisory、重大文件漂移或無界線 hotspot。
+- `10` 保留給包含高可用、復原演練與第三方獨立稽核的交付，不在本輪範圍。
 
 ## 第一輪變更
 
