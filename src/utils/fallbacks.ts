@@ -2,7 +2,8 @@
 const NOT_PARTY_NAME = new Set([
   '卻', '遲', '未', '不', '必', '也', '就', '而', '且', '或', '等', '被', '把', '將', '應', '須', '要',
   '有', '沒', '還', '只', '更', '又', '很', '已', '經', '曾', '正', '在', '於', '與', '對', '給', '讓',
-  '使', '由', '因', '所', '其', '他', '者', '上', '下', '前', '後', '中', '來', '去', '出', '為', '該', '本'
+  '使', '由', '因', '所', '其', '他', '者', '上', '下', '前', '後', '中', '來', '去', '出', '為', '該', '本',
+  '即', '仍', '均', '皆', '咸', '悉', '俱', '輒', '旋', '復', '甫', '方', '始', '終', '屢', '頻', '嗣', '素', '原'
 ]);
 
 /**
@@ -35,11 +36,21 @@ function generateStorytellingNarrative(judgmentText: string, courtName: string, 
   );
   const defendantName = trimToPartyName(defendantMatch ? defendantMatch[1] : "") || "涉案當事人";
 
-  const victimMatch = judgmentText.match(/(?:告訴人|被害人|代號\s*[\w\d]+|Ａ女|A女|Ｂ女|B女|被害者)\s*([\u4e00-\u9fa5\w\d]{1,6})/i);
-  const victimName = victimMatch ? victimMatch[1] : (isCriminal ? "被害人" : "相對人");
+  // 與被告姓名相同：姓名被遮蔽時不得跨過去抓散文。
+  const victimMatch = judgmentText.match(
+    /(?:告訴人|被害人|代號\s*[\w\d]+|Ａ女|A女|Ｂ女|B女|被害者)\s*([\u4e00-\u9fa5\w\d○●◎]{1,8})/i
+  );
+  const victimName = trimToPartyName(victimMatch ? victimMatch[1] : "") || (isCriminal ? "被害人" : "相對人");
 
-  const witnessMatches = judgmentText.match(/證人\s*([\u4e00-\u9fa5]{2,4})/g);
-  const witnessNames = witnessMatches ? Array.from(new Set(witnessMatches.map(w => w.replace(/^證人\s*/, '')))).slice(0, 3).join("、") : "";
+  // 證人姓名同樣套用：抓到散文寧可不用，不可寫進產出文字。
+  const witnessNames = Array.from(
+    judgmentText.matchAll(/證人\s*([\u4e00-\u9fa5]{1,8})/g)
+  )
+    .map(m => trimToPartyName(m[1]))
+    .filter(Boolean)
+    .filter((name, idx, all) => all.indexOf(name) === idx)
+    .slice(0, 3)
+    .join("、");
 
   // 嘗試擷取裁判書中的「犯罪事實」或「事實」區塊文本
   let rawFactText = "";
@@ -133,10 +144,14 @@ export function buildFallbackJudgmentAnalysis(judgmentText: string) {
   const courtName = courtMatch ? courtMatch[1] : (isCriminalComp ? "司法院刑事補償法庭" : "臺灣地方法院");
 
   const caseNoMatch = judgmentText.match(/(\d{2,3}\s*年度\s*[^\s\r\n]{1,8}\s*字\s*第\s*\d+\s*號)/);
-  const caseNo = caseNoMatch ? caseNoMatch[1].replace(/\s+/g, '') : "115年度侵訴字第33號";
+  // 抓不到案號時不得捏造。捏造的案號會被帶入上訴狀等提交法院的文件欄位，
+  // 使用者若未察覺即以假案號提出，後果嚴重。
+  // 改為空字串，讓使用者自行填寫。
+  const caseNo = caseNoMatch ? caseNoMatch[1].replace(/\s+/g, '') : "";
 
   const dateMatch = judgmentText.match(/(中華民國\s*\d{2,3}\s*年\s*\d{1,2}\s*月\s*\d{1,2}\s*日)/);
-  const judgeDate = dateMatch ? dateMatch[1] : "民國115年3月15日";
+  // 同樣不得捏造判決日期。
+  const judgeDate = dateMatch ? dateMatch[1] : "";
 
   // 嘗試從判決書中精準擷取「主文」
   let extractedHolding = "";

@@ -47,3 +47,41 @@ describe('判決書當事人姓名擷取', () => {
     expect(story).toContain('王小明祥');
   });
 });
+
+/**
+ * 抓不到資料時不得捏造。
+ *
+ * 實測：判決書沒有案號與判決日期時，系統填入
+ * 「115年度侵訴字第33號」與「民國115年3月15日」這兩個捏造值。
+ * 案號會被帶入上訴狀等提交法院的文件欄位，使用者若未察覺
+ * 即以假案號提出，後果嚴重。
+ */
+describe('抓不到資料時不得捏造', () => {
+  it('沒有案號時回傳空字串', () => {
+    const r = buildFallbackJudgmentAnalysis('某地方法院民事判決\n判決主文：被告應給付原告。');
+    expect(r.caseNo).toBe('');
+  });
+
+  it('沒有判決日期時回傳空字串', () => {
+    const r = buildFallbackJudgmentAnalysis('某地方法院民事判決\n判決主文：被告應給付原告。');
+    expect(r.judgeDate).toBe('');
+  });
+
+  it('有案號與日期時必須正確擷取', () => {
+    const r = buildFallbackJudgmentAnalysis(
+      '臺灣臺北地方法院民事判決　112年度訴字第4567號\n判決主文：被告應給付原告。中華民國 112 年 5 月 20 日'
+    );
+    expect(r.caseNo).toContain('112年度訴字第4567號');
+    expect(r.judgeDate).toContain('中華民國 112 年 5 月 20 日');
+  });
+});
+
+describe('其他姓名擷取同樣不得抓散文', () => {
+  it('「被害人即受判決人表示…」不得把「即受判決」當成姓名', () => {
+    const text = `某法院刑事判決
+檢察官起訴。被害人即受判決人表示長期遭恐嚇不肯報案。
+判決主文：被告有罪。`;
+    const story = buildFallbackJudgmentAnalysis(text).judgmentSummary.storyNarrative;
+    expect(story).not.toContain('即受判決');
+  });
+});
