@@ -1,4 +1,5 @@
 import { UNIVERSAL_SYLLOGISM_RULES } from "../../src/prompts/universal-syllogism.js";
+import { containsSimplifiedChinese } from "../../src/lib/traditionalChineseGuard.js";
 import { TRADITIONAL_CHINESE_REQUIREMENT } from '../../src/prompts/languageRequirements.js';
 import { Router, Request, Response } from "express";
 import { defaultAIProvider as configuredAIProvider } from "../../src/ai/providers/providerRegistry.js";
@@ -143,6 +144,14 @@ ${precedentContext}
       });
 
       if (Array.isArray(parsed.precedents) && parsed.precedents.length > 0) {
+        // 繁體中文閘門：這段分析（要旨、關聯性）會直接顯示給使用者。
+        // 裁判關聯分析的 prompt 已要求繁體中文，但模型偶爾以簡體回覆，
+        // 且此路徑不走共用管線，因此在本地把關。
+        if (parsed.precedents.some((p: any) =>
+          containsSimplifiedChinese([p.summary, p.relevance, p.keyTakeaway].filter(Boolean).join(''))
+        )) {
+          throw new Error('AI_JUDICIAL_ANALYSIS_SIMPLIFIED_CHINESE');
+        }
         // 確保每筆判決皆帶有對應的真實 sourceUrl
         parsed.precedents = parsed.precedents.map((p: any, idx: number) => {
           const matchedRetrieved = retrieved.find(r => r.citation === p.caseNumber);

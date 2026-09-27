@@ -1,3 +1,4 @@
+import { containsSimplifiedChinese } from '../traditionalChineseGuard';
 import {
   verifyGeneratedDocument,
   verifyGeneratedDocumentWithOfficialSources,
@@ -42,6 +43,13 @@ export async function refineVerifiedDraft(
   officialVerify?: OfficialCitationVerifier
 ): Promise<GeneratedDocumentVerification> {
   const refinedText = await generate(getRefinePrompt(draftText, instruction, allowedCitations));
+  // 提示詞已要求繁體中文，但模型偶爾仍以簡體回覆（實測曾出現「此时」「不当得利」）。
+  // 交付前的最後一道檢查在此，不依賴模型遵守指示。
+  if (containsSimplifiedChinese(refinedText)) {
+    throw new Error(
+      '微調後的草稿含簡體中文用字，為確保法律用字正確已停止交付，請重新送出微調要求。'
+    );
+  }
   const options = { allowedCitations, strictAllowedOnly: true };
   const verified = officialVerify
     ? await verifyGeneratedDocumentWithOfficialSources(refinedText, options, officialVerify)

@@ -1,3 +1,4 @@
+import { containsSimplifiedChinese, describeSimplifiedChinese } from "../../src/lib/traditionalChineseGuard.js";
 import {
   LegalSearchSources,
   retrieveLegalContext,
@@ -278,6 +279,17 @@ export class LegalGenerationPipeline {
       inputs => verifyOfficialCitations(inputs)
     );
     const verified = assertGeneratedDocumentVerified(verification);
+
+    // 步驟 4b: 繁體中文閘門
+    // 這是所有走本管線的書狀產製都會經過的最後一道把關。
+    // 放在這裡可一次覆蓋多條呼叫路徑；先前只在使用該功能的測試中
+    // 逐條路徑補防線，結果漏掉了共用管線本身。
+    // 台灣法律文件出現簡體中文是正確性缺陷，與幽靈引用同級處理。
+    if (containsSimplifiedChinese(verified.documentText)) {
+      throw new Error(
+        describeSimplifiedChinese('產製文件', verified.documentText)
+      );
+    }
 
     // 步驟 5: 封裝結構回傳
     return {
