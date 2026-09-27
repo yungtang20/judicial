@@ -45,6 +45,7 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}) {
   const headers = new Headers(options.headers);
   const guestToken = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('judicial_guest_token') : null;
   if (guestToken) headers.set('Authorization', `Bearer ${guestToken}`);
+  let guestAuthUnavailable = false;
   let res = await fetch(url, { ...options, headers });
   if (res.status === 401 && !url.startsWith('/api/auth/guest')) {
     const guestRes = await fetch('/api/auth/guest', { method: 'POST' });
@@ -55,7 +56,22 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}) {
         headers.set('Authorization', `Bearer ${guestData.token}`);
         res = await fetch(url, { ...options, headers });
       }
+    } else {
+      // 訪客驗證不可用（例如正式環境未設定 ALLOW_GUEST_MODE，
+      // 或需要正式登入）。此時重新嘗試不會成功，使用者只會看到
+      // 無法定義的 401。明確標記出來，讓介面能說明原因。
+      guestAuthUnavailable = true;
+      console.warn('[apiClient] 訪客驗證不可用，未能取得權杖。正式環境需設定 ALLOW_GUEST_MODE=true，或由使用者正式登入。');
     }
+  }
+  if (guestAuthUnavailable) {
+    res = new Response(
+      JSON.stringify({
+        error: '尚未完成身分驗證，無法存取此功能。請確認系統已啟用訪客模式，或改以正式帳號登入後再試。',
+        code: 'GUEST_AUTH_UNAVAILABLE'
+      }),
+      { status: res.status, statusText: res.statusText, headers: res.headers }
+    );
   }
   return res;
 }
