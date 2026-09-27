@@ -105,17 +105,17 @@ export function buildFallbackToolboxResult(
       title = '車禍過失傷害刑事告訴狀';
       const complainant = params.complainantName || '告訴人';
       const accused = params.accusedName || '被告';
-      const court = params.prosecutorOffice || '臺灣臺北地方檢察署';
+      const court = params.prosecutorOffice || '（待填寫）';
       
       docText = `刑事告訴狀
 案號：
 股別：
 告訴人：${complainant}
-住居所：${params.complainantAddress || '臺北市中正區重慶南路一段122號'}
-聯絡電話：${params.complainantPhone || '0912-345-678'}
+住居所：${params.complainantAddress || '（待填寫）'}
+聯絡電話：${params.complainantPhone || '（待填寫）'}
 
 被告：${accused}
-住居所：${params.accusedAddress || '新北市板橋區縣民大道二段7號'}
+住居所：${params.accusedAddress || '（待填寫）'}
 
 為被告涉犯過失傷害罪嫌，依法提出告訴事：
 
@@ -123,7 +123,7 @@ export function buildFallbackToolboxResult(
 （一）請  貴署依法偵辦，並對被告予以起訴，以維法益。
 
 二、犯罪事實
-（一）緣被告於民國 ${params.incidentDate || '113年3月12日下午2時30分'}，駕駛自用小客車行經 ${params.incidentLocation || '臺北市中正區重慶南路與衡陽路交岔路口'}，${params.incidentDetails || '未依規定減速禮讓直行車，不慎撞擊告訴人騎乘之機車，致告訴人受有左側脛骨骨折及多處挫傷等傷害。'}
+（一）緣被告於民國 ${params.incidentDate || '（待填寫）'}，駕駛自用小客車行經 ${params.incidentLocation || '（待填寫）'}，${params.incidentDetails || '（待填寫）'}
 （二）按刑法第284條明定：「因過失傷害人者，處一年以下有期徒刑、拘役或十萬元以下罰金。」被告於駕駛過程中疏未注意車前狀況，違反道路交通安全規則，致生告訴人身體受傷，其過失行為與傷害結果間顯具相當因果關係。
 
 三、證據清單
@@ -149,13 +149,13 @@ ${dateStr}
     case 'CRIMINAL_COMPLAINT_FRAUD': {
       title = '詐欺取財罪刑事告訴狀';
       const complainant = params.complainantName || '告訴人';
-      const accused = params.accusedName || '被告（網路暱稱/帳號姓名）';
-      const court = params.prosecutorOffice || '臺灣臺北地方檢察署';
+      const accused = params.accusedName || '（待填寫）';
+      const court = params.prosecutorOffice || '（待填寫）';
       
       docText = `刑事告訴狀
 告訴人：${complainant}
-聯絡電話：${params.complainantPhone || '0912-345-678'}
-住居所：${params.complainantAddress || '臺北市大安區忠孝東路四段100號'}
+聯絡電話：${params.complainantPhone || '（待填寫）'}
+住居所：${params.complainantAddress || '（待填寫）'}
 
 被告：${accused}
 年籍資料：詳附表受款銀行帳戶所有人
@@ -166,7 +166,7 @@ ${dateStr}
 （一）請  貴署依法偵辦，追查受款人頭帳戶及上游集團並從嚴起訴。
 
 二、犯罪事實與手法
-（一）被告透過網路社群假借「高獲利投資/網路購物退款」名義，施用詐術誘使告訴人陷於錯誤，告訴人遂於民國 ${params.incidentDate || '113年2月10日'} 依其指示，分批匯款新臺幣 ${params.fraudAmount || '500,000'} 元至被告指定之金融帳戶（銀行代碼：${params.bankCode || '013'}，帳號：${params.bankAccount || '12345678901234'}）。
+（一）被告透過網路社群假借「高獲利投資/網路購物退款」名義，施用詐術誘使告訴人陷於錯誤，告訴人遂於民國 ${params.incidentDate || '（待填寫）'} 依其指示，分批匯款新臺幣 ${params.fraudAmount || '（待填寫）'} 元至被告指定之金融帳戶（銀行代碼：${params.bankCode || '（待填寫）'}，帳號：${params.bankAccount || '（待填寫）'}）。
 （二）嗣後告訴人要求出金獲利時，被告旋即失聯並封鎖帳號，告訴人始驚覺受騙。核被告所為，已觸犯刑法第339條第1項普通詐欺罪及同法第339條之4加重詐欺罪嫌。
 
 三、證據清單
@@ -192,12 +192,12 @@ ${dateStr}
       title = '妨害名譽及公然侮辱罪刑事告訴狀';
       const complainant = params.complainantName || '告訴人';
       const accused = params.accusedName || '被告（網路ID/真實姓名）';
-      const court = params.prosecutorOffice || '臺灣臺北地方檢察署';
+      const court = params.prosecutorOffice || '（待填寫）';
 
       docText = `刑事告訴狀
 告訴人：${complainant}
 被告：${accused}
-住居所：${params.accusedAddress || '詳卷或IP位址歷程'}
+住居所：${params.accusedAddress || '（待填寫）'}
 
 為被告涉犯公然侮辱及加重誹謗罪嫌，依法提出告訴事：
 
@@ -205,7 +205,7 @@ ${dateStr}
 （一）請  貴署依法偵辦，追究被告刑法第309條公然侮辱罪及第310條第2項加重誹謗罪之刑事責任。
 
 二、犯罪事實
-（一）被告於民國 ${params.incidentDate || '113年4月1日'}，在 ${params.incidentLocation || '社群平台公開貼文/LINE公開群組'}，公開張貼足以貶損告訴人名譽之文字：「${params.insultWords || '不實指控與辱罵性字眼'}」。
+（一）被告於民國 ${params.incidentDate || '（待填寫）'}，在 ${params.incidentLocation || '（待填寫）'}，公開張貼足以貶損告訴人名譽之文字：「${params.insultWords || '（待填寫）'}」。
 （二）上開公開平台為不特定多數人得以共見共聞之場所，被告恣意散布不實言論，顯具公然侮辱與誹謗之真實惡意，嚴重侵害告訴人之名譽法益。
 
 三、證據清單
@@ -229,18 +229,18 @@ ${dateStr}
     case 'CRIMINAL_COMPLAINT_SEXUAL_ASSAULT': {
       title = '妨害性自主罪刑事告訴狀';
       const complainant = params.complainantName || '告訴人（被害人）';
-      const accused = params.accusedName || '被告（加害人/女友/伴侶）';
-      const court = params.prosecutorOffice || '臺灣臺北地方檢察署';
+      const accused = params.accusedName || '（待填寫）';
+      const court = params.prosecutorOffice || '（待填寫）';
 
       docText = `刑事告訴狀
 告訴人：${complainant}
-聯絡電話：${params.complainantPhone || '0912-345-678'}
-住居所：${params.complainantAddress || '臺北市大安區信義路三段120號'}
+聯絡電話：${params.complainantPhone || '（待填寫）'}
+住居所：${params.complainantAddress || '（待填寫）'}
 （受性侵害犯罪防治法保護，得請求隱匿身分代號或戶籍資料）
 
 被告：${accused}
-住居所：${params.accusedAddress || '新北市板橋區文化路二段88號'}
-與告訴人關係：${params.relationship || '伴侶/男女朋友/前任伴侶/熟識朋友'}
+住居所：${params.accusedAddress || '（待填寫）'}
+與告訴人關係：${params.relationship || '（待填寫）'}
 
 為被告涉犯刑法第221條妨害性自主（強制性交）等罪嫌，依法提出告訴事：
 
@@ -249,8 +249,8 @@ ${dateStr}
 （二）告訴人請求依性侵害犯罪防治法規定，全程由社工人員陪同在場並進行隔離詢問與隱私保護。
 
 二、犯罪事實與經過
-（一）緣告訴人與被告為 ${params.relationship || '情侶/伴侶關係'}。被告於民國 ${params.incidentDate || '113年5月10日凌晨'}，在 ${params.incidentLocation || '被告住處/告訴人住處/特定場所'}。
-（二）被告未顧及告訴人之意願，${params.incidentDetails || '在告訴人明確表達拒絕、抗拒或處於無力反抗之狀態下，被告仍以強行壓制、違反意願之強暴或強制手段，強行對告訴人為性交行為得逞。'}
+（一）緣告訴人與被告為 ${params.relationship || '（待填寫）'}。被告於民國 ${params.incidentDate || '（待填寫）'}，在 ${params.incidentLocation || '（待填寫）'}。
+（二）被告未顧及告訴人之意願，${params.incidentDetails || '（待填寫）'}
 （三）按刑法第221條第1項明定：「對於男女以強暴、脅迫、恐嚇、催眠術或其他違反其意願之方法而為性交者，處三年以上十年以下有期徒刑。」次按同法第229條之1規定，本罪屬「非告訴乃論（公訴罪）」，且我國刑法保護對象不分性別，男女被害人之性自主決定權均平等受法律絕對保護。被告所為已嚴重侵害告訴人之性自主權與身體人格權。
 
 三、證據清單
@@ -280,18 +280,18 @@ ${dateStr}
     // 3.2 親密關係伴侶/家暴保護令聲請狀
     case 'DOMESTIC_VIOLENCE_PROTECTION_ORDER': {
       title = '親密關係伴侶民事保護令聲請狀';
-      const petitioner = params.complainantName || params.petitionerName || '聲請人（被害人）';
-      const respondent = params.accusedName || params.respondentName || '相對人（加害伴侶）';
-      const court = params.courtName || '臺灣臺北地方法院家事法庭';
+      const petitioner = params.complainantName || params.petitionerName || '（待填寫）';
+      const respondent = params.accusedName || params.respondentName || '（待填寫）';
+      const court = params.courtName || '（待填寫）';
 
       docText = `民事通常/暫時保護令聲請狀
 聲請人：${petitioner}
-住居所：${params.complainantAddress || '臺北市大安區信義路三段120號'}（得請求住址秘密）
-聯絡電話：${params.complainantPhone || '0912-345-678'}
+住居所：${params.complainantAddress || '（待填寫）'}（得請求住址秘密）
+聯絡電話：${params.complainantPhone || '（待填寫）'}
 
 相對人：${respondent}
-住居所：${params.accusedAddress || '新北市板橋區文化路二段88號'}
-兩造關係：${params.relationship || '現有或曾有親密關係之男女朋友/伴侶（家庭暴力防治法第63條之1）'}
+住居所：${params.accusedAddress || '（待填寫）'}
+兩造關係：${params.relationship || '（待填寫）'}
 
 為相對人施以身體、精神及性自主不法侵害，依法聲請核發保護令事：
 
@@ -303,7 +303,7 @@ ${dateStr}
 
 二、事實及理由
 （一）聲請人與相對人為現有（或曾有）親密關係之伴侶，符合家庭暴力防治法第63條之1親密伴侶之保護範圍。
-（二）相對人於民國 ${params.incidentDate || '113年5月間'}，多次在 ${params.incidentLocation || '雙方處所'}，對聲請人施以 ${params.incidentDetails || '身體拉扯推擠、恐嚇威脅、強迫非自願性行為及密集騷擾訊息，致聲請人身心受創，終日惶惶不安，人身安全遭受重大威脅。'}
+（二）相對人於民國 ${params.incidentDate || '（待填寫）'}，多次在 ${params.incidentLocation || '雙方處所'}，對聲請人施以 ${params.incidentDetails || '（待填寫）'}
 （三）為防止相對人繼續實施不法侵害與騷擾行為，爰依家庭暴力防治法第63條之1、第14條等規定，懇請  貴院體察實情，迅速核發如聲請聲明之保護令，以保全人身安全。
 
 三、證據清單
@@ -330,15 +330,15 @@ ${dateStr}
       title = '損害賠償民事起訴狀（侵害身體及性自主權）';
       const plaintiff = params.complainantName || params.plaintiffName || '原告';
       const defendant = params.accusedName || params.defendantName || '被告';
-      const court = params.courtName || '臺灣臺北地方法院民事庭';
-      const amount = params.claimTotalAmount || '1,000,000';
+      const court = params.courtName || '（待填寫）';
+      const amount = params.claimTotalAmount || '（待填寫）';
 
       docText = `民事起訴狀
 訴訟標的金額：新臺幣 ${amount} 元
 原告：${plaintiff}
-住居所：${params.complainantAddress || '臺北市大安區信義路三段120號'}
+住居所：${params.complainantAddress || '（待填寫）'}
 被告：${defendant}
-住居所：${params.accusedAddress || '新北市板橋區文化路二段88號'}
+住居所：${params.accusedAddress || '（待填寫）'}
 
 為被告不法侵害原告身體、健康及性自主決定權，依法起訴請求損害賠償事：
 
@@ -348,7 +348,7 @@ ${dateStr}
 （三）原告願供擔保，請准宣告假執行。
 
 二、事實及理由
-（一）被告於民國 ${params.incidentDate || '113年5月10日'}，在 ${params.incidentLocation || '特定場所'}，違背原告意願，以強暴脅迫之方式對原告實施性侵害行為，經原告依法提出刑事告訴在案。
+（一）被告於民國 ${params.incidentDate || '（待填寫）'}，在 ${params.incidentLocation || '特定場所'}，違背原告意願，以強暴脅迫之方式對原告實施性侵害行為，經原告依法提出刑事告訴在案。
 （二）按「因故意或過失，不法侵害他人之權利者，負損害賠償責任。」「不法侵害他人之身體、健康、名譽、自由、信用、隱私、貞操，或不法侵害其他人格法益而情節重大者，被害人雖非財產上之損害，亦得請求賠償相當之金額。」民法第184條第1項前段、第195條第1項前段分別定有明文。
 （三）被告上開不法侵權行為，使原告受有身體傷勢、急性壓力障礙及重大心理精神創傷，需長期接受精神科診療與心理諮商。爰依侵權行為之法律關係，請求被告賠償醫療費用、心理諮商費及非財產上之精神慰婦金合計新臺幣 ${amount} 元。
 
@@ -373,18 +373,18 @@ ${dateStr}
     case 'CRIMINAL_COMPLAINT_THEFT': {
       title = '竊盜罪 / 侵占罪刑事告訴狀';
       const complainant = params.complainantName || '告訴人（被害人）';
-      const accused = params.accusedName || '被告（加害者/女友/同居人/前任）';
-      const court = params.prosecutorOffice || '臺灣臺北地方檢察署';
-      const stolenItems = params.stolenItems || params.incidentDetails || '現金、銀行存摺、印章、信用卡、貴重珠寶飾品及手機等財物';
-      const rel = params.relationship || '男女朋友 / 同居伴侶 / 熟識朋友';
+      const accused = params.accusedName || '（待填寫）';
+      const court = params.prosecutorOffice || '（待填寫）';
+      const stolenItems = params.stolenItems || params.incidentDetails || '（待填寫）';
+      const rel = params.relationship || '（待填寫）';
 
       docText = `刑事告訴狀
 告訴人：${complainant}
-聯絡電話：${params.complainantPhone || '0912-345-678'}
-住居所：${params.complainantAddress || '臺北市大安區信義路三段120號'}
+聯絡電話：${params.complainantPhone || '（待填寫）'}
+住居所：${params.complainantAddress || '（待填寫）'}
 
 被告：${accused}
-住居所：${params.accusedAddress || '新北市板橋區文化路二段88號'}
+住居所：${params.accusedAddress || '（待填寫）'}
 與告訴人關係：${rel}
 
 為被告涉犯刑法第320條竊盜罪（或第335條普通侵占罪）等罪嫌，依法提出告訴事：
@@ -393,7 +393,7 @@ ${dateStr}
 請  貴署依法偵辦，嚴加查緝被告涉犯罪嫌，並依法提起公訴，以懲不法並保全告訴人財產法益。
 
 二、犯罪事實與經過
-（一）緣告訴人與被告為 ${rel}。被告於民國 ${params.incidentDate || '113年5月間'}，在 ${params.incidentLocation || '告訴人住處/特定場所'}。
+（一）緣告訴人與被告為 ${rel}。被告於民國 ${params.incidentDate || '（待填寫）'}，在 ${params.incidentLocation || '（待填寫）'}。
 （二）被告意圖為自己不法之所有，趁告訴人不備或未經告訴人同意之際，擅自取走告訴人所有之【${stolenItems}】，並占為己有或據以盜領、變賣處分得逞。事後告訴人發覺要求返還，被告竟藉詞推託、拒不返還或失聯避不見面。
 （三）法條依據與時效要件：
   1. 按刑法第320條第1項明定：「意圖為自己或第三人不法之所有，而竊取他人之動產者，為竊盜罪，處五年以下有期徒刑、拘役或五十萬元以下罰金。」
@@ -423,16 +423,16 @@ ${dateStr}
     case 'CRIMINAL_COMPLAINT_ASSAULT': {
       title = '傷害罪刑事告訴狀（兼主張防衛事由）';
       const complainant = params.complainantName || '告訴人';
-      const accused = params.accusedName || '被告（加害者/對方）';
-      const court = params.prosecutorOffice || '臺灣臺北地方檢察署';
+      const accused = params.accusedName || '（待填寫）';
+      const court = params.prosecutorOffice || '（待填寫）';
 
       docText = `刑事告訴狀
 告訴人：${complainant}
-住居所：${params.complainantAddress || '臺北市中正區重慶南路一段122號'}
-聯絡電話：${params.complainantPhone || '0912-345-678'}
+住居所：${params.complainantAddress || '（待填寫）'}
+聯絡電話：${params.complainantPhone || '（待填寫）'}
 
 被告：${accused}
-住居所：${params.accusedAddress || '新北市板橋區文化路一段1號'}
+住居所：${params.accusedAddress || '（待填寫）'}
 
 為被告涉犯刑法第277條第1項普通傷害罪嫌，依法提出告訴事：
 
@@ -440,7 +440,7 @@ ${dateStr}
 （一）請  貴署依法偵辦，追究被告刑法第277條第1項普通傷害罪之刑事責任，以懲不法並維法益。
 
 二、犯罪事實與經過
-（一）緣被告於民國 ${params.incidentDate || '113年5月10日下午'}，在 ${params.incidentLocation || '公共場所/街道'}，因口角糾紛，被告竟先出手攻擊告訴人，${params.incidentDetails || '徒手毆打告訴人頭部、臉部並推倒在地，致告訴人受有頭部外傷、面部多處擦挫傷及四肢瘀傷等傷害。'}
+（一）緣被告於民國 ${params.incidentDate || '（待填寫）'}，在 ${params.incidentLocation || '（待填寫）'}，因口角糾紛，被告竟先出手攻擊告訴人，${params.incidentDetails || '（待填寫）'}
 （二）告訴人於遭受被告現在不法侵害之當下，僅為排除危害並避免自身傷勢擴大而為必要之防衛阻擋與隔離，並無任何主動攻擊之犯意。
 （三）按刑法第277條第1項明定：「傷害人之身體或健康者，處五年以下有期徒刑、拘役或五十萬元以下罰金。」被告先行動手逞兇，傷害告訴人身體健康，其傷害犯行明確，且本件告訴人自知悉犯人之日起尚未逾6個月法定告訴期間。
 
@@ -467,19 +467,19 @@ ${dateStr}
     // 3.45 寵物遭咬傷/侵權損害賠償起訴狀
     case 'CIVIL_PET_DISPUTE': {
       title = '民事損害賠償起訴狀（動物占有人侵權責任）';
-      const plaintiff = params.complainantName || params.plaintiffName || '原告（寵物所有人）';
-      const defendant = params.accusedName || params.defendantName || '被告（動物占有人/加害犬隻飼主）';
-      const court = params.courtName || '臺灣臺北地方法院民事簡易庭';
-      const amount = params.claimTotalAmount || '50,000';
+      const plaintiff = params.complainantName || params.plaintiffName || '（待填寫）';
+      const defendant = params.accusedName || params.defendantName || '（待填寫）';
+      const court = params.courtName || '（待填寫）';
+      const amount = params.claimTotalAmount || '（待填寫）';
 
       docText = `民事起訴狀
 訴訟標的金額：新臺幣 ${amount} 元
 原告：${plaintiff}
-住居所：${params.complainantAddress || '臺北市中正區衡陽路1號'}
-聯絡電話：${params.complainantPhone || '0912-345-678'}
+住居所：${params.complainantAddress || '（待填寫）'}
+聯絡電話：${params.complainantPhone || '（待填寫）'}
 
 被告：${defendant}
-住居所：${params.accusedAddress || '新北市板橋區文化路一段1號'}
+住居所：${params.accusedAddress || '（待填寫）'}
 
 為被告所管領之動物不法侵害原告財產，依法起訴請求損害賠償事：
 
@@ -489,7 +489,7 @@ ${dateStr}
 （三）原告願供擔保請准宣告假執行。
 
 二、事實及理由
-（一）緣原告飼養之寵物貓（具有晶片登記為原告所有），於民國 ${params.incidentDate || '113年5月間'}，在住家附近遭被告所飼養管理之犬隻咬傷。被告身為動物占有人，疏未繫妥牽繩亦未妥善看管，放任其犬隻咬傷原告之貓，致原告之貓受有嚴重創傷，經緊急送往動物醫院急救手術治療。
+（一）緣原告飼養之寵物貓（具有晶片登記為原告所有），於民國 ${params.incidentDate || '（待填寫）'}，在住家附近遭被告所飼養管理之犬隻咬傷。被告身為動物占有人，疏未繫妥牽繩亦未妥善看管，放任其犬隻咬傷原告之貓，致原告之貓受有嚴重創傷，經緊急送往動物醫院急救手術治療。
 （二）按民法第190條第1項前段明定：「動物加損害於他人者，由其占有人負損害賠償責任。」次按民法第184條第1項前段、第196條及第216條規定，不法毀損他人之物者，應向被害人賠償其物因毀損所減少之價額及必要之醫療修復費用。原告支出動物醫院診療手術醫療費新臺幣 ${amount} 元，被告自應負賠償全責。
 （三）本件純屬民事侵權損害賠償事件，原告於知悉損害及賠償義務人起 2 年法定時效內依法起訴主張權利。
 
@@ -518,11 +518,11 @@ ${dateStr}
       title = '恐嚇危害安全罪刑事告訴狀';
       const complainant = params.complainantName || '告訴人';
       const accused = params.accusedName || '被告';
-      const court = params.prosecutorOffice || '臺灣臺北地方檢察署';
+      const court = params.prosecutorOffice || '（待填寫）';
 
       docText = `刑事告訴狀
-告訴人：${complainant}  住：${params.complainantAddress || '臺北市中正區衡陽路1號'}
-被告：${accused}  住：${params.accusedAddress || '新北市板橋區文化路一段1號'}
+告訴人：${complainant}  住：${params.complainantAddress || '（待填寫）'}
+被告：${accused}  住：${params.accusedAddress || '（待填寫）'}
 
 為被告涉犯刑法第305條恐嚇危害安全罪等罪嫌，依法提出告訴事：
 
@@ -530,7 +530,7 @@ ${dateStr}
 請  貴署依法偵查起訴，以維人身安全。
 
 二、犯罪事實與理由
-（一）被告於民國 ${params.incidentDate || '113年5月間'}，因糾紛對告訴人施以恐嚇言詞或傳送恐嚇訊息，內容載明【${params.incidentDetails || '揚言對告訴人生命、身體、自由、名譽或財產施加不法侵害'}】。
+（一）被告於民國 ${params.incidentDate || '（待填寫）'}，因糾紛對告訴人施以恐嚇言詞或傳送恐嚇訊息，內容載明【${params.incidentDetails || '（待填寫）'}】。
 （二）按刑法第305條規定：「以加害生命、身體、自由、名譽、財產之事恐嚇他人，致生危害於安全者，處二年以下有期徒刑、拘役或九千元以下罰金。」被告之惡害通知已使告訴人心生畏懼，致生危害於人身安全。
 
 三、證據清單
@@ -554,11 +554,11 @@ ${dateStr}
       title = '妨害秘密 / 未經同意散布性影像刑事告訴狀';
       const complainant = params.complainantName || '告訴人';
       const accused = params.accusedName || '被告';
-      const court = params.prosecutorOffice || '臺灣臺北地方檢察署';
+      const court = params.prosecutorOffice || '（待填寫）';
 
       docText = `刑事告訴狀
-告訴人：${complainant}  住：${params.complainantAddress || '臺北市中正區衡陽路1號'}
-被告：${accused}  住：${params.accusedAddress || '新北市板橋區文化路一段1號'}
+告訴人：${complainant}  住：${params.complainantAddress || '（待填寫）'}
+被告：${accused}  住：${params.accusedAddress || '（待填寫）'}
 
 為被告涉犯刑法第315條之1妨害秘密罪、第319條之3未經同意散布性影像罪等罪嫌，依法提出告訴事：
 
@@ -566,7 +566,7 @@ ${dateStr}
 請  貴署依法偵辦，嚴加查緝，聲請扣押銷毀相關電磁紀錄並提起公訴。
 
 二、犯罪事實與理由
-（一）被告於民國 ${params.incidentDate || '113年5月間'}，未經告訴人同意，無故利用設備窺視、竊錄告訴人之非公開活動與身體隱私部位，甚至揚言或散布於網路媒介。
+（一）被告於民國 ${params.incidentDate || '（待填寫）'}，未經告訴人同意，無故利用設備窺視、竊錄告訴人之非公開活動與身體隱私部位，甚至揚言或散布於網路媒介。
 （二）按刑法第315條之1、第319條之3明定未經他人同意無故重製、散布性私密影像者，處五年以下有期徒刑。被告惡行已嚴重侵害告訴人隱私權與性自主決定權。
 
 三、證據清單
@@ -590,18 +590,18 @@ ${dateStr}
       title = '返還所有物暨侵權行為損害賠償民事起訴狀';
       const plaintiff = params.complainantName || params.plaintiffName || '原告';
       const defendant = params.accusedName || params.defendantName || '被告';
-      const court = params.courtName || '臺灣臺北地方法院民事庭';
-      const amount = params.claimTotalAmount || '100,000';
+      const court = params.courtName || '（待填寫）';
+      const amount = params.claimTotalAmount || '（待填寫）';
 
       docText = `民事起訴狀
 訴訟標的金額：新臺幣 ${amount} 元
-原告：${plaintiff}  住：${params.complainantAddress || '臺北市大安區信義路三段120號'}
-被告：${defendant}  住：${params.accusedAddress || '新北市板橋區文化路二段88號'}
+原告：${plaintiff}  住：${params.complainantAddress || '（待填寫）'}
+被告：${defendant}  住：${params.accusedAddress || '（待填寫）'}
 
 為被告無權占有並侵權損害原告財產，依法起訴請求返還所有物及損害賠償事：
 
 一、訴之聲明
-（一）被告應將原告所有之【${params.stolenItems || '財物'}】返還原告；如不能返還，應給付原告新臺幣 ${amount} 元，及自起訴狀繕本送達翌日起至清償日止，按週年利率百分之五計算之利息。
+（一）被告應將原告所有之【${params.stolenItems || '（待填寫）'}】返還原告；如不能返還，應給付原告新臺幣 ${amount} 元，及自起訴狀繕本送達翌日起至清償日止，按週年利率百分之五計算之利息。
 （二）訴訟費用由被告負擔。
 （三）原告願供擔保請准宣告假執行。
 
@@ -628,19 +628,19 @@ ${dateStr}
 
     // 3.8 全能動態 AI 法律診斷與書狀產製
     case 'UNIVERSAL_AI_PLEADING': {
-      title = params.customDocTitle || '司法爭議正式法律陳報/起訴告訴狀';
-      const personA = params.complainantName || params.plaintiffName || '具狀人（當事人）';
-      const personB = params.accusedName || params.defendantName || '相對人（對造）';
-      const targetAgency = params.prosecutorOffice || params.courtName || '管轄地方檢察署 / 地方法院';
-      const userFact = params.incidentDetails || params.searchQuery || '當事人遭遇之具體事實與爭議糾紛';
+      title = params.customDocTitle || '（待填寫）';
+      const personA = params.complainantName || params.plaintiffName || '（待填寫）';
+      const personB = params.accusedName || params.defendantName || '（待填寫）';
+      const targetAgency = params.prosecutorOffice || params.courtName || '（待填寫）';
+      const userFact = params.incidentDetails || params.searchQuery || '（待填寫）';
 
       docText = `民刑事聲請/告訴/起訴狀
 具狀人：${personA}
-住居所：${params.complainantAddress || '臺北市中正區衡陽路1號'}
-聯絡電話：${params.complainantPhone || '0912-345-678'}
+住居所：${params.complainantAddress || '（待填寫）'}
+聯絡電話：${params.complainantPhone || '（待填寫）'}
 
 對造人（相對人/被告）：${personB}
-住居所：${params.accusedAddress || '新北市板橋區文化路一段1號'}
+住居所：${params.accusedAddress || '（待填寫）'}
 
 為兩造間發生法律爭議，依法具狀主張權利事：
 
@@ -672,30 +672,30 @@ ${dateStr}
     // 4. 刑事附帶民事訴訟起訴狀
     case 'CRIMINAL_SUPPLEMENTARY_CIVIL': {
       title = '刑事附帶民事訴訟起訴狀';
-      const plaintiff = params.complainantName || '原告（即被害人）';
-      const defendant = params.accusedName || '被告（即加害人）';
-      const court = params.courtName || '臺灣臺北地方法院刑事庭';
+      const plaintiff = params.complainantName || '（待填寫）';
+      const defendant = params.accusedName || '（待填寫）';
+      const court = params.courtName || '（待填寫）';
 
       docText = `刑事附帶民事訴訟起訴狀
-案號：${params.caseNo || '113年度交簡字第999號'}
-股別：${params.caseDivision || '平股'}
+案號：${params.caseNo || '（待填寫）'}
+股別：${params.caseDivision || '（待填寫）'}
 
-原告：${plaintiff}  住：${params.complainantAddress || '臺北市中正區衡陽路1號'}
-被告：${defendant}  住：${params.accusedAddress || '新北市板橋區文化路一段1號'}
+原告：${plaintiff}  住：${params.complainantAddress || '（待填寫）'}
+被告：${defendant}  住：${params.accusedAddress || '（待填寫）'}
 
 為請求損害賠償事件，依法提起附帶民事訴訟事：
 
 一、訴之聲明
-（一）被告應給付原告新臺幣 ${params.claimTotalAmount || '680,000'} 元，及自起訴狀繕本送達翌日起至清償日止，按週年利率百分之五計算之利息。
+（一）被告應給付原告新臺幣 ${params.claimTotalAmount || '（待填寫）'} 元，及自起訴狀繕本送達翌日起至清償日止，按週年利率百分之五計算之利息。
 （二）原告願供擔保，請准宣告假執行。
 
 二、事實及理由
-（一）被告因過失傷害/侵權行為案件，業經  貴院以 ${params.caseNo || '113年度刑事案件'} 審理在案。
+（一）被告因過失傷害/侵權行為案件，業經  貴院以 ${params.caseNo || '（待填寫）'} 審理在案。
 （二）按民法第184條第1項前段、第193條第1項及第195條第1項規定，因故意或過失不法侵害他人權利者，負損害賠償責任。原告因本件事故受有以下損害：
-  1. 醫療費用：新臺幣 ${params.medicalExpense || '80,000'} 元。
-  2. 工作損失：新臺幣 ${params.workLoss || '200,000'} 元（休養期間共4個月）。
-  3. 精神慰撫金：新臺幣 ${params.solatium || '400,000'} 元。
-  以上合計新臺幣 ${params.claimTotalAmount || '680,000'} 元。
+  1. 醫療費用：新臺幣 ${params.medicalExpense || '（待填寫）'} 元。
+  2. 工作損失：新臺幣 ${params.workLoss || '（待填寫）'} 元（休養期間共4個月）。
+  3. 精神慰撫金：新臺幣 ${params.solatium || '（待填寫）'} 元。
+  以上合計新臺幣 ${params.claimTotalAmount || '（待填寫）'} 元。
 （三）依刑事訴訟法第487條第1項規定，因犯罪而受損害之人，得於刑事訴訟程序附帶提起民事訴訟，依法毋庸繳納裁判費用，特此具狀。
 
 此  致
@@ -721,7 +721,7 @@ ${dateStr}
       const sharePerPerson = totalEstate / heirCount;
 
       docText = `【法定繼承系統表與法定應繼分分配試算報告】
-被繼承人：${params.deceasedName || '林老先生'}
+被繼承人：${params.deceasedName || '（待填寫）'}
 遺產總額：新臺幣 ${totalEstate.toLocaleString()} 元整
 法定順位：民法第1138條第1款（直系血親卑親屬）與配偶共同繼承
 
@@ -753,7 +753,7 @@ ${dateStr}
 
       docText = `【遺產特留分扣減權試算與分配報告】
 遺產總價值：新臺幣 ${totalEstate.toLocaleString()} 元整
-被繼承人：${params.deceasedName || '陳老先生'}
+被繼承人：${params.deceasedName || '（待填寫）'}
 
 壹、法定特留分底線試算（民法第1223條第1款、第2款）：
 • 配偶法定特留分（應繼分 1/${heirCount} 之 1/2 = 1/${heirCount * 2}）：新臺幣 ${Math.round(forcedShare).toLocaleString()} 元整。
@@ -781,17 +781,17 @@ ${dateStr}
 
 =================== 遺 囑 全 文 （ 請 親 筆 謄 寫 ） ===================
 
-立遺囑人：${testator}，民國 ${params.birthDate || '48年6月15日'}生，身分證字號：${params.idNo || 'A123456789'}。
+立遺囑人：${testator}，民國 ${params.birthDate || '（待填寫）'}生，身分證字號：${params.idNo || '（待填寫）'}。
 立遺囑人為恐日後身故遺產發生爭執，特於意識清楚、神智清明之狀態下，依民法自書遺囑方式處分個人遺產如下：
 
 一、不動產分配：
-立遺囑人所有坐落於 ${params.realEstateAddress || '臺北市松山區敦化北路150號5樓之房屋及基地持分'}，指定由 ${params.realEstateBeneficiary || '長子 某某某'} 單獨繼承取得。
+立遺囑人所有坐落於 ${params.realEstateAddress || '（待填寫）'}，指定由 ${params.realEstateBeneficiary || '（待填寫）'} 單獨繼承取得。
 
 二、動產及存款分配：
-立遺囑人存放於 ${params.bankName || '臺灣銀行城中分行之所有活期、定期存款與股票投資'}，扣除各項喪葬必要費用後，由全體合法繼承人均分繼承。
+立遺囑人存放於 ${params.bankName || '（待填寫）'}，扣除各項喪葬必要費用後，由全體合法繼承人均分繼承。
 
 三、指定遺囑執行人：
-本遺囑指定 ${params.executorName || '某某律師/受任人'} 為遺囑執行人，於立遺囑人身故後全權辦理遺產清點、報稅及產權過戶登記手續。
+本遺囑指定 ${params.executorName || '（待填寫）'} 為遺囑執行人，於立遺囑人身故後全權辦理遺產清點、報稅及產權過戶登記手續。
 
 四、特留分聲明：
 本遺囑之分配已審酌民法第1223條特留分之相關規定，各繼承人應尊重立遺囑人之最終遺願，和睦相處。
@@ -810,17 +810,17 @@ ${dateStr}
     // 8. 拋棄繼承聲請狀
     case 'WAIVER_OF_INHERITANCE': {
       title = '民事拋棄繼承聲請狀';
-      const petitioner = params.petitionerName || '聲請人（繼承人）';
+      const petitioner = params.petitionerName || '（待填寫）';
       const deceased = params.deceasedName || '被繼承人';
-      const court = params.courtName || '臺灣臺北地方法院家事法庭';
+      const court = params.courtName || '（待填寫）';
 
       docText = `民事拋棄繼承聲請狀
 聲請人：${petitioner}
-身分證字號：${params.idNo || 'A123456789'}
-住居所：${params.petitionerAddress || '臺北市大安區信義路四段1號'}
-電話：${params.petitionerPhone || '0912-345-678'}
+身分證字號：${params.idNo || '（待填寫）'}
+住居所：${params.petitionerAddress || '（待填寫）'}
+電話：${params.petitionerPhone || '（待填寫）'}
 
-被繼承人：${deceased}（民國 ${params.deathDate || '113年1月15日'} 死亡，生前最後住所：${params.deceasedAddress || '臺北市中正區'}）
+被繼承人：${deceased}（民國 ${params.deathDate || '（待填寫）'} 死亡，生前最後住所：${params.deceasedAddress || '（待填寫）'}）
 
 為聲請拋棄繼承准予備查事：
 
@@ -828,7 +828,7 @@ ${dateStr}
 （一）聲請人對於被繼承人 ${deceased} 之遺產，依法聲明拋棄繼承，請  鈞院准予備查並核發拋棄繼承准予備查證明書。
 
 二、事實及理由
-（一）被繼承人 ${deceased} 於民國 ${params.deathDate || '113年1月15日'} 死亡，聲請人為其法定第一順位繼承人。聲請人係於民國 ${params.knowDate || '113年1月20日'} 知悉得繼承之情事。
+（一）被繼承人 ${deceased} 於民國 ${params.deathDate || '（待填寫）'} 死亡，聲請人為其法定第一順位繼承人。聲請人係於民國 ${params.knowDate || '（待填寫）'} 知悉得繼承之情事。
 （二）按民法第1174條第1項、第2項規定，繼承人得拋棄其繼承權。前項拋棄，應於知悉其得繼承之時起三個月內，以書面向法院為之。
 （三）聲請人於知悉得繼承之日起未逾三個月，自願拋棄對被繼承人之全部繼承權，並已依民法第1174條第3項規定，以存證信函合法通知因其拋棄應為繼承之人（次順位繼承人）。
 
@@ -854,13 +854,13 @@ ${dateStr}
     // 9. 兩願離婚協議書範本
     case 'DIVORCE_AGREEMENT': {
       title = '兩願離婚協議書（民法第1050條）';
-      const husband = params.husbandName || '男方（夫）';
-      const wife = params.wifeName || '女方（妻）';
+      const husband = params.husbandName || '（待填寫）';
+      const wife = params.wifeName || '（待填寫）';
 
       docText = `兩願離婚協議書
 立協議書人：
-男方（夫）：${husband}  身分證字號：${params.husbandId || 'A111111111'}
-女方（妻）：${wife}  身分證字號：${params.wifeId || 'B222222222'}
+男方（夫）：${husband}  身分證字號：${params.husbandId || '（待填寫）'}
+女方（妻）：${wife}  身分證字號：${params.wifeId || '（待填寫）'}
 
 雙方因個性不合，難以繼續維持婚姻生活，經審慎考量後，本於自由意願，依民法第1049條及第1050條規定，同意兩願協議離婚，並訂定條件如下：
 
@@ -868,13 +868,13 @@ ${dateStr}
 雙方自願協議離婚，並同意即日起共同前往戶政事務所辦理離婚登記。
 
 第二條（未成年子女親權與監護）
-雙方所生之未成年子女 ${params.childName || '長子 某某'} 之權利義務行使及負擔（即監護權），由 ${params.custodyParent || '女方'} 單獨任之。
+雙方所生之未成年子女 ${params.childName || '（待填寫）'} 之權利義務行使及負擔（即監護權），由 ${params.custodyParent || '（待填寫）'} 單獨任之。
 
 第三條（會面交往探視方式）
 未任親權之一方得於每月第二、四週之星期六上午9時至翌日星期日下午6時攜子女外出探視交往，寒暑假及重要節日探視方式依雙方協議行之。
 
 第四條（扶養費給付）
-未任親權之一方同意自本協議簽署次月起，每月 ${params.payDay || '5'} 日前給付子女扶養費新臺幣 ${params.childSupport || '20,000'} 元整，至子女年滿成年之日止。若一期未付，其後之給付視為全部到期。
+未任親權之一方同意自本協議簽署次月起，每月 ${params.payDay || '5'} 日前給付子女扶養費新臺幣 ${params.childSupport || '（待填寫）'} 元整，至子女年滿成年之日止。若一期未付，其後之給付視為全部到期。
 
 第五條（夫妻財產分配）
 雙方各自名下之動產、不動產、存款及債務各自取得並清償。雙方互相拋棄民法第1030條之1之夫妻剩餘財產分配請求權及其他任何損害賠償與贍養費請求權。
@@ -899,28 +899,28 @@ ${dateStr}
     // 10. 監護宣告聲請狀
     case 'GUARDIANSHIP_PETITION': {
       title = '民事監護宣告聲請狀（民法第14條）';
-      const petitioner = params.petitionerName || '陳文斌';
-      const ward = params.wardName || '陳老太太';
-      const court = params.courtName || '臺灣臺北地方法院家事法庭';
+      const petitioner = params.petitionerName || '（待填寫）';
+      const ward = params.wardName || '（待填寫）';
+      const court = params.courtName || '（待填寫）';
 
       docText = `民事監護宣告聲請狀
 聲請人：${petitioner}
-住居所：${params.petitionerAddress || '臺北市士林區中山北路五段200號'}
-電話：${params.petitionerPhone || '0988-123-456'}
+住居所：${params.petitionerAddress || '（待填寫）'}
+電話：${params.petitionerPhone || '（待填寫）'}
 
 應受宣告人：${ward}
 住居所：同上
-身分證字號：${params.wardIdNo || 'A200000000'}
+身分證字號：${params.wardIdNo || '（待填寫）'}
 
 為聲請監護宣告及選定監護人事：
 
 一、聲請事項
 （一）請准對應受宣告人 ${ward} 為監護之宣告。
 （二）選定聲請人 ${petitioner} 為應受宣告人 ${ward} 之監護人。
-（三）指定 ${params.supervisorName || '次女 陳雅婷'} 為會同開具財產清冊之人。
+（三）指定 ${params.supervisorName || '（待填寫）'} 為會同開具財產清冊之人。
 
 二、事實及理由
-（一）應受宣告人 ${ward} 係聲請人之 ${params.relationship || '母親'}。應受宣告人近年因罹患重度阿茲海默症（失智症，臨床失智評估量表 CDR 分數達 ${params.cdrScore || '2.0以上'}），致不能為意思表示或受意思表示，已完全喪失處理自己事務之能力。
+（一）應受宣告人 ${ward} 係聲請人之 ${params.relationship || '（待填寫）'}。應受宣告人近年因罹患重度阿茲海默症（失智症，臨床失智評估量表 CDR 分數達 ${params.cdrScore || '（待填寫）'}），致不能為意思表示或受意思表示，已完全喪失處理自己事務之能力。
 （二）按民法第14條第1項規定：「對於因精神障礙或其他心智缺陷，致不能為意思表示或受意思表示，或不能辨識其意思表示之效果者，法院得因本人、配偶、四親等內之親屬...之聲請，為監護之宣告。」
 （三）為保障應受宣告人之生活安養及防止遭他人不當移轉財產，爰依法檢具醫院診斷證明書向  鈞院聲請監護宣告。
 
@@ -949,7 +949,7 @@ ${dateStr}
       title = '民事輔助宣告聲請狀（民法第15條之1）';
       const petitioner = params.petitionerName || '聲請人';
       const ward = params.wardName || '應受宣告人';
-      const court = params.courtName || '臺灣士林地方法院家事法庭';
+      const court = params.courtName || '（待填寫）';
 
       docText = `民事輔助宣告聲請狀
 聲請人：${petitioner}
@@ -981,12 +981,12 @@ ${dateStr}
     // 12. 意定監護契約範本
     case 'CONTRACTUAL_GUARDIANSHIP': {
       title = '意定監護契約範本（民法第1113條之2）';
-      const principal = params.principalName || '委任人（本人）';
-      const guardian = params.guardianName || '受任人（指定意定監護人）';
+      const principal = params.principalName || '（待填寫）';
+      const guardian = params.guardianName || '（待填寫）';
 
       docText = `意定監護契約書
-委任人（本人）：${principal}  身分證字號：${params.principalId || 'A123456789'}
-受任人（監護人）：${guardian}  身分證字號：${params.guardianId || 'B987654321'}
+委任人（本人）：${principal}  身分證字號：${params.principalId || '（待填寫）'}
+受任人（監護人）：${guardian}  身分證字號：${params.guardianId || '（待填寫）'}
 
 委任人為預防日後因精神障礙或其他心智缺陷致意思能力喪失或顯有不足時，個人之生活、護養療治及財產管理能獲妥善照料，特依民法第1113條之2至第1113條之10規定，訂定意定監護契約如下：
 
@@ -1016,9 +1016,9 @@ ${dateStr}
     // 13. 本票裁定聲請狀
     case 'PROMISSORY_NOTE_RULING': {
       title = '民事本票裁定強制執行聲請狀';
-      const creditor = params.creditorName || '執票人（聲請人）';
-      const debtor = params.debtorName || '發票人（相對人）';
-      const court = params.courtName || '臺灣臺北地方法院簡易庭';
+      const creditor = params.creditorName || '（待填寫）';
+      const debtor = params.debtorName || '（待填寫）';
+      const court = params.courtName || '（待填寫）';
 
       docText = `民事聲請本票裁定准予強制執行狀
 聲請人（即執票人）：${creditor}
@@ -1031,16 +1031,16 @@ ${dateStr}
 （二）聲請程序費用由相對人負擔。
 
 二、事實及理由
-（一）緣聲請人執有相對人簽發如附表所示之本票乙紙，票面金額新臺幣 ${params.debtAmount || '800,000'} 元整，發票日為民國 ${params.noteDate || '112年8月1日'}，到期日為民國 ${params.noteDueDate || '113年2月1日'}，並免除作成拒絕證書。
+（一）緣聲請人執有相對人簽發如附表所示之本票乙紙，票面金額新臺幣 ${params.debtAmount || '（待填寫）'} 元整，發票日為民國 ${params.noteDate || '（待填寫）'}，到期日為民國 ${params.noteDueDate || '（待填寫）'}，並免除作成拒絕證書。
 （二）詎屆期經聲請人向相對人為付款之提示，竟未獲兌現清償，屢經催索均置之不理。
 （三）按票據法第123條明定：「執票人向本票發票人行使追索權時，得聲請法院裁定後強制執行。」爰依法檢附本票原本乙紙，聲請  鈞院准予裁定強制執行。
 
 附表（本票明細）：
 發票人：${debtor}
-發票日：${params.noteDate || '112年8月1日'}
-票面金額：新臺幣 ${params.debtAmount || '800,000'} 元整
-到期日：${params.noteDueDate || '113年2月1日'}
-付款地：${params.paymentPlace || '臺北市'}
+發票日：${params.noteDate || '（待填寫）'}
+票面金額：新臺幣 ${params.debtAmount || '（待填寫）'} 元整
+到期日：${params.noteDueDate || '（待填寫）'}
+付款地：${params.paymentPlace || '（待填寫）'}
 
 此  致
 ${court}  公鑑
@@ -1060,20 +1060,20 @@ ${dateStr}
       title = '民事支付命令聲請狀（民訴第508條）';
       const creditor = params.creditorName || '債權人（聲請人）';
       const debtor = params.debtorName || '債務人（相對人）';
-      const court = params.courtName || '臺灣臺北地方法院民事庭';
+      const court = params.courtName || '（待填寫）';
 
       docText = `民事支付命令聲請狀
-債權人：${creditor}  住：${params.creditorAddress || '臺北市中山區南京東路一段1號'}
-債務人：${debtor}  住：${params.debtorAddress || '新北市中和區中正路100號'}
+債權人：${creditor}  住：${params.creditorAddress || '（待填寫）'}
+債務人：${debtor}  住：${params.debtorAddress || '（待填寫）'}
 
 為聲請發支付命令事：
 
 一、聲請事項
-（一）債務人應給付債權人新臺幣 ${params.debtAmount || '350,000'} 元，及自民國 ${params.dueDate || '112年12月31日'} 起至清償日止，按週年利率百分之${params.interestRate || '五'}計算之利息。
+（一）債務人應給付債權人新臺幣 ${params.debtAmount || '（待填寫）'} 元，及自民國 ${params.dueDate || '（待填寫）'} 起至清償日止，按週年利率百分之${params.interestRate || '（待填寫）'}計算之利息。
 （二）督促程序費用新臺幣500元由債務人負擔。
 
 二、請求之原因及事實
-（一）債務人於民國 ${params.loanDate || '112年5月10日'} 向債權人借款新臺幣 ${params.debtAmount || '350,000'} 元，約定於民國 ${params.dueDate || '112年12月31日'} 前全數清償，並立有借據乙紙為憑。
+（一）債務人於民國 ${params.loanDate || '（待填寫）'} 向債權人借款新臺幣 ${params.debtAmount || '（待填寫）'} 元，約定於民國 ${params.dueDate || '（待填寫）'} 前全數清償，並立有借據乙紙為憑。
 （二）詎清償期屆至後，經債權人屢次催告，債務人均拖延不還。為此依民事訴訟法第508條規定，聲請  鈞院對債務人發支付命令，促其清償。
 
 三、檢附證物
@@ -1096,24 +1096,24 @@ ${dateStr}
     // 15. 消費借貸借據與還款協議書
     case 'LOAN_AGREEMENT': {
       title = '消費借貸借據契約書（民法第474條）';
-      const lender = params.creditorName || '貸與人（債權人）';
-      const borrower = params.debtorName || '借用人（債務人）';
+      const lender = params.creditorName || '（待填寫）';
+      const borrower = params.debtorName || '（待填寫）';
 
       docText = `借 據 暨 還 款 協 議 書
 立協議書人：
-貸與人（甲方）：${lender}  身分證字號：${params.creditorId || 'A123456789'}
-借用人（乙方）：${borrower}  身分證字號：${params.debtorId || 'B987654321'}
+貸與人（甲方）：${lender}  身分證字號：${params.creditorId || '（待填寫）'}
+借用人（乙方）：${borrower}  身分證字號：${params.debtorId || '（待填寫）'}
 
 茲因乙方因資金週轉需要向甲方借款，經雙方本於自由意願達成合意，依民法第474條以下消費借貸規定，訂定條件如下：
 
 第一條（借款金額與交付）
-借款總金額為新臺幣 ${params.debtAmount || '500,000'} 元整。甲方已於簽約當日以銀行轉帳方式（匯入乙方 ${params.borrowerBank || '臺灣銀行'} 帳戶）全數交付乙方無誤，乙方確認收訖。
+借款總金額為新臺幣 ${params.debtAmount || '（待填寫）'} 元整。甲方已於簽約當日以銀行轉帳方式（匯入乙方 ${params.borrowerBank || '（待填寫）'} 帳戶）全數交付乙方無誤，乙方確認收訖。
 
 第二條（借款期間與還款方式）
-借款期間自民國 ${params.noteDate || '113年1月1日'} 起至民國 ${params.noteDueDate || '113年12月31日'} 止。乙方應於到期日一次還清本息。
+借款期間自民國 ${params.noteDate || '（待填寫）'} 起至民國 ${params.noteDueDate || '（待填寫）'} 止。乙方應於到期日一次還清本息。
 
 第三條（利息約定與法定上限防呆）
-雙方約定借款年利率為週年利率 ${params.interestRate || '6'}%（符合民法第205條法定最高週年利率16%之限制）。
+雙方約定借款年利率為週年利率 ${params.interestRate || '（待填寫）'}%（符合民法第205條法定最高週年利率16%之限制）。
 
 第四條（違約責任）
 乙方若逾期未清償，除仍應計付約定利息外，每日應按借款本金千分之一計付逾期違約金。
@@ -1165,20 +1165,20 @@ ${dateStr}
     case 'DEMAND_LETTER_DEBT':
     case 'DEMAND_LETTER': {
       title = '借款清償催告存證信函（中斷時效）';
-      const sender = params.senderName || '張國華';
-      const recipient = params.recipientName || '林大明';
+      const sender = params.senderName || '（待填寫）';
+      const recipient = params.recipientName || '（待填寫）';
 
       docText = `【郵局存證信函】
 寄件人：${sender}
-地址：${params.senderAddress || '臺北市中山區南京東路二段50號'}
+地址：${params.senderAddress || '（待填寫）'}
 
 收件人：${recipient}
-地址：${params.recipientAddress || '新北市中和區中正路300號'}
+地址：${params.recipientAddress || '（待填寫）'}
 
-主旨：為限期清償借款新臺幣 ${params.amount || '600,000'} 元整事，請於文到七日內如數清償，請查照。
+主旨：為限期清償借款新臺幣 ${params.amount || '（待填寫）'} 元整事，請於文到七日內如數清償，請查照。
 
 說明：
-一、緣台端於民國 ${params.contractDate || '112年10月5日'} 向本人借貸新臺幣 ${params.amount || '600,000'} 元整，約定於民國 ${params.dueDate || '113年2月15日'} 前全數清償，此有雙方簽立之借據及匯款單據可稽。
+一、緣台端於民國 ${params.contractDate || '（待填寫）'} 向本人借貸新臺幣 ${params.amount || '（待填寫）'} 元整，約定於民國 ${params.dueDate || '（待填寫）'} 前全數清償，此有雙方簽立之借據及匯款單據可稽。
 二、詎清償期限屆至後，本人屢次以電話及通訊軟體催討，台端均藉詞推諉，迄今未清償分文。
 三、特此函告台端於文到七日內，將上開積欠借款全數匯入本人原帳戶。如逾期仍未清償，本人將依法向法院聲請發支付命令、起訴並聲請強制執行查封台端名下財產，屆時併追索利息與訴訟費用，切勿自誤！
 
@@ -1194,18 +1194,18 @@ ${dateStr}
     // 18. 房屋租賃積欠租金催告暨終止租約存證信函
     case 'DEMAND_LETTER_RENT_DEFAULT': {
       title = '積欠租金催告暨終止租賃契約存證信函';
-      const sender = params.senderName || '房東（出租人）';
-      const recipient = params.recipientName || '房客（承租人）';
+      const sender = params.senderName || '（待填寫）';
+      const recipient = params.recipientName || '（待填寫）';
 
       docText = `【郵局存證信函】
-寄件人：${sender}  地址：${params.senderAddress || '臺北市大安區'}
-收件人：${recipient}  地址：${params.recipientAddress || '租賃標的房屋地址'}
+寄件人：${sender}  地址：${params.senderAddress || '（待填寫）'}
+收件人：${recipient}  地址：${params.recipientAddress || '（待填寫）'}
 
 主旨：催告台端於文到五日內付清積欠之房屋租金，逾期即依法終止租賃契約並請求返還房屋，請查照。
 
 說明：
-一、台端向本人承租坐落於 ${params.leaseAddress || '臺北市某處房屋'}，約定每月租金新臺幣 ${params.monthlyRent || '25,000'} 元，應於每月5日前給付。
-二、詎台端自民國 ${params.startDefaultMonth || '113年1月'} 起即未再繳納租金，迄今已積欠達 ${params.defaultMonths || '2'} 個月以上，扣抵二個月押租金後仍有積欠。
+一、台端向本人承租坐落於 ${params.leaseAddress || '（待填寫）'}，約定每月租金新臺幣 ${params.monthlyRent || '（待填寫）'} 元，應於每月5日前給付。
+二、詎台端自民國 ${params.startDefaultMonth || '（待填寫）'} 起即未再繳納租金，迄今已積欠達 ${params.defaultMonths || '2'} 個月以上，扣抵二個月押租金後仍有積欠。
 三、依民法第440條第2項規定，特以本函催告台端於文到五日內將積欠租金全數付清。若逾期仍未清償，本函即為終止雙方房屋租賃契約之意思表示，不另通知。台端並應於終止日起三日內騰空返還房屋，否則依法訴請遷讓房屋並請求損害賠償。
 
 ${dateStr}
@@ -1220,17 +1220,17 @@ ${dateStr}
     // 19. 買賣/裝修承攬瑕疵修補催告存證信函
     case 'DEMAND_LETTER_DEFECT': {
       title = '工程瑕疵限期修補催告存證信函';
-      const sender = params.senderName || '定作人（業主）';
-      const recipient = params.recipientName || '承攬人（工程行）';
+      const sender = params.senderName || '（待填寫）';
+      const recipient = params.recipientName || '（待填寫）';
 
       docText = `【郵局存證信函】
-寄件人：${sender}  地址：${params.senderAddress || '臺北市'}
-收件人：${recipient}  地址：${params.recipientAddress || '新北市'}
+寄件人：${sender}  地址：${params.senderAddress || '（待填寫）'}
+收件人：${recipient}  地址：${params.recipientAddress || '（待填寫）'}
 
 主旨：為台端承攬之室內裝修工程存有重大瑕疵，限期於文到七日內進場修補，請查照。
 
 說明：
-一、台端於民國 ${params.contractDate || '112年11月'} 承攬本人房屋裝修工程，於完工交付後，本人發現浴室防水層破損漏水及地磚大面積隆起空鼓等嚴重瑕疵。
+一、台端於民國 ${params.contractDate || '（待填寫）'} 承攬本人房屋裝修工程，於完工交付後，本人發現浴室防水層破損漏水及地磚大面積隆起空鼓等嚴重瑕疵。
 二、按民法第492條及第493條規定，工作有瑕疵者，定作人得定相當期限請求承攬人修補之。
 三、特函告台端於文到七日內提出具體修補工法並派工進場修復完畢。若逾期不為修補，本人將逕依民法第493條第2項規定雇請第三人代為修補，其所生之一切費用悉數自應付尾款扣除，不足之數並將依法追償。
 
@@ -1246,20 +1246,20 @@ ${dateStr}
     // 20. 勞工未獲發工資/加班費依勞基法終止勞動契約存證信函
     case 'DEMAND_LETTER_LABOR': {
       title = '勞工終止勞動契約暨請求資遣費存證信函';
-      const sender = params.senderName || '勞工（寄件人）';
-      const recipient = params.recipientName || '雇主（某某股份有限公司）';
+      const sender = params.senderName || '（待填寫）';
+      const recipient = params.recipientName || '（待填寫）';
 
       docText = `【郵局存證信函】
-寄件人：${sender}  地址：${params.senderAddress || '勞工通訊地址'}
-收件人：${recipient}（法定代理人：某某某）  地址：${params.recipientAddress || '公司營業地址'}
+寄件人：${sender}  地址：${params.senderAddress || '（待填寫）'}
+收件人：${recipient}（法定代理人：某某某）  地址：${params.recipientAddress || '（待填寫）'}
 
 主旨：因貴公司違反勞動契約不給付延長工時工資，本人依法終止勞動契約並限期請求發給資遣費及非自願離職證明書，請查照。
 
 說明：
-一、本人自民國 ${params.hireDate || '110年3月1日'} 起受僱於貴公司擔任職務，每月約定工資為新臺幣 ${params.salary || '45,000'} 元。
-二、詎貴公司自民國 ${params.violationPeriod || '112年10月起'}，多次命本人超時加班，卻長期拒絕依法發給延長工時工資（加班費），且短報勞工退休金提繳工資。
+一、本人自民國 ${params.hireDate || '（待填寫）'} 起受僱於貴公司擔任職務，每月約定工資為新臺幣 ${params.salary || '（待填寫）'} 元。
+二、詎貴公司自民國 ${params.violationPeriod || '（待填寫）'}，多次命本人超時加班，卻長期拒絕依法發給延長工時工資（加班費），且短報勞工退休金提繳工資。
 三、按勞動基準法第14條第1項第5款及第6款規定，雇主不依勞動契約給付工作報酬或違反勞動契約致有損害勞工權益之虞者，勞工得不經預告終止契約。
-四、本人特以本函通知貴公司自文到日起終止雙方勞動契約，並請貴公司於文到七日內核發非自願離職證明書，並將積欠之加班費及勞工退休金條例第12條之資遣費新臺幣 ${params.severancePay || '120,000'} 元匯入本人薪資帳戶，否則依法向勞動局提出申訴並提起勞動調解。
+四、本人特以本函通知貴公司自文到日起終止雙方勞動契約，並請貴公司於文到七日內核發非自願離職證明書，並將積欠之加班費及勞工退休金條例第12條之資遣費新臺幣 ${params.severancePay || '（待填寫）'} 元匯入本人薪資帳戶，否則依法向勞動局提出申訴並提起勞動調解。
 
 ${dateStr}
 `;
@@ -1275,13 +1275,13 @@ ${dateStr}
       title = '強制執行聲請狀（扣押債務人每月薪資1/3）';
       const creditor = params.creditorName || '債權人';
       const debtor = params.debtorName || '債務人';
-      const employer = params.employerName || '第三人（債務人任職公司）';
-      const court = params.courtName || '臺灣臺北地方法院民事執行處';
+      const employer = params.employerName || '（待填寫）';
+      const court = params.courtName || '（待填寫）';
 
       docText = `民事強制執行聲請狀
 債權人：${creditor}
 債務人：${debtor}
-第三人（扣繳義務人）：${employer}  地址：${params.employerAddress || '公司營業地址'}
+第三人（扣繳義務人）：${employer}  地址：${params.employerAddress || '（待填寫）'}
 
 為聲請強制執行事：
 
@@ -1290,10 +1290,10 @@ ${dateStr}
 （二）執行費用由債務人負擔。
 
 二、執行名義
-（一）${court} ${params.titleCaseNo || '112年度司促字第12345號支付命令及確定證明書'}。
+（一）${court} ${params.titleCaseNo || '（待填寫）'}。
 
 三、事實及理由
-（一）債務人積欠債權人新臺幣 ${params.debtAmount || '300,000'} 元整及利息，前經  鈞院核發支付命令確定在案。
+（一）債務人積欠債權人新臺幣 ${params.debtAmount || '（待填寫）'} 元整及利息，前經  鈞院核發支付命令確定在案。
 （二）詎債務人仍未清償，經查債務人目前任職於第三人處支領薪津，爰依強制執行法第115條第1項規定聲請核發扣押命令。
 
 此  致
@@ -1314,7 +1314,7 @@ ${dateStr}
       title = '強制執行聲請狀（扣押金融機構存款及查封不動產）';
       const creditor = params.creditorName || '債權人';
       const debtor = params.debtorName || '債務人';
-      const court = params.courtName || '臺灣士林地方法院民事執行處';
+      const court = params.courtName || '（待填寫）';
 
       docText = `民事強制執行聲請狀
 債權人：${creditor}
@@ -1324,13 +1324,13 @@ ${dateStr}
 
 一、執行標的
 （一）扣押債務人存放於如附表所示金融機構之存款債權。
-（二）查封並拍賣債務人所有坐落於 ${params.realEstateAddress || '新北市某地號土地及建物'} 之不動產，所得價金用以清償債權人。
+（二）查封並拍賣債務人所有坐落於 ${params.realEstateAddress || '（待填寫）'} 之不動產，所得價金用以清償債權人。
 
 二、執行名義
-（一）${court} ${params.titleCaseNo || '112年度訴字第888號民事確定判決'}。
+（一）${court} ${params.titleCaseNo || '（待填寫）'}。
 
 三、事實及理由
-（一）債權人對債務人享有新臺幣 ${params.debtAmount || '1,500,000'} 元之確定債權，債務人至今未依判決清償。
+（一）債權人對債務人享有新臺幣 ${params.debtAmount || '（待填寫）'} 元之確定債權，債務人至今未依判決清償。
 （二）爰檢附國稅局全國財產稅總歸戶財產查詢清單，依強制執行法第115條及第75條規定聲請執行。
 
 此  致
@@ -1351,7 +1351,7 @@ ${dateStr}
       title = '民事假扣押裁定聲請狀（民訴第522條）';
       const creditor = params.creditorName || '債權人（聲請人）';
       const debtor = params.debtorName || '債務人（相對人）';
-      const court = params.courtName || '臺灣臺北地方法院民事庭';
+      const court = params.courtName || '（待填寫）';
 
       docText = `民事假扣押裁定聲請狀
 聲請人（債權人）：${creditor}
@@ -1360,11 +1360,11 @@ ${dateStr}
 為聲請假扣押裁定事：
 
 一、聲請事項
-（一）聲請人願供擔保，請准就相對人之財產在新臺幣 ${params.claimAmount || '1,000,000'} 元之範圍內予以假扣押。
+（一）聲請人願供擔保，請准就相對人之財產在新臺幣 ${params.claimAmount || '（待填寫）'} 元之範圍內予以假扣押。
 （二）聲請程序費用由相對人負擔。
 
 二、請求之原因及假扣押之原因（釋明事項）
-（一）請求之原因：相對人積欠聲請人買賣貨款新臺幣 ${params.claimAmount || '1,000,000'} 元，此有合約書及出貨單可稽。
+（一）請求之原因：相對人積欠聲請人買賣貨款新臺幣 ${params.claimAmount || '（待填寫）'} 元，此有合約書及出貨單可稽。
 （二）假扣押之原因：相對人近日將名下不動產連續設定高額抵押權予第三人，並密集辦理歇業與搬遷，顯有脫產逃匿、隱匿財產之虞。若不及時保全，日後恐有不能執行或甚難執行之虞。
 （三）依民事訴訟法第522條及第526條第2項規定，聲請人願供法院所定之擔保以補釋明之不足，懇請  鈞院准予假扣押裁定。
 
@@ -1384,20 +1384,20 @@ ${dateStr}
     // 24. 住宅租賃定型化契約範本
     case 'RESIDENTIAL_LEASE_CONTRACT': {
       title = '房屋租賃契約書（符合租賃住宅市場發展及管理條例）';
-      const landlord = params.landlordName || '出租人（房東）';
-      const tenant = params.tenantName || '承租人（房客）';
+      const landlord = params.landlordName || '（待填寫）';
+      const tenant = params.tenantName || '（待填寫）';
 
       docText = `住宅租賃契約書（內政部法定合規版）
-出租人（甲方）：${landlord}  身分證字號：${params.landlordId || 'A123456789'}
-承租人（乙方）：${tenant}  身分證字號：${params.tenantId || 'B987654321'}
+出租人（甲方）：${landlord}  身分證字號：${params.landlordId || '（待填寫）'}
+承租人（乙方）：${tenant}  身分證字號：${params.tenantId || '（待填寫）'}
 
 第一條（租賃標的）
-租賃房屋坐落於：${params.rentalAddress || '臺北市中山區新生北路一段某號某樓'}。
+租賃房屋坐落於：${params.rentalAddress || '（待填寫）'}。
 
 第二條（租賃期間與租金押金）
-1. 租期：自民國 ${params.startDate || '113年3月1日'} 起至民國 ${params.endDate || '114年2月28日'} 止。
-2. 每月租金：新臺幣 ${params.monthlyRent || '22,000'} 元整，於每月 5 日前繳納。
-3. 押金：新臺幣 ${params.depositAmount || '44,000'} 元整（不得超過二個月租金總額，租期屆滿點交無誤後無息返還）。
+1. 租期：自民國 ${params.startDate || '（待填寫）'} 起至民國 ${params.endDate || '（待填寫）'} 止。
+2. 每月租金：新臺幣 ${params.monthlyRent || '（待填寫）'} 元整，於每月 5 日前繳納。
+3. 押金：新臺幣 ${params.depositAmount || '（待填寫）'} 元整（不得超過二個月租金總額，租期屆滿點交無誤後無息返還）。
 
 第三條（內政部應記載及不得記載事項保障條款）
 1. 甲方不得限制乙方申請租金補貼、申報租金費用減除所得稅或遷入戶籍。
@@ -1420,15 +1420,15 @@ ${dateStr}
     // 25. 侵害配偶權民事起訴狀
     case 'SPOUSAL_RIGHT_INFRINGEMENT': {
       title = '侵害配偶權民事損害賠償起訴狀';
-      const plaintiff = params.plaintiffName || '原告（配偶）';
+      const plaintiff = params.plaintiffName || '（待填寫）';
       const defendant1 = params.defendant1Name || '被告一（配偶一方）';
       const defendant2 = params.defendant2Name || '被告二（第三者）';
-      const court = params.courtName || '臺灣臺北地方法院民事庭';
+      const court = params.courtName || '（待填寫）';
 
       docText = `民事起訴狀
 原告：${plaintiff}
-住居所：${params.plaintiffAddress || '臺北市大安區'}
-電話：${params.plaintiffPhone || '0912-345-678'}
+住居所：${params.plaintiffAddress || '（待填寫）'}
+電話：${params.plaintiffPhone || '（待填寫）'}
 
 被告一：${defendant1}
 被告二：${defendant2}
@@ -1436,13 +1436,13 @@ ${dateStr}
 為請求損害賠償事件，依法起訴事：
 
 一、訴之聲明
-（一）被告等應連帶給付原告新臺幣 ${params.claimAmount || '600,000'} 元，及自起訴狀繕本送達翌日起至清償日止，按週年利率百分之五計算之利息。
+（一）被告等應連帶給付原告新臺幣 ${params.claimAmount || '（待填寫）'} 元，及自起訴狀繕本送達翌日起至清償日止，按週年利率百分之五計算之利息。
 （二）訴訟費用由被告等連帶負擔。
 （三）原告願供擔保，請准宣告假執行。
 
 二、事實及理由
-（一）原告與被告一於民國 ${params.marriageDate || '105年5月20日'} 結婚，現仍維持婚姻關係中。
-（二）詎被告二人自民國 ${params.infringementStart || '112年8月起'}，明知被告一為有配偶之人，竟逾越一般男女社交分際，多次同宿進出汽車旅館，並互傳親暱合照及曖昧對話。
+（一）原告與被告一於民國 ${params.marriageDate || '（待填寫）'} 結婚，現仍維持婚姻關係中。
+（二）詎被告二人自民國 ${params.infringementStart || '（待填寫）'}，明知被告一為有配偶之人，竟逾越一般男女社交分際，多次同宿進出汽車旅館，並互傳親暱合照及曖昧對話。
 （三）按民法第184條第1項後段、第185條第1項前段及第195條第1項、第3項規定，不法侵害他人基於配偶關係之身分法益而情節重大者，被害人得請求賠償相當之慰撫金，共同侵權行為人連帶負損害賠償責任。被告二人之行為已嚴重破壞原告婚姻圓滿，致原告精神受有極大痛苦，爰依法請求非財產上之精神損害賠償。
 
 三、證據清單
@@ -1469,9 +1469,9 @@ ${dateStr}
       docText = `未成年子女親權（監護權）最佳利益評估分析表
 依據：民法第1055條之1規定
 受評估子女：${params.childAge ? `${params.childAge}歲未成年子女` : '未成年子女'}
-目前主要照顧者：${params.primaryCaregiver || '父或母之一方'}
-居住環境概況：${params.livingEnvironment || '具備獨立房間與安全就學環境'}
-親屬支援系統：${params.supportSystem || '有三代祖父母同住協助照顧後援'}
+目前主要照顧者：${params.primaryCaregiver || '（待填寫）'}
+居住環境概況：${params.livingEnvironment || '（待填寫）'}
+親屬支援系統：${params.supportSystem || '（待填寫）'}
 
 【子女最佳利益七大指標評估要點】：
 一、現狀維持原則（繼續性原則）：現行照顧環境穩定且身心健全發展者，原則上尊重現狀，避免變動造成生活適應焦慮。
@@ -1495,10 +1495,10 @@ ${dateStr}
       title = '法定繼承應繼分與特留分分配分析表';
       docText = `遺產繼承應繼分與特留分試算分析表
 依據：民法第1138條、第1144條及第1223條
-遺產總額：新臺幣 ${params.estateTotal || '10,000,000'} 元
+遺產總額：新臺幣 ${params.estateTotal || '（待填寫）'} 元
 生存配偶：${params.hasSpouse === 'false' ? '無' : '有'}
 繼承順位人人數：${params.heirCount || '2'} 人
-備註說明：${params.details || '全體法定繼承人依法按比例承受'}
+備註說明：${params.details || '（待填寫）'}
 
 【應繼分與特留分法定計算】：
 一、應繼分比例：
@@ -1522,10 +1522,10 @@ ${dateStr}
       title = '未成年子女扶養費負擔分析協議書';
       docText = `未成年子女扶養費分攤計算協議書
 依據：民法第1116條之2、第1119條規定
-參考標準：行政院主計總處 ${params.region || '各縣市'} 平均每人每月消費支出
+參考標準：行政院主計總處 ${params.region || '（待填寫）'} 平均每人每月消費支出
 子女總人數：${params.childCount || '1'} 人
-給付義務方收入比：${params.payerIncome || '60,000'} 元
-照顧方收入比：${params.receiverIncome || '40,000'} 元
+給付義務方收入比：${params.payerIncome || '（待填寫）'} 元
+照顧方收入比：${params.receiverIncome || '（待填寫）'} 元
 
 【扶養費約定條款】：
 一、給付義務人願按月給付未成年子女之扶養費，並於每月5日以前匯入受領方指定之金融機構帳戶。
@@ -1550,7 +1550,7 @@ ${dateStr}
 依據：民法第1030條之1規定
 夫方婚後現存財產淨額：${params.husbandAsset || '0'} 元（已扣除婚後債務 ${params.husbandDebt || '0'} 元）
 妻方婚後現存財產淨額：${params.wifeAsset || '0'} 元（已扣除婚後債務 ${params.wifeDebt || '0'} 元）
-免計入財產說明：${params.incidentDetails || '依法扣除因繼承或其他無償取得之財產及慰撫金'}
+免計入財產說明：${params.incidentDetails || '（待填寫）'}
 
 【法定分配與請求】：
 一、法定財產制關係消滅時，夫或妻現存之婚後財產，扣除婚姻關係存續所負債務後，如有剩餘，其雙方剩餘財產之差額，應平均分配。
@@ -1572,10 +1572,10 @@ ${dateStr}
     case 'PROPERTY_VALUATION_ESTIMATOR': {
       title = '不動產市場價值估算與淨值概算報告書';
       docText = `不動產價值估算與淨資產分析報告書
-坐落區域：${params.location || '臺北市中正區'}
-建物坪數：${params.areaPing || '30'} 坪
-每坪預估行情：${params.unitPrice || '80'} 萬元
-尚餘房貸餘額：${params.existingMortgage || '1000'} 萬元
+坐落區域：${params.location || '（待填寫）'}
+建物坪數：${params.areaPing || '（待填寫）'} 坪
+每坪預估行情：${params.unitPrice || '（待填寫）'} 萬元
+尚餘房貸餘額：${params.existingMortgage || '（待填寫）'} 萬元
 
 【估算結果與權益分析】：
 一、房屋預估市場總值：約新臺幣 ${((Number(params.areaPing) || 30) * (Number(params.unitPrice) || 80)).toLocaleString()} 萬元。
@@ -1598,8 +1598,8 @@ ${dateStr}
       title = '家事離婚程序途徑評估分析表';
       docText = `家事離婚程序分析評估表
 婚姻存續期間：${params.marriageYears || '5'} 年
-主要爭議事由：${params.disputeReason || '夫妻雙方長期價值觀不合，已分居逾一年，感情破裂難以維持'}
-家事調解意願：${params.mediationWillingness || '願意先行家事調解'}
+主要爭議事由：${params.disputeReason || '（待填寫）'}
+家事調解意願：${params.mediationWillingness || '（待填寫）'}
 
 【三大離婚途徑評估建議】：
 途徑一：兩願協議離婚（民法第1050條）
@@ -1621,11 +1621,11 @@ ${dateStr}
     // 25. 探視交往方案產生器
     case 'VISITATION_PLAN_GENERATOR': {
       title = '未成年子女探視會面交往協議方案書';
-      const child = params.childName || '未成年子女';
+      const child = params.childName || '（待填寫）';
       docText = `未成年子女會面交往條款協議書
 依據：民法第1055條第5項規定
 未成年子女：${child}
-接送地點：${params.handoverLocation || '雙方住所或約定之捷運站服務處'}
+接送地點：${params.handoverLocation || '（待填寫）'}
 
 【法定會面交往詳細方案】：
 一、平日與隔週週末交往：
@@ -1650,10 +1650,10 @@ ${dateStr}
     // 26. 借據／本票 線上產生器
     case 'IOU_PROMISSORY_NOTE_GENERATOR': {
       title = '金錢消費借貸借據契約書';
-      const creditor = params.creditorName || '貸與人（債權人）';
-      const debtor = params.debtorName || '借用人（債務人）';
-      const amt = params.loanAmount || '500,000';
-      const dueDate = params.repaymentDate || '民國113年12月31日';
+      const creditor = params.creditorName || '（待填寫）';
+      const debtor = params.debtorName || '（待填寫）';
+      const amt = params.loanAmount || '（待填寫）';
+      const dueDate = params.repaymentDate || '（待填寫）';
 
       docText = `借據（金錢消費借貸契約）
 依據：民法第474條規定
@@ -1682,10 +1682,10 @@ ${dateStr}
     // 27. 民事起訴狀線上產生器
     case 'CIVIL_COMPLAINT_GENERAL': {
       title = '民事起訴狀（返還借款／損害賠償）';
-      const court = params.courtName || '臺灣臺北地方法院';
+      const court = params.courtName || '（待填寫）';
       const plaintiff = params.plaintiffName || '原告';
       const defendant = params.defendantName || '被告';
-      const claim = params.claimAmount || '500,000';
+      const claim = params.claimAmount || '（待填寫）';
 
       docText = `民事起訴狀
 案號：
@@ -1693,11 +1693,11 @@ ${dateStr}
 訴訟標的金額：新臺幣 ${claim} 元整
 
 原告：${plaintiff}
-住居所：${params.plaintiffAddress || '臺北市中正區重慶南路一段100號'}
-電話：${params.plaintiffPhone || '0912-345-678'}
+住居所：${params.plaintiffAddress || '（待填寫）'}
+電話：${params.plaintiffPhone || '（待填寫）'}
 
 被告：${defendant}
-住居所：${params.defendantAddress || '新北市板橋區縣民大道二段10號'}
+住居所：${params.defendantAddress || '（待填寫）'}
 
 為依法提起訴訟請求給付事：
 
@@ -1709,7 +1709,7 @@ ${dateStr}
 二、事實及理由
 （一）緣被告於民國前向原告借得款項，約定於一定期日清償，詎屆期經原告屢次催索，被告均置之不理。
 （二）按民法第474條第1項及第478條規定，借用人應於約定期限內返還借款；又按民法第203條規定，應付利息之債務，其利率未經約定者，週年利率為百分之五。被告迄今分文未付，原告依法自得請求被告返還借款本金及遲延利息。
-（三）事證經過：${params.incidentDetails || '如附證物所示借據及銀行匯款紀錄'}。
+（三）事證經過：${params.incidentDetails || '（待填寫）'}。
 
 三、證據清單
 1. 原證一：借據影本乙份。
@@ -1736,7 +1736,7 @@ ${dateStr}
       docText = `民事訴訟裁判費試算報告書
 依據：民事訴訟法第77條之13、第77條之16規定
 訴訟標的金額：新臺幣 ${claim.toLocaleString()} 元整
-程序審級：${params.stage || '第一審起訴'}
+程序審級：${params.stage || '（待填寫）'}
 
 【法定累進費率試算】：
 一、第一審裁判費：
@@ -1762,9 +1762,9 @@ ${dateStr}
     case 'DEBT_COLLECTION_SELECTOR': {
       title = '債權法律追討與強制執行策略分析報告';
       docText = `債權法律追討策略途徑分析報告書
-持有債權憑證：${params.evidenceType || '借據及轉帳匯款紀錄'}
-欠款標的總額：新臺幣 ${params.debtAmount || '600,000'} 元
-債務人財產現況：${params.debtorAssetStatus || '名下有工作薪資所得及銀行帳戶'}
+持有債權憑證：${params.evidenceType || '（待填寫）'}
+欠款標的總額：新臺幣 ${params.debtAmount || '（待填寫）'} 元
+債務人財產現況：${params.debtorAssetStatus || '（待填寫）'}
 
 【五大催討程序策略分析】：
 一、郵局存證信函（民法第129條）：
@@ -1792,9 +1792,9 @@ ${dateStr}
       title = '車禍侵權損害賠償與折舊線上試算明細表';
       docText = `車禍損害賠償各項費用試算明細表
 依據：民法第184條、第193條、第195條及第217條規定
-醫療實支費用：新臺幣 ${params.medicalExpenses || '30,000'} 元
-工作損失與看護費：新臺幣 ${params.workLoss || '50,000'} 元
-精神慰撫金：新臺幣 ${params.solatium || '100,000'} 元
+醫療實支費用：新臺幣 ${params.medicalExpenses || '（待填寫）'} 元
+工作損失與看護費：新臺幣 ${params.workLoss || '（待填寫）'} 元
+精神慰撫金：新臺幣 ${params.solatium || '（待填寫）'} 元
 我方過失責任比例：${params.myFaultRatio || '0'} %
 
 【求償項目與過失相抵試算】：
@@ -1817,16 +1817,16 @@ ${dateStr}
     // 31. 交通事故和解書產生器
     case 'TRAFFIC_SETTLEMENT_GENERATOR': {
       title = '車禍損害賠償交通事故民刑和解書';
-      const partyA = params.partyA || '甲方（賠償義務人）';
-      const partyB = params.partyB || '乙方（賠償權利人）';
-      const amt = params.settlementAmount || '200,000';
+      const partyA = params.partyA || '（待填寫）';
+      const partyB = params.partyB || '（待填寫）';
+      const amt = params.settlementAmount || '（待填寫）';
 
       docText = `交通事故和解契約書
 依據：民法第736條規定
 甲方（賠償義務人）：${partyA}  身分證字號：
 乙方（受害人／受領人）：${partyB}  身分證字號：
 
-就雙方於民國 ${params.accidentDate || '113年3月10日'} 發生之交通事故損害賠償事宜，雙方於平等自願原則下達成和解條款如下：
+就雙方於民國 ${params.accidentDate || '（待填寫）'} 發生之交通事故損害賠償事宜，雙方於平等自願原則下達成和解條款如下：
 一、和解賠償金額：
 甲方願賠償乙方新臺幣 ${amt} 元整（含車損維修、醫療費用、不能工作工資損失及慰撫金）。
 二、給付方式：
@@ -1852,9 +1852,9 @@ ${dateStr}
     case 'TRAFFIC_PROCEDURE_ASSESSMENT': {
       title = '車禍肇事事故後續法律程序指引分析表';
       docText = `車禍後續處理時程與法務程序指南
-事故發生日期：${params.accidentDate || '113年2月15日'}
-人員傷亡現況：${params.injuryStatus || '有輕微受傷已就醫驗傷'}
-初判表申請狀態：${params.analysisReportStatus || '事故滿30日已向警方線上申請初判表'}
+事故發生日期：${params.accidentDate || '（待填寫）'}
+人員傷亡現況：${params.injuryStatus || '（待填寫）'}
+初判表申請狀態：${params.analysisReportStatus || '（待填寫）'}
 
 【車禍四大階段時程法定要點】：
 第一階段：現場蒐證與做筆錄（事故當日）
@@ -1882,7 +1882,7 @@ ${dateStr}
       const labor = Number(params.laborCost) || 20000;
       const age = Number(params.vehicleAgeYears) || 3;
       docText = `車輛修理費用折舊估算分析報告
-車輛規格：${params.vehicleBrand || '自用小客車'}
+車輛規格：${params.vehicleBrand || '（待填寫）'}
 出廠使用車齡：${age} 年
 零件更換更換費用：新臺幣 ${parts.toLocaleString()} 元
 板金烤漆工資：新臺幣 ${labor.toLocaleString()} 元（工資依法不計折舊）
@@ -1947,15 +1947,15 @@ ${dateStr}
 
       docText = `郵政存證信函
 寄件人：${sender}
-地址：${params.senderAddress || '臺北市中正區館前路50號'}
+地址：${params.senderAddress || '（待填寫）'}
 收件人：${recipient}
-地址：${params.recipientAddress || '新北市板橋區府中路100號'}
+地址：${params.recipientAddress || '（待填寫）'}
 
 主旨：為函告台端限期履行義務${amt}，並終止違約事由事。
 
 說明：
 一、按民法第129條及相關催告規定，請求權因請求而中斷消滅時效。
-二、緣台端與本人成立法律約定，依約台端應遵期履行義務。詎事由經過：${params.incidentDetails || '台端未遵期履行約定義務，經多次聯繫催告仍未置理'}。
+二、緣台端與本人成立法律約定，依約台端應遵期履行義務。詎事由經過：${params.incidentDetails || '（待填寫）'}。
 三、為此特發本函，限台端於函到七日內出面妥善出清義務${amt}。倘屆期仍置之不理，本人將逕行委請律師依法提起民刑事法律救濟程序並聲請假扣押執行，絕不寬貸，請卓參。
 
 寄件人：${sender}  （蓋章）
@@ -1971,10 +1971,10 @@ ${dateStr}
     // 36. 中古汽車買賣契約產生器
     case 'USED_CAR_SALE_CONTRACT': {
       title = '中古車輛買賣定型化契約書';
-      const seller = params.sellerName || '出賣人（車主）';
+      const seller = params.sellerName || '（待填寫）';
       const buyer = params.buyerName || '買受人';
-      const plate = params.carPlateNumber || '車牌號碼 ABC-1234';
-      const price = params.salePrice || '350,000';
+      const plate = params.carPlateNumber || '（待填寫）';
+      const price = params.salePrice || '（待填寫）';
 
       docText = `中古汽車買賣契約書
 依據：民法第345條、第354條物之瑕疵擔保規定
@@ -2010,9 +2010,9 @@ ${dateStr}
       title = '民刑事法律時效與追訴權消滅期日分析表';
       docText = `法律請求權消滅時效與追訴期日分析報告
 依據：民法第125條、第126條、第127條、刑法第80條
-請求權／犯罪類型：${params.claimType || '民法一般請求權'}
-起算期日：${params.startDate || '110年1月1日'}
-時效中斷事由：${params.incidentDetails || '尚無承認、起訴或聲請支付命令等中斷事由'}
+請求權／犯罪類型：${params.claimType || '（待填寫）'}
+起算期日：${params.startDate || '（待填寫）'}
+時效中斷事由：${params.incidentDetails || '（待填寫）'}
 
 【法定時效與實務注意要點】：
 一、民法消滅時效分類：
