@@ -53,7 +53,10 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
   // 必須由使用者明確選擇，否則後續路由與安全指引都建立在錯誤前提上。
   const [scenarioCategory, setScenarioCategory] = useState<string>('');
   const [narrative, setNarrative] = useState<string>('');
-  const [relationship, setRelationship] = useState<ProcessGuideInput['relationship']>('SPOUSE');
+  // 不得預設關係人。預設 'SPOUSE' 會讓 isFamilyRelation 對每個人都為真，
+  // 把陌生人侵害或一般契約糾紛都導成家暴路徑並套用保護令指引。
+  // 與 scenarioCategory 相同：安全分流必須由使用者如實選擇。
+  const [relationship, setRelationship] = useState<ProcessGuideInput['relationship']>('');
   const [characteristics, setCharacteristics] = useState<string[]>([]);
   const [urgencyFlags, setUrgencyFlags] = useState({
     inImmediateDanger: false,
@@ -800,7 +803,9 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
             </button>
             <button
               onClick={() => setCurrentStep(4)}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-all"
+              disabled={!relationship}
+              title={relationship ? '' : '請先選擇與加害者的關係'}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-indigo-600 text-white font-bold text-xs transition-all"
             >
               產出法律流程分類與指引報告
               <ArrowRight className="w-4 h-4" />

@@ -12,7 +12,10 @@ import { buildForensicGuidance } from './forensicGuidance';
 export interface ProcessGuideInput {
   scenarioCategory: string; // DOMESTIC, SEXUAL_HARM, PROPERTY, TRAFFIC, HOUSING, LABOR, OTHER
   narrative: string;
-  relationship: 'SPOUSE' | 'COHABITANT' | 'EX_PARTNER' | 'FAMILY' | 'COLLEAGUE' | 'STRANGER' | 'OTHER'
+  // 空字串代表使用者尚未選擇。安全分流不得預設關係人：
+  // 預設 'SPOUSE' 會讓 isFamilyRelation 對每個人都為真，
+  // 把陌生人侵害或一般契約糾紛都導成家暴路徑。
+  relationship: '' | 'SPOUSE' | 'COHABITANT' | 'EX_PARTNER' | 'FAMILY' | 'COLLEAGUE' | 'STRANGER' | 'OTHER'
     // 民事契約糾紛的相對人（房東、買賣人、雇主）不是人身關係，
     // 步驟 3 需要能如實選擇，不必誤選「陌生人／其他」。
     | 'LANDLORD_TENANT' | 'SELLER_BUYER' | 'EMPLOYER';

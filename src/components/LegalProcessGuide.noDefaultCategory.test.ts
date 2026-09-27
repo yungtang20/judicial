@@ -33,4 +33,14 @@ describe('法理流程引導不得預設情境類別', () => {
     expect(source).toMatch(/disabled:cursor-not-allowed/);
     expect(source).toMatch(/請先選擇爭議情境/);
   });
+
+  it('關係人不得預設為配偶，否則每個人都被當成家暴案件', () => {
+    // 預設 'SPOUSE' 會讓 isFamilyRelation 對每個使用者都為真，
+    // 把陌生人侵害或一般契約糾紛都導成家暴路徑並套用保護令指引。
+    expect(source).toMatch(/useState<ProcessGuideInput\['relationship'\]>\(''\)/);
+    expect(source).not.toMatch(/useState<ProcessGuideInput\['relationship'\]>\('SPOUSE'\)/);
+    // 關係人在步驟三選擇，因此停用條件掛在步驟三到步驟四的按鈕上。
+    expect(source).toMatch(/disabled=\{!relationship\}/);
+    expect(source).toMatch(/請先選擇與加害者的關係/);
+  });
 });

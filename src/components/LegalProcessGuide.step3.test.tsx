@@ -10,11 +10,13 @@ import { LegalProcessGuide } from './LegalProcessGuide';
  * 且沒有「以上皆非」可選。使用者被迫勾選一個不實的類別，
  * 而最終的分類結論正是由這些勾選驅動。
  */
-const toStep3 = (issueText?: RegExp) => {
+const toStep3 = (issueText?: RegExp, relationshipText?: RegExp) => {
   if (issueText) fireEvent.click(screen.getByText(issueText));
   fireEvent.click(screen.getByRole('button', { name: /下一步：填寫事實陳述/ }));
   const ta = screen.getByRole('textbox');
   fireEvent.change(ta, { target: { value: '房東於簽約後三個月無故拒絕退還押金新臺幣五萬元，屢催不還。' } });
+  // 關係人也不再有預設值，必須如實選擇才能進入步驟三。
+  if (relationshipText) fireEvent.click(screen.getByText(relationshipText));
   fireEvent.click(screen.getByRole('button', { name: /下一步：確認身分與危害特徵/ }));
 };
 
