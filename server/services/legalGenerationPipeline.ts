@@ -52,6 +52,7 @@ function delay(ms: number): Promise<void> {
  * 只驗證 isTransientProviderError 的分類結果，無法證明呼叫端真的照做。
  */
 import { aiBreaker, executeWithResilience } from './circuitBreaker.js';
+import { TRADITIONAL_CHINESE_REQUIREMENT } from '../../src/prompts/languageRequirements.js';
 
 const AI_TIMEOUT_MS = 60000;
 
@@ -249,9 +250,15 @@ export class LegalGenerationPipeline {
     // 步驟 2: 注入檢索結果與 allowed_citations (Inject)
     const basePrompt = options.buildPrompt(retrieval);
     const appendRules = options.appendSyllogismRules !== false;
-    const fullPrompt = appendRules
+    // 語言要求必須由管線統一附加，不交給各呼叫端自行判斷。
+    // 實測：管線組裝的 promptBlock 只含檢索內容與三段論規則，
+    // 從未帶入 TRADITIONAL_CHINESE_REQUIREMENT——模型因此沒有被要求使用繁體，
+    // 產出含簡體後被繁體閘門擋下，該功能恆定失敗。
+    // 這正是 languageRequirements.ts 當初要集中管理、要避免各提示詞漏寫的原因。
+    const withLanguage = appendRules
       ? `${basePrompt}\n\n${retrieval.promptBlock}\n\n${UNIVERSAL_SYLLOGISM_RULES}`
       : `${basePrompt}\n\n${retrieval.promptBlock}`;
+    const fullPrompt = `${withLanguage}\n\n【輸出語言要求】${TRADITIONAL_CHINESE_REQUIREMENT}`;
 
     const provider = options.aiProvider || this.defaultProvider;
     let rawGeneratedText = '';
