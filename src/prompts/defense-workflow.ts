@@ -11,8 +11,8 @@ export function getBPointTriagePrompt(
   clientInput: string,
   caseType: string = 'civil',
   caseBackground: string = '',
-  courtName: string = '臺灣臺北地方法院',
-  caseNo: string = '113年度訴字第1234號'
+  courtName: string = '',
+  caseNo: string = ''
 ): string {
   return `${UNIVERSAL_SYLLOGISM_RULES}
 ${TRADITIONAL_CHINESE_REQUIREMENT}
@@ -210,8 +210,8 @@ ${TRADITIONAL_CHINESE_REQUIREMENT}
 
 【書狀種類】：${isLawyer ? '【軌道一：律師專業攻防軌（律師具名簽章）】' : '【軌道三：當事人個人陳報軌（當事人個人具名簽章，律師不列名、不背書）】'}
 【書狀名稱】：${docTitle}
-【管轄法院】：${caseInfo.courtName || '臺灣臺北地方法院'}
-【案號案由】：${caseInfo.caseNo || '113年度訴字第1234號'}
+【管轄法院】：${caseInfo.courtName || '（請填寫實際管轄法院）'}
+【案號案由】：${caseInfo.caseNo || '（請填寫實際案號；未提供時不得臆造）'}
 【當事人稱謂】：${caseInfo.clientRole || '被告'}：${caseInfo.clientName || '當事人'}
 【相對人稱謂】：${caseInfo.opponentRole || '原告'}：${caseInfo.opponentName || '相對人'}
 ${isLawyer ? `【訴訟代理人】：${caseInfo.lawyerName || '訴訟代理人律師'}` : '【訴訟代理人】：（本狀為當事人個人陳報，律師不列名）'}

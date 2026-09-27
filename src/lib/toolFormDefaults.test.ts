@@ -4,13 +4,22 @@ import { LEGAL_TOOLS } from './legalToolRegistry';
 import { TOOL_FIELD_SCHEMAS } from './toolFieldSchemas';
 
 describe('DEFAULT_FORM_INPUTS', () => {
-  it('is a non-empty record with string demo values', () => {
+  it('is a non-empty record with typed demo values', () => {
     const keys = Object.keys(DEFAULT_FORM_INPUTS);
     expect(keys.length).toBeGreaterThan(20);
     for (const key of keys) {
       const value = DEFAULT_FORM_INPUTS[key];
       expect(['string', 'number']).toContain(typeof value);
-      expect(String(value).length).toBeGreaterThan(0);
+    }
+  });
+
+  it('身分證字號不得預填，避免使用者誤將示範值提交到正式書狀', () => {
+    // 先前的斷言要求每個預設值都非空，那等於要求示範身分證必須存在於表單中，
+    // 使用者很容易直接沿用並提交到法院文件裡。
+    // 身分證改為留空，格式改由欄位 placeholder 提示。
+    for (const [key, value] of Object.entries(DEFAULT_FORM_INPUTS)) {
+      if (!/(^|[a-z])(Id|IdNo)$/.test(key)) continue;
+      expect(String(value), `${key} 不應預填身分證`).toBe('');
     }
   });
 

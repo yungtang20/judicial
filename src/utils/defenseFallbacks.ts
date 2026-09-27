@@ -4,7 +4,7 @@ export function buildFallbackDefenseTriage(
   clientInput: string,
   caseType: string = 'civil',
   courtName: string = '臺灣臺北地方法院',
-  caseNo: string = '113年度訴字第1234號'
+  caseNo: string = ''
 ): DefenseTriageResult {
   // Check if input has concrete clues like numbers, dates, invoices, bank, line, etc.
   const hasNumbers = /\d{2,}/.test(clientInput);
@@ -226,7 +226,7 @@ export function buildFallbackDefensePleading(
 ): GeneratedPleadingResult {
   const isLawyer = pleadingType === 'LAWYER_PLEADING';
   const court = caseInfo.courtName || '臺灣臺北地方法院';
-  const caseNo = caseInfo.caseNo || '113年度訴字第1234號';
+  const caseNo = caseInfo.caseNo || '（請填寫實際案號）';
   const clientName = caseInfo.clientName || '當事人';
   const clientRole = caseInfo.clientRole || '被告';
   const oppName = caseInfo.opponentName || '相對人';

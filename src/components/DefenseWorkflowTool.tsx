@@ -61,7 +61,7 @@ const PRESET_CASES = [
     category: '民事消費借貸',
     caseType: 'civil',
     courtName: '臺灣臺北地方法院',
-    caseNo: '113年度訴字第2841號',
+    caseNo: '',
     clientRole: '被告',
     clientName: '林小明',
     opponentRole: '原告',
@@ -79,7 +79,7 @@ const PRESET_CASES = [
     category: '民事承攬瑕疵',
     caseType: 'civil',
     courtName: '臺灣新北地方法院',
-    caseNo: '113年度建字第109號',
+    caseNo: '',
     clientRole: '原告（定作人）',
     clientName: '張大華',
     opponentRole: '被告（承攬人）',
@@ -97,7 +97,7 @@ const PRESET_CASES = [
     category: '刑事過失傷害 / 民事侵權',
     caseType: 'criminal',
     courtName: '臺灣士林地方法院',
-    caseNo: '113年度交易字第77號',
+    caseNo: '',
     clientRole: '被告',
     clientName: '陳威廉',
     opponentRole: '告訴人',
@@ -118,7 +118,7 @@ export const DefenseWorkflowTool: React.FC = () => {
   // Case metadata & input states
   const [caseType, setCaseType] = useState<string>('civil');
   const [courtName, setCourtName] = useState<string>('臺灣臺北地方法院');
-  const [caseNo, setCaseNo] = useState<string>('113年度訴字第2841號');
+  const [caseNo, setCaseNo] = useState<string>('');
   const [clientRole, setClientRole] = useState<string>('被告');
   const [clientName, setClientName] = useState<string>('林小明');
   const [opponentRole, setOpponentRole] = useState<string>('原告');
