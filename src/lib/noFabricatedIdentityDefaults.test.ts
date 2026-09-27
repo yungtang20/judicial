@@ -58,3 +58,41 @@ describe('不得預填虛構的個人資料', () => {
     expect(offenders, `以下位置以虛構案號替代未提供的值：\n${offenders.join('\n')}`).toEqual([]);
   });
 });
+
+/**
+ * 案件專屬的預設值一律不得預填。
+ *
+ * 實測：自書遺囑、拋棄遺產權、離婚協議書、借據都是具法律效力的文件，
+ * 使用者未逐項修改就產製，等於把捏造的姓名、電話、地址、不動產與金額
+ * 送到法院或對造本人。
+ *
+ * 保留的只有結構性與中性預設（每期五日、年息六、關係人稱謂），
+ * 這類不涉及特定案件事實。
+ */
+const STRUCTURAL_DEFAULTS = new Set([
+  'payDay', 'interestRate', 'days', 'relationship', 'custodyParent',
+  'defaultMonths', 'violationPeriod', 'startDefaultMonth', 'recipientRole'
+]);
+
+const CASE_SPECIFIC_KEY = [
+  /Name$/, /Phone$/, /Address$/, /^id/i, /IdNo$/, /Id$/,
+  /Birth/, /Date$/, /Amount/, /Salary/, /Rent/, /Support$/, /Score$/,
+  /bankName/, /Bank$/, /Place$/, /estate/i, /realEstate/i, /Beneficiary/,
+  /subject/i, /remedy/i, /evidenceList/, /claim/i
+];
+
+describe('表單不得預填案件專屬資料', () => {
+  it('姓名、電話、地址、日期、金額、身分證等欄位必須留空', () => {
+    const offenders = Object.entries(DEFAULT_FORM_INPUTS as Record<string, unknown>)
+      .filter(([key, value]) =>
+        !STRUCTURAL_DEFAULTS.has(key) &&
+        CASE_SPECIFIC_KEY.some(re => re.test(key)) &&
+        String(value).trim() !== ''
+      )
+      .map(([key, value]) => `${key}="${String(value).slice(0, 24)}"`);
+    expect(
+      offenders,
+      `以下欄位預填了案件專屬資料，使用者容易沿用並提交到法院或對造：\n${offenders.join('\n')}`
+    ).toEqual([]);
+  });
+});
