@@ -33,6 +33,9 @@ export interface ToolResultPanelProps {
 }
 
 
+/** 書狀模板在未取得使用者資料時留下的待填標記 */
+export const UNFILLED_FIELD_MARKER = '（待填寫）';
+
 export const ToolResultPanel: React.FC<ToolResultPanelProps> = ({ result, currentTool, isVerifyingAi, verifyNotice, onFullVerify, isLoading, generationStage }) => {
   const [copied, setCopied] = useState(false);
   const [printBlockedNotice, setPrintBlockedNotice] = useState<string | null>(null);
@@ -250,6 +253,16 @@ export const ToolResultPanel: React.FC<ToolResultPanelProps> = ({ result, curren
       setCopyError('請先完成人工複核後再交付本文件。');
       return;
     }
+    // 仍含待填欄位時禁止交付。
+    // 模板在使用者未提供資料時會標記「（待填寫）」；若任其匯出，
+    // 使用者可能把缺欄位的草稿當成完整書狀提交法院。
+    // 這與專案既有的 P9 fail-closed 原則一致：未完成的東西不得交付。
+    if (result.documentText.includes(UNFILLED_FIELD_MARKER)) {
+      setCopyError(
+        `本文件仍有未填寫的欄位（標示為${UNFILLED_FIELD_MARKER}），請先補齊後再交付，避免把缺欄位的草稿當成完整書狀。`
+      );
+      return;
+    }
     try {
       await assertPleadingDocumentDeliveryAllowed(
         currentTool.id, result.pleadingDeliveryAuthorization, action, result.documentText
@@ -409,6 +422,11 @@ export const ToolResultPanel: React.FC<ToolResultPanelProps> = ({ result, curren
               <span>A4 列印</span>
             </button>
           </div>
+          {result.documentText.includes(UNFILLED_FIELD_MARKER) && (
+            <p className="w-full text-[11px] text-amber-800 bg-amber-50 border border-amber-300 rounded px-2 py-1.5">
+              本文件尚有欄位未填寫（標示為{UNFILLED_FIELD_MARKER}）。請於左側表單補齊後再重新產製；未補齊前不會允許匯出或列印。
+            </p>
+          )}
           {(printBlockedNotice || copyError) && (
             <p role="alert" className="w-full text-[11px] text-amber-800 bg-amber-50 border border-amber-300 rounded px-2 py-1.5">
               {printBlockedNotice || copyError}

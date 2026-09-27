@@ -85,3 +85,63 @@ describe('列印路徑', () => {
     }
   });
 });
+
+/**
+ * 含待填欄位的書狀不得交付。
+ *
+ * 實測：模板在使用者未提供資料時會標記「（待填寫）」。
+ * 若任其匯出，使用者可能把缺欄位的草稿當成完整書狀提交法院。
+ * 這與專案既有的 P9 fail-closed 原則一致：未完成的東西不得交付。
+ */
+describe('未完成的書狀不得交付', () => {
+  it('文件含待填標記時，匯出按鈕應被擋下並說明原因', async () => {
+    render(
+      <ToolResultPanel
+        result={{
+          ...base,
+          documentText: '刑事告訴狀\n告訴人：\n事發經過：（待填寫）'
+        } as unknown as LegalToolboxResult}
+        currentTool={currentTool}
+        isVerifyingAi={false}
+        verifyNotice={null}
+        onFullVerify={() => {}}
+      />
+    );
+    // 畫面上必須明確告知文件尚未完成
+    expect(screen.getByText(/尚有欄位未填寫/)).toBeTruthy();
+    // 點擊 TXT 匯出不得產生下載
+    const created: Blob[] = [];
+    const original = URL.createObjectURL;
+    URL.createObjectURL = (blob: Blob) => { created.push(blob); return original.call(URL, blob); };
+    try {
+      fireEvent.click(document.getElementById('btn-download-txt')!);
+      await waitFor(() => {
+        expect(screen.getByRole('alert').textContent).toMatch(/未填寫/);
+      });
+      expect(created.length).toBe(0);
+    } finally {
+      URL.createObjectURL = original;
+    }
+  });
+
+  it('文件不含待填標記時，匯出照常進行', async () => {
+    render(
+      <ToolResultPanel
+        result={{ ...base, documentText: '民事起訴狀\n原告：王大明\n被告：李四龍' } as unknown as LegalToolboxResult}
+        currentTool={currentTool}
+        isVerifyingAi={false}
+        verifyNotice={null}
+        onFullVerify={() => {}}
+      />
+    );
+    const created: Blob[] = [];
+    const original = URL.createObjectURL;
+    URL.createObjectURL = (blob: Blob) => { created.push(blob); return original.call(URL, blob); };
+    try {
+      fireEvent.click(document.getElementById('btn-download-txt')!);
+      await waitFor(() => expect(created.length).toBe(1));
+    } finally {
+      URL.createObjectURL = original;
+    }
+  });
+});
