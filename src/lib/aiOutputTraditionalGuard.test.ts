@@ -169,3 +169,38 @@ describe('繁體中文閘門的行為', () => {
     expect(containsSimplifiedChinese('此處經過檢查當')).toBe(false);
   });
 });
+
+/**
+ * 前端與工具模組的文案也會顯示給使用者，必須同樣使用繁體中文。
+ *
+ * 實測：我在修押金分類時於 universalTriage.ts 寫入「不當得利」
+ * 使用了簡體的「当」，而該字會顯示在使用者的時效說明中。
+ * 先前的防護只掃 server 目錄，抓不到這類。
+ */
+const SRC = path.resolve(__dirname, '..');
+
+describe('前端與工具模組的文案用字', () => {
+  it('顯示給使用者的中文常值不得含簡體中文', () => {
+    const offenders: string[] = [];
+    const walkSrc = (dir: string) => {
+      for (const entry of readdirSync(dir)) {
+        if (['node_modules', 'dist', '__tests__'].includes(entry) || entry.startsWith('.')) continue;
+        const full = path.join(dir, entry);
+        if (statSync(full).isDirectory()) { walkSrc(full); continue; }
+        if (!/\.(ts|tsx)$/.test(entry) || entry.includes('.test.')) continue;
+        const src = readFileSync(full, 'utf8');
+        // 排除註解：說明文字可能引用實際觀察到的簡體字
+        const code = src
+          .replace(/\/\*[\s\S]*?\*\//g, '')
+          .split('\n')
+          .map(line => line.replace(/\/\/.*$/, ''))
+          .join('\n');
+        const literals = [...code.matchAll(/[「"']([^"'「」]{6,})[」"']/g)].map(m => m[1]);
+        const bad = [...new Set(literals)].filter(v => /[\u4e00-\u9fff]/.test(v) && containsSimplifiedChinese(v));
+        for (const v of bad) offenders.push(`${path.relative(SRC, full)}: ${v.slice(0, 40)}`);
+      }
+    };
+    walkSrc(SRC);
+    expect(offenders, `以下文案含簡體中文，會顯示給使用者：\n${offenders.join('\n')}`).toEqual([]);
+  });
+});
