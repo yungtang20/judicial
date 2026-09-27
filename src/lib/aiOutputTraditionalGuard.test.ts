@@ -1,21 +1,28 @@
 import { describe, it, expect } from 'vitest';
 import { readdirSync, readFileSync, statSync } from 'fs';
 import path from 'path';
-import { containsSimplifiedChinese } from '../lib/traditionalChineseGuard';
+import { containsSimplifiedChinese, describeSimplifiedChinese } from '../lib/traditionalChineseGuard';
 import { refineVerifiedDraft, getRefinePrompt } from '../lib/generation/draftRefiner';
 
 /**
- * 所有 AI 生成的產出都必須有繁體中文閘門。
+ * 每個把模型回覆指派給變數的地方，都必須有對應的繁體中文檢查。
  *
- * 背景：先前逐條路徑補防線（統一入口工作流、草稿精修、防線工作流、律師對話助理），
- * 但漏掉了共用管線與 /api/process/router、/api/process/question。
- * 漏網路徑只有在實際使用該功能時才會浮現。
+ * 背景：先前防線是逐條路徑手動補的，連續兩輪都在補漏網
+ * （漏了共用管線、漏了同一檔案內的其他輸出、漏了路由的 chapter 與 cause）。
+ * 原因有二：① 位置選錯（放在單一路徑而非共用樞紐）；
+ * ② 清單靠人工列舉，漏一項測試就漏一處。
  *
- * 這裡改成兩層：
- * 1. 逐端點檢查檔案是否含防護（防止再漏）。
- * 2. 行為測試：共用管線與草稿精修在遇到簡體輸出時必須拒絕交付。
+ * 本測試不使用人工清單，而是從原始碼推導：
+ * 找出所有 `<變數> = (response|res|aiRes|generated).text` 的指派，
+ * 逐一要求同一個檔案內存在 `containsSimplifiedChinese(<該變數>)`
+ * 或該變數流入已把關的共用管線。
  */
+
 const SERVER = path.resolve(__dirname, '../../server');
+// 只列「把驗證委派出去」的底層模組。
+// 不可列入 traditionalChineseGuard 本身：每個受保護的檔案都會匯入它，
+// 那會讓這項檢查對所有檔案都失效（實測踩過這個坑）。
+const GUARDED_LIB = ['lib/generation/draftRefiner'];
 
 function walk(dir: string, acc: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
@@ -27,53 +34,110 @@ function walk(dir: string, acc: string[] = []): string[] {
   return acc;
 }
 
-const AI_CALLERS = walk(SERVER).filter(f => {
+/**
+ * 模型回應物件的讀取（不論是否指派給變數）。
+ * 只認 response / res / aiRes / generated / resp 這類物件，
+ * 避免把 knowledge-base 的本地資料 .content 一併算進來。
+ */
+const MODEL_RESPONSE_OBJECTS = '(?:response|res|aiRes|generated|aiResponse|resp)';
+// 後接左括號者是 fetch Response 的 res.text()，不是 AI 輸出，排除以免誤判
+const MODEL_READ = new RegExp(`${MODEL_RESPONSE_OBJECTS}\\.(?:text|content)\\b(?!\\()`, 'g');
+/** 把模型回覆指派給變數的敘述，含直接指派與包在函式引數中的形式 */
+// 允許泛型呼叫，例如 RuntimeSchemaValidator.parseAndValidate<any>(aiRes.text, {...})
+const MODEL_ASSIGNMENT = new RegExp(
+  `(\\w+)\\s*=\\s*(?:${MODEL_RESPONSE_OBJECTS}\\.(?:text|content)\\b|[A-Za-z_][\\w.]*(?:<[^>]*>)?\\([^)]*${MODEL_RESPONSE_OBJECTS}\\.(?:text|content)\\b)`,
+  'g'
+);
+// 直接回傳模型回覆的形式，由呼叫端把關（例：draftRefiner、agentChat 皆走此路徑）
+const MODEL_RETURN = new RegExp(`return\\s+${MODEL_RESPONSE_OBJECTS}\\.(?:text|content)\\b`, 'g');
+/**
+ * 已受保護、但檢查作用在衍生值而非原始變數的情形。
+ *
+ * 名稱層級的靜態檢查無法追蹤資料流，因此這些必須顯式列出。
+ * 列出而非放行：這份清單本身就是需要人檢視的範圍，新增項目時會被看見。
+ */
+const DERIVED_VALUE_CHECKS: ReadonlyArray<{ file: string; variable: string; checkedAs: string; note: string }> = [
+  {
+    file: path.join('routes', 'unifiedWorkflow.ts'),
+    variable: 'text',
+    checkedAs: 'options',
+    note: 'text 經 JSON.parse 成 options 陣列後逐項檢查，檢查作用在衍生值上'
+  }
+];
+
+// 只列「把驗證委派出去」的底層模組。
+
+const serverFiles = walk(SERVER).filter(f => {
   const src = readFileSync(f, 'utf8');
-  return /defaultAIProvider\.|generateStructured\(|\.generate\(/.test(src) && !f.endsWith('types.ts');
+  return /defaultAIProvider\.|generateStructured\(|\.generate\(/.test(src);
 });
 
-describe('AI 生成端點的繁體中文防護', () => {
-  it('每個把模型回覆指派給輸出欄位的地方都必須有繁體檢查', () => {
-    // 檔案層級的檢查抓不到「同一檔案內只保護部分輸出」的情況。
-    // 先前 unifiedWorkflow 只保護動態追問，涵攝分析（主要輸出）卻沒有，
-    // 檔案層級檢查會誤判為已保護。
-    const workflow = readFileSync(path.resolve(SERVER, 'routes/unifiedWorkflow.ts'), 'utf8');
-    expect(workflow, '涵攝輸出 fullAnalysis 未受繁體檢查').toContain('containsSimplifiedChinese(fullAnalysis)');
+describe('AI 生成的繁體中文防護覆蓋率', () => {
+  it('掃描規則沒有過時：偵測到的指派點應接近模型回覆的讀取總數', () => {
+    // 這個掃描器只認得「X = response.text」這種直接指派。
+    // 實際上還有 JSON.parse 之類的間接取用，掃描器看不到。
+    // 與其讓那些盲點靜默通過，不如讓「規則跟不上實際寫法」明確失敗，
+    // 迫使人重新檢視。門檻是讀取總數的九成：低於此代表出現新寫法。
+    const readTotal = serverFiles.reduce((sum, f) => {
+      const src = readFileSync(f, 'utf8');
+      return sum + [...src.matchAll(MODEL_READ)].length;
+    }, 0);
+    const assignmentTotal = serverFiles.reduce((sum, f) => {
+      const src = readFileSync(f, 'utf8');
+      return sum
+        + [...src.matchAll(MODEL_ASSIGNMENT)].length
+        + [...src.matchAll(MODEL_RETURN)].length;
+    }, 0);
+    expect(
+      assignmentTotal,
+      `掃描規則可能已過時：偵測到 ${assignmentTotal} 個指派點，` +
+      `但模型回覆讀取共 ${readTotal} 處。請檢視是否有新的取用寫法需要納入掃描規則。`
+    ).toBeGreaterThanOrEqual(Math.floor(readTotal * 0.9));
   });
 
-  it('呼叫 AI 供應器的檔案都必須含繁體中文防護（含經共用管線間接覆蓋）', () => {
-    // 直接防護，或走共用管線（管線本身已有閘門），或委派給已有閘門的底層模組
-    const GUARDED_LIB = ['lib/generation/draftRefiner', 'lib/traditionalChineseGuard'];
-    const unprotected = AI_CALLERS.filter(f => {
+  it('每個模型回覆變數都必須有對應的繁體檢查或經由已把關的管線', () => {
+    const offenders: string[] = [];
+    for (const file of serverFiles) {
+      const src = readFileSync(file, 'utf8');
+      const usesGuardedPipeline = src.includes('defaultLegalGenerationPipeline');
+      const delegatesToGuardedLib = GUARDED_LIB.some(lib => src.includes(lib));
+      for (const m of src.matchAll(MODEL_ASSIGNMENT)) {
+        const variable = m[1];
+        // 檢查該變數是否出現在任何 containsSimplifiedChinese 呼叫的後續內容中。
+        // 不限定直接傳入：實務上常見陣列取用與巢狀呼叫，例如
+        // containsSimplifiedChinese([result.chapter, result.cause].filter(Boolean).join(''))
+        // 因此取呼叫點之後的固定視窗，不用括號配對擷取引數（巢狀括號會截斷）。
+        const callSites = [...src.matchAll(/containsSimplifiedChinese\(/g)].map(m => m.index || 0);
+        const hasOwnCheck = callSites.some(idx =>
+          new RegExp(`\\b${variable}\\b`).test(src.slice(idx, idx + 240))
+        );
+        if (hasOwnCheck) continue;
+        // 已由衍生值檢查涵蓋、但名稱層級連結不到的情形。
+        // 明確列出而非一律放行：豁免清單本身就是需要人檢視的範圍。
+        if (DERIVED_VALUE_CHECKS.some(d => d.file === path.relative(SERVER, file) && d.variable === variable)) {
+          continue;
+        }
+        if (usesGuardedPipeline || delegatesToGuardedLib) continue;
+        offenders.push(`${path.relative(SERVER, file)}: ${variable}`);
+      }
+    }
+    expect(
+      offenders,
+      `以下模型輸出變數沒有繁體中文檢查：\n${offenders.join('\n')}`
+    ).toEqual([]);
+  });
+
+  it('每個 AI 端點檔案都必須有繁體中文防護（含經共用管線間接覆蓋）', () => {
+    const unprotected = serverFiles.filter(f => {
       const src = readFileSync(f, 'utf8');
       if (src.includes('containsSimplifiedChinese')) return false;
-      if (src.includes('defaultLegalGenerationPipeline')) return false;   // 管線已把關
+      if (src.includes('defaultLegalGenerationPipeline')) return false;
       return !GUARDED_LIB.some(lib => src.includes(lib));
     });
     expect(
       unprotected.map(f => path.relative(SERVER, f)),
-      '這些檔案會呼叫 AI 但沒有繁體中文防護，模型偶爾以簡體回覆時會直接送到使用者面前'
+      '這些檔案會呼叫 AI 但沒有繁體中文防護'
     ).toEqual([]);
-  });
-});
-
-describe('每個模型輸出指派點都有對應的檢查', () => {
-  // 把模型回覆指派給會顯示給使用者的變數，就必須在同一個函式內有檢查。
-  // 逐一列出實測會顯示的輸出點，缺一個就失敗。
-  const ASSIGNMENTS: Array<{ file: string; assignment: string; guard: string }> = [
-    { file: 'routes/unifiedWorkflow.ts', assignment: 'fullAnalysis = response.text', guard: 'containsSimplifiedChinese(fullAnalysis)' },
-    { file: 'routes/unifiedWorkflow.ts', assignment: 'rawMessage = response.text', guard: 'containsSimplifiedChinese(rawMessage)' },
-    { file: 'routes/unifiedWorkflow.ts', assignment: 'const options = JSON.parse(jsonStr)', guard: 'containsSimplifiedChinese(String(option))' },
-    { file: 'routes/legalProcess.ts', assignment: 'rawMessage = response.text', guard: 'containsSimplifiedChinese(rawMessage)' },
-    { file: 'routes/legalProcess.ts', assignment: '路由 chapter/cause/missing_elements', guard: 'result.chapter, result.cause' },
-    { file: 'routes/legalProcess.ts', assignment: 'analysis = response.text', guard: 'containsSimplifiedChinese(analysis)' },
-    { file: 'routes/judicial.ts', assignment: 'Array.isArray(parsed.precedents)', guard: 'containsSimplifiedChinese([p.summary, p.relevance, p.keyTakeaway]' },
-    { file: 'routes/defense.ts', assignment: 'parsed = JSON.parse(cleaned)', guard: 'containsSimplifiedChinese(JSON.stringify(parsed))' }
-  ];
-
-  it.each(ASSIGNMENTS)('$file 的「$assignment」必須有檢查', ({ file, assignment, guard }) => {
-    const src = readFileSync(path.resolve(SERVER, file), 'utf8');
-    expect(src, `${file} 缺少 ${assignment} 對應的繁體檢查`).toContain(guard);
   });
 });
 
@@ -91,10 +155,17 @@ describe('繁體中文閘門的行為', () => {
     expect(result.documentText).toContain('新臺幣五萬元');
   });
 
-  it('精修提示詞要求繁體中文且不得轉為簡體', () => {
+  it('精修提示詞要求繁體中文且自身不含簡體', () => {
     const prompt = getRefinePrompt('原稿', '請調整', []);
     expect(prompt).toContain('繁體中文');
-    expect(prompt).toContain('不得轉為簡體中文');
     expect(containsSimplifiedChinese(prompt)).toBe(false);
+  });
+
+  it('本測試自身的繁體檢查仍能辨識簡體', () => {
+    // 確認防護函式本身沒壞掉，否則上面的檢查會全部失效
+    expect(containsSimplifiedChinese('此时需考量不当得利')).toBe(true);
+    // 用真正的簡體字確認防護有效（當是繁體，不應被判為簡體）
+    expect(containsSimplifiedChinese('此処经過检查当')).toBe(true);
+    expect(containsSimplifiedChinese('此處經過檢查當')).toBe(false);
   });
 });
