@@ -1,3 +1,4 @@
+import { toCalendarDate } from '../forensicGuidance';
 export type ProceduralCaseType = 'CIVIL' | 'CRIMINAL' | 'ADMINISTRATIVE' | 'FAMILY' | 'OTHER';
 
 export interface ProceduralRequirement {
@@ -52,7 +53,11 @@ export function assessProceduralRequirements(caseType: ProceduralCaseType, recei
     due.setDate(due.getDate() + periodDays);
     const now = new Date();
     const daysRemaining = Math.ceil((due.getTime() - now.getTime()) / 86_400_000);
-    deadline = { dueDate: due.toISOString().slice(0, 10), daysRemaining, overdue: daysRemaining < 0, status: 'KNOWN' };
+    // 必須以本地民用時間輸出，不可使用 toISOString().slice(0, 10)。
+    // 該方法會轉成 UTC，在 UTC+8 下輸入時間早於 08:00 時會整整少一天
+    // （實測 2026-09-28T07:00:00 + 30 日輸出 2026-10-27，應為 2026-10-28）。
+    // 這是法定期限日期，差一天可能造成期限誤判。
+    deadline = { dueDate: toCalendarDate(due), daysRemaining, overdue: daysRemaining < 0, status: 'KNOWN' };
     if (deadline.overdue) warnings.push('期限計算結果顯示可能逾期，請立即由專業人士確認起算日、送達日與假日規則。');
   } else {
     warnings.push('未提供完整收受／送達日期或期間，期限狀態維持 UNKNOWN。');

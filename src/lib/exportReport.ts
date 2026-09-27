@@ -1,3 +1,4 @@
+import { toCalendarDate } from './forensicGuidance';
 import { LegalWorkflowState } from './workflow/unifiedStateGraph';
 import { formatLegalChapter } from './legalChapterLabels';
 
@@ -82,7 +83,7 @@ export function exportAsHtml(state: LegalWorkflowState) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `法律分析報告_${new Date().toISOString().slice(0, 10)}.html`;
+  a.download = `法律分析報告_${toCalendarDate(new Date())}.html`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -119,7 +120,7 @@ export function exportAsText(state: LegalWorkflowState) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `法律分析報告_${new Date().toISOString().slice(0, 10)}.txt`;
+  a.download = `法律分析報告_${toCalendarDate(new Date())}.txt`;
   a.click();
   URL.revokeObjectURL(url);
 }
