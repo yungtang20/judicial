@@ -29,7 +29,7 @@ function walk(dir: string, acc: string[] = []): string[] {
     if (entry === 'node_modules' || entry === 'dist' || entry.startsWith('.')) continue;
     const full = path.join(dir, entry);
     if (statSync(full).isDirectory()) walk(full, acc);
-    else if (entry.endsWith('.ts') && !entry.includes('.test.')) acc.push(full);
+    else if (/\.tsx?$/.test(entry) && !entry.includes('.test.')) acc.push(full);
   }
   return acc;
 }
