@@ -32,6 +32,17 @@ export function getNextWorkingDay(date: Date) {
  */
 export const HOLIDAY_TABLE_COVERAGE_END_YEAR = 2026;
 
+/**
+ * 假日表實際涵蓋的最後一日。
+ *
+ * 只看年份會高估涵蓋範圍：表內最後一筆是 2026-10-10，
+ * 但以年份判斷會讓 2026-11-05 之後的期間也被視為「已涵蓋」，
+ * 介面卻宣稱維護範圍至民國 115 年為止。
+ * 實測當日為 2026-09-27 時，20 日上訴期限落在 2026-10-17，
+ * 已在表外卻不會顯示任何超出範圍的警告。
+ */
+export const HOLIDAY_TABLE_LAST_COVERED_DATE = '2026-10-10';
+
 export interface DeadlineResult {
   date: Date;
   deferredDays: number;
@@ -41,6 +52,17 @@ export interface DeadlineResult {
    * 否則期間末日可能算得太早而喪失上訴權利。
    */
   beyondHolidayCoverage: boolean;
+}
+
+/**
+ * 該日期是否落在假日表實際涵蓋範圍之外。
+ * 以表內最後一日為準，而非只看年份。
+ */
+export function isBeyondHolidayCoverage(date: Date): boolean {
+  if (date.getFullYear() > HOLIDAY_TABLE_COVERAGE_END_YEAR) return true;
+  if (date.getFullYear() < HOLIDAY_TABLE_COVERAGE_END_YEAR) return false;
+  const iso = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  return iso > HOLIDAY_TABLE_LAST_COVERED_DATE;
 }
 
 export function calculateDeadline(
@@ -54,6 +76,6 @@ export function calculateDeadline(
   return {
     date: next.date,
     deferredDays: next.deferredDays,
-    beyondHolidayCoverage: next.date.getFullYear() > HOLIDAY_TABLE_COVERAGE_END_YEAR
+    beyondHolidayCoverage: isBeyondHolidayCoverage(next.date)
   };
 }

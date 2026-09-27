@@ -53,8 +53,20 @@ describe('上訴法定期間計算', () => {
   });
 
   it('涵蓋範圍內的期間不應被標記', () => {
-    const result = calculateDeadline(new Date(2026, 9, 6), 20, 0);
+    // 送出 2026-09-13，20 日期間末日為 2026-10-03，仍在假日表建檔範圍內。
+    // 原先這裡用的是 2026-10-06，期限落在 10-26，已超出表內最後一筆
+    // （2026-10-10），卻期望不被標記——那正是把只看年份的錯誤行為寫成期望。
+    const result = calculateDeadline(new Date(2026, 8, 13), 20, 0);
+    expect(result.date.getFullYear()).toBe(2026);
+    expect(result.date.getMonth()).toBe(9);
     expect(result.beyondHolidayCoverage).toBe(false);
+  });
+
+  it('同年度但晚於假日表最後建檔日的期間必須標記', () => {
+    // 送出 2026-10-06，期限 2026-10-26。年份仍是 2026，
+    // 但假日表僅建檔至 2026-10-10，該日之後的國定假日未納入計算。
+    const result = calculateDeadline(new Date(2026, 9, 6), 20, 0);
+    expect(result.beyondHolidayCoverage).toBe(true);
   });
 
   it('返回的型別包含順延天數與涵蓋標記', () => {
