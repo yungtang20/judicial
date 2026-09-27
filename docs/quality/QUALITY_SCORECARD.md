@@ -1044,3 +1044,52 @@ tsc 完全不會攔截。
 但它只驗證「函式有產出該欄位」——
 **欄位被產出不等於欄位被使用**。
 這與先前「防護測試存在不等於防護有效」是同一個道理。
+
+### 26. 註解裡的宣稱被當成檢查通過
+
+開啟 `noUnusedLocals` 掃描未使用的變數（704 處，多為測試檔雜訊），
+其中兩處值得追查：
+
+1. `server/routes/defense.ts` 的 `generate-pleading` 路由解構了
+   `pleadingType`、`triageData`、`mineData`、`caseInfo` 卻完全未使用。
+2. `server/routes/appeal.ts` 與 `defense.ts` 都匯入了
+   `verifyGeneratedDocument` 卻從未呼叫，只留一行註解宣稱
+   「驗證由 defaultLegalGenerationPipeline 集中強制」。
+
+查證結果：
+
+- `generate-pleading` **刻意**恆回 409（答辯狀尚未建立經核准的格式結構），
+  屬正確的 fail-closed，不是缺陷。
+- 但它的解構預設值含**捏造的案件資料**：
+  案號「113年度訴字第1234號」、法院「臺灣臺北地方法院」、
+  當事人「當事人／對造」。雖因恆回 409 而未流入輸出，
+  卻是在法律工具中埋下「日後恢復此路徑即直接產出假事實」的陷阱。已移除。
+- 驗證確實由中央管線強制執行（第 285 行實際呼叫），註解內容為真。
+  但**註解會隨程式碼演進而失效，宣稱不等於事實**。
+
+#### 修正
+
+移除死碼與未使用匯入，並新增 `failClosedEnforcement.test.ts`，
+把註解的宣稱轉為可驗證的對象：
+
+- 中央管線必須實際呼叫 `assertGeneratedDocumentVerified`（而非僅在註解中提及）
+- 路由不得匯入 `verifyGeneratedDocument` 卻不使用
+- 路由不得保留帶捏造預設值的死碼解構
+
+#### 我自己的新測試也有同一個缺陷
+
+第一版的斷言用 `/assertGeneratedDocumentVerified\s*\(/` 比對，
+結果**匹到了第 231 行的說明註解**——那行註解本身就寫著
+「assertGeneratedDocumentVerified (Verify & Fail-Closed)」。
+移除實際呼叫後測試仍然全綠。
+
+**這正是本專案反覆清理的那類盲點：掃描未剝除註解。**
+修正為先剝除註解再比對後，移除實際呼叫即正確失敗。
+
+#### 這一輪的體會
+
+我為了找出「產生了但沒被使用」的問題，開了 `noUnusedLocals`，
+然後在新增的測試裡犯下了同一個錯誤。
+
+前六個變體都是「檢查被架空」，這次是**我在寫檢查時就重蹈覆轍**。
+知道規則不等於不會犯——所以每一條規則都需要自己的防護。

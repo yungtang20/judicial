@@ -6,7 +6,6 @@ import { defaultAIProvider as configuredAIProvider } from "../../src/ai/provider
 import { getBPointTriagePrompt, getMineScanPrompt, getDefensePleadingPrompt } from "../../src/prompts/defense-workflow.js";
 import { buildFallbackDefenseTriage, buildFallbackMineScan, buildFallbackDefensePleading } from "../../src/utils/defenseFallbacks.js";
 import { precheckLegalInput } from "../../src/lib/legalInputPrecheck.js";
-import { verifyGeneratedDocument, assertGeneratedDocumentVerified } from "../../src/lib/generatedDocumentPipeline.js";
 import { defaultLegalGenerationPipeline, defaultLegalRetrievalService } from "../services/legalGenerationPipeline.js";
 
 // Enforced centrally via defaultLegalGenerationPipeline
@@ -107,21 +106,11 @@ router.post("/api/defense/scan-mines", async (req: Request, res: Response) => {
 
 // 3. Generate Dual Pleading
 router.post("/api/defense/generate-pleading", async (req: Request, res: Response) => {
-  const {
-    pleadingType = "LAWYER_PLEADING",
-    clientInput = "",
-    triageData = {},
-    mineData = {},
-    caseInfo = {
-      caseType: "civil",
-      courtName: "臺灣臺北地方法院",
-      caseNo: "113年度訴字第1234號",
-      clientRole: "被告",
-      clientName: "當事人",
-      opponentRole: "原告",
-      opponentName: "對造"
-    }
-  } = req.body;
+  // 只解構實際會用到的欄位。其餘（triageData、mineData、caseInfo 等）
+  // 先前帶有捏造的預設值（案號「113年度訴字第1234號」、法院名、當事人姓名），
+  // 雖因本路徑恆回 409 而未流入輸出，但留下帶假資料的預設值
+  // 等於在法律工具中埋下日後恢復此路徑時會直接產出假事實的陷阱。
+  const { clientInput = "" } = req.body;
 
   const precheck = precheckLegalInput(clientInput, "generation");
   if (precheck.status === "reject") {

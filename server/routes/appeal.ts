@@ -1,13 +1,10 @@
 import { Router, Request, Response } from "express";
 import { describePrecheckRejection } from "../../src/lib/precheckRejectionMessage.js";
 import { getGenerateAppealPetitionPrompt } from "../../src/prompts/generate-appeal-petition.js";
-import { verifyGeneratedDocument } from "../../src/lib/generatedDocumentPipeline.js";
 import { buildFallbackPetition } from "../../src/utils/fallbacks.js";
 import { precheckLegalInput } from "../../src/lib/legalInputPrecheck.js";
 import { findUnreadRetrievedCitations } from "../../src/domain/case/citationGate.js";
 import { defaultLegalGenerationPipeline } from "../services/legalGenerationPipeline.js";
-
-// Note: verifyGeneratedDocument and UNIVERSAL_SYLLOGISM_RULES are enforced centrally within defaultLegalGenerationPipeline
 
 const router = Router();
 
