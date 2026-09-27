@@ -7,6 +7,14 @@ import { IssueEditorList } from './IssueEditorList';
 import { issueRowsFromCase, issueRowsToCase } from '../../lib/caseRowAdapters';
 import { useCaseStore } from '../../store/useCaseStore';
 
+/** 案件類型的合法值。與下拉選項一致，供型別安全地收窄輸入。 */
+const CASE_TYPES = ['civil', 'criminal', 'administrative', 'criminal_compensation'] as const;
+type CaseType = (typeof CASE_TYPES)[number];
+
+function toCaseType(value: string): CaseType | null {
+  return (CASE_TYPES as readonly string[]).includes(value) ? (value as CaseType) : null;
+}
+
 export function AppealStep2({ ctx }: { ctx: AppealStepContext }) {
   const updateCaseIssues = useCaseStore(state => state.updateIssues);
   const {
@@ -78,7 +86,7 @@ export function AppealStep2({ ctx }: { ctx: AppealStepContext }) {
               <p className="text-xs text-[var(--color-text-muted)] mt-1">核對案件基本資料與爭點對照表，並連網檢索與挑選可直接引用做為上訴理由背書之憲法法庭判決、最高法院/最高行政法院裁判、大法庭裁定、高等法院法律座談會與中央主管機關函釋。</p>
             </div>
             <div className="flex gap-2">
-              <select value={caseType} onChange={e => setCaseType(e.target.value as any)} className="border rounded px-3 py-1 text-xs font-bold bg-[var(--color-surface-raised)]">
+              <select value={caseType} onChange={e => { const t = toCaseType(e.target.value); if (t) setCaseType(t); }} className="border rounded px-3 py-1 text-xs font-bold bg-[var(--color-surface-raised)]">
                 <option value="civil">民事訴訟上訴</option>
                 <option value="criminal">刑事訴訟上訴</option>
                 <option value="administrative">行政訴訟上訴</option>
@@ -178,7 +186,7 @@ export function AppealStep2({ ctx }: { ctx: AppealStepContext }) {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               <div>
                 <label className="font-bold text-[var(--color-text-secondary)] block mb-1">訴訟類別</label>
-                <select value={caseType} onChange={e => setCaseType(e.target.value as any)} className="w-full border rounded p-1.5 bg-[var(--color-surface-overlay)] font-bold">
+                <select value={caseType} onChange={e => { const t = toCaseType(e.target.value); if (t) setCaseType(t); }} className="w-full border rounded p-1.5 bg-[var(--color-surface-overlay)] font-bold">
                   <option value="civil">民事訴訟上訴</option>
                   <option value="criminal">刑事訴訟上訴</option>
                   <option value="administrative">行政訴訟上訴</option>

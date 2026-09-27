@@ -681,7 +681,7 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
           <div className="space-y-2">
             <label className="text-xs font-bold text-slate-300">行為人與您的關係：</label>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-              {[
+              {([
                 { id: 'SPOUSE', label: '現有配偶（夫妻）' },
                 { id: 'COHABITANT', label: '同居人（同住伴侶）' },
                 { id: 'EX_PARTNER', label: '前配偶／前男女朋友' },
@@ -696,11 +696,11 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
                   { id: 'EMPLOYER', label: '雇主／受僱人（勞動關係）' }
                 ] : []),
                 { id: 'OTHER', label: '其他關係' }
-              ].map(rel => (
+              ] as Array<{ id: ProcessGuideInput['relationship']; label: string }>).map(rel => (
                 <button
                   key={rel.id}
                   type="button"
-                  onClick={() => setRelationship(rel.id as any)}
+                  onClick={() => setRelationship(rel.id)}
                   className={`p-2.5 rounded-xl border text-xs font-bold transition-all text-left ${
                     relationship === rel.id
                       ? 'border-indigo-500 bg-indigo-950/60 text-indigo-200'

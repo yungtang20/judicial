@@ -947,3 +947,42 @@ tsc 完全不會攔截。
 
 這也說明：先前「tsc 通過」這句話為真，但涵蓋範圍只有非 React 的部分。
 **與先前「我的驗證清單太窄」是同一個家族——這次是工具本身缺了一個必要依賴。**
+
+### 24. 把「型別檢查確實有效」變成可驗證的對象
+
+上一節安裝 `@types/react` 後，UI 層的型別檢查恢復了。
+但「安裝了」不等於「有效」——型別可以被 `any` 與 `as any` 繞過。
+
+實測掃描後仍找到三處：
+
+| 位置 | 寫法 | 掩蓋了什麼 |
+|---|---|---|
+| `AppealStep2.tsx` ×2 | `setCaseType(e.target.value as any)` | `setCaseType` 其實接受聯集型別，不是 `string`——`as any` 一直在掩蓋真實的型別不相容 |
+| `LegalProcessGuide.tsx` | `setRelationship(rel.id as any)` | 選項陣列未標註型別，`rel.id` 被推論為 `string`，與狀態型別脫鉤；這正是先前「預設為配偶」等問題得以長期存在的原因 |
+
+已修正：前者加入型別守衛 `toCaseType` 實際收窄輸入，
+後者為選項陣列標註 `Array<{ id: ProcessGuideInput['relationship']; label: string }>`。
+
+#### 新增防護 `reactTypeSafety.test.ts`
+
+- `@types/react` 與 `@types/react-dom` 必須同時宣告於 `package.json`
+  **且實際存在於 `node_modules`**（宣告與安裝是兩件事）
+- `tsconfig` 不得整個排除 `src` 或 `server`
+- 元件 props 不得宣告為 `any`
+- 設定狀態時不得以 `as any` 繞過列舉型別
+- 應用根必須以 `ErrorBoundary` 包覆，且邊界須實作
+  `getDerivedStateFromError` 與 `componentDidCatch`，並提供復原路徑
+
+已驗證防護有效：重新注入 `rel.id as any` 後測試正確失敗。
+
+#### 為什麼要這樣疊一層
+
+前一節的教訓是「工具缺了必要依賴」。
+但補上依賴只是第一步——依賴可以被 `any` 架空，
+就像防護測試可以被掃描範圍架空一樣。
+
+這是同一個家族的第���個變體：
+掃描範圍太窄 → 擷取規則抓不到 → 量測清單太窄 → 量測工具不可信 →
+**型別檢查被 any 架空**。
+
+每一個的修正方式都相同：**把「檢查本身有效」變成可自動驗證的對象。**
