@@ -51,6 +51,10 @@ function delay(ms: number): Promise<void> {
  * 僅暫時性錯誤才重試。匯出是為了能直接驗證「是否真的重試」這件事——
  * 只驗證 isTransientProviderError 的分類結果，無法證明呼叫端真的照做。
  */
+import { aiBreaker, executeWithResilience } from './circuitBreaker.js';
+
+const AI_TIMEOUT_MS = 60000;
+
 export async function withTransientRetry<T>(operation: () => Promise<T>): Promise<T> {
   let lastError: unknown;
   for (let attempt = 0; attempt <= TRANSIENT_RETRY_DELAYS_MS.length; attempt++) {
@@ -257,7 +261,19 @@ export class LegalGenerationPipeline {
       // 上游 AI 服務偶發逾時或 5xx（實測約四成產製失敗源自此），
       // 這類暫時性故障重試即可成功；驗證失敗等確定性結果不在此重試，
       // 避免放寬任何安全閘門。
-      const aiRes = await withTransientRetry(() => provider.generate(sanitizedPrompt));
+      // 外部 AI 服務加掛熔斷器：連續失敗達門檻後短路，
+      // 避免在服務不可用時仍對每個請求發起重試而耗盡額度。
+      // 熔斷開啟時由 executeWithResilience 擲出可理解的訊息，
+      // 不會把外部錯誤的原始內容暴露給終端使用者。
+      const aiRes = await executeWithResilience(
+        () => provider.generate(sanitizedPrompt),
+        {
+          timeoutMs: AI_TIMEOUT_MS,
+          maxRetries: 0,          // 重試已由 withTransientRetry 負責，此處不重複重試
+          breaker: aiBreaker,
+          fallbackMessage: 'AI 服務暫時無法連線，已啟動安全保護機制，請稍後再試'
+        }
+      );
       rawGeneratedText = aiRes.text || '';
       if (options.parseResponse) {
         extracted = options.parseResponse(rawGeneratedText);

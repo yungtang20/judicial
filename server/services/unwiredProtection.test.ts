@@ -4,7 +4,11 @@ import { readFileSync, readdirSync, statSync } from 'fs';
 import path from 'path';
 
 /**
- * 記錄「存在但未啟用」的防護程式碼。
+ * 記錄「存在但未啟用」的防護程式碼，以及已啟用者的確認。
+ *
+ * 2026-09-27 更新：熔斷機制已接上 AI 生成路徑
+ * （`legalGenerationPipeline.ts` 以 `executeWithResilience` + `aiBreaker` 包裹
+ * `provider.generate`），並由 `circuitBreaker.test.ts` 的 13 項行為契約把關。
  *
  * 實測：掃描未被使用的匯出，發現三處——
  *
@@ -43,13 +47,24 @@ function 收集(dir: string, acc: string[] = []): string[] {
 const 正式碼 = 收集(SERVER).filter(f => !f.includes('.test.') && !f.includes('.spec.'));
 
 describe('未啟用的防護程式碼', () => {
-  it('熔斷機制目前未接線——不得讓人以為已有熔斷保護', () => {
+  it('熔斷機制已接上 AI 生成路徑', () => {
     const 被引用 = 正式碼.some(f =>
       f !== path.join(SERVER, 'services/circuitBreaker.ts') &&
-      /circuitBreaker|executeWithResilience|judicialBreaker|aiBreaker|ragBreaker/.test(readFileSync(f, 'utf8'))
+      /circuitBreaker|executeWithResilience|aiBreaker/.test(readFileSync(f, 'utf8'))
     );
-    // 若此斷言失敗，代表熔斷機制已接線，應更新本說明並接上實際的測試
-    expect(被引用, '熔斷機制已接線——請更新本說明並為其加上測試').toBe(false);
+    expect(被引用, '熔斷機制已接線——若要移除，請先更新本說明').toBe(true);
+
+    // 確認接線點確實包住 AI 生成呼叫，且不重複重試
+    const pipeline = readFileSync(path.join(SERVER, 'services/legalGenerationPipeline.ts'), 'utf8');
+    expect(pipeline, 'AI 生成未經熔斷保護').toMatch(/executeWithResilience\([\s\S]{0,300}provider\.generate/);
+    expect(pipeline, '重試被重複執行（withTransientRetry 與熔斷器同時重試）')
+      .toMatch(/maxRetries:\s*0/);
+  });
+
+  it('熔斷器本身有行為契約測試把關', () => {
+    const 測試 = readFileSync(path.join(SERVER, 'services/circuitBreaker.test.ts'), 'utf8');
+    expect(測試, '熔斷器缺少狀態機與執行器測試').toMatch(/CircuitBreaker 狀態機/);
+    expect(測試, '熔斷器缺少 executeWithResilience 測試').toMatch(/executeWithResilience/);
   });
 
   it('結構驗證 schema 目前未接線', () => {
