@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync, readdirSync, statSync } from 'fs';
 import path from 'path';
 import { containsSimplifiedChinese } from './traditionalChineseGuard';
+import { stripComments, extractUserFacingText } from './simplifiedScan';
 
 /**
  * 繁體中文防護必須涵蓋 JSX 元素文字。
@@ -14,35 +15,17 @@ import { containsSimplifiedChinese } from './traditionalChineseGuard';
  * 漏掃等於放行。
  */
 
-/** 複製防護測試中的擷取邏輯，確保此測試檢驗的是同一套規則。 */
-function collectSourceFiles(dir: string, acc: string[] = []): string[] {
+const SRC = path.resolve(__dirname, '..');
+
+const collectSourceFiles = (dir: string, acc: string[] = []): string[] => {
   for (const entry of readdirSync(dir)) {
-    if (['node_modules', 'dist', '__tests__'].includes(entry) || entry.startsWith('.')) continue;
+    if (['node_modules', 'dist'].includes(entry) || entry.startsWith('.')) continue;
     const full = path.join(dir, entry);
     if (statSync(full).isDirectory()) collectSourceFiles(full, acc);
     else if (/\.tsx?$/.test(entry) && !entry.includes('.test.')) acc.push(full);
   }
   return acc;
-}
-
-const SRC = path.resolve(__dirname, '..');
-
-const stripComments = (src: string): string =>
-  src
-    .replace(/\r\n/g, '\n')
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .split('\n')
-    .map(line => line.replace(/\/\/.*$/, ''))
-    .join('\n');
-
-/** 與防護測試相同的擷取規則。 */
-function extractUserFacingText(code: string, isTsx: boolean): string[] {
-  const literals = [...code.matchAll(/[「"']([^"'「」\r\n]{3,})[」"']/g)].map(m => m[1]);
-  if (isTsx) {
-    for (const m of code.matchAll(/>([^<>{}]*[一-鿿][^<>{}]*)</g)) literals.push(m[1]);
-  }
-  return [...new Set(literals.map(v => v.trim()))].filter(Boolean);
-}
+};
 
 describe('繁體中文防護的擷取規則', () => {
   it('必須擷取 JSX 元素文字，不只是字串常值', () => {
@@ -61,10 +44,13 @@ describe('繁體中文防護的擷取規則', () => {
     expect(結果.some(v => containsSimplifiedChinese(v))).toBe(false);
   });
 
-  it('防護測試本身必須含 JSX 文字掃描分支', () => {
+  it('防護必須使用共用的擷取實作，不得自行複製', () => {
+    // 邏輯已抽到 simplifiedScan.ts。先前測試在自身檔案內複製了一份，
+    // 因此移除防護中的 JSX 掃描後測試仍然全綠——它驗證的是自己的副本。
+    // 若防護改回自行實作，這裡就會與測試再次分家。
     const src = readFileSync(path.join(SRC, 'lib/aiOutputTraditionalGuard.test.ts'), 'utf8');
-    expect(src, '防護缺少 JSX 文字節點的掃描').toMatch(/JSX 元素文字/);
-    expect(src, '防護未限定 JSX 掃描僅適用於 .tsx').toMatch(/\.tsx\$\/\.test\(full\)/);
+    expect(src, '防護未使用共用的擷取實作').toMatch(/extractUserFacingText/);
+    expect(src, '防護未使用共用的註解剝除實作').toMatch(/stripComments/);
   });
 
   it('防護必須同時掃描字串常值與 JSX 文字兩種來源', () => {

@@ -1,3 +1,4 @@
+import { stripComments, extractUserFacingText } from './simplifiedScan';
 import { describe, it, expect } from 'vitest';
 import { readdirSync, readFileSync, statSync } from 'fs';
 import path from 'path';
@@ -192,26 +193,11 @@ describe('前端與工具模組的文案用字', () => {
         // 排除註解：說明文字可能引用實際觀察到的簡體字
         // CRLF 檔案中 `.` 在 JavaScript 不匹配 `\r`，
         // 因此不以 $ 錨定行尾會剝除不掉行尾註解，先把換行正規化。
-        const code = src
-          .replace(/\r\n/g, '\n')
-          .replace(/\/\*[\s\S]*?\*\//g, '')
-          .split('\n')
-          .map(line => line.replace(/\/\/.*$/, ''))
-          .join('\n');
-        // 兩種來源都要掃：
-        // 1. 引號包住的字串常值。
-        // 2. JSX 元素文字，例如 <div>不当得利</div>。
-        //    React 中使用者可見的中文有相當比例是這種寫法，
-        //    只掃字串常值會整批漏掉。
-        //    JSX 僅存在於 .tsx；.ts 中的 > 來自箭頭函式，套用會誤判。
-        const literals = [...code.matchAll(/[「"']([^"'「」\r\n]{3,})[」"']/g)].map(m => m[1]);
-        if (/\.tsx$/.test(full)) {
-          for (const m of code.matchAll(/>([^<>{}]*[\u4e00-\u9fff][^<>{}]*)</g)) {
-            literals.push(m[1]);
-          }
-        }
-        const bad = [...new Set(literals.map(v => v.trim()))]
-          .filter(v => v && /[\u4e00-\u9fff]/.test(v) && containsSimplifiedChinese(v));
+        // 剝除註解與擷取邏輯抽到共用模組，讓防護與其測試使用同一份實作。
+        // 先前測試自行複製了一份，因此移除防護中的 JSX 掃描後測試仍全綠。
+        const code = stripComments(src);
+        const bad = extractUserFacingText(code, /\.tsx$/.test(full))
+          .filter(v => /[\u4e00-\u9fff]/.test(v) && containsSimplifiedChinese(v));
         for (const v of bad) offenders.push(`${path.relative(SRC, full)}: ${v.slice(0, 40)}`);
       }
     };

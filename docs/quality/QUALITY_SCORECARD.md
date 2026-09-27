@@ -6,7 +6,7 @@
 
 - `npm run lint`（tsc --noEmit）：通過。
 - `npm test`：**214 個測試檔、1349 項測試**全部通過。
-- 覆蓋率：Statements 92.69%、Branches 85.94%、Functions 95.42%、Lines 94.28%（`npm run test:coverage`，含覆蓋率門檻，CI 實際執行）。
+- 覆蓋率：Statements 92.71%、Branches 85.95%、Functions 95.46%、Lines 94.30%（`npm run test:coverage`，含覆蓋率門檻，CI 實際執行）。
 - `npm run test:eval`、`npm run test:e2e`、`npm run test:ui:e2e`、`npm run test:ssrf`：全部通過。
 - `npm run build`：Production 前後端建置通過。
 - `npm audit --omit=dev --audit-level=high`：0 vulnerabilities。
@@ -45,7 +45,7 @@
 | 5. 安全性 | 8 | production audit PASS；auth/tenant/PII/SSRF/citation fail-closed tests PASS | audit 0 vulnerabilities；tenant、SSRF、個資遮蔽、幽靈法條逐項驗證有效。修正 AI 可取得 ADMIN 權限（AGENTS.md 第一條硬性規則原本無測試保護）等三個無測試保護的缺口。 |
 | 6. 可維護性 | 8 | 高風險執行路徑已拆 coherent boundaries；資料型大檔有完整性測試；剩餘 hotspot 有明確 owner/gate | 未新增 production 依賴。防護掃描範圍與擷取規則本身已成為可驗證對象（`guardScanCoverage`、`regressionLedger`），避免量測範圍被縮窄而無人察覺。 |
 | 7. 整合度 | 8 | CI/Render/README clean-install 與 Node 契約一致，且目標 runtime 驗證通過 | 以 render.yaml 環境變數實測啟動通過；Browser E2E 通過。遠端 CI 與正式站仍待驗證。 |
-| 8. 覆蓋率 | 8 | 全域 statements/lines ≥85、branches ≥75、functions ≥90；關鍵信任邊界檔案有專屬門檻 | 92.69% statements、85.94% branches、95.42% functions、94.28% lines。本輪依覆蓋率報告找出最薄弱區域（citationFormatter 57.7% 分支、apiClient 55.5%、officialTemplateManifest 60.7%）並補足測試與修正。 |
+| 8. 覆蓋率 | 8 | 全域 statements/lines ≥85、branches ≥75、functions ≥90；關鍵信任邊界檔案有專屬門檻 | 92.71% statements、85.95% branches、95.46% functions、94.30% lines。本輪依覆蓋率報告找出最薄弱區域（citationFormatter 57.7% 分支、apiClient 55.5%、officialTemplateManifest 60.7%）並補足測試與修正。 |
 | 9. 技術債（越高越嚴重） | 3 | ≤2：沒有可立即修補 advisory；跨平台 lock/runtime 契約有結論；最高風險 hotspot 已降低或被直接 gate | 本輪修復 15 個真實缺陷並為每個建立回歸保護；未發現可立即修補的安全 advisory。剩餘：`classifyTemplateP9Readiness` 對 P9_READY 直接放行的設計（目前無觸發路徑，且交付閘門會獨立驗證）、遠端 CI 與正式站尚未實測。 |
 
 
@@ -1093,3 +1093,42 @@ tsc 完全不會攔截。
 
 前六個變體都是「檢查被架空」，這次是**我在寫檢查時就重蹈覆轍**。
 知道規則不等於不會犯——所以每一條規則都需要自己的防護。
+
+### 27. 批次驗證我自己的新防護，抓到一個「測試驗證自己」
+
+上一輪證實我寫的檢查也可能有盲點之後，這一輪對**最近新增但尚未驗證過的 10 條防護**
+逐一植入真實缺陷，確認它們確實會失敗。
+
+結果 10 條中 1 條無效：
+
+**`aiOutputJsxText.test.ts` 只驗證自己的副本。**
+
+該測試在自身檔案內重新實作了防護的擷取邏輯，因此把防護中的
+JSX 掃描迴圈移除後，測試**仍然全綠**——
+它驗證的是自己的複本，不是防護的實際行為。
+
+#### 修正
+
+把剝除註解與擷取邏輯抽到 `src/lib/simplifiedScan.ts`，
+讓防護與測試使用**同一份實作**。並新增斷言要求防護必須引用該模組，
+若改回自行實作即失敗。
+
+驗證：破壞共用實作的 JSX 分支後，2 條測試立即失敗；
+重構前同一個破壞則全綠。
+
+#### 副作用：回歸帳本正確攔截了過時指向
+
+重構後 `JSX 元素文字` 的註解已移出防護檔，
+`regressionLedger.test.ts` 立即失敗並指出帳本指向舊位置。
+這是帳本第一次在**修正被重構移動**時發揮作用——
+不是修正被還原，而是記錄需要跟著更新。已更新指向。
+
+#### 這一輪的體會
+
+「測試驗證自己」是本專案反覆出現的家族成員：
+- 防護測試存在，不等於防護有效
+- 欄位被產出，不等於欄位被使用
+- 註解的宣稱，不等於程式碼的行為
+
+這次是**測試與被測對象各自有一份實作**。
+把實作抽到共用模組，是讓兩者無法分家的唯一可靠做法。
