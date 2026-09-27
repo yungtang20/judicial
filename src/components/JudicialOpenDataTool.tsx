@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useGlobalUI } from '../contexts/GlobalUIContext';
 import { Database, Key, List, FileText, CheckCircle2, AlertCircle, RefreshCw, Download, ArrowRight, ExternalLink, ShieldCheck, Zap, Trash2, Copy, Check } from 'lucide-react';
 import { withJudgmentCache, clearJudgmentCache, getJudgmentCacheStats } from '../lib/cache/judgmentCache';
 import { saveJdgToken, getValidJdgToken, saveMemberToken, getValidMemberToken } from '../lib/cache/judicialTokenStore';
@@ -45,6 +46,8 @@ interface JDocResult {
 }
 
 export default function JudicialOpenDataTool() {
+  // 原生 alert() 會凍結整個頁面、無法樣式化與翻譯，改用應用既有的提示機制
+  const { showToast } = useGlobalUI();
   const [activeTab, setActiveTab] = useState<'categories' | 'jdgApi' | 'memberToken'>('categories');
   const [hasEnvCreds, setHasEnvCreds] = useState<boolean>(false);
   // 司法院開放資料的伺服器端尚未實作；必須如實告知使用者，
@@ -148,7 +151,7 @@ export default function JudicialOpenDataTool() {
       }
       refreshCacheStats();
     } catch (err: any) {
-      alert('請求錯誤：' + err.message);
+      showToast({ message: '請求錯誤：' + err.message, type: 'error' });
     } finally {
       setCatLoading(false);
     }
@@ -176,7 +179,7 @@ export default function JudicialOpenDataTool() {
       }
       refreshCacheStats();
     } catch (err: any) {
-      alert('取得資料源失敗：' + err.message);
+      showToast({ message: '取得資料源失敗：' + err.message, type: 'error' });
     } finally {
       setResLoading(false);
     }
@@ -249,7 +252,7 @@ export default function JudicialOpenDataTool() {
   // 取得 7 日裁判書異動清單 (JList，支援快取 1 小時)
   const handleFetchJList = async (bypassCache: boolean = false) => {
     if (!jdgToken) {
-      alert('請先進行裁判書 API 驗證取得 Token');
+      showToast({ message: '請先進行裁判書 API 驗證取得 Token', type: 'error' });
       return;
     }
     setJlistLoading(true);
@@ -278,7 +281,7 @@ export default function JudicialOpenDataTool() {
       }
       refreshCacheStats();
     } catch (err: any) {
-      alert('取得異動清單失敗：' + err.message);
+      showToast({ message: '取得異動清單失敗：' + err.message, type: 'error' });
     } finally {
       setJlistLoading(false);
     }
@@ -287,12 +290,12 @@ export default function JudicialOpenDataTool() {
   // 取得裁判書全文 (JDoc，支援快取 7 天)
   const handleFetchJDoc = async (jidToFetch: string, bypassCache: boolean = false) => {
     if (!jdgToken) {
-      alert('請先取得裁判書 API Token');
+      showToast({ message: '請先取得裁判書 API Token', type: 'error' });
       return;
     }
     const targetJid = jidToFetch || selectedJid;
     if (!targetJid) {
-      alert('請輸入或選擇裁判書 JID');
+      showToast({ message: '請輸入或選擇裁判書 JID', type: 'error' });
       return;
     }
     setSelectedJid(targetJid);
@@ -322,7 +325,7 @@ export default function JudicialOpenDataTool() {
       }
       refreshCacheStats();
     } catch (err: any) {
-      alert('讀取裁判書全文失敗：' + err.message);
+      showToast({ message: '讀取裁判書全文失敗：' + err.message, type: 'error' });
     } finally {
       setJdocLoading(false);
     }

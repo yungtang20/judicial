@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { useGlobalUI } from '../contexts/GlobalUIContext';
 import { extractPdfText } from '../lib/pdfUtils';
 
 interface JudgmentData {
@@ -12,6 +13,8 @@ interface JudgmentData {
 }
 
 export default function JudgmentSearchTool() {
+  // 原生 alert() 會凍結整個頁面、無法樣式化與翻譯，改用應用既有的提示機制
+  const { showToast } = useGlobalUI();
   const [allData, setAllData] = useState<JudgmentData[]>([]);
   const [searchResults, setSearchResults] = useState<JudgmentData[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -213,7 +216,8 @@ export default function JudgmentSearchTool() {
       setSearchResults(results);
       setStatusMessage(`搜尋完成：共找到 ${results.length} 筆`);
     } catch (e) {
-      alert("語法錯誤，請檢查括號或運算符號");
+      // 原生 alert() 會凍結整個頁面且無法翻譯，改用應用既有的提示機制
+      showToast({ message: '語法錯誤，請檢查括號或運算符號', type: 'error' });
       console.error(e);
       setStatusMessage(`已載入 ${allData.length} 筆資料 (語法錯誤)`);
     } finally {

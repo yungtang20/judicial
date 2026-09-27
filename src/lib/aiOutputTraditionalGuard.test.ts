@@ -190,12 +190,15 @@ describe('前端與工具模組的文案用字', () => {
         if (!/\.(ts|tsx)$/.test(entry) || entry.includes('.test.')) continue;
         const src = readFileSync(full, 'utf8');
         // 排除註解：說明文字可能引用實際觀察到的簡體字
+        // CRLF 檔案中 `.` 在 JavaScript 不匹配 `\r`，
+        // 因此不以 $ 錨定行尾會剝除不掉行尾註解，先把換行正規化。
         const code = src
+          .replace(/\r\n/g, '\n')
           .replace(/\/\*[\s\S]*?\*\//g, '')
           .split('\n')
           .map(line => line.replace(/\/\/.*$/, ''))
           .join('\n');
-        const literals = [...code.matchAll(/[「"']([^"'「」]{6,})[」"']/g)].map(m => m[1]);
+        const literals = [...code.matchAll(/[「"']([^"'「」\r\n]{3,})[」"']/g)].map(m => m[1]);
         const bad = [...new Set(literals)].filter(v => /[\u4e00-\u9fff]/.test(v) && containsSimplifiedChinese(v));
         for (const v of bad) offenders.push(`${path.relative(SRC, full)}: ${v.slice(0, 40)}`);
       }

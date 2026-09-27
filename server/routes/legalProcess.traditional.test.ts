@@ -25,7 +25,7 @@ function stripComments(src: string): string {
     .join('\n');
 }
 
-const CHINESE_STRING = /[「"']([^"'「」]{6,})[」"']/g;
+const CHINESE_STRING = /[「"']([^"'「」\r\n]{3,})[」"']/g;
 
 describe('法理流程輸出的用字', () => {
   const code = stripComments(readFileSync(path.resolve(__dirname, 'legalProcess.ts'), 'utf8'));

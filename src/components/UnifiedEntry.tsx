@@ -70,7 +70,7 @@ function loadCustomPreset(): CustomPresetCase {
 
 export const UnifiedEntry: React.FC = () => {
   const { handleSelectTool } = useToolContext();
-  const { startLoading, stopLoading } = useGlobalUI();
+  const { startLoading, stopLoading, showToast } = useGlobalUI();
   const applyUnifiedWorkflow = useCaseStore(state => state.applyUnifiedWorkflow);
   const resetCase = useCaseStore(state => state.resetCase);
   const resetAppealForNewCase = useAppealStore(state => state.resetForNewCase);
@@ -154,13 +154,17 @@ export const UnifiedEntry: React.FC = () => {
   // 將當前文字框內容設為自訂案例
   const handleSaveCurrentAsCustomPreset = () => {
     if (!inputNarrative.trim()) {
-      alert('請先在輸入框內輸入案件事實內容');
+      // 原本使用原生 alert()，會凍結整個頁面且無法樣式化與翻譯。
+      // 改用全域提示機制，與其他操作回饋一致。
+      showToast({ message: '請先在輸入框內輸入案件事實內容', type: 'error' });
       return;
     }
-    const title = prompt('請輸入自訂預設案例名稱：', customPreset.title || '我的自訂案例');
-    if (title !== null) {
-      handleSaveCustomPreset(title || '我的自訂案例', inputNarrative);
-    }
+    // 原本使用原生 prompt() 詢問案例名稱。原生對話框會凍結整個頁面、
+    // 無法樣式化、無法翻譯，且與既有的自訂案例編輯彈窗重複。
+    // 改為開啟既有的樣式化彈窗，讓使用者命名並預覽內容後再儲存。
+    setEditPresetTitle(customPreset.title || '我的自訂案例');
+    setEditPresetNarrative(inputNarrative);
+    setShowCustomPresetModal(true);
   };
 
   // History
