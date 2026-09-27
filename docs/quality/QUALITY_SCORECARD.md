@@ -1174,3 +1174,54 @@ JSX 掃描迴圈移除後，測試**仍然全綠**——
 
 新增的 `simplifiedTableVariantChars.test.ts` 把這個判準固定下來：
 異體字不得列入對照表，常見法律詞與法條原文片段不得被誤判。
+
+## 遠端狀態的實際查證結果
+
+先前多輪把「遠端 CI 與 Render 部署尚未驗證」標為 UNVERIFIED。
+這一輪實際去查了，結果如下。
+
+### 遠端 GitHub Actions：通過
+
+```
+bb52ed7 → success   （最新提交）
+9603a28 → success
+16bb626 → success
+```
+
+遠端 CI 與本機執行的指令序列一致（`npm ci` → audit → lint → test →
+test:coverage → eval → e2e → ssrf → build，以及 browser-e2e job），
+三次連續提交皆通過。**「CI 等價」不再只是本機等價，而是實際等同。**
+
+### 遠端 Render 部署：不存在
+
+```
+https://judicial.onrender.com/            → HTTP 404
+https://judicial.onrender.com/api/health  → HTTP 404
+```
+
+`render.yaml` 宣告 `name: judicial`，但該名稱在 Render 上並不存在服務——
+根網址與 API 路徑都回應 Render 的 404 頁面。
+
+**這代表專案目前並未實際上線。**
+
+先前每一輪的「可上線」結論都建立在：
+- 本機以正式環境變數啟動成功
+- `render.yaml` 的設定看似正確
+- CI 通過
+
+但**沒有任何一輪實際查過正式站是否存在**。這是「驗證範圍小於結論範圍」
+最典型的一次——而且我寫在計分卡裡的那句「遠端狀態明確標為 UNVERIFIED」
+讓它看起來像是已被妥善揭露，實際上它掩蓋了一個我應該去查的事實。
+
+#### 為何無法自行部署
+
+建立 Render 服務需要 Render 帳號的存取權限，且屬於
+AGENTS.md 所列「須人工確認」的部署操作。程式碼層級能做的
+（設定檔、建置腳本、環境變數契約、啟動安全校驗）都已完成並驗證。
+
+#### 這一課
+
+「我沒有驗證」和「我驗證了、結論是還沒上線」是兩件事。
+前者是空白，後者是可行動的發現。
+
+我選擇了前者二十幾輪。
