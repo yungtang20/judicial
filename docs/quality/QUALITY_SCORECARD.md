@@ -5,8 +5,8 @@
 ## 2026-09-27 現況證據
 
 - `npm run lint`（tsc --noEmit）：通過。
-- `npm test`：**213 個測試檔、1341 項測試**全部通過。
-- 覆蓋率：Statements 91.69%、Branches 85.19%、Functions 94.71%、Lines 93.21%。
+- `npm test`：**214 個測試檔、1349 項測試**全部通過。
+- 覆蓋率：Statements 92.76%、Branches 86.07%、Functions 95.42%、Lines 94.30%（`npm run test:coverage`，含覆蓋率門檻，CI 實際執行）。
 - `npm run test:eval`、`npm run test:e2e`、`npm run test:ui:e2e`、`npm run test:ssrf`：全部通過。
 - `npm run build`：Production 前後端建置通過。
 - `npm audit --omit=dev --audit-level=high`：0 vulnerabilities。
@@ -45,7 +45,7 @@
 | 5. 安全性 | 8 | production audit PASS；auth/tenant/PII/SSRF/citation fail-closed tests PASS | audit 0 vulnerabilities；tenant、SSRF、個資遮蔽、幽靈法條逐項驗證有效。修正 AI 可取得 ADMIN 權限（AGENTS.md 第一條硬性規則原本無測試保護）等三個無測試保護的缺口。 |
 | 6. 可維護性 | 8 | 高風險執行路徑已拆 coherent boundaries；資料型大檔有完整性測試；剩餘 hotspot 有明確 owner/gate | 未新增 production 依賴。防護掃描範圍與擷取規則本身已成為可驗證對象（`guardScanCoverage`、`regressionLedger`），避免量測範圍被縮窄而無人察覺。 |
 | 7. 整合度 | 8 | CI/Render/README clean-install 與 Node 契約一致，且目標 runtime 驗證通過 | 以 render.yaml 環境變數實測啟動通過；Browser E2E 通過。遠端 CI 與正式站仍待驗證。 |
-| 8. 覆蓋率 | 8 | 全域 statements/lines ≥85、branches ≥75、functions ≥90；關鍵信任邊界檔案有專屬門檻 | 91.69% statements、85.19% branches、94.71% functions、93.21% lines。本輪依覆蓋率報告找出最薄弱區域（citationFormatter 57.7% 分支、apiClient 55.5%、officialTemplateManifest 60.7%）並補足測試與修正。 |
+| 8. 覆蓋率 | 8 | 全域 statements/lines ≥85、branches ≥75、functions ≥90；關鍵信任邊界檔案有專屬門檻 | 92.76% statements、86.07% branches、95.42% functions、94.30% lines。本輪依覆蓋率報告找出最薄弱區域（citationFormatter 57.7% 分支、apiClient 55.5%、officialTemplateManifest 60.7%）並補足測試與修正。 |
 | 9. 技術債（越高越嚴重） | 3 | ≤2：沒有可立即修補 advisory；跨平台 lock/runtime 契約有結論；最高風險 hotspot 已降低或被直接 gate | 本輪修復 15 個真實缺陷並為每個建立回歸保護；未發現可立即修補的安全 advisory。剩餘：`classifyTemplateP9Readiness` 對 P9_READY 直接放行的設計（目前無觸發路徑，且交付閘門會獨立驗證）、遠端 CI 與正式站尚未實測。 |
 
 
