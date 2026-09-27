@@ -557,3 +557,31 @@ useSmartAppealAssistant 9 處。
 - 臺北地院112年訴字第123號、最高法院112年台上再字第2409號 → 待查證
 
 系統對未收錄的字號誠實標示「待查證」，未捏造其真實性。
+
+### 16. 讀取範本清單會改寫檔案，唯讀環境下整個功能失效
+
+覆蓋率報告顯示 `officialTemplateManifest` 敘述覆蓋僅 67.5%，
+檢視後發現 `loadManifest()` 在偵測到 P9 狀態需要降級時，
+會直接 `fs.writeFileSync` 寫回 `data/official-templates/manifest.json`。
+
+正式環境常見唯讀或唯讀掛載的檔案系統，寫入會丟出 EROFS 例外，
+讓整個官方法律範本功能不可用——而這只是一次**讀取**操作。
+
+目前 685 個範本全為 P9_NOT_CONFIGURED，尚未觸發寫入，
+但只要有任何一個範本被核准為 P9_READY 且雜湊漂移，就會發生。
+
+修正：寫入包在 try/catch 內，失敗時記錄警告但不中斷載入。
+記憶體中的降級仍是 fail-closed 的關鍵——本次執行照樣拒絕交付；
+寫回只是讓下次啟動不必重新偵測。
+
+已驗證保護有效：移除 try/catch 後測試立即以
+`expected [Function] to not throw an error but 'Error: EROFS' was thrown` 失敗。
+
+### 附帶確認
+
+`classifyTemplateP9Readiness` 對 `p9Status === 'P9_READY'` 會立即返回、
+不再檢查其他條件。目前清單中沒有任何 P9_READY 的範本，
+且交付閘門（`assertPleadingDocumentDeliveryAllowed`）會獨立驗證
+templateId、sourceHash、artifactFingerprint、mimeType、fileName，
+因此實際交付仍會被擋下。此處暫不變更，避免在沒有實際觸發路徑的情況下
+改動 P9 判定——那是 fail-closed 的核心，應有真實案例再動。

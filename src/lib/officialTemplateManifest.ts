@@ -78,7 +78,20 @@ export function loadManifest(): OfficialTemplateManifest {
   const raw = JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf-8')) as OfficialTemplate[];
   const templates = raw.map(normalizeTemplate);
   if (synchronizeP9Statuses(templates)) {
-    fs.writeFileSync(MANIFEST_PATH, JSON.stringify(templates, null, 2));
+    // 降級後要寫回清單，但讀取不應因寫入失敗而中斷。
+    // 正式環境常見唯讀或唯讀掛載的檔案系統，寫入會直接丟出例外，
+    // 讓整個範本功能不可用。
+    // 記憶體中的降級才是 fail-closed 的關鍵：本次執行仍會拒絕交付；
+    // 寫回只是讓下次啟動不必重新偵測，失敗並不影響正確性。
+    try {
+      fs.writeFileSync(MANIFEST_PATH, JSON.stringify(templates, null, 2));
+    } catch (error) {
+      console.warn(
+        `[officialTemplateManifest] 已降級 P9 狀態但無法寫回 ${MANIFEST_PATH}：` +
+        `${error instanceof Error ? error.message : String(error)}。` +
+        '本次執行仍以記憶體中的降級狀態為準（fail-closed），下次啟動會重新偵測。'
+      );
+    }
   }
   _cache = {
     verifiedOn: null,
