@@ -500,7 +500,11 @@ export function useSmartAppealAssistant() {
           notifyError("離線模式：未設定 API Key，無法生成真實訴狀。請先完成設定後再試。");
           return;
         }
-        throw new Error(errData.error || '生成上訴狀失敗');
+        // 伺服器已提供可行動的引導（detail.guidance），
+        // 例如「請改用全方位實用法務工具箱中已開放的書狀類型」。
+        // 先前只取 error，把建議丟掉，使用者只會知道「尚未開放」而不知道下一步。
+        const 引導 = typeof errData?.detail?.guidance === 'string' ? errData.detail.guidance : '';
+        throw new Error(引導 ? `${errData.error}\n${引導}` : (errData.error || '生成上訴狀失敗'));
       }
       const data = await res.json();
       if (!isCurrentAppealScope(requestScope)) return;

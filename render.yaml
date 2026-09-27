@@ -1,6 +1,8 @@
 services:
   - type: web
-    name: judicial
+    # 服務名稱。實際部署的服務為 judicial-prod；
+    # 名稱不一致會讓人誤以為線上服務不存在。
+    name: judicial-prod
     runtime: node
     plan: free
     buildCommand: npm ci --include=dev && npm run build

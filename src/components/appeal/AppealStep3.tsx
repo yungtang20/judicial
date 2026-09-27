@@ -80,8 +80,10 @@ export function AppealStep3({ ctx }: { ctx: AppealStepContext }) {
 
             {petitionError && (
               <div role="alert" className="flex-1 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">
-                <span className="font-semibold">上訴理由狀尚未開放產製：</span>
-                <span>{petitionError}</span>
+                {/* 錯誤訊息本身已完整說明（含伺服器提供的引導建議），
+                    不再加靜態前綴，否則同一句話會重複出現兩次。
+                    保留換行，讓「原因」與「建議」分行呈現。 */}
+                <span className="whitespace-pre-line">{petitionError}</span>
               </div>
             )}
             <button
