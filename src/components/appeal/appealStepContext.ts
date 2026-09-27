@@ -53,6 +53,11 @@ export type AppealStepContext = Omit<AppealState, 'workflowContext' | 'initializ
   groundingWarning: string | null;
   /** 本次分析是否為本機規則備援（固定範本，非從判決書提煉）。 */
   isLocalFallbackResult: boolean;
+  /** 降級原因：AI_UNAVAILABLE 或 CITATION_REJECTED。 */
+  degradedReason: string | null;
+  degradedDetail: string | null;
+  /** 被安全機制拒絕的引用字號。 */
+  rejectedCitation: string | null;
   /** 上訴理由狀產製失敗的具體原因，顯示於第三步。 */
   petitionError: string | null;
   setVerifyNotice: (value: string | null) => void;

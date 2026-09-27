@@ -68,6 +68,37 @@ router.post("/api/analyze-judgment", async (req: Request, res: Response) => {
   } catch (err: any) {
     console.warn("[AnalyzeJudgment] Pipeline 異常:", err.message);
     const fallback: any = buildFallbackJudgmentAnalysis(judgmentText || "裁判書內容");
+
+    // 降級有兩種截然不同的原因，對使用者的意義也完全不同：
+    // 1. AI 服務不可用 → 範本是目前唯一能給的東西。
+    // 2. AI 產出了分析，但因引用無法查證而被防幽靈引用閘門拒絕
+    //    → 這是在告訴使用者「AI 可能捏造了裁判字號」，是重要訊號。
+    // 先前兩者都只呈現為「備援範本」，使用者無從分辨。
+    const 訊息 = String(err?.message || '');
+    // 降級原因必須如實反映被哪一道機制擋下。
+    // 實測同一個端點會因三種不同原因降級（AI 不可用／引用無法查證／產出含簡體），
+    // 先前一律顯示「AI 服務暫時無法完成分析」——
+    // 對使用者而言，AI 產出含簡體被擋與 AI 掛掉是完全不同的訊息。
+    let 原因: 'AI_UNAVAILABLE' | 'CITATION_REJECTED' | 'SIMPLIFIED_OUTPUT' | 'EMPTY_OUTPUT' = 'AI_UNAVAILABLE';
+    let 說明 = 'AI 服務暫時無法完成分析，已改用本機規則範本。';
+
+    if (/引用檢核未通過|幽靈|ANTI.?GHOST|未確認引用/i.test(訊息)) {
+      原因 = 'CITATION_REJECTED';
+      說明 = 'AI 產出的分析因引用無法查證而被安全機制拒絕（AI 可能捏造裁判字號），已改用本機規則範本。';
+    } else if (/簡體中文|繁體中文|簡轉繁|SIMPLIFIED/i.test(訊息)) {
+      原因 = 'SIMPLIFIED_OUTPUT';
+      說明 = 'AI 產出的分析含簡體中文用字，已依台灣法律文件用語要求擋下交付，已改用本機規則範本。';
+    } else if (/空|EMPTY|無內容|沒有產生/i.test(訊息)) {
+      原因 = 'EMPTY_OUTPUT';
+      說明 = 'AI 未產生可用的分析內容，已改用本機規則範本。';
+    }
+
+    fallback.degradedReason = 原因;
+    fallback.degradedDetail = 說明;
+    fallback.rejectedCitation = 原因 === 'CITATION_REJECTED'
+      ? (訊息.match(/涉及引用：「([^」]+)」/) || [])[1] || null
+      : null;
+
     res.json(fallback);
   }
 });

@@ -11,6 +11,9 @@ export function AppealStep1({ ctx }: { ctx: AppealStepContext }) {
     setRawText,
     groundingWarning,
     isLocalFallbackResult,
+    degradedReason,
+    degradedDetail,
+    rejectedCitation,
     secondText,
     setSecondText,
     isDualMode,
@@ -261,7 +264,17 @@ export function AppealStep1({ ctx }: { ctx: AppealStepContext }) {
                 <span className="font-bold mr-1">⚠️ 本結果為本機規則備援範本：</span>
                 下方敘事是固定範本（含「案發當日」「特定現場」等未填入的佔位詞），
                 <b>並非從您提供的判決書提煉而來</b>，不得作為案件事實引用。
-                請自行核對原始裁判書後再撰寫理由。
+                {degradedDetail || '請自行核對原始裁判書後再撰寫理由。'}
+                {degradedReason === 'CITATION_REJECTED' && rejectedCitation && (
+                  <span className="mt-1 block">
+                    被拒絕的引用：<b>{rejectedCitation}</b>。AI 可能捏造裁判字號，請特別留意。
+                  </span>
+                )}
+                {degradedReason === 'SIMPLIFIED_OUTPUT' && (
+                  <span className="mt-1 block">
+                    請特別檢視所引用裁判書的原文用字，本次產出的用字未被採用。
+                  </span>
+                )}
               </div>
             )}
 

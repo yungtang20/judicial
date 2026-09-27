@@ -356,6 +356,11 @@ export function useSmartAppealAssistant() {
       if (data.judgmentSummary) {
         setJudgmentSummary(data.judgmentSummary);
         setIsLocalFallbackResult(Boolean(data.isLocalFallback));
+        // 降級原因對使用者意義不同：AI 不可用 vs 分析因引用無法查證而被拒絕。
+        // 後者是在告訴使用者「AI 可能捏造了裁判字號」，不能只說「備援範本」。
+        setDegradedReason(data.degradedReason || null);
+        setDegradedDetail(data.degradedDetail || null);
+        setRejectedCitation(data.rejectedCitation || null);
         // 模型可能補寫原文未載明的內容（實測以極短無意義原文即可產出長篇捏造事實）。
         // 此處只做提醒不阻擋，實際防線是要求使用者逐句核對原始裁判書。
         const grounding = assessGrounding(rawText, data.judgmentSummary);
@@ -550,6 +555,10 @@ export function useSmartAppealAssistant() {
   const [groundingWarning, setGroundingWarning] = useState<string | null>(null);
   /** 本次判決分析是否由本機規則備援產生（範本內容，非提煉結果）。 */
   const [isLocalFallbackResult, setIsLocalFallbackResult] = useState<boolean>(false);
+  /** 降級原因：AI_UNAVAILABLE（服務不可用）或 CITATION_REJECTED（引用被拒）。 */
+  const [degradedReason, setDegradedReason] = useState<string | null>(null);
+  const [degradedDetail, setDegradedDetail] = useState<string | null>(null);
+  const [rejectedCitation, setRejectedCitation] = useState<string | null>(null);
   const [isVerifyingAi, setIsVerifyingAi] = useState(false);
   const [verifyNotice, setVerifyNotice] = useState<string | null>(null);
 
@@ -625,6 +634,9 @@ export function useSmartAppealAssistant() {
     // 但傳遞時被丟棄，導致備援與核對警告從未真正顯示。
     groundingWarning,
     isLocalFallbackResult,
+    degradedReason,
+    degradedDetail,
+    rejectedCitation,
     currentStep,
     setCurrentStep,
     outputTab,
