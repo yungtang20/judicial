@@ -108,3 +108,55 @@ describe('動物案件的分類須反映是否真有咬傷', () => {
     expect(evidence).toMatch(/現場照片|監視器/);
   });
 });
+
+/**
+ * 分類必須依案情命中，不得掉進通用分支。
+ *
+ * 實測三個明確類型的案件都落到「生活爭議法律案件實體法與程序法即時診斷」
+ * 這個通用輸出，使用者拿不到相對應的專屬指引：
+ * - 「對方說要打死我」→ 沒有恐嚇與人身安全指引
+ * - 「同事拿了我的筆電不還」→ 沒有竊盜侵占的專屬指引
+ * 另外「裝潢施工瑕疵」被標為租賃修繕，但它是承攬糾紛（民法第493條）。
+ */
+describe('明確類型的案件不得落到通用分支', () => {
+  const GENERIC = '生活爭議法律案件實體法與程序法即時診斷';
+
+  it('威脅語句應命中恐嚇分類', () => {
+    const r = buildIntelligentRuleBasedTriage('對方說要打死我，我非常害怕。');
+    expect(r.identifiedIssue).not.toBe(GENERIC);
+    expect(r.identifiedIssue).toMatch(/恐嚇|威嚇|安全/);
+  });
+
+  it('揚言報復應命中恐嚇分類', () => {
+    const r = buildIntelligentRuleBasedTriage('他揚言要報復我，我不敢回家。');
+    expect(r.identifiedIssue).not.toBe(GENERIC);
+  });
+
+  it('拿走不還應命中竊盜侵占分類', () => {
+    const r = buildIntelligentRuleBasedTriage('同事拿了我的筆電不還。');
+    expect(r.identifiedIssue).not.toBe(GENERIC);
+  });
+
+  it('裝潢施工瑕疵屬承攬糾紛，不是租賃修繕', () => {
+    const r = buildIntelligentRuleBasedTriage('裝潢公司施工瑕疵，天花板龜裂，要求修補與賠償。');
+    expect(r.identifiedIssue).toContain('承攬');
+    expect(r.legalBasis.join('、')).toContain('493');
+  });
+
+  it('房東未修漏水維持租賃修繕分類', () => {
+    const r = buildIntelligentRuleBasedTriage('房東答應修漏水卻一直不修，房屋滲水 damages 到鄰居。');
+    expect(r.identifiedIssue).toContain('租賃契約修繕爭議');
+  });
+});
+
+describe('放寬關鍵字不得造成誤判', () => {
+  it('欠錢不還仍應走借貸催告分支，不得被竊盜分支吃掉', () => {
+    const r = buildIntelligentRuleBasedTriage('朋友借我十萬元一直不還，有借據。');
+    expect(r.identifiedIssue).toContain('借貸');
+  });
+
+  it('純債務不還仍應走借貸催告分支', () => {
+    const r = buildIntelligentRuleBasedTriage('他欠我五千元一直不還，沒有借據。');
+    expect(r.identifiedIssue).toContain('借貸');
+  });
+});

@@ -331,7 +331,11 @@ export function buildIntelligentRuleBasedTriage(query: string) {
     }
 
     // 7. 恐嚇危安 / 威脅 (刑事非告訴乃論/公訴罪)
-    if (q.includes("恐嚇") || q.includes("威脅") || q.includes("殺") || q.includes("打斷腿") || q.includes("要你好看")) {
+    // 補足常見的恐嚇說法。先前只認「殺」「打斷腿」等字眼，
+    // 「說要打我」「揚言报复」這類寫法會落到通用分支，
+    // 使用者拿不到人身安全指引與保護令相關提示。
+    if (["恐嚇", "威脅", "殺", "打斷腿", "要你好看", "打我", "揍我", "打死", "弄死", "報復", "報仇", "威嚇", "揚言"]
+      .some(k => q.includes(k))) {
       const cat = "CRIMINAL_COMPLAINT_INTIMIDATION";
       const fallbackDoc = buildFallbackToolboxResult(cat, { incidentDetails: query, searchQuery: query });
       return {
@@ -564,7 +568,11 @@ export function buildIntelligentRuleBasedTriage(query: string) {
     }
 
     // 9. 竊盜 / 侵占// 9. 竊盜 / 侵占// 9. 竊盜 / 侵占// 9. 竊盜 / 侵占 (公訴罪，親屬同居特例為告訴乃論)
-    if (q.includes("偷") || q.includes("竊盜") || q.includes("侵占") || q.includes("拿走") || q.includes("偷竊")) {
+    // 補足「拿了不還」這類日常說法。先前只認「偷」「拿走」，
+    // 「同事把我的筆電拿去不還」會落到通用分支，沒有竊盜侵占的專屬指引。
+    // 「不還」放在借貸分支之後才檢查，因此不會把欠錢不還的案件誤判為竊盜。
+    if (["偷", "竊盜", "侵占", "拿走", "偷竊", "據為己有", "占為己有", "不予歸還", "不肯歸還", "擅自取走", "擅自拿走", "不還"]
+      .some(k => q.includes(k))) {
       const cat = "CRIMINAL_COMPLAINT_THEFT";
       const fallbackDoc = buildFallbackToolboxResult(cat, { incidentDetails: query, searchQuery: query });
       return {
@@ -614,15 +622,22 @@ export function buildIntelligentRuleBasedTriage(query: string) {
       // 押金未退還與房屋瑕疵是不同爭議，分開命名以免指向不相關的法律依據。
       const isDepositReturn = (q.includes("押金") || q.includes("定金") || q.includes("保證金"))
         && !q.includes("漏水") && !q.includes("修繕") && !q.includes("瑕疵");
+      // 裝潢／修繕承包是承攬糾紛（民法第493條），與出租人修繕義務（民法第429、430條）
+      // 是不同法律關係。房屋瑕疵同時可能涉及兩者，依是否提及裝潢區分。
+      const isContractorWork = !isDepositReturn && (q.includes("裝潢") || q.includes("承包") || q.includes("施工") || q.includes("包商"));
       return {
         identifiedIssue: isDepositReturn
           ? "租賃押金返還爭議"
-          : "租賃契約修繕爭議 / 房屋漏水侵權損害賠償",
+          : isContractorWork
+            ? "裝潢修繕承攬瑕疵損害賠償爭議"
+            : "租賃契約修繕爭議 / 房屋漏水侵權損害賠償",
         category: cat,
         caseType: "CIVIL",
         litigationNatureText: isDepositReturn
           ? "💼 純民事事件（租賃押金返還請求，無刑事責任）"
-          : "💼 純民事事件（民事契約與瑕疵修繕請求，無刑事責任）",
+          : isContractorWork
+            ? "💼 純民事事件（裝潢承攬瑕疵損害賠償，無刑事責任）"
+            : "💼 純民事事件（民事契約與瑕疵修繕請求，無刑事責任）",
         // 法條、建議行動與證據清單都必須對應爭議性質：
         // 押金爭議若給出「拍攝漏水照片、催告修繕」的建議，與案情無關。
         legalBasis: isDepositReturn
@@ -630,7 +645,13 @@ export function buildIntelligentRuleBasedTriage(query: string) {
             "租賃契約關於押金返還之約定",
             "民法第184條第1項前段（侵權損害賠償，請求不當得利時適用）"
           ]
-          : [
+          : isContractorWork
+            ? [
+              "民法第493條（承攬人瑕疵修補責任）",
+              "民法第184條第1項前段（侵權損害賠償）",
+              "承攬契約關於工期與保固之約定"
+            ]
+            : [
             "民法第429條、第430條（出租人修繕義務）",
             "民法第184條第1項前段（侵權損害賠償）",
             "民法第493條（承攬瑕疵修補）"
