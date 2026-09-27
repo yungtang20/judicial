@@ -571,7 +571,13 @@ export function buildIntelligentRuleBasedTriage(query: string) {
     // 補足「拿了不還」這類日常說法。先前只認「偷」「拿走」，
     // 「同事把我的筆電拿去不還」會落到通用分支，沒有竊盜侵占的專屬指引。
     // 「不還」放在借貸分支之後才檢查，因此不會把欠錢不還的案件誤判為竊盜。
-    if (["偷", "竊盜", "侵占", "拿走", "偷竊", "據為己有", "占為己有", "不予歸還", "不肯歸還", "擅自取走", "擅自拿走", "不還"]
+    // 但租屋押金糾紛同樣常見「押金不還」，而租屋分支排在下方，
+    // 會被這裡搶先命中，把純民事的押金返還爭議誤判為刑事竊盜侵占。
+    // 實測「退租時房東扣住五萬元押金不還」即被歸為竊盜罪並引用刑法第320條。
+    // 因此明確的租賃／押金語境要讓位給下方的租屋分支。
+    const isRentalDepositDispute = ["租屋", "房東", "房客", "押金", "定金", "保證金", "退租", "租賃"]
+      .some(k => q.includes(k));
+    if (!isRentalDepositDispute && ["偷", "竊盜", "侵占", "拿走", "偷竊", "據為己有", "占為己有", "不予歸還", "不肯歸還", "擅自取走", "擅自拿走", "不還"]
       .some(k => q.includes(k))) {
       const cat = "CRIMINAL_COMPLAINT_THEFT";
       const fallbackDoc = buildFallbackToolboxResult(cat, { incidentDetails: query, searchQuery: query });
