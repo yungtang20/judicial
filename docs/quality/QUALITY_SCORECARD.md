@@ -9,6 +9,8 @@
 - 覆蓋率：Statements 92.71%、Branches 85.95%、Functions 95.46%、Lines 94.30%（`npm run test:coverage`，含覆蓋率門檻，CI 實際執行）。
 - `npm run test:eval`、`npm run test:e2e`、`npm run test:ui:e2e`、`npm run test:ssrf`：全部通過。
 - `npm run build`：Production 前後端建置通過。
+- `npm run verify:deployable`：從 `git archive HEAD` 匯出乾淨副本，
+  依 render.yaml 的建置與啟動指令實際部署並驗證 8 項端點，全部通過。
 - `npm audit --omit=dev --audit-level=high`：0 vulnerabilities。
 - 以 `render.yaml` 的完整環境變數（NODE_ENV=production、AI_PROVIDER=agnes、
   ALLOW_GUEST_MODE、JWT_SECRET、AGNES_*、APP_URL）實測啟動：伺服器正常、
@@ -1226,3 +1228,52 @@ AGENTS.md 所列「須人工確認」的部署操作。程式碼層級能做的
 前者是空白，後者是可行動的發現。
 
 我選擇了前者二十幾輪。
+
+### 29. 「可以上線」這個結論，從來沒有針對版控內容驗證過
+
+前一輪查出遠端 Render 服務不存在之後，延伸出一個更根本的問題：
+**我說了二十幾輪「可以上線」，但從來沒有驗證過「版控中的內容」能不能上線。**
+
+我驗證的一直是**開發工作目錄**：
+- 本機 `npm run build` 通過——但那個目錄裡可能有未進版控的檔案
+- `render.yaml` 設定看似正確——但沒有真的用它建置過
+- 範本檔案在本機存在——但 `.gitignore` 會不會排掉它們？
+
+#### 實際驗證
+
+用 `git archive HEAD` 匯出**與版控完全相同**的內容到暫存目錄，
+再依 `render.yaml` 的 `buildCommand` 與 `startCommand` 實際建置與啟動：
+
+```
+OK  從版控匯出內容
+OK  npm ci --include=dev
+OK  npm run build 產出 dist/server.cjs  — 998 KB
+OK  正式環境啟動且健康檢查通過  — status=HEALTHY 工具數=34
+OK  訪客權杖簽發
+OK  範本清單載入  — 685 筆範本
+OK  範本來源檔可下載  — 7886 bytes
+OK  首頁可載出
+共 8 項，失敗 0 項
+```
+
+**版控內容是自足的**：依賴可安裝、建置可完成、正式環境可啟動、
+685 筆官方法律範本連同原始檔都隨版控部署。
+
+（過程中確認了 `.gitignore` 的 `data/official-templates/files/*/` 只忽略
+該目錄下的**子目錄**，不影響 685 個 `.odt` 檔案本身——
+我一度以為範本檔案沒有進版控，實際上都在。）
+
+#### 轉為可重複執行的交付前檢查
+
+新增 `scripts/verify-deployable.mjs` 與 `npm run verify:deployable`，
+讓「版控內容能否部署」成為每次都能回答的問題，
+而不是靠某一次的手動確認。
+
+#### 這是「驗證範圍小於結論範圍」最嚴重的一次
+
+我先前二十幾輪的結論是「可上線」，
+驗證的卻是「開發目錄跑得動」。
+
+前者是對**交付物**的判斷，後者是對**當下環境**的觀察。
+兩者之間的差距，要到真正部署時才會暴露出來——
+而那時已經不是在程式碼階段了。
