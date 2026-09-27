@@ -1,4 +1,5 @@
 import { UNIVERSAL_SYLLOGISM_RULES } from "../../src/prompts/universal-syllogism.js";
+import { containsSimplifiedChinese } from "../../src/lib/traditionalChineseGuard.js";
 import { describePrecheckRejection } from "../../src/lib/precheckRejectionMessage.js";
 import { Router, Request, Response } from "express";
 import { defaultAIProvider as configuredAIProvider } from "../../src/ai/providers/providerRegistry.js";
@@ -37,6 +38,12 @@ router.post("/api/defense/triage", async (req: Request, res: Response) => {
       const cleaned = aiRes.text.replace(/```json/gi, "").replace(/```/g, "").trim();
       parsed = JSON.parse(cleaned);
     } catch {
+      parsed = buildFallbackDefenseTriage(clientInput || "", caseType, courtName, caseNo);
+    }
+    // 繁體中文閘門：分類結果的 lawBasis、cause 等欄位會顯示在
+    // 「法遵檢核項目」與結論區，直接呈現給使用者。
+    if (JSON.stringify(parsed).match(/[\u4e00-\u9fff]/) && containsSimplifiedChinese(JSON.stringify(parsed))) {
+      console.warn("[Defense] 分類輸出含簡體中文，改用本機規則產生的結果");
       parsed = buildFallbackDefenseTriage(clientInput || "", caseType, courtName, caseNo);
     }
     parsed.legalSources = legalContext.sources;
@@ -78,6 +85,10 @@ router.post("/api/defense/scan-mines", async (req: Request, res: Response) => {
       const cleaned = aiRes.text.replace(/```json/gi, "").replace(/```/g, "").trim();
       parsed = JSON.parse(cleaned);
     } catch {
+      parsed = buildFallbackMineScan(clientInput || "");
+    }
+    if (JSON.stringify(parsed).match(/[\u4e00-\u9fff]/) && containsSimplifiedChinese(JSON.stringify(parsed))) {
+      console.warn("[Defense] 地雷掃描輸出含簡體中文，改用本機規則產生的結果");
       parsed = buildFallbackMineScan(clientInput || "");
     }
     parsed.legalSources = legalContext.sources;

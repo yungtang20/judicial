@@ -835,6 +835,14 @@ router.post("/api/workflow/suggest-field", async (req: Request, res: Response) =
     const match = text.match(/\[.*\]/s);
     const jsonStr = match ? match[0] : '[]';
     const options = JSON.parse(jsonStr);
+    // 欄位建議選項會以按鈕形式顯示給使用者，同樣不得出現簡體中文。
+    if (Array.isArray(options) && options.some((option: string) => containsSimplifiedChinese(String(option)))) {
+      console.warn("[UnifiedWorkflow] 欄位建議含簡體中文，改用預設選項");
+      return res.json({
+        success: true,
+        options: ["事發當天", "一週內", "一個月內", "超過一個月"]
+      });
+    }
     return res.json({ success: true, options });
   } catch (error: any) {
     console.error('[SuggestField] 取得建議失敗:', error);

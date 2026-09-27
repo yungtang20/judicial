@@ -269,11 +269,32 @@ router.post("/api/process/syllogism", async (req: Request, res: Response) => {
       analysis = `1. 大前提：\n根據中華民國相關法規之構成要件，行為人若具備侵害行為、侵害結果與因果關係，且無合法阻卻違法事由，即應負相應之法律責任。\n\n2. 小前提：\n用戶提供之事實指出：「${userFacts.trim()}」。目前已掌握當事人陳述與相關情境描述。\n\n3. 涵攝：\n經逐一比對事實與構成要件：\n- 行為事實部分：使用者描述之行為樣態初步符合客觀要件要旨。\n- 證據支持度部分：目前主要為片面陳述，客觀書面或醫療證據仍待補強，待舉證充足方能成罪或成立侵權。\n\n4. 結論：\n初步評估具有訴訟或救濟基礎，建議下一步優先保全客觀對話紀錄、就醫紀錄或相關事證，並向主管機關或法院具狀提出聲請。`;
     }
 
+    // 繁體中文閘門：涵攝分析與構成要件清單都會直接顯示給使用者。
+    // 本檔先前只保護了節點 1（路由）與節點 2（追問），節點 3（涵攝）沒有檢查。
+    // 與該處置方式一致：含簡體時改用本機規則產生的結構化分析，
+    // 不讓整個節點失敗（使用者會完全卡在這一步）。
+    const simplifiedInAnalysis = containsSimplifiedChinese(analysis);
+    const displayedAnalysis = simplifiedInAnalysis
+      ? [
+          "1. 大前提：",
+          "依中華民國相關法規之構成要件，行為人須具備侵害行為、侵害結果與因果關係，且無合法阻卻事由。",
+          "",
+          "2. 小前提：",
+          `使用者陳述之事實指出：「${userFacts.trim()}」。`,
+          "",
+          "3. 涵攝：",
+          "經逐一比對事實與構成要件，行為樣態初步符合客觀要件要旨；客觀書面或醫療證據仍待補強。",
+          "",
+          "4. 結論：",
+          "初步評估具有訴訟或救濟基礎，建議優先保全客觀紀錄並循調解或法律程序提出主張。"
+        ].join("\n")
+      : analysis;
+
     return res.json({
       success: true,
       data: {
         legalElements,
-        analysis
+        analysis: displayedAnalysis
       }
     });
   } catch (error: any) {

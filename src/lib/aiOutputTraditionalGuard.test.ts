@@ -57,6 +57,25 @@ describe('AI 生成端點的繁體中文防護', () => {
   });
 });
 
+describe('每個模型輸出指派點都有對應的檢查', () => {
+  // 把模型回覆指派給會顯示給使用者的變數，就必須在同一個函式內有檢查。
+  // 逐一列出實測會顯示的輸出點，缺一個就失敗。
+  const ASSIGNMENTS: Array<{ file: string; assignment: string; guard: string }> = [
+    { file: 'routes/unifiedWorkflow.ts', assignment: 'fullAnalysis = response.text', guard: 'containsSimplifiedChinese(fullAnalysis)' },
+    { file: 'routes/unifiedWorkflow.ts', assignment: 'rawMessage = response.text', guard: 'containsSimplifiedChinese(rawMessage)' },
+    { file: 'routes/unifiedWorkflow.ts', assignment: 'const options = JSON.parse(jsonStr)', guard: 'containsSimplifiedChinese(String(option))' },
+    { file: 'routes/legalProcess.ts', assignment: 'rawMessage = response.text', guard: 'containsSimplifiedChinese(rawMessage)' },
+    { file: 'routes/legalProcess.ts', assignment: 'analysis = response.text', guard: 'containsSimplifiedChinese(analysis)' },
+    { file: 'routes/judicial.ts', assignment: 'Array.isArray(parsed.precedents)', guard: 'containsSimplifiedChinese([p.summary, p.relevance, p.keyTakeaway]' },
+    { file: 'routes/defense.ts', assignment: 'parsed = JSON.parse(cleaned)', guard: 'containsSimplifiedChinese(JSON.stringify(parsed))' }
+  ];
+
+  it.each(ASSIGNMENTS)('$file 的「$assignment」必須有檢查', ({ file, assignment, guard }) => {
+    const src = readFileSync(path.resolve(SERVER, file), 'utf8');
+    expect(src, `${file} 缺少 ${assignment} 對應的繁體檢查`).toContain(guard);
+  });
+});
+
 describe('繁體中文閘門的行為', () => {
   it('草稿精修遇到簡體輸出必須拒絕交付', async () => {
     await expect(
