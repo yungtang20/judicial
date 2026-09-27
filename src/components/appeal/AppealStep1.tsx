@@ -10,6 +10,7 @@ export function AppealStep1({ ctx }: { ctx: AppealStepContext }) {
     rawText,
     setRawText,
     groundingWarning,
+    isLocalFallbackResult,
     secondText,
     setSecondText,
     isDualMode,
@@ -228,12 +229,41 @@ export function AppealStep1({ ctx }: { ctx: AppealStepContext }) {
               <span className="flex items-center gap-2 text-[var(--color-status-info)] font-extrabold text-base">
                 📋 案件事實故事與裁判結果
               </span>
-              {judgmentSummary && (
+              {/*
+                備援結果是本機規則產生的固定範本（含「案發當日」「特定現場」
+                等未填入的佔位詞），不是從判決書提煉而來。
+                先前只要有 judgmentSummary 就顯示「✓ 智慧剖析完成」，
+                使使用者把範本文字當成自己案件的事實。
+              */}
+              {judgmentSummary && !isLocalFallbackResult && (
                 <span className="text-2xs bg-emerald-600 text-white px-2.5 py-1 rounded-md font-semibold flex items-center gap-1 shadow-2xs">
                   ✓ 智慧剖析完成
                 </span>
               )}
+              {judgmentSummary && isLocalFallbackResult && (
+                <span className="text-2xs bg-amber-600 text-white px-2.5 py-1 rounded-md font-semibold flex items-center gap-1 shadow-2xs">
+                  ⚠ 本機規則備援範本（非提煉結果）
+                </span>
+              )}
             </div>
+
+            {/*
+              備援揭露直接由此處的狀態驅動，不依賴 ctx 傳遞。
+              實測：groundingWarning 狀態存在、元件也有解構，
+              卻因未納入 ctx 而在傳遞時被丟棄，
+              導致揭露文字從未顯示——三者在、畫面上卻什麼都沒有。
+            */}
+            {judgmentSummary && isLocalFallbackResult && (
+              <div
+                role="alert"
+                className="rounded-lg border border-amber-500/60 bg-amber-950/40 px-3 py-2.5 text-2xs leading-5 text-amber-100"
+              >
+                <span className="font-bold mr-1">⚠️ 本結果為本機規則備援範本：</span>
+                下方敘事是固定範本（含「案發當日」「特定現場」等未填入的佔位詞），
+                <b>並非從您提供的判決書提煉而來</b>，不得作為案件事實引用。
+                請自行核對原始裁判書後再撰寫理由。
+              </div>
+            )}
 
             {judgmentSummary ? (
               <div className="space-y-4 text-xs leading-relaxed">

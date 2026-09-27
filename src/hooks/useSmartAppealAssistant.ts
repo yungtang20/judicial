@@ -355,9 +355,21 @@ export function useSmartAppealAssistant() {
       if (data.proceduralRequirements) setProceduralRequirements(data.proceduralRequirements);
       if (data.judgmentSummary) {
         setJudgmentSummary(data.judgmentSummary);
+        setIsLocalFallbackResult(Boolean(data.isLocalFallback));
         // 模型可能補寫原文未載明的內容（實測以極短無意義原文即可產出長篇捏造事實）。
         // 此處只做提醒不阻擋，實際防線是要求使用者逐句核對原始裁判書。
         const grounding = assessGrounding(rawText, data.judgmentSummary);
+        // 本機規則備援的故事化文字是固定範本（含「案發當日」「特定現場」等
+        // 未填入的佔位詞），不是從判決書提煉而來。
+        // 先前這裡沒有把 fallbackNotice 併入，導致畫面同時顯示
+        // 「✓ 智慧剖析完成」卻完全沒有備援字樣——使用者會把範本當成自己案件的事實。
+        if (data.isLocalFallback) {
+          const 備援說明 = data.fallbackNotice
+            || '本結果由本機規則備援產生，敘事為固定範本而非從判決書提煉而來，不得作為案件事實引用。';
+          setGroundingWarning(
+            grounding.warning ? `${備援說明}\n${grounding.warning}` : 備援說明
+          );
+        }
         // 本機規則備援產生的故事化文字是固定範本，不是從判決書提煉而來，
         // 必須明確告知，否則使用者會把它當成自己案件的內容。
         setGroundingWarning(
@@ -536,6 +548,8 @@ export function useSmartAppealAssistant() {
   // Explicit AI Full Citation Verification
   // AI 提煉內容的來源支持度警示；null 代表未觸發。
   const [groundingWarning, setGroundingWarning] = useState<string | null>(null);
+  /** 本次判決分析是否由本機規則備援產生（範本內容，非提煉結果）。 */
+  const [isLocalFallbackResult, setIsLocalFallbackResult] = useState<boolean>(false);
   const [isVerifyingAi, setIsVerifyingAi] = useState(false);
   const [verifyNotice, setVerifyNotice] = useState<string | null>(null);
 
@@ -607,6 +621,10 @@ export function useSmartAppealAssistant() {
     activeCase,
     isFallbackMode,
     setIsFallbackMode,
+    // 這兩個欄位先前未納入 ctx：狀態存在、元件也有解構，
+    // 但傳遞時被丟棄，導致備援與核對警告從未真正顯示。
+    groundingWarning,
+    isLocalFallbackResult,
     currentStep,
     setCurrentStep,
     outputTab,
@@ -766,7 +784,6 @@ export function useSmartAppealAssistant() {
     setProceduralRequirements,
     judgmentSummary,
     setJudgmentSummary,
-    groundingWarning, setGroundingWarning,
     isAnalyzingSummaryOnly,
     setIsAnalyzingSummaryOnly,
     showSummaryInStep2,
