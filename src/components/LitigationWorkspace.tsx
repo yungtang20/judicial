@@ -41,14 +41,21 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({
 }) => {
   const crossCtx = loadCrossFeatureContext();
   const hasHandoff = handoff !== undefined && Object.keys(handoff).length > 0;
+  // 跨功能脈絡改為「逐欄位」回退，而非整份上下文一起開關。
+  // 先前只要存在任何 handoff 就完全不看 cross_feature_context，
+  // 連 handoff 本身沒有帶的欄位（例如 facts）也一併拿不到，
+  // 導致使用者完成統一入口分析後切到爭點與證據清單仍看到空白。
+  // 脈絡本身有 30 分鐘時效，不會帶入過期資料。
   const canUseCrossContext = !hasHandoff;
   const effectiveSection: WorkspaceSection = section || initialTab ||
     (appealOnly ? 'analysis' : crossCtx?.initialTab || 'toolbox');
   const workspaceRoot: WorkspaceRoot = root ||
     (appealOnly || effectiveSection === 'analysis' || effectiveSection === 'deadline' ? 'appeal' : 'litigation');
-  const effectiveToolId = handoff?.toolId || (canUseCrossContext ? initialToolId || crossCtx?.preselectedToolId : undefined);
-  const effectiveFacts = handoff?.facts || (canUseCrossContext ? initialFacts || crossCtx?.facts : undefined);
-  const effectiveIssueSummary = handoff?.issuesSummary || (canUseCrossContext ? crossCtx?.issuesSummary : undefined);
+  // 逐欄位回退：handoff 優先，handoff 沒帶的欄位才由跨功能脈絡補上。
+  // 先前是整份上下文一起開關，handoff 只要存在就連 facts 都拿不到。
+  const effectiveToolId = handoff?.toolId || initialToolId || (canUseCrossContext ? crossCtx?.preselectedToolId : undefined);
+  const effectiveFacts = handoff?.facts || initialFacts || crossCtx?.facts;
+  const effectiveIssueSummary = handoff?.issuesSummary || crossCtx?.issuesSummary;
   const appealContext = buildAppealContext(
     handoff,
     canUseCrossContext && crossCtx?.sourceTool === 'unified' ? crossCtx : null
