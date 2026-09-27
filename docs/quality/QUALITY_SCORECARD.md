@@ -212,3 +212,29 @@ npm audit --omit=dev --audit-level=high
 關鍵在於**一次只移除一項**。原本的案例總是同時改動多個欄位
 （例如 status 與 exportPolicy 一起改），任一條件被移除時仍有其他條件
 擋下，測試不會失敗——於是每個條件都看似有保護，實際上沒有。
+
+## 驗證方法本身的修正
+
+前一節的方法有缺陷：只跑單一測試檔來判定守護是否有效。
+但守護可能由任何一個測試檔保護——例如「空文件」檢查不在
+`generatedDocumentPipeline.p0.test.ts` 中，卻被 `fallbackBypass`
+與 `legalGovernance` 覆蓋。只跑單檔會把「已受保護」誤判成「無保護」。
+
+改正後對整個測試套件（198 檔 / 1223 測試）驗證，得到 4 個真實缺口：
+
+| 守護 | 缺口內容 | 修補方式 |
+|---|---|---|
+| 生成管線 | 驗證器回報 ghostCount > 0 但 results 全部標為 verified 時，無測試覆蓋 | 補上輸出不一致的情境 |
+| 重試邏輯 | `isTransientProviderError` 分類測得很準，但「是否真的重試」完全沒測 | 匯出 `withTransientRetry` 並以假時鐘驗證實際重試次數 |
+| 個資遮蔽 | 陣列遮蔽若退化成物件處理，個資仍會被遮蔽但形狀改變，無斷言察覺 | 補上陣列形狀與元素順序的契約 |
+
+### 兩點誠實說明
+
+1. `assertGeneratedDocumentVerified` 中的
+   `!verificationPassed` 拋錯，在幽靈引用路徑上是死碼——
+   `interceptVerifiedCitationResults` 會先拋出。該檢查只在
+   驗證器輸出不一致（ghostCount 與 results 矛盾）時才會生效，
+   這也是它先前沒有測試覆蓋的原因。現已補上該情境的測試。
+
+2. 這一節的表格只涵蓋本專案 fail-closed 保證的一部分。
+   未列入的守護**不等於已驗證**。

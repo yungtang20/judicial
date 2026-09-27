@@ -47,7 +47,11 @@ const TRANSIENT_RETRY_DELAYS_MS = [800, 2000] as const;
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
-async function withTransientRetry<T>(operation: () => Promise<T>): Promise<T> {
+/**
+ * 僅暫時性錯誤才重試。匯出是為了能直接驗證「是否真的重試」這件事——
+ * 只驗證 isTransientProviderError 的分類結果，無法證明呼叫端真的照做。
+ */
+export async function withTransientRetry<T>(operation: () => Promise<T>): Promise<T> {
   let lastError: unknown;
   for (let attempt = 0; attempt <= TRANSIENT_RETRY_DELAYS_MS.length; attempt++) {
     try {

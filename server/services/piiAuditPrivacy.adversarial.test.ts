@@ -43,6 +43,14 @@ describe("PII De-identification & Audit Log Privacy Adversarial Tests (Phase C)"
 
       // 確認遮蔽標記存在
       expect(metaString).toContain("*****");
+
+      // 遮蔽後的結構必須維持原樣。若遮蔽遞迴退化成以物件處理陣列，
+      // 個資雖然仍會被遮蔽，但稽���記錄的形狀改變會影響下游解析與重播，
+      // 而且這種退化不會被上面任何一條斷言察覺。
+      expect(Array.isArray(log.metadata.arrayData)).toBe(true);
+      expect((log.metadata.arrayData as unknown[]).length).toBe(2);
+      expect(typeof (log.metadata.arrayData as unknown[])[0]).toBe("string");
+      expect(typeof (log.metadata.arrayData as unknown[])[1]).toBe("object");
     });
 
     it("sanitizes Error objects, error messages, and redacts secret keys in metadata", () => {
