@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { describeProsecutionLimitation } from '../lib/prosecutionLimitation';
 import { copyToClipboard } from '../lib/citationFormatter';
 import { 
   Compass, 
@@ -832,15 +833,21 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
                     高風險人身保護案件
                   </span>
                 )}
-                {guideResult.isPublicProsecution ? (
-                  <span className="px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40 text-xs font-bold">
-                    ⚡ 非告訴乃論（公訴罪）
-                  </span>
-                ) : (
-                  <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-bold">
-                    ⚠️ 告訴乃論（注意6個月時效）
-                  </span>
-                )}
+                {/* 告訴乃論／公訴罪是刑事概念。純民事案件不得掛上刑事追訴時效警示，
+                    否則使用者會誤以為面臨刑事時限。規則集中於 prosecutionLimitation。 */}
+                {(() => {
+                  const limitation = describeProsecutionLimitation(guideResult.primaryCategory, guideResult.isPublicProsecution);
+                  const toneClass = {
+                    'criminal-public': 'bg-purple-500/20 text-purple-300 border border-purple-500/40',
+                    'criminal-private': 'bg-amber-500/20 text-amber-300 border border-amber-500/40',
+                    'civil': 'bg-sky-500/20 text-sky-300 border border-sky-500/40'
+                  }[limitation.tone];
+                  return (
+                    <span className={`px-3 py-1 rounded-full ${toneClass} text-xs font-bold`}>
+                      {limitation.tone === 'criminal-public' ? '⚡' : limitation.tone === 'criminal-private' ? '⚠️' : 'ℹ️'} {limitation.label}
+                    </span>
+                  );
+                })()}
               </div>
             </div>
 
