@@ -77,6 +77,17 @@ export const UnifiedEntry: React.FC = () => {
   const commitWorkflowState = (nextState: LegalWorkflowState) => {
     setWorkflowState(nextState);
     applyUnifiedWorkflow(nextState);
+    // 把使用者自己輸入的案情發布給下游工作區（工具箱、爭點清單、證據清單…），
+    // 免得使用者分析完之後還要逐頁重打同一段事實。
+    // 只帶入使用者原始輸入，不帶入任何 AI 生成的內容：
+    // 下游其中一頁是要提交法院的書狀，把生成內容預填進去等於替使用者預設法律主張。
+    if (nextState.userNarrative.trim()) {
+      saveCrossFeatureContext({
+        facts: nextState.userNarrative,
+        domain: nextState.router?.domain,
+        cause: nextState.router?.cause
+      });
+    }
   };
   const defaultSample = `事發於民國112年11月15日晚上約11點，在臺北市信義區租屋處。我與房東因退租押金發生爭執，房東以無合理依據之清潔費為由拒絕退還新臺幣5萬元押金，並威脅若再爭執將把我的私人物品丟到走廊。我有雙方簽署之房屋租賃契約書、歷次匯款房租水電之銀行明細，以及當日 LINE 對話紀錄截圖。請問我的法律權利為何？`;
 
