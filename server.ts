@@ -55,8 +55,21 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
+
+    // Vite 產出的 /assets 檔名帶內容雜湊（index-BbbKxweN.js），
+    // 內容改變檔名就會改變，因此可以安全地長期快取。
+    // 未設定時 express.static 預設為 max-age=0，
+    // 導致使用者每次載入都要對每個資源重新驗證。
+    app.use("/assets", express.static(path.join(distPath, "assets"), {
+      immutable: true,
+      maxAge: "365d"
+    }));
+    app.use(express.static(distPath, { maxAge: 0 }));
+
+    // index.html 必須每次重新驗證：它指向帶雜湊的資源，
+    // 若被快取，使用者更新後會拿到舊 bundle 指向已不存在的檔名。
     app.get("*", (_req, res) => {
+      res.setHeader("Cache-Control", "no-cache");
       res.sendFile(path.join(distPath, "index.html"));
     });
   }

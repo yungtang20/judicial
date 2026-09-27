@@ -1556,3 +1556,49 @@ AI 產出的分析因引用無法查證而被安全機制拒絕（AI 可能捏�
 7. **瀏覽器快取讓已修正的問題看起來仍在**
 
 共同點完全一致：**我接受了單一量測的結果，沒有先確認量測指向的對象是當下的。**
+
+### 36. 內容雜湊資源沒有長期快取——每次載入都重新驗證
+
+上一輪踩到瀏覽器載入舊 bundle 的問題，追查後發現正式環境的靜態資源
+**完全沒有設定快取標頭**。
+
+實測（修正前）：
+
+| 資源 | Cache-Control |
+|---|---|
+| `index.html` | `public, max-age=0` |
+| `/assets/index-BbbKxweN.css` | `public, max-age=0` |
+
+`express.static` 未設定時預設為 `max-age=0`——**每個資源、每次載入都要重新驗證**。
+
+而 Vite 之所以產生 `index-BbbKxweN.js` 這種**帶內容雜湊的檔名**，
+正是為了能安全地長期快取：內容改變，檔名就改變。
+這個設計的價值在目前設定下完全沒被用到。
+
+#### 修正
+
+- `/assets`（內容雜湊）→ `immutable, max-age=31536000`
+- 其他靜態檔案 → `max-age=0`
+- `index.html` → 明確 `Cache-Control: no-cache`
+
+第三點是安全邊界：index.html 指向帶雜湊的資源，
+一旦被快取，使用者更新後會拿到**舊 bundle 指向已不存在的檔名**。
+
+#### 正式環境實測
+
+```
+index.html              → Cache-Control: public, max-age=0
+/assets/index-*.css     → Cache-Control: public, max-age=31536000, immutable
+```
+
+`staticCachePolicy.test.ts` 固定這五點：
+/assets 使用 immutable、/assets 與一般靜態檔案分開註冊、
+index.html 明確 no-cache、開發模式的 Vite 中介層不受影響、
+不得對整個 dist 使用長期快取。
+
+#### 與上一輪的關聯
+
+上一輪我因為瀏覽器載入舊 bundle，差一點把已修好的功能誤判為失效。
+那件事本身是量測問題；但它暴露了這個**產品層面的缺口**——
+快取策略不當會讓更新後的使用者行為不可預期，
+既是效能問題，也是正確性問題。
