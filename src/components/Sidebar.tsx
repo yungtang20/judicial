@@ -6,7 +6,6 @@ import {
   Menu,
   X,
   Gavel,
-  GitBranch,
   MessagesSquare,
   BookOpenCheck,
 } from 'lucide-react';
@@ -21,71 +20,76 @@ interface NavItem {
   children?: Array<{ label: string; badge: string; tab: string }>;
 }
 
-// 四個任務導向入口；其餘工具收進對應工作台，避免左側重複。
-const coreEntries: NavItem[] = [
+/**
+ * 導覽分兩層。
+ *
+ * 主要入口用「一般民眾答得出來的問句」當標題，
+ * 而不是功能模組名稱。先前列出 13 個工具，實際是依模組組織，
+ * 使用者的思考卻是「我現在該做什麼」。
+ *
+ * SDLC 交付工作台是軟體工程工具（規劃到部署的階段閘門），
+ * 與解決法律問題無關，已從使用者介面移除；
+ * 路由與元件本身保留，開發使用不受影響。
+ */
+const primaryEntries: NavItem[] = [
   {
     id: 'unified',
-    label: '智慧案件分析工作台',
-    sublabel: '案件事實 → 法律爭點與證據',
+    label: '我遇到問題要處理',
+    sublabel: '說明你的情況，幫你釐清法律問題',
     icon: Compass,
   },
   {
     id: 'appeal',
-    label: '智慧判決分析工作台',
-    sublabel: '期限試算 · 判決剖析 · 訴訟防禦 · 爭點證據',
+    label: '我收到判決書了',
+    sublabel: '先看期限還有多少天，再分析上訴怎麼打',
     icon: Scale,
     children: [
-      { label: '上訴法定期間試算', badge: '期限', tab: 'deadline' },
-      { label: '判決分析與上訴狀', badge: '上訴', tab: 'appeal' },
-      { label: '雙軌訴訟防禦', badge: '防禦', tab: 'defense' },
-      { label: '爭點與證據清單', badge: '附表', tab: 'issues' },
+      { label: '還有多少時間可以上訴', badge: '期限', tab: 'deadline' },
+      { label: '分析判決書，擬上訴狀', badge: '分析', tab: 'appeal' },
+      { label: '準備防守與答辯', badge: '防禦', tab: 'defense' },
+      { label: '整理爭點與證據', badge: '清單', tab: 'issues' },
     ],
   },
   {
     id: 'litigation',
-    label: '全方位實用法務工具箱',
-    sublabel: '依情境選書狀 · 填資料 · 產製檢核',
+    label: '我要自己做一份文件',
+    sublabel: '依你的情況選文件種類，填資料後產製',
     icon: Gavel,
     children: [
-      { label: '生活法律導診', badge: '導診', tab: 'guide' },
-      { label: '書狀與法律文件製作', badge: '製作', tab: 'toolbox' },
+      { label: '不知道該做什麼，先問問看', badge: '導診', tab: 'guide' },
+      { label: '選擇文件並填寫內容', badge: '製作', tab: 'toolbox' },
     ],
   },
+];
+
+/** 次要工具：具備特定需求時才會用到，收在主流程之外。 */
+const secondaryEntries: NavItem[] = [
   {
     id: 'checker',
-    label: '法律工具台',
-    sublabel: '幽靈法條與假判決精準攔截 · 支援 PDF',
+    label: '檢查文件有沒有問題',
+    sublabel: '確認引用的法條與判決是真的',
     icon: FileCheck2,
   },
-  // 下列三個檢視在 App.tsx 與 canonicalizeRoute 中都已完整實作，
-  // 但先前沒有任何側欄或工具箱項目導覽過去，等於功能不可達。
   {
     id: 'process-guide',
-    label: '法理流程引導',
-    sublabel: '依案件類型逐步引導必備文件與管轄',
+    label: '依案件類型看流程',
+    sublabel: '該準備哪些文件、哪一間法院管轄',
     icon: BookOpenCheck,
   },
   {
-    id: 'sdlc',
-    label: 'SDLC 交付工作台',
-    sublabel: '規劃到部署的階段閘門與稽核軌跡',
-    icon: GitBranch,
-  },
-  {
     id: 'agent-chat',
-    label: '律師對話助理',
-    sublabel: '以律師觀點逐題釐清案件事實',
+    label: '問一個法律問題',
+    sublabel: '逐題釐清你的案件事實',
     icon: MessagesSquare,
   },
 ];
 
-/** AppRoute.view 與側欄 NavItem.id 的對應，用於計算「常用功能」。 */
+/** AppRoute.view 與 NavItem.id 的對應，用於標示最近使用的項目。 */
 const ROUTE_VIEW_TO_ENTRY_ID: Record<string, string> = {
   analysis: 'unified',
   litigation: 'litigation',
   appeal: 'appeal',
   'process-guide': 'process-guide',
-  sdlc: 'sdlc',
   'agent-chat': 'agent-chat',
   checker: 'checker'
 };
@@ -135,13 +139,9 @@ export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
   // 最近使用紀錄寫在 localStorage，本身不會觸發 React 重渲染；
   // 以 route 作為重算依據，讓使用者返回本頁時置頂區塊反映最新狀態。
-  const recentEntries = useMemo(() => {
-    const recentIds = readRecentEntryIds();
-    return recentIds
-      .map(id => coreEntries.find(entry => entry.id === id))
-      .filter((entry): entry is NavItem => entry !== undefined)
-      .slice(0, RECENT_ENTRY_LIMIT);
-  }, [route]);
+  // 最近使用改為 id 清單：在主清單內標示即可，
+  // 不再另開一個與主清單重疊的區塊。
+  const recentEntryIds = useMemo(() => readRecentEntryIds().slice(0, RECENT_ENTRY_LIMIT), [route]);
   const isActive = (id: string) => {
     if (id === 'unified') return route.view === 'analysis';
     if (id === 'appeal') return route.view === 'appeal';
@@ -210,47 +210,23 @@ export default function Sidebar() {
           </div>
         </header>
 
-        {/* Section Label */}
+        {/* 主要入口。用問句當標題，讓一般民眾不必先知道要選哪一類。 */}
         <div className="px-3 pt-3 pb-1">
           <div className="text-[10px] font-bold tracking-wider text-[var(--color-text-muted)] uppercase px-3 py-1.5">
-            核心功能
+            從這裡開始
           </div>
         </div>
 
-        {/* 常用功能置頂：依 localStorage 的最近使用紀錄排序，最多顯示 3 項。
-            側欄共 8 大類全平鋪時，使用者需反覆捲動才能找到上回用過的工具。 */}
-        {recentEntries.length > 0 && (
-          <>
-            <div className="px-3 pt-1 pb-1">
-              <div className="text-[10px] font-bold tracking-wider text-amber-400/90 uppercase px-3 py-1.5">
-                常用功能
-              </div>
-            </div>
-            <ul className="list-none px-3 pb-2 m-0 space-y-1">
-              {recentEntries.map(entry => {
-                const Icon = entry.icon;
-                return (
-                  <li key={`recent-${entry.id}`}>
-                    <button
-                      onClick={() => handleNav(entry.id)}
-                      className="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-amber-100/90 hover:bg-slate-900/60 hover:text-amber-200 transition-colors flex items-center gap-2"
-                    >
-                      <Icon className="w-3.5 h-3.5 shrink-0" />
-                      <span className="truncate">{entry.label}</span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-            <div className="px-3 pb-1"><div className="border-t border-slate-800" /></div>
-          </>
-        )}
-
-        {/* Core Entry Points */}
-        <ul className="list-none px-3 pb-2 m-0 space-y-1 flex-1 overflow-y-auto">
-          {coreEntries.map((entry) => {
+        {/* 最近使用不再另開一區。
+            先前「核心功能」與「常用功能」放的是同一批項目，
+            首頁並列顯示同一個工具兩次，使用者無從判斷兩區的差異。
+            改為在主清單內標示，資訊只出現一次。 */}
+        <ul className="list-none px-3 pb-2 m-0 space-y-1">
+          {primaryEntries.map((entry) => {
             const Icon = entry.icon;
             const active = isActive(entry.id);
+            const 最近用過 = recentEntryIds.includes(entry.id);
+
 
             return (
               <li key={entry.id}>
@@ -270,7 +246,14 @@ export default function Sidebar() {
                       <Icon className="w-4 h-4" />
                     </div>
                     <div className="flex-1">
-                      <div className="text-sm font-bold leading-tight">{entry.label}</div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold leading-tight">{entry.label}</span>
+                        {最近用過 && !active && (
+                          <span className="shrink-0 rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold text-amber-300/90">
+                            最近用過
+                          </span>
+                        )}
+                      </div>
                       <div className="mt-1 text-[10px] leading-4 text-[var(--color-text-muted)]">{entry.sublabel}</div>
                     </div>
                   </div>
@@ -297,6 +280,39 @@ export default function Sidebar() {
                     })}
                   </ul>
                 )}
+              </li>
+            );
+          })}
+        </ul>
+
+        {/* 次要工具：具備特定需求時才會用到，不與主要流程競爭注意力。 */}
+        <div className="px-3 pt-2 pb-1">
+          <div className="text-[10px] font-bold tracking-wider text-[var(--color-text-muted)] uppercase px-3 py-1.5">
+            其他工具
+          </div>
+        </div>
+        <ul className="list-none px-3 pb-3 m-0 space-y-1">
+          {secondaryEntries.map((entry) => {
+            const Icon = entry.icon;
+            const active = isActive(entry.id);
+            return (
+              <li key={entry.id}>
+                <button
+                  onClick={() => handleNav(entry.id)}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-colors ${
+                    active
+                      ? 'bg-slate-800 text-white'
+                      : 'text-[var(--color-text-muted)] hover:bg-slate-900/60 hover:text-slate-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <Icon className="w-3.5 h-3.5 shrink-0" />
+                    <span className="font-semibold">{entry.label}</span>
+                  </div>
+                  <div className="mt-0.5 pl-5.5 text-[10px] leading-4 text-[var(--color-text-muted)]">
+                    {entry.sublabel}
+                  </div>
+                </button>
               </li>
             );
           })}
