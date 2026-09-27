@@ -50,6 +50,8 @@ export interface AgentChatResponse {
   gateStatus?: "PASS" | "NEEDS_REVIEW" | "FAIL";
   followUpQuestions?: TriageQuestion[];
   error?: string;
+  /** 機器可讀的錯誤代碼，供前端區分「設定問題」與「暫時性故障」。 */
+  errorCode?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -85,6 +87,17 @@ function getDisclaimer(source: "tlr" | "opendata" | "local" | "none"): string {
 // ---------------------------------------------------------------------------
 // Core
 // ---------------------------------------------------------------------------
+
+/**
+ * 判斷錯誤是否為 AI 提供商的設定問題（缺金鑰、未選提供商等）。
+ *
+ * 這類錯誤重試不會成功，必須與逾時、限流等暫時性故障區分開，
+ * 否則使用者會一直被引導去「稍後再試」，管理者也只能從伺服器記錄找原因。
+ */
+export function isProviderConfigError(err: unknown): boolean {
+  const message = err instanceof Error ? err.message : String(err ?? '');
+  return /API_KEY_UNAVAILABLE|PROVIDER_CONFIG|CONFIG_INVALID|NO_API_KEY/i.test(message);
+}
 
 export async function handleAgentChat(
   req: AgentChatRequest
@@ -228,9 +241,17 @@ export async function handleAgentChat(
     }
   } catch (err) {
     console.error("[AgentChat] LLM generation failed:", err);
+    // 設定類錯誤不是「逾時」，重試永遠不會成功。
+    // 實測：未設定 GEMINI_API_KEY 時拋出 GEMINI_API_KEY_UNAVAILABLE，
+    // 使用者卻看到「AI 回應逾時或發生錯誤，請稍後再試」，
+    // 既不準確也無從行動，管理者只能從伺服器記錄才知道原因。
+    const isConfigError = isProviderConfigError(err);
     return {
       success: false,
-      error: "AI 回應逾時或發生錯誤，請稍後再試。",
+      error: isConfigError
+        ? "AI 服務尚未完成設定，暫時無法回答問題。請聯絡系統管理員設定 AI 提供商金鑰後再試。"
+        : "AI 回應逾時或發生錯誤，請稍後再試。",
+      errorCode: isConfigError ? "AI_PROVIDER_CONFIG_INVALID" : undefined,
     };
   }
 
