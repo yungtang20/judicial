@@ -162,9 +162,13 @@ export default function IssueTableGenerator({ initialFacts, initialIssueSummary 
 
             <button 
               onClick={handlePrint}
+              title="開啟瀏覽器列印視窗，可在其中選擇「另存為 PDF」"
               className="w-1/2 bg-[var(--color-brand-primary)] text-white py-2.5 rounded-xl font-bold text-xs hover:opacity-90 transition-opacity flex justify-center items-center gap-1.5"
             >
-              下載/列印 PDF
+              {/* 這裡只呼叫 window.print()，不會直接下載檔案。
+                  瀏覽器的列印視窗本身提供「另存為 PDF」，
+                  因此標籤需如實反映實際行為。 */}
+              列印／另存為 PDF
             </button>
           </div>
         </div>
