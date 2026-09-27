@@ -55,3 +55,37 @@
 
 這也示範了覆蓋率報告的正確用法：它直接指出我上一輪新增的程式碼
 哪裡沒有被測到，而不是只給一個總體百分比。
+
+## 最終端到端回歸
+
+以 `render.yaml` 的部署環境變數啟動正式建置產物，
+在修正全部落地後重新走一次完整流程。
+
+### 與 CI 等價的指令序列
+
+| 指令 | 結果 |
+|---|---|
+| `npm audit --omit=dev --audit-level=high` | PASS |
+| `npm run lint` | PASS |
+| `npm test` | PASS |
+| `npm run test:coverage` | PASS |
+| `npm run test:eval` | PASS |
+| `npm run test:e2e` | PASS |
+| `npm run test:ssrf` | PASS |
+| `npm run build` | PASS |
+
+### 正式環境功能回歸
+
+- 13 個功能入口全部可載入，**零 console 錯誤、零警告**
+- 押金糾紛分類：無刑事誤判、無刑法引用（修正持續有效）
+- 幽靈法條攔截：共檢核 6 處、發現 2 處異常、產生安全替換版
+- 法定期間試算：正確顯示「假日表僅建檔至 115/10/10」的涵蓋範圍警告
+- 裁判費試算：正確顯示「一審裁判費是否曾依民訴§77-9 酌減」的條件輸入
+
+### 檢視過但確認無需改動的程式碼
+
+- `judicialCrawler` 的空 catch：URL 解析失敗時改走其他解析策略，屬合理的防禦性處理
+- `legalGenerationPipeline` 的外部檢索降級：外部失敗時降級本機知識庫，
+  且 `isExternalRetrievalUsed` 保持 false、狀態訊息如實反映，不會宣稱使用了外部來源
+- `LegalWorkflowState` 狀態機：每次轉移都檢查前序狀態，任何例外皆轉為 FAILED；
+  無 REJECTED 狀態是設計如此，退回機制由獨立的 feedback loop 處理
