@@ -14,6 +14,10 @@ const enterNarrative = (text: string) => {
 };
 
 const reachStep2 = () => {
+  // 明確選性侵害情境。這些案例描述的案情本就是性侵害，
+  // 先前能通過是因為 scenarioCategory 預設為 'SEXUAL_HARM'；
+  // 該預設值已移除（安全敏感的分流工具不得替使用者假設情境）。
+  fireEvent.click(screen.getByText(/性侵害、性騷擾或私密影像遭散布/));
   fireEvent.click(screen.getByRole('button', { name: /下一步：填寫事實陳述/ }));
 };
 

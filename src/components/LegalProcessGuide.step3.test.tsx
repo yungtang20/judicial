@@ -19,9 +19,12 @@ const toStep3 = (issueText?: RegExp) => {
 };
 
 describe('法理流程引導步驟三分流', () => {
-  it('預設為性侵害情境時，行為特徵以人身侵害選項為主', () => {
+  it('選擇性侵害情境時，行為特徵以人身侵害選項為主', () => {
+    // 先前這裡不選情境直接前進，依賴 scenarioCategory 的預設值 'SEXUAL_HARM'。
+    // 該預設值已移除（安全敏感的分流工具不得替使用者假設情境），
+    // 因此這裡明確選性侵害，測試原本要驗證的行為不變。
     render(<LegalProcessGuide />);
-    toStep3();
+    toStep3(/性侵害、性騷擾或私密影像遭散布/);
     expect(screen.getByText(/性器官侵入／強迫口交／性交行為/)).toBeTruthy();
   });
 

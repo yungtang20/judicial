@@ -45,7 +45,13 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
   const [currentStep, setCurrentStep] = useState<number>(1);
 
   // 表單資料狀態
-  const [scenarioCategory, setScenarioCategory] = useState<string>('SEXUAL_HARM');
+  // 不得預設任何情境。這個工具的用途是「第一時間辨識是否為性侵害、
+  // 家暴或親屬相盜，並提供緊急安全處置指引」。
+  // 先前預設為 SEXUAL_HARM（性侵害），使用者未做選擇就下一步時，
+  // 系統會把他當成性侵害案件處理，步驟 1 也直接顯示 ✓。
+  // 對安全敏感的分流工具而言，替使用者假設最嚴重的類別正好相反：
+  // 必須由使用者明確選擇，否則後續路由與安全指引都建立在錯誤前提上。
+  const [scenarioCategory, setScenarioCategory] = useState<string>('');
   const [narrative, setNarrative] = useState<string>('');
   const [relationship, setRelationship] = useState<ProcessGuideInput['relationship']>('SPOUSE');
   const [characteristics, setCharacteristics] = useState<string[]>([]);
@@ -432,7 +438,9 @@ export const LegalProcessGuide: React.FC<LegalProcessGuideProps> = ({ onNavigate
           <div className="flex justify-end pt-4">
             <button
               onClick={() => setCurrentStep(2)}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-all"
+              disabled={!scenarioCategory}
+              title={scenarioCategory ? '' : '請先選擇爭議情境'}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-indigo-600"
             >
               下一步：填寫事實陳述
               <ArrowRight className="w-4 h-4" />
