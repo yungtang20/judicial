@@ -355,6 +355,39 @@ export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
   ],
   "CIVIL_TORT_GENERAL": [
     {
+      "key": "defendantName",
+      "label": "被告姓名",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "defendantAddress",
+      "label": "被告地址",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "courtName",
+      "label": "受訴法院",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "incidentDetails",
+      "label": "事實經過",
+      "type": "textarea",
+      "rows": 5,
+      "showAiSuggest": true
+    },
+    {
+      "key": "evidence",
+      "label": "證據清單（每行一項）",
+      "type": "textarea",
+      "rows": 4,
+      "showAiSuggest": true
+    },
+
+    {
       "key": "complainantName",
       "label": "原告姓名",
       "type": "text",
@@ -457,6 +490,21 @@ export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
     }
   ],
   "CRIMINAL_SUPPLEMENTARY_CIVIL": [
+    {
+      "key": "incidentDetails",
+      "label": "訴訟標的及原因事實",
+      "type": "textarea",
+      "rows": 5,
+      "showAiSuggest": true
+    },
+    {
+      "key": "evidence",
+      "label": "證據清單（每行一項）",
+      "type": "textarea",
+      "rows": 4,
+      "showAiSuggest": true
+    },
+
     {
       "key": "complainantName",
       "label": "complainantName",
@@ -1051,6 +1099,19 @@ export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
   ],
   "SPOUSAL_RIGHT_INFRINGEMENT": [
     {
+      "key": "defendant1Address",
+      "label": "被告一地址",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "defendant2Address",
+      "label": "被告二地址",
+      "type": "text",
+      "showAiSuggest": true
+    },
+
+    {
       "key": "courtName",
       "label": "受訴法院",
       "type": "text",
@@ -1328,6 +1389,14 @@ export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
     { "key": "incidentDetails", "label": "借款交付方式與擔保說明", "type": "textarea", "rows": 4, "showAiSuggest": true }
   ],
   "CIVIL_COMPLAINT_GENERAL": [
+    {
+      "key": "evidence",
+      "label": "證據清單（每行一項）",
+      "type": "textarea",
+      "rows": 4,
+      "showAiSuggest": true
+    },
+
     {
       "key": "plaintiffAddress",
       "label": "原告地址",
