@@ -199,7 +199,14 @@ export const LegalToolbox: React.FC<{ initialToolId?: string; initialFacts?: str
       if (verifyRes?.antiGhostVerification) {
         setResult(prev => prev ? { ...prev, antiGhostVerification: verifyRes.antiGhostVerification } : null);
         const { totalCitationsChecked, ghostCitationsFound } = verifyRes.antiGhostVerification;
-        setVerifyNotice(`全篇引用檢查完成：共核對 ${totalCitationsChecked} 處法律引用，疑似幽靈引用：${ghostCitationsFound} 處；結果仍需人工查證。`);
+        // 零引用的書狀不能被當成「檢查通過」。實測民事起訴狀產出後
+        // 共核對 0 處引用卻仍顯示「完成」，使用者會誤以為可直接遞狀。
+        // 系統不代為填入請求權基礎（那等同捏造法律主張），
+        // 但必須明確指出這份書狀還沒有任何法律依據。
+        setVerifyNotice(totalCitationsChecked === 0
+          ? '全篇引用檢查完成：共核對 0 處法律引用。這份文件尚未引用任何法條或裁判，'
+            + '事實及理由仍須自行載明請求權基礎與法律依據後方可遞交法院；系統不會代為填入法律主張。'
+          : `全篇引用檢查完成：共核對 ${totalCitationsChecked} 處法律引用，疑似幽靈引用：${ghostCitationsFound} 處；結果仍需人工查證。`);
       }
       stopLoading(); // Optional: show toast here, but user might be overwhelmed, so no toast.
     } catch (err: any) {
