@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react';
+import { subscribeNotices } from '../lib/userNotice';
 import { CheckCircle2, AlertCircle, Info } from 'lucide-react';
 
 interface ToastOptions {
@@ -34,6 +35,12 @@ export function GlobalUIProvider({ children }: { children: ReactNode }) {
       showToast(toastOptions);
     }
   }, [showToast]);
+
+  // 讓 hooks 與純函式模組（拿不到 context）也能升起同一種提示。
+  // 這些模組先前只能用原生 alert()，會凍結整個頁面且無法翻譯。
+  useEffect(() => subscribeNotices(({ message, tone }) => {
+    setToast({ message, type: tone });
+  }), []);
 
   useEffect(() => {
     if (toast) {

@@ -11,6 +11,10 @@ import path from 'path';
  *
  * 實測：統一入口的「儲存目前內容」會開原生 prompt() 詢問案例名稱，
  * 凍結整個頁面；且與應用既有的自訂案例編輯彈窗重複。
+ *
+ * 掃描範圍涵蓋整個 src/（含 .ts）。先前只收 .tsx，
+ * 因此 src/hooks 底下的 13 處原生 alert 全部漏網。
+ * 純函式與 hooks 拿不到 React context，改用 lib/userNotice 的 notify。
  */
 const COMPONENTS = path.resolve(__dirname, '..');
 
@@ -19,7 +23,7 @@ function collect(dir: string, acc: string[] = []): string[] {
     if (['node_modules', 'dist', '__tests__'].includes(entry) || entry.startsWith('.')) continue;
     const full = path.join(dir, entry);
     if (statSync(full).isDirectory()) collect(full, acc);
-    else if (/\.tsx$/.test(entry) && !entry.includes('.test.')) acc.push(full);
+    else if (/\.tsx?$/.test(entry) && !entry.includes('.test.')) acc.push(full);
   }
   return acc;
 }

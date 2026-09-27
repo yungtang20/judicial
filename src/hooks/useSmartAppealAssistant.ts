@@ -1,6 +1,7 @@
 import React from "react";
 import { useAutoSave } from '../hooks/useAutoSave';
 import { fetchWithAuth } from '../lib/apiClient';
+import { notify, notifyError } from '../lib/userNotice';
 import { useState, useRef, useMemo, useEffect } from "react";
 import { IssueRow, EvidenceRow, PrecedentItem } from "../types";
 import { useAppealBindings } from './useAppealBindings';
@@ -232,7 +233,7 @@ export function useSmartAppealAssistant() {
     const requestScope = beginAppealOperation();
     const targetJid = jidToFetch || judicialJid;
     if (!targetJid || !targetJid.trim()) {
-      alert('請輸入或選擇裁判書 JID 代碼');
+      notifyError('請輸入或選擇裁判書 JID 代碼');
       return;
     }
     setJudicialFetchLoading(true);
@@ -281,7 +282,7 @@ export function useSmartAppealAssistant() {
   const handleAnalyzeJudgment = async (jumpToStepTwo: boolean = true) => {
     const requestScope = beginAppealOperation();
     if (!rawText.trim()) {
-      alert('請先輸入或匯入第一個裁判書文本');
+      notifyError('請先輸入或匯入第一個裁判書文本');
       return;
     }
 
@@ -305,7 +306,7 @@ export function useSmartAppealAssistant() {
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
         if (errData.code === "NO_API_KEY") {
-          alert("⚠️ 離線模式：未設定 API Key，無法進行真實判決書分析。請在 AI Studio 中配置後再試。");
+          notifyError("離線模式：未設定 API Key，無法進行真實判決書分析。請先完成設定後再試。");
           return;
         }
         throw new Error(errData.error || 'AI 分析失敗');
@@ -315,13 +316,13 @@ export function useSmartAppealAssistant() {
       if (!isCurrentAppealScope(requestScope)) return;
       
       if (data.code === "NO_API_KEY") {
-        alert("⚠️ 離線模式：未設定 API Key，無法進行真實判決書分析。請在 AI Studio 中配置後再試。");
+        notifyError("離線模式：未設定 API Key，無法進行真實判決書分析。請先完成設定後再試。");
         return;
       }
       
       if (data.isFallback) {
         setIsFallbackMode(true);
-        alert("⚠️ 示範模式：以下為內建範例資料");
+        notify("示範模式：以下為內建範例資料", "warning");
       } else {
         setIsFallbackMode(false);
       }
@@ -394,7 +395,7 @@ export function useSmartAppealAssistant() {
         }, 100);
       }
     } catch (err: any) {
-      if (isCurrentAppealScope(requestScope)) alert(err.message || '分析發生錯誤');
+      if (isCurrentAppealScope(requestScope)) notifyError(err.message || '分析發生錯誤');
     } finally {
         setIsAnalyzing(false);
         setIsAnalyzingSummaryOnly(false);
@@ -432,7 +433,7 @@ export function useSmartAppealAssistant() {
         })));
       }
     } catch (err: any) {
-      if (isCurrentAppealScope(requestScope)) alert(err.message || '檢索判解函釋發生錯誤');
+      if (isCurrentAppealScope(requestScope)) notifyError(err.message || '檢索判解函釋發生錯誤');
     } finally {
       setIsSearchingPrecedents(false);
     }
@@ -479,7 +480,7 @@ export function useSmartAppealAssistant() {
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
         if (errData.code === "NO_API_KEY") {
-          alert("⚠️ 離線模式：未設定 API Key，無法生成真實訴狀。請在 AI Studio 中配置後再試。");
+          notifyError("離線模式：未設定 API Key，無法生成真實訴狀。請先完成設定後再試。");
           return;
         }
         throw new Error(errData.error || '生成上訴狀失敗');
@@ -488,7 +489,7 @@ export function useSmartAppealAssistant() {
       if (!isCurrentAppealScope(requestScope)) return;
       
       if (data.code === "NO_API_KEY") {
-        alert("⚠️ 離線模式：未設定 API Key，無法生成真實訴狀。請在 AI Studio 中配置後再試。");
+        notifyError("離線模式：未設定 API Key，無法生成真實訴狀。請先完成設定後再試。");
         return;
       }
       

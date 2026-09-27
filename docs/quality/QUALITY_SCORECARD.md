@@ -375,3 +375,28 @@ npm audit --omit=dev --audit-level=high
 但它只用於兩張選項卡片的選取樣式，`handleGeneratePleading` 並未使用，
 不進入任何產出或路由。這與前述兩個不同——那是安全路由缺陷，
 這個只是選取樣式。沒有為了「統一」而改動無法完整測試的防禦流程。
+
+### 8. 還有 13 處原生對話框，而防護只掃了一半
+
+前幾輪移除原生對話框時，防護測試的根目錄是對的（整個 src/），
+但只收集 `.tsx`，漏掉 `.ts`。於是 `src/hooks` 底下的
+13 處原生 `alert()` 全部漏網——appealDocumentActions 4 處、
+useSmartAppealAssistant 9 處。
+
+原生對話框會凍結整個頁面、無法樣式化、無法翻譯，
+在部分嵌入環境會被直接封鎖。
+
+這與先前「只跑單一測試檔判定守護」是同一種錯誤：
+**量測範圍太窄，卻把結果當成完整。**
+
+修正：
+- 新增 `src/lib/userNotice.ts` 模組層級提示出口。
+  純函式與 hooks 拿不到 React context，先前只能靠 alert；
+  GlobalUIProvider 啟動時訂閱，notify/notifyError 廣播到同一種 toast。
+- 13 處全部改用 notify／notifyError。
+- 防護擴大為同時收集 `.ts`。
+
+已驗證擴大後的防護確實有效：把原生 alert 放回 `.ts` 檔，測試正確失敗。
+
+正式環境實測：讀取網址失敗時顯示 toast 且頁面保持可互動，
+未再出現凍結；SSRF 防禦同時正確攔下本機位址。

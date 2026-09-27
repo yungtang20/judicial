@@ -2,6 +2,7 @@ import type { ChangeEvent } from 'react';
 import { scrubPersonalInfo } from '../lib/deidentifier';
 import { fetchWithAuth } from '../lib/apiClient';
 import { parsePdfFile } from '../lib/pdfUtils';
+import { notify, notifyError } from '../lib/userNotice';
 
 type TextSetter = (value: string) => void;
 type BooleanSetter = (value: boolean) => void;
@@ -68,7 +69,7 @@ export async function fetchJudicialUrl({
   } catch (err) {
     if (!isCurrent || isCurrent()) {
       const errorMsg = err instanceof Error ? err.message : '未知錯誤';
-      alert(`網址讀取失敗：\n\n${errorMsg}\n\n您亦可使用上方【⚖️ 判決全文庫檢索】按鈕直接輸入案號調閱，或手動複製貼上裁判內文。`);
+      notifyError(`網址讀取失敗：\n\n${errorMsg}\n\n您亦可使用上方【⚖️ 判決全文庫檢索】按鈕直接輸入案號調閱，或手動複製貼上裁判內文。`);
     }
   } finally {
     setIsFetchingUrl(false);
@@ -114,7 +115,7 @@ export async function importJudgmentFile({
             if (ocrData.text) fullText = ocrData.text;
           } else {
             const errData = await ocrRes.json().catch(() => ({}));
-            alert(errData.error || 'OCR 辨識失敗，請檢查 API Key 設定。');
+            notifyError(errData.error || 'OCR 辨識失敗，請檢查 API Key 設定。');
           }
         } catch (ocrErr) {
           console.warn('OCR fetch failed:', ocrErr instanceof Error ? ocrErr.message : ocrErr);
@@ -129,7 +130,7 @@ export async function importJudgmentFile({
       }
     } catch (err) {
       console.warn('PDF Parse Error:', err instanceof Error ? err.message : err);
-      alert('PDF 解析失敗，請直接複製貼上判決內文。');
+      notifyError('PDF 解析失敗，請直接複製貼上判決內文。');
     } finally {
       setIsParsingPdf(false);
     }
@@ -167,7 +168,7 @@ export function deidentifyJudgments({
     modified = true;
   }
   if (modified) {
-    alert('✅ 已執行基本去識別化（身分證字號、電話、部分地址與當事人稱謂前方）。\n⚠️ 注意：人工閱讀時請再次確認是否還有遺漏個資。');
+    notify('已執行基本去識別化（身分證字號、電話、部分地址與當事人稱謂前方）。\n⚠️ 注意：人工閱讀時請再次確認是否還有遺漏個資。');
   }
 }
 
