@@ -405,8 +405,8 @@ export const UnifiedResult: React.FC<UnifiedResultProps> = ({
 
         <div className="flex flex-wrap gap-2 border-t border-slate-800 pt-4" aria-label="分析結果操作">
           <button type="button" onClick={handleCopyAnalysis} disabled={!canUseResult} className={actionClass}>{isCopied ? <Check className="inline w-3.5 h-3.5 mr-1" /> : <Copy className="inline w-3.5 h-3.5 mr-1" />}{isCopied ? '已複製' : '複製'}</button>
-          <button type="button" onClick={() => exportAsHtml(workflowState)} disabled={!canUseResult} className={actionClass}>HTML</button>
-          <button type="button" onClick={() => exportAsText(workflowState)} disabled={!canUseResult} className={actionClass}>TXT</button>
+          <button type="button" onClick={() => exportAsHtml(workflowState)} disabled={!canUseResult} className={actionClass} aria-label="匯出為 HTML 網頁檔案">HTML</button>
+          <button type="button" onClick={() => exportAsText(workflowState)} disabled={!canUseResult} className={actionClass} aria-label="匯出為純文字檔案">TXT</button>
           <button type="button" onClick={() => printReport(workflowState)} disabled={!canUseResult} className={actionClass}><Printer className="inline w-3.5 h-3.5 mr-1" />列印</button>
         </div>
       </div>

@@ -27,15 +27,38 @@ describe('可點擊 div 的鍵盤可及性', () => {
     const offenders: string[] = [];
     for (const file of files) {
       const src = readFileSync(file, 'utf8');
-      // 找出 <div ... onClick ...> 且帶有 cursor-pointer 的元素
-      const re = /<div\b((?:[^<>]|\{[^{}]*\})*?onClick=[^<>]*?)>/g;
-      let m: RegExpExecArray | null;
-      while ((m = re.exec(src)) !== null) {
-        const attrs = m[1] || '';
+      // 逐字掃描 <div 的屬性區段，不用正則。
+      //
+      // 屬性裡可以出現任意深度的巢狀大括號與字串，例如
+      // onKeyDown={(e) => { if (...) { ... } }}，其中還有字串 'Enter'。
+      // 正則要表達這種巢狀幾乎不可能，實測舊寫法用 [^<>] 排除尖括號，
+      // 結果漏掉所有箭頭函式寫法，掃描器形同虛設。
+      for (let i = 0; i < src.length; i++) {
+        if (!src.startsWith('<div', i)) continue;
+        const after = src[i + 4];
+        if (after && /[A-Za-z0-9]/.test(after)) continue;   // <divider 之類，不是 <div
+        let depth = 0;
+        let quote: string | null = null;
+        let end = -1;
+        for (let j = i + 4; j < src.length; j++) {
+          const ch = src[j];
+          if (quote) {
+            if (ch === quote && src[j - 1] !== '\\') quote = null;
+            continue;
+          }
+          if (ch === '"' || ch === "'" || ch === '`') { quote = ch; continue; }
+          if (ch === '{') { depth++; continue; }
+          if (ch === '}') { depth--; continue; }
+          if (ch === '>' && depth === 0) { end = j; break; }
+        }
+        if (end < 0) continue;
+        const attrs = src.slice(i + 4, end);
+        if (!/onClick\s*=/.test(attrs)) continue;
         if (!/cursor-pointer/.test(attrs)) continue;   // 只檢查明確呈現為可點的元素
         if (/role\s*=/.test(attrs) && /tabIndex\s*=/.test(attrs)) continue;
-        const line = src.slice(0, m.index).split('\n').length;
+        const line = src.slice(0, i).split('\n').length;
         offenders.push(`${path.relative(SRC, file)}:${line}`);
+        i = end;
       }
     }
     expect(

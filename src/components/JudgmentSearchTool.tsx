@@ -300,6 +300,14 @@ export default function JudgmentSearchTool() {
 
           <div 
             onClick={() => fileInputRef.current?.click()}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                fileInputRef.current?.click();
+              }
+            }}
             className="border-2 border-dashed border-[var(--color-border-subtle)] bg-[var(--color-surface-base)] p-8 text-center rounded-lg cursor-pointer hover:border-[var(--color-brand-primary)] hover:bg-[var(--color-surface-overlay)] transition-all text-[var(--color-text-muted)]"
           >
             <div className="text-4xl mb-2">📂</div>

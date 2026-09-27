@@ -149,6 +149,14 @@ export const Stage3Communication: React.FC<Stage3CommunicationProps> = ({
                   {/* Fork 1: Rational Cooperation */}
                   <div 
                     onClick={() => setGPointDecision('COOPERATE')}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setGPointDecision('COOPERATE');
+                      }
+                    }}
                     className={`p-4 rounded-xl border-2 transition-all cursor-pointer ${
                       gPointDecision === 'COOPERATE'
                         ? 'bg-[var(--color-status-success-bg)]/90 border-emerald-500 shadow-sm ring-1 ring-emerald-400'
@@ -184,6 +192,14 @@ export const Stage3Communication: React.FC<Stage3CommunicationProps> = ({
                   {/* Fork 2: Insist Submitting Everything */}
                   <div 
                     onClick={() => setGPointDecision('INSIST_SUBMIT')}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setGPointDecision('INSIST_SUBMIT');
+                      }
+                    }}
                     className={`p-4 rounded-xl border-2 transition-all cursor-pointer ${
                       gPointDecision === 'INSIST_SUBMIT'
                         ? 'bg-[var(--color-status-danger-bg)]/90 border-rose-500 shadow-sm ring-1 ring-rose-400'

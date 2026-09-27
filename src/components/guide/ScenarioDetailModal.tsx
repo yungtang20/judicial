@@ -57,6 +57,7 @@ export const ScenarioDetailModal: React.FC<ScenarioDetailModalProps> = ({
         </div>
         <button
           onClick={onClose}
+          aria-label="關閉"
           className="text-[var(--color-text-muted)] hover:text-white p-2 rounded-xl bg-slate-800 hover:bg-slate-700 transition-colors"
         >
           ✕

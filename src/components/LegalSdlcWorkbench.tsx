@@ -353,6 +353,14 @@ export const LegalSdlcWorkbench: React.FC = () => {
               <React.Fragment key={stage.id}>
                 <div
                   onClick={() => setSelectedStageId(stage.id)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setSelectedStageId(stage.id);
+                    }
+                  }}
                   className={`cursor-pointer rounded-xl p-3 border transition-all duration-200 flex-1 max-w-[180px] ${statusColor} hover:border-slate-500`}
                 >
                   <div className="flex items-center justify-between text-xs mb-1">
