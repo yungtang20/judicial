@@ -2,7 +2,15 @@ import { LegalCalculatorConfig } from '../../types/legalTools';
 
 /**
  * 行政院主計總處 113年度 各縣市平均每人每月消費支出標準
+ *
+ * 基準年度必須一併揭露。主計總處每年公布新的消費支出標準，
+ * 未更新資料時若不標示年度，使用者會把兩年前的數字當成現值，
+ * 而這項金額會進入扶養費的實際計算並可能被寫進書狀。
+ *
+ * 已揭露年度不代表資料為最新；要更新數值時，
+ * 請一併更新此常數名稱與 REGIONAL_LIVING_EXPENSES_BASIS_YEAR。
  */
+export const REGIONAL_LIVING_EXPENSES_BASIS_YEAR = '113 年度';
 export const REGIONAL_LIVING_EXPENSES_113: Record<string, { name: string; amount: number }> = {
   TAIPEI: { name: '臺北市', amount: 34321 },
   NEW_TAIPEI: { name: '新北市', amount: 25303 },

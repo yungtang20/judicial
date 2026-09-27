@@ -1,5 +1,5 @@
 import { LegalCalculatorConfig } from '../../types/legalTools';
-import { REGIONAL_LIVING_EXPENSES_113, formatCurrency } from './statutoryStandards';
+import { REGIONAL_LIVING_EXPENSES_113, REGIONAL_LIVING_EXPENSES_BASIS_YEAR, formatCurrency } from './statutoryStandards';
 
 export const CHILD_SUPPORT_CALCULATOR_CONFIG: LegalCalculatorConfig = {
   toolId: 'CHILD_SUPPORT_CALCULATOR',
@@ -92,7 +92,9 @@ export const CHILD_SUPPORT_CALCULATOR_CONFIG: LegalCalculatorConfig = {
       summary: [
         { label: '給付方每月應付總額', value: formatCurrency(payerTotalMonthly), isHighlight: true, note: `共 ${childCount} 名子女` },
         { label: '每名子女每月負擔金額', value: formatCurrency(payerPerChildMonthly), note: `分攤比例 ${(payerRatio * 100).toFixed(1)}%` },
-        { label: '計算基準（每人每月）', value: formatCurrency(monthlyPerChild), note: actualExpense > 0 ? '依實際花費' : `依 ${REGIONAL_LIVING_EXPENSES_113[regionKey]?.name} 主計總處標準` },
+        { label: '計算基準（每人每月）', value: formatCurrency(monthlyPerChild), note: actualExpense > 0
+          ? '依實際花費'
+          : `依 ${REGIONAL_LIVING_EXPENSES_113[regionKey]?.name} 主計總處 ${REGIONAL_LIVING_EXPENSES_BASIS_YEAR} 標準（非最新年度，請自行核對更新後的數值）` },
         { label: '至 18 歲成年累計總金額', value: formatCurrency(grandTotal), note: `剩餘約 ${remainingMonths} 個月` }
       ],
       breakdown: [
