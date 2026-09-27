@@ -42,3 +42,32 @@ describe('表單欄位足以完成模板', () => {
     expect(missingSchema.map(t => t.id), '這些工具沒有表單欄位定義，使用者無從填寫').toEqual([]);
   });
 });
+
+/**
+ * 表單欄位不得重複。
+ *
+ * 實測：補欄位時分兩批加入，先加了 loanDate／repaymentDate，
+ * 後來才發現模板實際使用的是 contractDate／dueDate，
+ * 結果表單出現兩組同義欄位，使用者要填兩次一樣的東西。
+ */
+describe('表單欄位定義的完整性', () => {
+  it('同一工具不得有重複的欄位鍵', () => {
+    const duplicates: Array<{ tool: string; keys: string[] }> = [];
+    for (const tool of LEGAL_TOOLS) {
+      const keys = (TOOL_FIELD_SCHEMAS[tool.id] || []).map(f => f.key);
+      const dup = keys.filter((k, i) => keys.indexOf(k) !== i);
+      if (dup.length) duplicates.push({ tool: tool.id, keys: Array.from(new Set(dup)) });
+    }
+    expect(duplicates, `以下工具有重複欄位：\n${JSON.stringify(duplicates)}`).toEqual([]);
+  });
+
+  it('每個欄位都必須有非空白的中文標籤', () => {
+    const missing: string[] = [];
+    for (const tool of LEGAL_TOOLS) {
+      for (const field of TOOL_FIELD_SCHEMAS[tool.id] || []) {
+        if (!field.label || !field.label.trim()) missing.push(`${tool.id}.${field.key}`);
+      }
+    }
+    expect(missing, '以下欄位缺少標籤，使用者看不懂要填什麼').toEqual([]);
+  });
+});

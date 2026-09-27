@@ -1146,19 +1146,6 @@ export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
   ],
   "DEMAND_LETTER_DEBT": [
     {
-      "key": "contractDate",
-      "label": "借貸契約簽訂日",
-      "type": "text",
-      "showAiSuggest": true
-    },
-    {
-      "key": "dueDate",
-      "label": "約定清償期限",
-      "type": "text",
-      "showAiSuggest": true
-    },
-
-    {
       "key": "senderName",
       "label": "寄件人",
       "type": "text",
@@ -1174,6 +1161,7 @@ export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
       "key": "amount",
       "label": "催告金額",
       "type": "text",
+      "showAiSuggest": true
     },
     {
       "key": "senderAddress",
@@ -1188,13 +1176,13 @@ export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
       "showAiSuggest": true
     },
     {
-      "key": "loanDate",
-      "label": "借貸日期",
+      "key": "contractDate",
+      "label": "借貸契約簽訂日",
       "type": "text",
       "showAiSuggest": true
     },
     {
-      "key": "repaymentDate",
+      "key": "dueDate",
       "label": "約定清償期限",
       "type": "text",
       "showAiSuggest": true
