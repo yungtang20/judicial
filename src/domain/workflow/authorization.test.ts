@@ -75,6 +75,12 @@ describe('AuthorizationPolicy & Role Permissions', () => {
     expect(() => {
       AuthorizationPolicy.assertPermission(aiContext, 'DEPLOY', '發布具狀');
     }).toThrowError(/AI Agent 嚴格禁止執行/);
+
+    // ADMIN 與前兩者同屬硬性規則第一條，必須同樣有斷言保護。
+    // 少了這一段，把 'ADMIN' 從禁止清單移掉不會有任何測試失敗。
+    expect(() => {
+      AuthorizationPolicy.assertPermission(aiContext, 'ADMIN', '管理操作');
+    }).toThrowError(/AI Agent 嚴格禁止執行/);
   });
 
   it('allows qualified HUMAN APPROVER to approve gates', () => {

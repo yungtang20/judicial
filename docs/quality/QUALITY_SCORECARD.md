@@ -174,3 +174,41 @@ npm audit --omit=dev --audit-level=high
 
 掃描器仍有已知限制：內容為動態表達式的按鈕（{entry.label}、{cond ? <A/> : <B/>}）
 靜態無法判斷是否渲染文字，不列入檢查，需人工檢視。
+
+## 安全關鍵守護測試的獨立驗證
+
+前一輪驗證的是「掃描類防護」。這一輪把同一把尺用在本專案
+對外宣稱的 fail-closed 保證上。方法相同：逐一移除每一道檢查，
+確認對應測試會失敗。
+
+### 找到的三個無測試保護的真實缺口
+
+1. **AI 可取得 ADMIN 權限**
+   AGENTS.md 硬性規則第 1 條寫「AI entity 恆禁 APPROVE / DEPLOY / ADMIN」，
+   但 `authorization.test.ts` 該案例的標題雖寫了三項，實際只斷言 APPROVE 與 DEPLOY。
+   把 'ADMIN' 從禁止清單移除後，**全部測試仍然綠燈**。已補上斷言。
+
+2. **P9 匯出閘門的模板綁定檢查**
+   `createPleadingDeliveryAuthorization` 與 `evaluatePleadingDelivery`
+   各自有一組模板綁定檢查，但測試只驗證後者。
+   前者的 6 項檢查（templateId、sourceHash、artifactFingerprint、
+   mimeType、fileName、exportPolicy）全部可以移除而不被發現。已逐項補上。
+
+3. **MCP 引用登錄表的欄位檢查**
+   10 個欄位的非空檢查中，只有 sourceHash 有測試。
+   其餘 9 個（id、sourceUrl、lawName、articleNumber、currentStatus、
+   caseNumber、court、judgmentDate）移除後無人阻擋。已逐欄補上。
+
+### 驗證結果
+
+| 守護 | 檢查項數 | 修正前無保護 | 修正後無保護 |
+|---|---|---|---|
+| AI 禁止核准權限 | 3 | 1（ADMIN） | 0 |
+| P9 匯出閘門 create | 14 | 10 | 0 |
+| MCP 引用登錄表 | 10 | 8 | 0 |
+
+### 方法
+
+關鍵在於**一次只移除一項**。原本的案例總是同時改動多個欄位
+（例如 status 與 exportPolicy 一起改），任一條件被移除時仍有其他條件
+擋下，測試不會失敗——於是每個條件都看似有保護，實際上沒有。

@@ -121,6 +121,85 @@ describe('P9 pleading export gate', () => {
     await expect(createPleadingDeliveryAuthorization(blocker, 'document')).rejects.toThrow('not READY');
   });
 
+  // 以下每一項都必須「各自」被驗證。
+  // 既有的案例總是同時改動多個欄位（例如 status 與 exportPolicy 一起改），
+  // 結果任一條件被移除時仍有其他條件擋下，測試不會失敗——
+  // 等於每個條件其實都沒有獨立防護。
+  it('rejects a READY report whose status alone is wrong', async () => {
+    const report = readyReport();
+    report.status = 'BLOCKED';
+    await expect(createPleadingDeliveryAuthorization(report, 'document')).rejects.toThrow('not READY');
+  });
+
+  it('rejects a report whose gateInputFingerprint is not a sha256 hex digest', async () => {
+    const report = readyReport();
+    report.gateInputFingerprint = 'not-a-valid-fingerprint';
+    await expect(createPleadingDeliveryAuthorization(report, 'document')).rejects.toThrow('not READY');
+  });
+
+  it('rejects an empty document body', async () => {
+    await expect(createPleadingDeliveryAuthorization(readyReport(), '   ')).rejects.toThrow('not READY');
+  });
+
+  it('rejects a report missing the reviewer report bindings', async () => {
+    for (const 缺漏 of ['caseInputId', 'draftId', 'ruleProfileId', 'ruleProfileVersion'] as const) {
+      const report = readyReport();
+      (report.reviewerReport as unknown as Record<string, unknown>)[缺漏] = '  ';
+      await expect(
+        createPleadingDeliveryAuthorization(report, 'document'),
+        `缺少 ${缺漏} 卻被放行`
+      ).rejects.toThrow('not READY');
+    }
+  });
+
+  it('rejects a report missing the evaluator version', async () => {
+    const report = readyReport();
+    report.evaluatorVersion = '';
+    await expect(createPleadingDeliveryAuthorization(report, 'document')).rejects.toThrow('not READY');
+  });
+
+  it('rejects a report whose exportPolicy alone is not READY_ONLY', async () => {
+    const report = readyReport();
+    report.exportPolicy = 'HUMAN_DEPLOY_REQUIRED_FOR_OVERRIDE';
+    await expect(createPleadingDeliveryAuthorization(report, 'document')).rejects.toThrow('not READY');
+  });
+
+  it('rejects a report whose human-override audit answer is not false', async () => {
+    const report = readyReport();
+    report.auditItems[17] = { ...report.auditItems[17], answer: true };
+    await expect(createPleadingDeliveryAuthorization(report, 'document')).rejects.toThrow('not READY');
+  });
+
+  // createPleadingDeliveryAuthorization 自己也有一組模板綁定檢查，
+  // 與 evaluatePleadingDelivery 的那組重複。先前只有後者被測到，
+  // 這裡逐項缺漏，確認前者不會授權不完整的綁定。
+  it('rejects an incomplete official template binding at authorization time', async () => {
+    const 完整 = {
+      templateId: 'JUDICIAL_CIVIL_TEMPLATE',
+      templateSourceHash: 'b'.repeat(64),
+      artifactFingerprint: 'c'.repeat(64),
+      artifactMimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      artifactFileName: 'pleading.docx'
+    };
+    await expect(
+      createPleadingDeliveryAuthorization(readyReport(), 'document', 完整)
+    ).resolves.toBeDefined();
+
+    const 逐一缺漏: Array<[string, Record<string, string>]> = [
+      ['templateId', { ...完整, templateId: '  ' }],
+      ['templateSourceHash', { ...完整, templateSourceHash: 'not-a-hash' }],
+      ['artifactFingerprint', { ...完整, artifactFingerprint: 'not-a-hash' }],
+      ['artifactMimeType', { ...完整, artifactMimeType: '' }],
+      ['artifactFileName', { ...完整, artifactFileName: '' }]
+    ];
+    for (const [欄位, 綁定] of 逐一缺漏) {
+      await expect(
+        createPleadingDeliveryAuthorization(readyReport(), 'document', 綁定 as never),
+        `${欄位} 不完整卻被授權放行`
+      ).rejects.toThrow('not READY');
+    }
+  });
+
   it('rejects duplicate, extra, or status-inconsistent P9 audit answers', async () => {
     const duplicate = readyReport();
     duplicate.auditItems[19] = { ...duplicate.auditItems[0] };
