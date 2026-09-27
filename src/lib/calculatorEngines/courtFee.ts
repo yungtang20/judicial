@@ -23,7 +23,7 @@ export const COURT_FEE_CALCULATOR_CONFIG: LegalCalculatorConfig = {
       defaultValue: 'first',
       options: [
         { label: '第一審起訴（地方法院）', value: 'first', subtitle: '依民訴§77-13分級累進' },
-        { label: '第二審／第三審上訴（高等法院／最高法院）', value: 'second_third', subtitle: '一審之 1.5 倍（加徵 5/10）' },
+        { label: '第二審／第三審上訴（高等法院／最高法院）', value: 'second_third', subtitle: '依一審是否酌減而不同，請見下方說明' },
         { label: '聲請支付命令（督促程序）', value: 'payment_order', subtitle: '定額 500 元（債務人異議視為起訴需補繳差額）' }
       ]
     },
@@ -36,11 +36,26 @@ export const COURT_FEE_CALCULATOR_CONFIG: LegalCalculatorConfig = {
         { label: '否（財產權訴訟，依訴訟標的金額累進計費）', value: 'false' },
         { label: '是（非財產權訴訟，徵收固定規費 3,000 元）', value: 'true' }
       ]
+    },
+    {
+      id: 'firstInstanceFeeReduced',
+      label: '一審裁判費是否曾依民訴§77-9 酌減（僅影響二審／三審）',
+      type: 'select',
+      defaultValue: 'true',
+      options: [
+        { label: '是（以酌減後金額為基礎加徵 5/10，即一審之 1.5 倍）', value: 'true' },
+        { label: '否（一審裁判費未酌減，二審原則上為一審之 1/2）', value: 'false' }
+      ],
+      helperText: '民訴§77-16 的加徵比例以一審裁判費是否依§77-9 酌減為前提，兩種情形金額差距很大，請依卷內判決書所載實際繳納額選擇。'
     }
   ],
   calculate: (inputs) => {
     const isNonProp = inputs.isNonProperty === 'true';
     const proc = (inputs.procedureType || 'first') as 'first' | 'second_third' | 'payment_order';
+    // 民訴§77-16 的加徵比例以一審裁判費是否依§77-9 酌減為前提。
+    // 先前一律以 1.5 倍計算並註明「即一審之1.5倍」，
+    // 等於把有前提的規定講成無條件，金額差距可達四倍。
+    const 一審已酌減 = inputs.firstInstanceFeeReduced !== 'false';
     const claimAmount = Math.max(0, Number(inputs.claimAmount) || 0);
 
     let fee = 0;
@@ -48,20 +63,22 @@ export const COURT_FEE_CALCULATOR_CONFIG: LegalCalculatorConfig = {
 
     if (isNonProp) {
       if (proc === 'second_third') {
-        fee = 4500;
-        ruleText = '民事訴訟法第77條之14、第77條之16：非財產權訴訟二審/三審加徵5/10，徵收 4,500 元';
+        fee = 一審已酌減 ? 4500 : 1500;
+        ruleText = `民事訴訟法第77條之14、第77條之16：非財產權訴訟二審／三審${一審已酌減 ? '加徵 5/10，徵收 4,500 元' : '徵收一審之 1/2，計 1,500 元'}`;
       } else {
         fee = 3000;
         ruleText = '民事訴訟法第77條之14：非因財產權而起訴者，徵收裁判費 3,000 元';
       }
     } else {
-      const res = calculateCourtFee(claimAmount, proc);
+      const res = calculateCourtFee(claimAmount, proc, 一審已酌減);
       fee = res.fee;
       ruleText = res.basisRule;
     }
 
     const firstFee = isNonProp ? 3000 : calculateCourtFee(claimAmount, 'first').fee;
-    const secondFee = Math.round(firstFee * 1.5);
+    const secondFee = isNonProp
+      ? (一審已酌減 ? 4500 : 1500)
+      : calculateCourtFee(claimAmount, 'second_third', 一審已酌減).fee;
 
     const clause = `訴訟費用由被告負擔。\n（聲明事項：請准原告提供擔保宣告假執行，並命被告負擔第一審裁判費新臺幣 ${formatCurrency(fee).replace('$', '')} 元）`;
 

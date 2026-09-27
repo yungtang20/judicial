@@ -38,7 +38,17 @@ export const REGIONAL_LIVING_EXPENSES_113: Record<string, { name: string; amount
 /**
  * 民事訴訟裁判費標準費率計算 (依民事訴訟法第77條之13)
  */
-export function calculateCourtFee(claimAmount: number, instance: 'first' | 'second_third' | 'payment_order' = 'first'): {
+export function calculateCourtFee(
+  claimAmount: number,
+  instance: 'first' | 'second_third' | 'payment_order' = 'first',
+  /**
+   * 一審裁判費是否已依民訴§77-9 酌減。
+   * §77-16 的加徵比例以此為前提：一審已酌減者，二審以酌減後金額加徵 5/10；
+   * 未酌減者，原則上為一審裁判費之半。兩者金額差距可達數倍，
+   * 不可視為同一種情形。
+   */
+  firstInstanceFeeReduced = true
+): {
   fee: number;
   basisRule: string;
 } {
@@ -90,10 +100,14 @@ export function calculateCourtFee(claimAmount: number, instance: 'first' | 'seco
   }
 
   if (instance === 'second_third') {
-    const fee = Math.round(firstInstanceFee * 1.5);
+    const fee = firstInstanceFeeReduced
+      ? Math.round(firstInstanceFee * 1.5)
+      : Math.round(firstInstanceFee / 2);
     return {
       fee,
-      basisRule: '民事訴訟法第77條之16：向第二審或第三審法院起訴或上訴，加徵裁判費十分之五（即一審之1.5倍）'
+      basisRule: firstInstanceFeeReduced
+        ? '民事訴訟法第77條之16：一審裁判費已依第77條之9酌減者，以酌減後之裁判費為基礎加徵十分之五'
+        : '民事訴訟法第77條之16：一審裁判費未依第77條之9酌減者，原則上按第一審裁判費二分之一計算'
     };
   }
 
