@@ -103,6 +103,20 @@ export const STATUTE_LIMITATIONS_CALCULATOR_CONFIG: LegalCalculatorConfig = {
         break;
     }
 
+    // 領域無法辨識時必須明確回報，不得產出「0 個月、屆滿日等於起算日」。
+    // 那等於告訴使用者「你的權利已罹於時效」——
+    // 這是本工具最有害的錯誤答案：當事人會據此放棄救濟。
+    // 常見成因是介面選項更新後舊值仍在傳入，或其他呼叫端拼錯字。
+    if (!ruleName) {
+      return {
+        summary: [
+          { label: '無法計算時效期間', value: '請先選擇法律範疇', isHighlight: true }
+        ],
+        legalClause: '尚未選擇適用的法律範疇，無法確定法定期間。請先於「法律範疇與爭議類型」中選擇後再行計算。',
+        notice: `收到無法辨識的法律範疇「${String(domain)}」。系統不會在未確定適用法規的情況下推算期間，以免誤導當事人。請重新選擇法律範疇後再行計算。`
+      };
+    }
+
     const expiryDate = new Date(baseDate.getTime());
     if (yearsToAdd > 0) {
       expiryDate.setFullYear(expiryDate.getFullYear() + yearsToAdd);
