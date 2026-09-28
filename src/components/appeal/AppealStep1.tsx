@@ -70,6 +70,29 @@ export function AppealStep1({ ctx }: { ctx: AppealStepContext }) {
               <h2 className="text-xl font-bold text-[var(--color-text-primary)]">第一步：匯入裁判書與 AI 分析</h2>
               <p className="text-xs text-[var(--color-text-muted)] mt-1">上傳裁判 PDF 檔或直接貼上判決全文，支援單一裁判書分析或雙裁判書（二個判決）對照比對。</p>
             </div>
+
+          {/*
+            上訴書狀產製尚未開放，必須在流程起點說明。
+
+            實測：/api/generate-appeal-petition 目前無條件回 409
+            （尚未建立經核准的書狀結構與 rule profile，屬正確的 fail-closed）。
+            但使用者要填完四步、走到最後按下產製，才會知道產不出來——
+            與先前修的「填完表單才被告知」是同一種浪費。
+            前三步的判決分析、爭點整理、證據清單仍然可用並有價值，
+            因此說明放在這裡而非封鎖整個流程。
+          */}
+          <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-200 leading-relaxed">
+            <div className="flex items-center gap-1.5 font-bold mb-1">
+              <Info className="w-3.5 h-3.5" aria-hidden="true" />
+              最終的「上訴書狀」目前尚未開放產製
+            </div>
+            <p>
+              法院書狀必須先建立經核准的格式結構與合規規則，系統才會產出，
+              這段審核完成前不會交付任何未經授權的書狀。
+              你仍可完整使用前三步：判決分析、爭點整理、調查證據清單，
+              這些結果可直接用於自行撰寫或諮詢律師。
+            </p>
+          </div>
             
             {/* 模式切換鈕 */}
             <div className="flex items-center gap-3">

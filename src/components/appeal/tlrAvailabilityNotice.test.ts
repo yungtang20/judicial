@@ -59,4 +59,16 @@ describe('未啟用功能的預先告知', () => {
     const 找到 = 宣稱檔案.filter((f) => /2,250萬|TW-Legal-RAG/.test(讀(f)));
     expect(找到.length, '未找到宣稱檔案，測試可能已失效').toBeGreaterThan(0);
   });
+
+  it('上訴書狀尚未開放須在流程起點告知', () => {
+    // /api/generate-appeal-petition 目前無條件回 409
+    //（尚未建立經核准的書狀結構與 rule profile，屬正確的 fail-closed）。
+    // 但使用者要填完四步才會知道產不出來，與先前修的
+    // 「填完表單才被告知」是同一種浪費。
+    const s = 讀('src/components/appeal/AppealStep1.tsx');
+    const i = s.indexOf('上訴書狀」目前尚未開放產製');
+    expect(i, 'AppealStep1 未在流程起點說明上訴書狀尚未開放').toBeGreaterThan(-1);
+    // 必須同時說明前三步仍可用，避免使用者以為整個功能都不能用
+    expect(s.slice(i, i + 400), '未說明前三步仍可使用').toMatch(/前三步|仍可/);
+  });
 });
