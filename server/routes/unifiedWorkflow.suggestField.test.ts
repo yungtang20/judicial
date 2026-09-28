@@ -82,14 +82,19 @@ describe('POST /api/workflow/suggest-field', () => {
     expect(res.body.details).toBeUndefined();
   });
 
-  it('其他內部錯誤仍回 500，但不洩漏細節', async () => {
+  it('非設定問題的失敗回 422 而非 500，且不洩漏細節', async () => {
+    // 模型輸出異常（空回應、上游錯誤、格式無法解析）都屬於
+    // 「這次取不到建議」，不是伺服器故障。
+    // 這是便利功能，使用者仍可自行填寫該欄位；
+    // 回 500 只會讓前端顯示紅色錯誤並誤導成系統出問題。
     mockedGenerate.mockRejectedValue(new Error('連線至 /var/secrets/token 失敗'));
 
     const res = await request(建立App())
       .post('/api/workflow/suggest-field')
       .send({ fieldLabel: '發生日期', toolName: '民事起訴狀' });
 
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(422);
+    expect(res.body.code).toBe('FIELD_SUGGESTION_UNAVAILABLE');
     expect(JSON.stringify(res.body)).not.toContain('/var/secrets');
   });
 

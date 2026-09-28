@@ -63,13 +63,18 @@ export function 取出建議選項(parsed: unknown): string[] {
     if (Array.isArray(value)) return 正規化(value);
   }
 
-  // 以數字為鍵的物件：{"1":"A","2":"B"}
-  // 只認數字鍵。{"note":"我無法提供建議"} 這類說明欄位不是建議選項，
-  // 把它當成建議只會讓使用者拿到一句毫無用處的解釋。
-  const 索引項 = Object.entries(obj)
-    .filter(([key, value]) => /^\d+$/.test(key) && (typeof value === 'string' || typeof value === 'number'))
-    .map(([, value]) => value);
-  return 正規化(索引項);
+  // JSON 模式下模型常回描述性鍵名，例如
+  // {"選項一":"…","選項二":"…","選項三":"…"}，這是清單，要取。
+  //
+  // 但 {"note":"我無法提供建議"} 是說明文字，不是建議——
+  // 把它當成選項只會讓使用者拿到一句毫無用處的解釋。
+  // 兩者都是描述性鍵，用「數量」區分：一個是說明，兩個以上是清單。
+  const 描述項 = Object.values(obj).filter(
+    v => (typeof v === 'string' || typeof v === 'number') && String(v).trim().length > 0,
+  );
+  if (描述項.length >= 2) return 正規化(描述項);
+
+  return [];
 }
 
 const router = Router();
@@ -945,10 +950,15 @@ router.post("/api/workflow/suggest-field", async (req: Request, res: Response) =
       });
     }
 
+    // 模型輸出異常（空回應、上游錯誤、格式無法解析）都屬於
+    // 「這次取不到建議」，不是伺服器故障。
+    // 這是便利功能，使用者仍可自行填寫該欄位，
+    // 回 500 只會讓前端顯示紅色錯誤並誤導成系統出問題。
     // 內部錯誤訊息可能含環境變數名稱或路徑，不回傳給用戶端。
-    return res.status(500).json({
-      error: "取得建議失敗",
-      message: "取得建議失敗，請稍後再試",
+    return res.status(422).json({
+      code: "FIELD_SUGGESTION_UNAVAILABLE",
+      error: "無法取得欄位建議",
+      message: "請自行填寫此欄位，或稍後再試。",
     });
   }
 });
