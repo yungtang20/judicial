@@ -48,7 +48,25 @@ export function buildRouterPrompt(userInput: string): string {
  * 節點 2：動態追問 (Questioning Prompt)
  * 用途：當節點 1 判定 is_complete == false 時，觸發此提示詞生成引導話術。
  */
-export function buildQuestioningPrompt(missingElements: string[], userInput: string): string {
+export function buildQuestioningPrompt(
+  missingElements: string[],
+  userInput: string,
+  /** 呼叫端如何承接選項。兩種模式的輸出要求不同，混淆會讓標記外洩到畫面上。 */
+  mode: 'plain_text' | 'json' = 'plain_text'
+): string {
+  const 選項要求 = mode === 'json'
+    ? '4. 提出封閉式問題，並在 suggestedOptions 陣列中提供 2~3 個簡短選項。' +
+      'rawMessage 只放給使用者看的追問文字，絕對不要把選項或「【選項：…】」之類的標記寫進 rawMessage。'
+    : '4. 提出封閉式問題，並在句末另起一行，以「【選項：甲】【選項：乙】【選項：丙】」的格式附上 2~3 個供使用者點選的選項。選項文字直接寫在書名號內，請勿輸出「選項按鈕」之類的佔位詞。';
+
+  const 範例 = mode === 'json'
+    ? ''
+    : `
+
+輸出範例（請比照此結構）：
+我已理解您的現況。為了確認適用法規，需要知道事發當下您是否在場。
+【選項：我在現場並全程參與對話】【選項：我不在場，事後才得知】【選項：僅部分時間在場】`;
+
   return `你是一位富有同理心的法律諮詢助手。根據以下缺失的關鍵事實，向使用者提出 1~2 個簡短、具體的追問，並提供快捷選項。
 
 缺失事實：${JSON.stringify(missingElements, null, 2)}
@@ -57,11 +75,7 @@ export function buildQuestioningPrompt(missingElements: string[], userInput: str
 1. ${TRADITIONAL_CHINESE_REQUIREMENT}
 2. 先簡短確認目前理解的現狀（一句話即可）。
 3. 說明為什麼需要補充這些資訊（例如：這決定了是否適用家暴法或影響罪名判定）。
-4. 提出封閉式問題，並在句末另起一行，以「【選項：甲】【選項：乙】【選項：丙】」的格式附上 2~3 個供使用者點選的選項。選項文字直接寫在書名號內，請勿輸出「選項按鈕」之類的佔位詞。
-
-輸出範例（請比照此結構）：
-我已理解您的現況。為了確認適用法規，需要知道事發當下您是否在場。
-【選項：我在現場並全程參與對話】【選項：我不在場，事後才得知】【選項：僅部分時間在場】`;
+${選項要求}${範例}`;
 }
 
 /**

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { buildQuestioningPrompt } from '../../src/prompts/legalProcessPrompts';
 
 /**
  * 追問選項的解析與顯示
@@ -70,5 +71,42 @@ describe('追問選項解析', () => {
     const r = 解析('請補充事發當日的具體情況。');
     expect(r.選項).toEqual([]);
     expect(r.顯示文字).toBe('請補充事發當日的具體情況。');
+  });
+});
+
+describe('追問提示詞的輸出模式', () => {
+  const 缺漏 = ['發生具體時間'];
+  const 案情 = '我三年前借了朋友十萬元沒有借條。';
+
+  it('純文字模式要求以【選項：…】輸出，讓解析器能取出選項', () => {
+    const p = buildQuestioningPrompt(缺漏, 案情, 'plain_text');
+    expect(p).toContain('【選項：甲】');
+    expect(p).toContain('輸出範例');
+  });
+
+  it('JSON 模式明確要求選項放入 suggestedOptions，不得寫進 rawMessage', () => {
+    // 實測迴歸：首頁走 JSON 路徑，沿用純文字提示詞時，
+    // 模型把「【選項：…】」標記寫進 rawMessage，使用者直接看到這串內部語法。
+    const p = buildQuestioningPrompt(缺漏, 案情, 'json');
+    expect(p).toContain('suggestedOptions');
+    expect(p).toContain('rawMessage');
+    expect(p).not.toContain('【選項：甲】');
+  });
+
+  it('JSON 模式不得附上純文字的輸出範例（會誤導模型把範例塞進欄位）', () => {
+    expect(buildQuestioningPrompt(缺漏, 案情, 'json')).not.toContain('輸出範例');
+  });
+
+  it('預設為純文字模式，既有呼叫端行為不變', () => {
+    expect(buildQuestioningPrompt(缺漏, 案情)).toBe(buildQuestioningPrompt(缺漏, 案情, 'plain_text'));
+  });
+
+  it('兩種模式都帶入繁體中文要求與缺失事實', () => {
+    for (const m of ['plain_text', 'json'] as const) {
+      const p = buildQuestioningPrompt(缺漏, 案情, m);
+      expect(p).toContain('繁體');
+      expect(p).toContain('發生具體時間');
+      expect(p).toContain('我三年前借了朋友十萬元沒有借條');
+    }
   });
 });

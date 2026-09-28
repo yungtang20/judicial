@@ -351,7 +351,10 @@ async function runQuestioningNode(
   let generationReason = "AI_PROVIDER";
 
   try {
-    const prompt = `${buildQuestioningPrompt(missing, userInput)}
+    // json 模式：選項走 suggestedOptions 欄位，rawMessage 只放給使用者看的文字。
+    // 若沿用純文字模式的提示詞，模型會把「【選項：…】」標記一併寫進 rawMessage，
+    // 使用者就會在畫面上看到這串內部語法（實測首頁追問即如此）。
+    const prompt = `${buildQuestioningPrompt(missing, userInput, 'json')}
 
 請只回傳 JSON 物件，不得加入 Markdown：
 {"rawMessage":"給使用者的完整追問文字","suggestedOptions":["選項一","選項二","選項三"]}`;
@@ -370,7 +373,14 @@ async function runQuestioningNode(
       setTimeout(() => reject(new Error("AI_QUESTION_TIMEOUT_ERR")), 45000)
     );
     const response = await Promise.race([aiPromise, timeoutPromise]);
-    rawMessage = typeof response.rawMessage === "string" ? response.rawMessage.trim() : "";
+    // 提示詞已要求選項只放在 suggestedOptions，但模型偶爾仍會把標記寫進 rawMessage。
+    // 這裡再剝除一次：這些內容已成為按鈕，留在文字裡只會讓使用者看到內部語法。
+    rawMessage = typeof response.rawMessage === "string"
+      ? response.rawMessage
+          .replace(/[【\[]\s*(?:選項[：:])?[^\]】]*[\]】]/g, "")
+          .replace(/[ \t]{2,}/g, " ")
+          .trim()
+      : "";
     suggestedOptions = Array.isArray(response.suggestedOptions)
       ? Array.from(new Set(response.suggestedOptions
         .filter((option): option is string => typeof option === "string")
