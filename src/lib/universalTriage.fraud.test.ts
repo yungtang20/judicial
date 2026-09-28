@@ -45,6 +45,23 @@ describe('詐欺類案件的訴訟性質', () => {
     expect(結果.litigationNatureText).toContain('報警');
   });
 
+  it('模型已判為刑事時仍必須補上時效警示', () => {
+    // 實測：caseType 已是 CRIMINAL 時分類正確，但 litigationNatureText
+    // 沒有 6 個月時效，UI 便顯示該文字而非預設的時效警告，提示又漏掉。
+    const 結果 = 建立('我被假投資平台騙了80萬。', {
+      caseType: 'CRIMINAL',
+      litigationNatureText: '本案涉及刑事責任。',
+    });
+    expect(結果.caseType).toBe('CRIMINAL');
+    expect(結果.litigationNatureText).toContain('6 個月');
+    expect(結果.litigationNatureText).toContain('報警');
+  });
+
+  it('已判刑事時不得改動模型選定的類別', () => {
+    const 結果 = 建立('我被網路詐騙騙走50萬。', { caseType: 'CRIMINAL_COMPLAINT_REQUIRED' });
+    expect(結果.caseType).toBe('CRIMINAL_COMPLAINT_REQUIRED');
+  });
+
   it('應指向詐欺刑事告訴狀工具', () => {
     const 結果 = 建立('我被網路詐騙騙走50萬。');
     expect(結果.category).toBe('CRIMINAL_COMPLAINT_FRAUD');

@@ -1007,12 +1007,19 @@ export function enforceTriageConsistency(payload: any, query: string): any {
   // 6 個月內提出告訴（刑事訴訟法第244條）。看到「無刑事責任」的當事人
   // 可能因此不報警，放任刑訴時效經過，連民事求償都失去基礎。
   const 詐欺特徵 = /(詐騙|詐欺|騙局|被騙|假投資|投資平台|匯款後|人頭帳戶|假警官|假冒|商業詐欺|電話詐騙|網路詐騙)/;
-  if (詐欺特徵.test(query) && !p.caseType?.startsWith("CRIMINAL")) {
-    p.caseType = "CRIMINAL_COMPLAINT_REQUIRED";
-    if (!p.category || p.category === "CIVIL_TORT_GENERAL" || p.category === "UNIVERSAL_AI_PLEADING") {
-      p.category = "CRIMINAL_COMPLAINT_FRAUD";
-      p.recommendedToolId = "CRIMINAL_COMPLAINT_FRAUD";
-      p.identifiedIssue = "詐欺取財（刑法第339條）與民事損害賠償之並行救濟";
+  if (詐欺特徵.test(query)) {
+    // 分類與時效警示是兩件事，必須各自成立。
+    //
+    // 實測：模型自行判為 CRIMINAL（而非 CIVIL）時，分類正確但
+    // litigationNatureText 沒有 6 個月時效，UI 便顯示該文字而非
+    // 預設的時效警告——等於提示又漏掉了。
+    if (!p.caseType?.startsWith("CRIMINAL")) {
+      p.caseType = "CRIMINAL_COMPLAINT_REQUIRED";
+      if (!p.category || p.category === "CIVIL_TORT_GENERAL" || p.category === "UNIVERSAL_AI_PLEEDING") {
+        p.category = "CRIMINAL_COMPLAINT_FRAUD";
+        p.recommendedToolId = "CRIMINAL_COMPLAINT_FRAUD";
+        p.identifiedIssue = "詐欺取財（刑法第339條）與民事損害賠償之並行救濟";
+      }
     }
     if (p.legalBasis?.some((b: string) => b.includes("339"))) {
       // 模型已抓到詐欺法源，補上告訴時效。
@@ -1021,6 +1028,7 @@ export function enforceTriageConsistency(payload: any, query: string): any {
         "刑事訴訟法第244條（告訴乃論：自知悉犯人之日起6個月內）",
       ])];
     }
+    // 文字必須同時說明刑事時效與民事救濟，讓當事人知道兩條路都要走。
     p.litigationNatureText =
       "⚠️ 刑事告訴乃論（須於自知悉犯人之日起 6 個月內提出告訴）"
       + "｜民事損害賠償可另行主張，兩者程序互不取代。"
