@@ -28,6 +28,7 @@ import { detectAnalysisContradictions, normalizeObsoleteOffenseNames, type Consi
 import { isBasicSafeUrl, verifyDnsSafe } from "./fetchUrl.js";
 import { resolveForensicWindowState } from "../../src/lib/universalTriage.js";
 import { toCalendarDate } from "../../src/lib/forensicGuidance.js";
+import { isProviderConfigError } from '../services/agentChat';
 
 const router = Router();
 
@@ -818,12 +819,21 @@ router.post("/api/workflow/supplement", async (req: Request, res: Response) => {
  * 提供表單欄位的 AI 建議
  */
 router.post("/api/workflow/suggest-field", async (req: Request, res: Response) => {
+  // 先驗證再呼叫 AI：缺欄位時直接 400，
+  // 否則空請求也會送出提示詞、白白消耗上游呼叫並回 503。
+  const { fieldLabel, toolName, incidentDetails } = req.body || {};
+  if (typeof fieldLabel !== "string" || !fieldLabel.trim() || typeof toolName !== "string" || !toolName.trim()) {
+    return res.status(400).json({ code: "INVALID_INPUT", error: "fieldLabel 與 toolName 為必要欄位" });
+  }
+  // 這兩個值會直接插入提示詞，限制長度以縮小提示詞注入的可用空間。
+  const 欄位 = fieldLabel.trim().slice(0, 100);
+  const 工具 = toolName.trim().slice(0, 100);
+  const 事實 = typeof incidentDetails === "string" ? incidentDetails.slice(0, 5000) : "";
   try {
-    const { fieldLabel, toolName, incidentDetails } = req.body;
-    const prompt = `你是一位專業的法律表單填寫助手。使用者正在準備【${toolName}】，但在「${fieldLabel}」欄位不知道該填什麼。
+    const prompt = `你是一位專業的法律表單填寫助手。使用者正在準備【${工具}】，但在「${欄位}」欄位不知道該填什麼。
 請根據以下案件事實（若無則依一般常見情境），提供 3 個簡短、具體、且符合該欄位要求的填寫選項，讓使用者可以直接套用。
 
-案件事實：${incidentDetails || "未提供"}
+案件事實：${事實 || "未提供"}
 
 請直接輸出一個 JSON 陣列，包含 3 個字串，例如：["選項一", "選項二", "選項三"]。絕不輸出任何其他文字或 Markdown 標記（不要有 json 等）。`;
 
@@ -844,12 +854,24 @@ router.post("/api/workflow/suggest-field", async (req: Request, res: Response) =
       });
     }
     return res.json({ success: true, options });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[SuggestField] 取得建議失敗:', error);
+
+    // 提供商設定問題（缺金鑰、未選提供商）重試不會成功，
+    // 必須與逾時、限流等暫時性故障區分開，否則使用者只會不斷重試。
+    // 沿用 agentChat 端點的 503 + SERVICE_UNAVAILABLE 慣例。
+    if (isProviderConfigError(error)) {
+      return res.status(503).json({
+        code: "SERVICE_UNAVAILABLE",
+        error: "AI 服務尚未設定",
+        message: "欄位建議需要 AI 服務，目前無法使用。其餘功能不受影響。",
+      });
+    }
+
+    // 內部錯誤訊息可能含環境變數名稱或路徑，不回傳給用戶端。
     return res.status(500).json({
       error: "取得建議失敗",
       message: "取得建議失敗，請稍後再試",
-      details: process.env.NODE_ENV === "production" ? undefined : error?.message
     });
   }
 });

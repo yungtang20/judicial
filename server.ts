@@ -64,6 +64,14 @@ async function startServer() {
       immutable: true,
       maxAge: "365d"
     }));
+
+    // 其餘 dist 內容（如日後由 public/ 複製進來的 robots.txt、manifest）照常提供，
+    // 但不得長期快取。
+    //
+    // 伺服器 bundle 刻意建置到 build/ 而非 dist/：
+    // 先前 server.cjs 與 server.cjs.map 落在 dist/，整目錄公開等於把
+    // 後端程式碼與完整原始碼（含全部檔名清單）送到任何訪客手上。
+    // 檔案不在此目錄，就不需要靠規則去擋它。
     app.use(express.static(distPath, { maxAge: 0 }));
 
     // index.html 必須每次重新驗證：它指向帶雜湊的資源，

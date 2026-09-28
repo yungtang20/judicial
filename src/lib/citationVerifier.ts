@@ -856,6 +856,11 @@ export function verifyLegalCitations(
     return Boolean(targetKey && allowedList.some(allowed => precedentKey(allowed) === targetKey));
   };
 
+  // 條、之N、項、款的數字寫法：阿拉伯與中文皆可。
+  // 法條本文寫「第15條之一」「第二項」，資料庫索引寫「第15條之1」「第2項」，
+  // 兩者都是正確引用；所有比對器都必須用同一套寫法，否則會互相誤判。
+  const 數字 = '[0-9０-９零一二三四五六七八九十]';
+
   const STATUTE_MAX_ARTICLES: Record<string, number> = {
     '民法': 1225,
     '刑法': 363,
@@ -869,17 +874,59 @@ export function verifyLegalCitations(
     '非訟事件法': 199
   };
 
+  /**
+  * 中文數字轉阿拉伯數字。
+  *
+  * 法條的正式寫法是「第15條之一」，而全國法規資料庫的索引是「第15條之1」，
+  * 兩者都是正確的引用方式。驗證只認得後者時會產生兩種錯誤：
+  *
+  * - 假陰性：「第191條之二」抓不到之N，退化成「第191條」後查無此條，
+  *            合法文件被擋下。
+  * - 假陽性：「第15條之一」同樣退化成「第15條」，而該條確實存在，
+  *            於是拿**錯誤的條文**替文件背書——比擋下更糟。
+  */
+  const 中文數字 = '零一二三四五六七八九';
+  function 正規化數字(raw: string | undefined): string | undefined {
+    if (raw === undefined) return undefined;
+    const half = raw.normalize('NFKC');
+    if (/^\d+$/.test(half)) return half;
+    // 只處理「十」開頭或含「十」的兩位數寫法：十、十一…十九、二十、三十一
+    const 十位 = half.indexOf('十');
+    if (十位 === -1) {
+      let out = '';
+      for (const 字 of half) {
+        const idx = 中文數字.indexOf(字);
+        if (idx === -1) return half;
+        out += String(idx);
+      }
+      return out;
+    }
+    const 前 = half.slice(0, 十位);
+    const 後 = half.slice(十位 + 1);
+    if (前 && 中文數字.indexOf(前) === -1) return half;
+    if (後 && (後.length > 1 || 中文數字.indexOf(後) === -1)) return half;
+    const 十位數 = 前 ? 中文數字.indexOf(前) : 1;
+    const 個位數 = 後 ? 中文數字.indexOf(後) : 0;
+    return String(十位數 * 10 + 個位數);
+  }
+
   // 1. Scan for statutory mentions (e.g. 民法第xxx條、民法第1030條之1第1項、民事訴訟法第xxx條第x項)
-  const statuteRegex = /(民法|民事訴訟法|刑法|刑事訴訟法|票據法|勞動基準法|強制執行法|家事事件法|家庭暴力防治法|非訟事件法)第([0-9０-９]+)(?:條之([0-9０-９]+)|(?:之([0-9０-９]+))?條)(?:第([0-9０-９]+)項)?(?:第([0-9０-９]+)款)?/g;
+  // 條、之N、項、款 都要接受中文數字（正式法條寫法如「第15條之一」「第二項」）。
+  const statuteRegex = new RegExp(
+    '(民法|民事訴訟法|刑法|刑事訴訟法|票據法|勞動基準法|強制執行法|家事事件法|家庭暴力防治法|非訟事件法)' +
+    `第(${數字}+)(?:條之(${數字}+)|(?:之(${數字}+))?條)` +
+    `(?:第(${數字}+)項)?(?:第(${數字}+)款)?`,
+    'g'
+  );
   let match: RegExpExecArray | null;
 
   while ((match = statuteRegex.exec(text)) !== null) {
     const fullMatch = match[0];
     const lawName = match[1];
     const legalClaim = text.substring(Math.max(0, match.index - 30), match.index).trim();
-    const mainArt = match[2].normalize('NFKC');
-    const subArt = (match[3] || match[4])?.normalize('NFKC');
-    const paraNum = match[5] ? parseInt(match[5].normalize('NFKC'), 10) : null;
+    const mainArt = 正規化數字(match[2]);
+    const subArt = 正規化數字(match[3] || match[4]);
+    const paraNum = match[5] ? Number(正規化數字(match[5])) : null;
 
     const baseKey = subArt ? `${lawName}第${mainArt}條之${subArt}` : `${lawName}第${mainArt}條`;
     const altKey = subArt ? `${lawName}第${mainArt}之${subArt}條` : undefined;
@@ -1077,7 +1124,14 @@ export function verifyLegalCitations(
 
   // 3. Fail closed for citation-like text outside the narrow local recognizers.
   // An unknown law or court citation must not become a zero-citation document.
-  const genericStatuteRegex = /([一-龥]{2,20}法)第[0-9０-９]+條(?:之[0-9０-９]+)?(?:第[0-9０-９]+項)?(?:第[0-9０-９]+款)?/g;
+  //
+  // 數字寫法必須與主比對器一致（含中文數字）。否則「民法第191條之二」
+  // 在此會被截斷成「依民法第191條」，與已驗證的「民法第191條之二」
+  // 互不包含，hasCoveredCitation 去重失效，合法引用被誤判為未知法條而擋下文件。
+  const genericStatuteRegex = new RegExp(
+    '([一-龥]{2,20}法)第' + 數字 + '+條(?:之' + 數字 + '+)?(?:第' + 數字 + '+項)?(?:第' + 數字 + '+款)?',
+    'g'
+  );
   while ((match = genericStatuteRegex.exec(text)) !== null) {
     addUnverifiedCitation(match[0], 'STATUTE', match.index);
   }

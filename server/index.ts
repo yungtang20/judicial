@@ -1,4 +1,5 @@
 import express, { Express } from "express";
+import type { NextFunction, Request, Response } from "express";
 import { securityHeaders, apiLimiter, sanitizeRequest, globalErrorHandler } from "./middleware/security.js";
 import { requestIdMiddleware, authenticate, validateSecurityConfiguration } from "./middleware/auth.js";
 import { tenantScopeMiddleware } from "./middleware/tenantScope.js";
@@ -88,6 +89,17 @@ export function createExpressApp(): Express {
   app.use(legalSearchRouter);
   app.use(officialTemplatesRouter);
   app.use("/api/sdlc", sdlcRouter);
+
+  // 未註冊的 API 路徑必須回 JSON。
+  // 交給 Express 預設處理會回 HTML 錯誤頁，既破壞 API 契約
+  // （用戶端拿到非 JSON 無從解析），也會洩漏所用框架。
+  app.use("/api", (_req: Request, res: Response, _next: NextFunction) => {
+
+    res.status(404).json({
+      code: "ENDPOINT_NOT_FOUND",
+      message: "此 API 端點不存在",
+    });
+  });
 
   // 3. 全域錯誤處理器
   app.use(globalErrorHandler);

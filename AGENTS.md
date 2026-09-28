@@ -34,7 +34,8 @@
 
 ```bash
 npm run lint        # tsc --noEmit
-npm test            # vitest unit
+npm test            # vitest unit（已包含 test:correctness）
+npm run test:correctness  # 產出正確性閘門：引用真實性、繁體、期限計算、程式碼不外流
 npm run test:eval   # 法治治理回歸 (legalGovernance.test.ts)
 npm run test:ssrf   # SSRF 防禦
 npm run build
