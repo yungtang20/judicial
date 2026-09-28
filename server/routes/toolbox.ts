@@ -17,8 +17,32 @@ import { isCourtPleadingToolCategory } from "../../src/lib/finalGate/pleadingExp
 import { executeCanonicalPleadingPipeline } from "../services/canonicalPleadingPipeline.js";
 import { buildFallbackToolboxResult, hasDeterministicToolboxTemplate } from "../../src/utils/toolboxFallbacks.js";
 import { verifyOfficialCitations } from "../services/officialCitationVerification.js";
+import { UNFILLED_FIELD_MARKER } from '../../src/lib/unfilledFieldMarker.js';
 
 // Enforced via defaultLegalGenerationPipeline
+
+/**
+ * 未填欄位閘門。
+ *
+ * 模板在使用者未提供資料時會填入「（待填寫）」。這些書狀多具有法律效力
+ * （例如存證信函可中斷請求權時效），缺了姓名、地址、日期就完全不能用，
+ * 交付出去還可能被當成完整書狀送到法院或郵局。
+ *
+ * 先前只有前端在複製/匯出時才擋，API 仍回 200 與文件本體，
+ * 防線在最末端、且只對單一前端有效。
+ *
+ * 產製有兩條路徑（確定性模板、AI 草稿），兩條都必須擋。
+ */
+function 擋下未填欄位(res: Response, documentText: string): boolean {
+  if (!documentText.includes(UNFILLED_FIELD_MARKER)) return false;
+  res.status(422).json({
+    code: 'UNFILLED_REQUIRED_FIELDS',
+    error: '書狀仍有未填寫的欄位，未完成產製。',
+    unfilledMarker: UNFILLED_FIELD_MARKER,
+    guidance: '請補齊表單中標示為必填的欄位後再次產製；系統不會交付含有未填欄位的文件。'
+  });
+  return true;
+}
 
 const router = Router();
 
@@ -110,6 +134,7 @@ router.post("/api/toolbox/generate", async (req: Request, res: Response) => {
         inputs => verifyOfficialCitations(inputs)
       );
       assertGeneratedDocumentVerified(verified);
+      if (擋下未填欄位(res, verified.documentText)) return;
       return res.json({
         ...deterministic,
         documentText: verified.documentText,
@@ -169,6 +194,9 @@ router.post("/api/toolbox/generate", async (req: Request, res: Response) => {
       isExternalRetrievalUsed: verified.isExternalRetrievalUsed,
       retrievalStatusMessage: verified.retrievalStatusMessage
     };
+
+    // AI 草稿路徑同樣必須擋（說明見 擋下未填欄位 函式）。
+    if (擋下未填欄位(res, finalPayload.documentText)) return;
 
     res.json(finalPayload);
   } catch (err: any) {

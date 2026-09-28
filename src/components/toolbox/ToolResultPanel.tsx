@@ -13,6 +13,7 @@ import {
   verifyPleadingDeliveryAuthorization
 } from '../../lib/finalGate/pleadingDeliveryBrowser';
 import { isP9ProtectedDocument } from '../../lib/documentCatalog';
+import { UNFILLED_FIELD_MARKER } from '../../lib/unfilledFieldMarker';
 
 function escapeHtmlText(value: string): string {
   return value
@@ -37,7 +38,7 @@ export interface ToolResultPanelProps {
 
 
 /** 書狀模板在未取得使用者資料時留下的待填標記 */
-export const UNFILLED_FIELD_MARKER = '（待填寫）';
+export { UNFILLED_FIELD_MARKER } from '../../lib/unfilledFieldMarker';
 
 export const ToolResultPanel: React.FC<ToolResultPanelProps> = ({ result, currentTool, isVerifyingAi, verifyNotice, onFullVerify, isLoading, generationStage, formValues = {} }) => {
   const [copied, setCopied] = useState(false);

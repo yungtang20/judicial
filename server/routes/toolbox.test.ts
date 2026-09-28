@@ -111,9 +111,25 @@ describe('POST /api/toolbox/generate P9 delivery boundary', () => {
   });
 
   it('keeps the unapproved generic pleading category on the non-P9 fallback path', async () => {
+    // 這個類別不屬於法院書狀，不應被 P9 交付閘門擋下。
+    //
+    // 參數必須對應該類別模板實際讀取的鍵
+    //（complainantAddress/accusedAddress，不是 plaintiffAddress/defendantAddress）；
+    // 未填欄位會被另一道閘門擋下。那是正確行為，但與本測試要驗證的
+    // P9 邊界無關，留著會混淆失敗原因。
     const response = await post({
       toolCategory: 'UNIVERSAL_AI_PLEADING',
-      params: { instructions: '請輸出可直接遞交法院的民事起訴狀' }
+      params: {
+        customDocTitle: '民事起訴狀',
+        complainantName: '甲○○',
+        complainantAddress: '臺中市測試區原告路1號',
+        complainantPhone: '04-12345678',
+        defendantName: '乙○○',
+        accusedAddress: '臺中市測試區被告路2號',
+        courtName: '臺灣臺中地方法院',
+        prosecutorOffice: '臺灣臺中地方法院檢察署',
+        incidentDetails: '被告向原告借款後，經清償期屆滿仍未償還。',
+      },
     });
     const body = await response.json();
 

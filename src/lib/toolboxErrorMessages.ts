@@ -70,6 +70,13 @@ const BY_CODE: Record<string, ToolboxErrorPresentation> = {
     message: '請求過於頻繁，請稍候再試。',
     guidance: '請等待約一分鐘後再次產製。',
     retryable: true
+  },
+  // 伺服端在產製當下即擋下含「（待填寫）」的文件，不讓它以成功回應。
+  // 前端的欄位層級提示是第二道防線；這裡處理的是 API 直接被呼叫的情況。
+  UNFILLED_REQUIRED_FIELDS: {
+    message: '書狀還有欄位沒填，未完成產製。',
+    guidance: '請回到表單把標示為必填的欄位（例如姓名、地址、日期、訴之聲明）填完後再產製一次。',
+    retryable: false
   }
 };
 

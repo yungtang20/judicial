@@ -4,6 +4,7 @@ import {
   assertGeneratedDocumentVerified,
 } from '../lib/generatedDocumentPipeline.js';
 import { verifyLegalCitations, VERIFIED_REAL_STATUTES } from '../lib/citationVerifier.js';
+import { UNFILLED_FIELD_MARKER } from './unfilledFieldMarker.js';
 import { containsSimplifiedChinese } from '../lib/traditionalChineseGuard.js';
 import { calculateDeadline } from '../lib/deadlineCalculator.js';
 import { UNIVERSAL_SYLLOGISM_RULES } from '../prompts/universal-syllogism';
@@ -220,6 +221,24 @@ describe('產出正確性：三段論法強制要求', () => {
 
   it('規則為完整可用的提示詞，不是空殼', () => {
     expect(UNIVERSAL_SYLLOGISM_RULES.length).toBeGreaterThan(50);
+  });
+});
+
+describe('產出正確性：未填欄位不得交付', () => {
+  it('含有未填欄位標記的文件不得被視為完成', () => {
+    // 實測：帶空姓名與地址的存證信函產製回 200，
+    // 文件含 6 處「（待填寫）」，且 verificationPassed 為 true
+    // （該文件不含法條引用，引用查核無從失敗）。
+    // 這些書狀有法律效力（存證信函可中斷時效），
+    // 缺姓名地址日期完全不能用，交付出去還可能被送到法院或郵局。
+    const 殘缺 = '【郵局存證信函】\n寄件人：（待填寫）\n地址：（待填寫）\n\n收件人：（待填寫）';
+    expect(殘缺.includes(UNFILLED_FIELD_MARKER)).toBe(true);
+    expect(UNFILLED_FIELD_MARKER).toBe('（待填寫）');
+  });
+
+  it('完整的書狀不得含有未填欄位標記', () => {
+    const 完整 = '【郵局存證信函】\n寄件人：王小明\n地址：臺北市中正區100號';
+    expect(完整.includes(UNFILLED_FIELD_MARKER)).toBe(false);
   });
 });
 
