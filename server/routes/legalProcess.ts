@@ -9,27 +9,9 @@ import {
 } from "../../src/prompts/legalProcessPrompts.js";
 import { filterSensitiveKeywords } from "../../src/lib/legalProcessClassifier.js";
 import { defaultLegalRetrievalService } from "../services/legalGenerationPipeline.js";
+import { extractJsonFromText } from './extractJson.js';
 
 const router = Router();
-
-/**
- * 輔助函式：自字串中嚴格提取 JSON 物件
- */
-function extractJsonFromText<T>(text: string): T | null {
-  try {
-    const trimmed = text.trim();
-    if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
-      return JSON.parse(trimmed) as T;
-    }
-    const match = text.match(/\{[\s\S]*\}/);
-    if (match) {
-      return JSON.parse(match[0]) as T;
-    }
-  } catch (e) {
-    // parse failed
-  }
-  return null;
-}
 
 /**
  * 本地智能路由降級評估 (嚴格遵循判斷標準)

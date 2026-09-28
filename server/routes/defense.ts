@@ -7,6 +7,7 @@ import { getBPointTriagePrompt, getMineScanPrompt, getDefensePleadingPrompt } fr
 import { buildFallbackDefenseTriage, buildFallbackMineScan, buildFallbackDefensePleading } from "../../src/utils/defenseFallbacks.js";
 import { precheckLegalInput } from "../../src/lib/legalInputPrecheck.js";
 import { defaultLegalGenerationPipeline, defaultLegalRetrievalService } from "../services/legalGenerationPipeline.js";
+import { extractJsonFromText } from './extractJson.js';
 
 // Enforced centrally via defaultLegalGenerationPipeline
 
@@ -37,13 +38,12 @@ router.post("/api/defense/triage", async (req: Request, res: Response) => {
     // 供應商支援 response_format: json_object，與提示詞的宣告一致，
     // 模型就不會夾帶說明文字或 markdown 導致解析失敗。
     const aiRes = await configuredAIProvider.generate(fullPrompt, { responseMimeType: 'application/json' });
-    let parsed: any;
-    try {
-      const cleaned = aiRes.text.replace(/```json/gi, "").replace(/```/g, "").trim();
-      parsed = JSON.parse(cleaned);
-    } catch {
-      parsed = buildFallbackDefenseTriage(clientInput || "", caseType, courtName, caseNo);
-    }
+    // 寬容擷取：模型可能在 JSON 前後加上說明文字，
+    // 直接對整段回應做 JSON.parse 會失敗而靜默降級。
+    // 實測未做寬容擷取時 3 次呼叫有 2 次降級。
+    const parsedFromAI = extractJsonFromText<any>(aiRes.text);
+    // 後續的繁體中文閘門可能再改寫它，因此用 let。
+    let parsed: any = parsedFromAI ?? buildFallbackDefenseTriage(clientInput || "", caseType, courtName, caseNo);
     // 繁體中文閘門：分類結果的 lawBasis、cause 等欄位會顯示在
     // 「法遵檢核項目」與結論區，直接呈現給使用者。
     if (JSON.stringify(parsed).match(/[\u4e00-\u9fff]/) && containsSimplifiedChinese(JSON.stringify(parsed))) {
@@ -85,13 +85,8 @@ router.post("/api/defense/scan-mines", async (req: Request, res: Response) => {
   try {
     // 與上方同理：提示詞要求 JSON 輸出，須一併告知供應商。
     const aiRes = await configuredAIProvider.generate(fullPrompt, { responseMimeType: 'application/json' });
-    let parsed: any;
-    try {
-      const cleaned = aiRes.text.replace(/```json/gi, "").replace(/```/g, "").trim();
-      parsed = JSON.parse(cleaned);
-    } catch {
-      parsed = buildFallbackMineScan(clientInput || "");
-    }
+    const parsedFromAI = extractJsonFromText<any>(aiRes.text);
+    let parsed: any = parsedFromAI ?? buildFallbackMineScan(clientInput || "");
     if (JSON.stringify(parsed).match(/[\u4e00-\u9fff]/) && containsSimplifiedChinese(JSON.stringify(parsed))) {
       console.warn("[Defense] 地雷掃描輸出含簡體中文，改用本機規則產生的結果");
       parsed = buildFallbackMineScan(clientInput || "");
