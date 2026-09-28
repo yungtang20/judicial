@@ -97,15 +97,31 @@ export function AppealStep1({ ctx }: { ctx: AppealStepContext }) {
               <div className="flex justify-between items-center mb-2 flex-wrap gap-2">
                 <label className="text-sm font-bold text-[var(--color-text-primary)]">原審裁判全文內容：</label>
                 <div className="flex items-center gap-2">
+                  {/*
+                    按鈕文字必須反映實際狀態。
+
+                    先前固定寫「2,250萬筆免帳密」，但進階檢索未啟用時
+                    點下去只會得到「尚未啟用」。按鈕文字是用者最先讀到的，
+                    宣傳一個開不起的功能等於誤導。
+                  */}
                   <button
                     type="button"
                     onClick={() => {
                       setTargetJudicialField('first');
                       setShowJudicialModal(true);
                     }}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs font-bold transition-colors flex items-center gap-1.5 shadow-xs"
+                    aria-label={tlrStatus === 'disabled' ? '判決全文庫檢索（進階檢索尚未開通）' : undefined}
+                    className={`px-3 py-1 rounded text-xs font-bold transition-colors flex items-center gap-1.5 shadow-xs ${
+                      tlrStatus === 'disabled'
+                        ? 'bg-slate-700 text-slate-300 cursor-not-allowed'
+                        : 'bg-blue-600 hover:bg-blue-700 text-white'
+                    }`}
                   >
-                    <span>⚖️ 判決全文庫檢索載入 (2,250萬筆免帳密)</span>
+                    <span>
+                      {tlrStatus === 'disabled'
+                        ? '⚖️ 判決全文庫檢索（尚未開通）'
+                        : '⚖️ 判決全文庫檢索載入 (2,250萬筆免帳密)'}
+                    </span>
                   </button>
                   <label className="bg-[var(--color-surface-raised)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-overlay)] px-3 py-1 rounded text-xs font-bold cursor-pointer transition-colors flex items-center gap-1">
                     📁 上傳裁判 PDF / TXT 檔
