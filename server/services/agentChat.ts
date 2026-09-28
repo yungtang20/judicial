@@ -254,16 +254,24 @@ export async function handleAgentChat(
     }
   } catch (err) {
     console.error("[AgentChat] LLM generation failed:", err);
+    const 訊息 = err instanceof Error ? err.message : String(err);
     // 設定類錯誤不是「逾時」，重試永遠不會成功。
-    // 實測：未設定 GEMINI_API_KEY 時拋出 GEMINI_API_KEY_UNAVAILABLE，
+    // 實測：未設定金鑰時拋出 API_KEY_UNAVAILABLE，
     // 使用者卻看到「AI 回應逾時或發生錯誤，請稍後再試」，
-    // 既不準確也無從行動，管理者只能從伺服器記錄才知道原因。
+    // 既不準確也無從行動。
     const isConfigError = isProviderConfigError(err);
+    // 我方逾時是 45 秒，而上游在約 30 秒就回錯誤——
+    // 實測相同輸入分別得到 503 與「已降級」的 200。
+    // 對使用者而言這是「上游服務暫時無法回答」，
+    // 說成「逾時」會讓人以為等久一點就有結果。
+    const isUpstreamError = /(HTTP_5\d\d|HTTP_429|fetch failed|ECONNRESET|ECONNREFUSED|ETIMEDOUT|ENOTFOUND|aborted)/i.test(訊息);
     return {
       success: false,
       error: isConfigError
         ? "AI 服務尚未完成設定，暫時無法回答問題。請聯絡系統管理員設定 AI 提供商金鑰後再試。"
-        : "AI 回應逾時或發生錯誤，請稍後再試。",
+        : isUpstreamError
+          ? "AI 服務目前無法回應，請稍後再試。你的問題可以先存下來，稍後重新送出。"
+          : "AI 回應逾時或發生錯誤，請稍後再試。",
       errorCode: isConfigError ? "AI_PROVIDER_CONFIG_INVALID" : undefined,
     };
   }
