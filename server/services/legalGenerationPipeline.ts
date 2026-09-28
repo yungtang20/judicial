@@ -64,6 +64,7 @@ function delay(ms: number): Promise<void> {
  */
 import { aiBreaker, executeWithResilience } from './circuitBreaker.js';
 import { TRADITIONAL_CHINESE_REQUIREMENT } from '../../src/prompts/languageRequirements.js';
+import { toTraditionalChinese } from '../../src/lib/traditionalChineseGuard.js';
 
 const AI_TIMEOUT_MS = 60000;
 
@@ -296,26 +297,27 @@ export class LegalGenerationPipeline {
       );
       rawGeneratedText = aiRes.text || '';
 
-      // 模型偶爾仍以簡體中文產出法律文件。與對話路徑一致，
-      // 先給一次明確要求改用繁體的再生成機會；
-      // 仍失敗才由步驟 4b 的繁體閘門擋下。
-      // 先前只有對話路徑有這個再生成機會，法律文件路徑（正確性要求更高）
-      // 卻直接退回範本——等於放棄了大多數只需換個用字就能通過的產出。
+      // 模型偶爾以簡體中文產出法律文件。
+      //
+      // 先前處方式是「要求模型改用繁體重新生成」——那是一次完整的
+      // AI 呼叫，等於把已經花掉的 20~40 秒再花一次，而且不保證成功
+      // （實測同一端點 5 次仍有 1 次因簡體被擋）。
+      //
+      // 改為確定性轉換：對照表是本專案自有並有測試維護
+      // （見 simplifiedTableVariantChars.test.ts 的異體字防護），
+      // 轉換成本近乎為零且結果確定。
+      // 轉換後若仍有殘留，代表對照表未涵蓋，後續繁體閘門仍會擋下，
+      // fail-closed 的原則沒有鬆動。
       if (containsSimplifiedChinese(rawGeneratedText) && options.simplifiedRetry !== false) {
-        console.warn("[LegalPipeline] 產出含簡體中文，要求模型改用繁體重新生成");
-        const retryRes = await executeWithResilience(
-          () => provider.generate(
-            `${sanitizedPrompt}\n\n【重要】上一次回答出現了簡體中文。` +
-            '請全部改用繁體中文重新回答，僅輸出答案本身。'
-          ),
-          {
-            timeoutMs: AI_TIMEOUT_MS,
-            maxRetries: 0,
-            breaker: aiBreaker,
-            fallbackMessage: 'AI 服務暫時無法連線，已啟動安全保護機制，請稍後再試'
-          }
-        );
-        rawGeneratedText = retryRes.text || '';
+        const 轉換後 = toTraditionalChinese(rawGeneratedText);
+        if (!containsSimplifiedChinese(轉換後)) {
+          console.warn("[LegalPipeline] 產出含簡體中文，已轉換為繁體後繼續");
+          rawGeneratedText = 轉換後;
+        } else {
+          // 轉換後仍有殘留：交由後續繁體閘門 fail-closed，
+          // 不用再花一次 AI 呼叫去碰運氣。
+          console.warn("[LegalPipeline] 轉換後仍含未收錄的簡體字，交由繁體閘門擋下");
+        }
       }
 
       if (options.parseResponse) {
