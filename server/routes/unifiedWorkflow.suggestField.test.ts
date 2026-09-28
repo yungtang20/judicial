@@ -120,4 +120,47 @@ describe('POST /api/workflow/suggest-field', () => {
     expect(prompt).not.toContain('C'.repeat(6000));
     expect(prompt.length).toBeLessThan(5600);
   });
+
+  it('AI 未給出可用建議時不得回報成功', async () => {
+    // 實測：正式站回 {"success":true,"options":[]}。
+    // 使用者看到「AI 建議」按鈕，點下去卻什麼都沒有。
+    // 舊實作對整段回應取 /\[.*\]/s，取不到就默默當成空陣列，
+    // 卻仍回 success:true。取不到建議不是成功，是失敗。
+    mockedGenerate.mockResolvedValue({ text: '{"note":"我無法提供建議"}' } as never);
+
+    const res = await request(建立App())
+      .post('/api/workflow/suggest-field')
+      .send({ fieldLabel: '發生日期', toolName: '民事起訴狀' });
+
+    expect(res.status).toBe(422);
+    expect(res.body.code).toBe('FIELD_SUGGESTION_UNAVAILABLE');
+    expect(res.body.success).not.toBe(true);
+  });
+
+  it('AI 回傳空陣列時同樣不得回報成功', async () => {
+    mockedGenerate.mockResolvedValue({ text: '[]' } as never);
+    const res = await request(建立App())
+      .post('/api/workflow/suggest-field')
+      .send({ fieldLabel: '發生日期', toolName: '民事起訴狀' });
+    expect(res.status).toBe(422);
+  });
+
+  it('AI 把選項包在物件裡也要能取出', async () => {
+    // 啟用 JSON 模式後模型常回 {"options": [...]} 而非直接是陣列。
+    mockedGenerate.mockResolvedValue({ text: '{"options":["民國113年1月1日","民國113年2月1日"]}' } as never);
+    const res = await request(建立App())
+      .post('/api/workflow/suggest-field')
+      .send({ fieldLabel: '發生日期', toolName: '民事起訴狀' });
+    expect(res.status).toBe(200);
+    expect(res.body.options).toEqual(['民國113年1月1日', '民國113年2月1日']);
+  });
+
+  it('直接回傳陣列時正常解析', async () => {
+    mockedGenerate.mockResolvedValue({ text: '["選項一","選項二","選項三"]' } as never);
+    const res = await request(建立App())
+      .post('/api/workflow/suggest-field')
+      .send({ fieldLabel: '發生日期', toolName: '民事起訴狀' });
+    expect(res.status).toBe(200);
+    expect(res.body.options).toHaveLength(3);
+  });
 });

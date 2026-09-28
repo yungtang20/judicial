@@ -138,7 +138,7 @@ export function AppealStep4({ ctx }: { ctx: AppealStepContext }) {
                 <button
                   disabled={!isHumanApproved}
                   onClick={() => {
-                    // 複製失敗時不得假裝成功；改用��備援機制的工具並依實際結果回報
+                    // 複製失敗時不得假裝成功；改用具備援機制的工具並依實際結果回報
                     if (isHumanApproved) void copyToClipboard(generatedPetition).then(ok => {
                       if (!ok) setCopyError('複製失敗，請手動選取文字後複製。');
                     });

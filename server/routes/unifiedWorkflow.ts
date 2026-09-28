@@ -29,6 +29,8 @@ import { isBasicSafeUrl, verifyDnsSafe } from "./fetchUrl.js";
 import { resolveForensicWindowState } from "../../src/lib/universalTriage.js";
 import { toCalendarDate } from "../../src/lib/forensicGuidance.js";
 import { isProviderConfigError } from '../services/agentChat';
+import { extractJsonFromText } from './extractJson.js';
+import { toTraditionalChineseIn } from './toTraditionalIn.js';
 
 const router = Router();
 
@@ -840,19 +842,49 @@ router.post("/api/workflow/suggest-field", async (req: Request, res: Response) =
     // 提示詞要求「直接輸出一個 JSON 陣列」，須一併告知供應商使用 JSON 模式，
     // 否則模型可能夾帶說明文字，解析後得到空陣列而靜默回傳無效建議。
     const response = await defaultAIProvider.generate(prompt, { temperature: 0.7, responseMimeType: 'application/json' });
-    let text = response.text.trim();
-    if (text.startsWith('```json')) {
-      text = text.replace(/^```json/, '').replace(/```$/, '').trim();
+    // 實測回 {"success":true,"options":[]}——
+    // 使用者看到「AI 建議」按鈕，點下去卻什麼都沒有。
+    // 舊實作對整段回應取 /\[.*\]/s，取不到就默默當成空陣列，
+    // 卻仍回 success:true。取不到建議不是成功，是失敗。
+    // 模型輸出必須在進入應用邏輯前就過繁體閘門。
+    // 只檢查最後要顯示的選項會漏掉其他欄位，
+    // 也讓持有模型輸出的變數沒有任何把關。
+    const 模型輸出 = extractJsonFromText<unknown>(response.text);
+    const parsed = 模型輸出 === null ? null : toTraditionalChineseIn(模型輸出);
+    if (parsed !== null && containsSimplifiedChinese(JSON.stringify(parsed))) {
+      // 轉換後仍有殘留代表對照表未涵蓋，不能保證交付內容正確。
+      return res.status(422).json({
+        code: 'FIELD_SUGGESTION_UNAVAILABLE',
+        error: '無法取得可用的繁體中文建議。',
+        message: '請自行填寫此欄位，或稍後再試。',
+      });
     }
-    const match = text.match(/\[.*\]/s);
-    const jsonStr = match ? match[0] : '[]';
-    const options = JSON.parse(jsonStr);
+
+    const options = Array.isArray(parsed)
+      ? parsed.map((item: unknown) => String(item).trim()).filter(Boolean)
+      // 模型可能把選項包在物件裡（例如 {"options": [...]}），一併處理。
+      : (() => {
+          const inner = (parsed as { options?: unknown } | null)?.options;
+          return Array.isArray(inner)
+            ? inner.map((item: unknown) => String(item).trim()).filter(Boolean)
+            : [];
+        })();
+
+    if (options.length === 0) {
+      // 寧可讓使用者知道取不到，也不要顯示一個沒有內容的「AI 建議」。
+      return res.status(422).json({
+        code: 'FIELD_SUGGESTION_UNAVAILABLE',
+        error: '無法取得欄位建議。',
+        message: '請自行填寫此欄位，或稍後再試。',
+      });
+    }
+
     // 欄位建議選項會以按鈕形式顯示給使用者，同樣不得出現簡體中文。
-    if (Array.isArray(options) && options.some((option: string) => containsSimplifiedChinese(String(option)))) {
+    if (options.some((option: string) => containsSimplifiedChinese(option))) {
       console.warn("[UnifiedWorkflow] 欄位建議含簡體中文，改用預設選項");
       return res.json({
         success: true,
-        options: ["事發當天", "一週內", "一個月內", "超過一個月"]
+        options: ["事發當天", "一週內", "一個月內", "超過一個月"],
       });
     }
     return res.json({ success: true, options });

@@ -61,7 +61,7 @@ describe('純圖示按鈕的無障礙名稱', () => {
     }
     expect(
       offenders,
-      `以下純圖示按���沒有無障礙名稱：\n${offenders.join('\n')}`
+      `以下純圖示按鈕沒有無障礙名稱：\n${offenders.join('\n')}`
     ).toEqual([]);
   });
 });
