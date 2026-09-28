@@ -17,6 +17,11 @@ services:
         value: agnes
       - key: ALLOW_GUEST_MODE
         value: "true"
+      # 實測正式站 defense-triage 的 p90 為 30.5 秒。
+      # 供應商預設 30 秒會截斷真實回應、強制退回本機規則，
+      # 使用者等了近 30 秒卻拿到降級答案。設為 60 秒讓真實回應完成。
+      - key: AGNES_TIMEOUT_MS
+        value: "60000"
       - key: JWT_SECRET
         sync: false
       - key: HCNSEC_API_KEY

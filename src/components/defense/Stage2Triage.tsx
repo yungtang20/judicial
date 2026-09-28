@@ -39,9 +39,36 @@ export const Stage2Triage: React.FC<Stage2TriageProps> = ({
               )}
             </h2>
           </div>
-          <p className="text-xs text-[var(--color-text-muted)] pl-8">
+
+
+        {/*
+          降級揭露。
+
+          API 在 AI 逾時或失敗時會回 isFallback 與降級說明，
+          但這個畫面先前完全沒有使用它們。使用者等了近 30 秒後
+          拿到規則產生的答案，卻與真正 AI 分析的外觀完全相同，
+          連「信心分數」都被當成 AI 的判斷依據呈現。
+
+          實測：defense-triage 的 p90 為 30.5 秒，已貼近 30 秒的供應商逾時上限，
+          也就是逾時並非假設情境。
+        */}
+        {triageResult.isFallback && (
+          <div className="flex items-start gap-2 rounded-lg border border-[var(--color-status-warning)]/40 bg-[var(--color-status-warning-bg)] px-3 py-2.5 text-xs text-[var(--color-status-warning)]">
+            <Info className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
+            <div>
+              <p className="font-bold">本次為離線備援結果，非 AI 分析</p>
+              <p className="mt-0.5 leading-relaxed">
+                AI 服務未能即時回應，以下內容由本機規則產生，僅供初步參考。
+                請勿將下列信心分數視為 AI 對本案的法律評估，重要案件建議人工複核或改用其他工具。
+              </p>
+            </div>
+          </div>
+        )}
+        {!triageResult.isFallback && (
+          <p className="text-xs text-[var(--color-text-muted)]">
             信心分數：{triageResult.confidenceScore}% · {triageResult.decisionReason}
           </p>
+        )}
         </div>
         <div className="flex items-center gap-2 pl-8 sm:pl-0">
           <button

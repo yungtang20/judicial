@@ -48,8 +48,12 @@ export class OpenAICompatibleProvider implements AIProvider {
       { role: 'user', content: prompt }
     ];
     const controller = new AbortController();
-    const timeoutMs = this.config.timeoutMs ?? Number(process.env[this.config.timeoutEnv] || 30_000);
-    const timer = setTimeout(() => controller.abort(), Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : 30_000);
+    // 逾時上限。實測正式站 defense-triage 的 p50 為 29 秒、p90 為 30.5 秒，
+    // 30 秒會把半數以上的真實回應硬生生截斷，強制退回本機規則，
+    // 使用者等了近 30 秒卻拿到降級答案。
+    // 提到 60 秒讓真實回應有完成餘裕，同時仍以環境變數保有調整空間。
+    const timeoutMs = this.config.timeoutMs ?? Number(process.env[this.config.timeoutEnv] || 60_000);
+    const timer = setTimeout(() => controller.abort(), Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : 60_000);
     try {
       const response = await fetch(`${this.baseUrl}/chat/completions`, {
         method: 'POST',
