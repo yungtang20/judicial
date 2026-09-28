@@ -81,7 +81,7 @@ describe('UnifiedNav', () => {
       />
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /生活法律導診/ }));
+    fireEvent.click(screen.getByRole('button', { name: /先問問看該怎麼辦/ }));
 
     const handoff = handleSelectTool.mock.calls[0][2];
     expect(handoff).toMatchObject({ domain: '民事', sourceTool: 'unified' });

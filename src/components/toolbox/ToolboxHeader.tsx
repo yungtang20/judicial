@@ -42,7 +42,7 @@ export const ToolboxHeader: React.FC<ToolboxHeaderProps> = ({
           <span className="text-xs text-slate-400">即時試算 · 爭議評估 · 專業文件</span>
         </div>
         <h1 id="toolbox-heading" className="text-2xl font-bold tracking-tight text-white md:text-3xl">
-          全方位實用法務工具箱
+          我要自己做一份文件
         </h1>
         <p className="mt-2 text-xs sm:text-sm leading-6 text-slate-300">
           整合台灣家事、討債、車禍、勞資等四大常見爭議；自帶官方標準計算機、專業實務指引與防幽靈法規書狀產製。

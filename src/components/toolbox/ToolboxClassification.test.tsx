@@ -54,7 +54,7 @@ describe('legal toolbox classification (Dingchuan 4-Core Categories)', () => {
       />
     );
 
-    expect(screen.getByRole('heading', { name: /全方位實用法務工具箱/ })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /我要自己做一份文件/ })).toBeInTheDocument();
     
     for (const cat of TOOLBOX_CATEGORIES.filter(cat => cat.id !== 'OFFICIAL_TEMPLATES')) {
       expect(screen.getByRole('button', { name: new RegExp(cat.name) })).toBeInTheDocument();

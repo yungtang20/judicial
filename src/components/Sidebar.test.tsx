@@ -98,10 +98,11 @@ describe('Sidebar 的資訊架構', () => {
     expect(screen.getByText('litigation:toolbox')).toBeInTheDocument();
   });
 
-  it('主要入口的點擊會導向對應流程', () => {
+  it('主要入口會導向正確流程', () => {
     const Selection = () => {
       const { route } = useToolContext();
-      return <output>{route.view}</output>;
+      const section = 'section' in route ? route.section : '';
+      return <output>{route.view}:{section}</output>;
     };
     render(
       <ToolProvider>
@@ -111,9 +112,18 @@ describe('Sidebar 的資訊架構', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: /我收到判決書了/ }));
-    expect(screen.getByText('appeal')).toBeInTheDocument();
+    expect(screen.getByText('appeal:analysis')).toBeInTheDocument();
 
+
+    // 「我遇到問題要處理」直接導向情境導診頁：
+    // 點情境即可派單到對應工具，比要求使用者先打字描述狀況省力。
     fireEvent.click(screen.getByRole('button', { name: /我遇到問題要處理/ }));
-    expect(screen.getByText('analysis')).toBeInTheDocument();
+    expect(screen.getByText('litigation:guide')).toBeInTheDocument();
+  });
+
+  it('情境導診不會出現兩個入口', () => {
+    renderSidebar();
+    // 導診已提升為主要入口，不應再在文件製作流程下重複出現
+    expect(screen.queryByRole('button', { name: /不知道該做什麼/ })).not.toBeInTheDocument();
   });
 });

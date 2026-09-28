@@ -10,6 +10,10 @@ temp/
 .env*
 !.env.example
 
+# Husky 自動產生的 hook 腳本，由 `npm run prepare`（husky）重建。
+# 內容隨 husky 版本與平台而異，追蹤只會製造無意義的合併衝突。
+.husky/_/
+
 # Local Database Caches
 .cache/
 data/*.sqlite

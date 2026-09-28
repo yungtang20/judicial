@@ -354,9 +354,13 @@ export const LegalGuideHome: React.FC = () => {
   return (
     <div className="flex-1 overflow-y-auto bg-[var(--color-surface-raised)] text-[var(--color-text-primary)] pb-24">
       <div className="mx-auto w-full max-w-6xl space-y-4 p-4 md:p-6">
-        <HeroSection {...sharedProps} />
-        <EmergencyBanner {...sharedProps} />
+        {/* 情境列表優先於輸入框。
+            一般民眾不會用法律術語描述自己的狀況，
+            但一定認得「我被騙了」「我被借錢不還」這種說法。
+            先要他點選情境，輸入框退為 atypical 情況的備案。 */}
         <ScenarioList {...sharedProps} />
+        <EmergencyBanner {...sharedProps} />
+        <HeroSection {...sharedProps} />
       </div>
       <GuideModals {...sharedProps} />
     </div>

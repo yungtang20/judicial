@@ -82,6 +82,21 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({
     }
   }, [effectiveSection]);
 
+  /**
+   * 標題必須反映「使用者從哪個入口進來」。
+   *
+   * litigation 的 guide 段落是情境導診頁，由「我遇到問題要處理」進入；
+   * 若一律顯示「我要自己做一份文件」，使用者會以為走錯頁。
+   */
+  const 是情境導診 = workspaceRoot !== 'appeal' && effectiveSection === 'guide';
+  const 標題文字 = workspaceRoot === 'appeal' ? '我收到判決書了' : 是情境導診 ? '我遇到問題要處理' : '我要自己做一份文件';
+  const 標題標籤 = workspaceRoot === 'appeal' ? '上訴救濟' : 是情境導診 ? '情境導診' : '書狀製作';
+  const 標題說明 = workspaceRoot === 'appeal'
+    ? '整合期限試算、判決剖析、訴訟防禦與爭點證據'
+    : 是情境導診
+      ? '點選你的情況，系統直接帶你到該做的事'
+      : '依生活情境選擇文件，填寫資料後產製並檢核';
+
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden bg-[var(--color-surface-base)] text-slate-100">
       {/* 工作台標題列 */}
@@ -97,13 +112,13 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({
                   className={`h-2 w-2 rounded-full ${workspaceRoot === 'appeal' ? 'bg-[var(--color-module-appeal)]' : 'bg-[var(--color-module-litigation)]'}`}
                   aria-hidden="true"
                 />
-                <h1 className="text-sm font-bold text-white tracking-tight">{workspaceRoot === 'appeal' ? '智慧判決分析工作台' : '全方位實用法務工具箱'}</h1>
+                <h1 className="text-sm font-bold text-white tracking-tight">{標題文字}</h1>
                 <span className="hidden md:inline-block text-[11px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-medium border border-slate-700">
-                  {workspaceRoot === 'appeal' ? '上訴救濟' : '書狀製作'}
+                  {標題標籤}
                 </span>
               </div>
               <p className="text-xs text-[var(--color-text-muted)]">
-                {workspaceRoot === 'appeal' ? '整合期限試算、判決剖析、訴訟防禦與爭點證據' : '依生活情境選擇文件，填寫資料後產製並檢核'}
+                {標題說明}
               </p>
             </div>
           </div>

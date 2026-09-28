@@ -18,8 +18,8 @@ export const ScenarioList: React.FC<ScenarioListProps> = ({
 }) => (
   <section className="rounded-xl border border-slate-800 bg-slate-900 p-5 md:p-6" aria-labelledby="scenario-heading">
     <div className="max-w-3xl">
-      <h2 id="scenario-heading" className="text-lg font-bold text-white">或直接選擇常見情境</h2>
-      <p className="mt-1 text-sm text-slate-400">選擇最接近的狀況，不需要先知道法律名稱。</p>
+      <h2 id="scenario-heading" className="text-lg font-bold text-white">你的情況是下面哪一種？</h2>
+      <p className="mt-1 text-sm text-slate-400">點最接近的一項，系統直接帶你到該做的事。</p>
     </div>
 
     <div className="mt-4 flex flex-wrap gap-2" aria-label="生活情境分類">

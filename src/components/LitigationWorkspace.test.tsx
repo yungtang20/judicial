@@ -27,6 +27,22 @@ describe('LitigationWorkspace', () => {
     expect(await screen.findByText('非法律專業專用 · 生活法律導診')).toBeInTheDocument();
   });
 
+  it('情境導診頁的標題對應「我遇到問題要處理」入口', async () => {
+    render(<ToolProvider><LitigationWorkspace initialTab="guide" /></ToolProvider>);
+
+    // 使用者從「我遇到問題要處理」進來，標題就不能寫「我要自己做一份文件」，
+    // 否則會以為走錯頁。
+    expect(screen.getByText('我遇到問題要處理')).toBeInTheDocument();
+    expect(screen.queryByText('我要自己做一份文件')).not.toBeInTheDocument();
+  });
+
+  it('文件製作頁的標題對應「我要自己做一份文件」入口', async () => {
+    render(<ToolProvider><LitigationWorkspace initialTab="toolbox" /></ToolProvider>);
+
+    expect(screen.getByText('我要自己做一份文件')).toBeInTheDocument();
+    expect(screen.queryByText('我遇到問題要處理')).not.toBeInTheDocument();
+  });
+
   it.each([
     ['deadline', '期限工具'],
     ['appeal', '判決分析工具'],
@@ -35,7 +51,7 @@ describe('LitigationWorkspace', () => {
   ] as const)('renders the %s section selected from the sidebar', async (initialTab, content) => {
     render(<ToolProvider><LitigationWorkspace initialTab={initialTab} appealOnly /></ToolProvider>);
 
-    expect(screen.getByText('智慧判決分析工作台')).toBeInTheDocument();
+    expect(screen.getByText('我收到判決書了')).toBeInTheDocument();
     expect(await screen.findByText(content)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /上訴法定期間試算/ })).not.toBeInTheDocument();
   });

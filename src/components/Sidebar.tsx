@@ -8,6 +8,7 @@ import {
   Gavel,
   MessagesSquare,
   BookOpenCheck,
+  type LucideIcon,
 } from 'lucide-react';
 import { useToolContext } from '../contexts/ToolContext';
 import { canonicalizeRoute } from '../types/navigation';
@@ -16,7 +17,13 @@ interface NavItem {
   id: string;
   label: string;
   sublabel: string;
-  icon: any;
+  icon: LucideIcon;
+  /**
+   * 導覽目標。預設指向 id 自身；
+   * 「我遇到問題要處理」改指向情境導診頁，因為點情境可直接派單到對應工具，
+   * 比要求使用者先打字描述自己的狀況更省力。
+   */
+  target?: { toolId: string; tab?: string };
   children?: Array<{ label: string; badge: string; tab: string }>;
 }
 
@@ -35,8 +42,12 @@ const primaryEntries: NavItem[] = [
   {
     id: 'unified',
     label: '我遇到問題要處理',
-    sublabel: '說明你的情況，幫你釐清法律問題',
+    sublabel: '點選你的情況，系統直接帶你到該做的事',
     icon: Compass,
+    // 情境導診頁：16 個常見生活情境，點一下即派單到對應工具。
+    // 先前這裡是空白輸入框，要求正在慌張的使用者組織語言描述狀況，
+    // 是整條路徑上要求最高的一步。
+    target: { toolId: 'litigation', tab: 'guide' },
   },
   {
     id: 'appeal',
@@ -53,10 +64,9 @@ const primaryEntries: NavItem[] = [
   {
     id: 'litigation',
     label: '我要自己做一份文件',
-    sublabel: '依你的情況選文件種類，填資料後產製',
+    sublabel: '選擇文件種類，填寫內容後產製',
     icon: Gavel,
     children: [
-      { label: '不知道該做什麼，先問問看', badge: '導診', tab: 'guide' },
       { label: '選擇文件並填寫內容', badge: '製作', tab: 'toolbox' },
     ],
   },
@@ -142,19 +152,26 @@ export default function Sidebar() {
   // 最近使用改為 id 清單：在主清單內標示即可，
   // 不再另開一個與主清單重疊的區塊。
   const recentEntryIds = useMemo(() => readRecentEntryIds().slice(0, RECENT_ENTRY_LIMIT), [route]);
-  const isActive = (id: string) => {
-    if (id === 'unified') return route.view === 'analysis';
-    if (id === 'appeal') return route.view === 'appeal';
-    if (id === 'litigation') return route.view === 'litigation';
-    if (id === 'checker') return route.view === 'checker';
-    return route.view === id;
+  /** 入口的實際導覽目標：優先用 target，沒有就用 id 自身。 */
+  const targetOf = (entry: NavItem): { toolId: string; tab?: string } =>
+    entry.target ?? { toolId: entry.id };
+
+  const isActive = (entry: NavItem) => {
+    const { toolId, tab } = targetOf(entry);
+    const { route: next } = canonicalizeRoute(toolId, tab);
+    if (next.view !== route.view) return false;
+    if (!('section' in next) || !('section' in route)) return true;
+    return next.section === route.section;
   };
   const selectedTab = route.view === 'appeal'
     ? route.section === 'analysis' ? 'appeal' : route.section
     : route.view === 'litigation' ? route.section : undefined;
 
-  const handleNav = (id: string, tab?: string) => {
-    const next = canonicalizeRoute(id, tab);
+  const handleNav = (entry: NavItem, tab?: string) => {
+    // 沒有指定子階段時，用 target 自帶的預設段落。
+    // 否則「我遇到問題要處理」會因為只取 toolId 而落到 litigation 預設段落。
+    const { toolId, tab: defaultTab } = targetOf(entry);
+    const next = canonicalizeRoute(toolId, tab ?? defaultTab);
     navigate(next.route);
     setIsOpen(false);
   };
@@ -224,14 +241,14 @@ export default function Sidebar() {
         <ul className="list-none px-3 pb-2 m-0 space-y-1">
           {primaryEntries.map((entry) => {
             const Icon = entry.icon;
-            const active = isActive(entry.id);
+            const active = isActive(entry);
             const 最近用過 = recentEntryIds.includes(entry.id);
 
 
             return (
               <li key={entry.id}>
                 <button
-                  onClick={() => handleNav(entry.id)}
+                  onClick={() => handleNav(entry)}
                   className={`w-full text-left p-2.5 rounded-lg transition-colors ${
                     active
                       ? 'bg-slate-800 text-white'
@@ -265,7 +282,7 @@ export default function Sidebar() {
                       return (
                         <li key={child.tab}>
                           <button
-                            onClick={() => handleNav(entry.id, child.tab)}
+                            onClick={() => handleNav(entry, child.tab)}
                             className={`flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-xs transition-colors ${
                               childActive
                                 ? 'bg-slate-800 text-white'
@@ -294,11 +311,11 @@ export default function Sidebar() {
         <ul className="list-none px-3 pb-3 m-0 space-y-1">
           {secondaryEntries.map((entry) => {
             const Icon = entry.icon;
-            const active = isActive(entry.id);
+            const active = isActive(entry);
             return (
               <li key={entry.id}>
                 <button
-                  onClick={() => handleNav(entry.id)}
+                  onClick={() => handleNav(entry)}
                   className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-colors ${
                     active
                       ? 'bg-slate-800 text-white'

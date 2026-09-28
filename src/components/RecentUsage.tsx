@@ -24,14 +24,20 @@ const toolIcons: Record<string, LucideIcon> = {
   sdlc: FileText,
 };
 
+/**
+ * 最近使用的快速跳轉標籤。
+ *
+ * 用詞與側邊欄一致：側邊欄問「你現在要做什麼」，
+ * 這裡就不能又跳回功能模組名稱，否則使用者剛學到的說法立刻失效。
+ */
 function routeLabel(route: AppRoute): string {
-  if (route.view === 'analysis') return '案件分析';
-  if (route.view === 'litigation') return route.section === 'guide' ? '生活法律導診' : '全方位實用法務工具箱';
-  if (route.view === 'appeal') return route.section === 'deadline' ? '上訴法定期間試算' : '智慧判決分析工作台';
-  if (route.view === 'process-guide') return '程序導覽';
+  if (route.view === 'analysis') return '我遇到問題要處理';
+  if (route.view === 'litigation') return route.section === 'guide' ? '不知道該做什麼' : '我要自己做一份文件';
+  if (route.view === 'appeal') return route.section === 'deadline' ? '還有多少時間可以上訴' : '我收到判決書了';
+  if (route.view === 'process-guide') return '依案件類型看流程';
+  if (route.view === 'agent-chat') return '問一個法律問題';
   if (route.view === 'sdlc') return 'SDLC 交付工作台';
-  if (route.view === 'agent-chat') return '智慧助理對話';
-  return '判決檢索與防假檢核';
+  return '檢查文件有沒有問題';
 }
 
 function isUsageRecord(item: unknown): item is UsageRecord {

@@ -142,7 +142,7 @@ export const UnifiedNav: React.FC<UnifiedNavProps> = (props) => {
           className="text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1 transition-colors"
         >
           <Compass className="w-3.5 h-3.5" />
-          前往生活法律導診
+          先問問看該怎麼辦
         </button>
       </div>
     </div>
