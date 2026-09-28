@@ -172,6 +172,8 @@ export const DefenseWorkflowTool: React.FC = () => {
     try {
       const res = await apiClient.defenseTriage({
         clientInput: clientStatement,
+        // 角色是 B點實益判定的基礎，先前未送出等於讓 AI 盲判。
+        litigationRole: clientRole,
         caseType,
         caseBackground,
         courtName,
@@ -203,7 +205,9 @@ export const DefenseWorkflowTool: React.FC = () => {
       const res = await apiClient.defenseScanMines({
         clientInput: clientStatement,
         caseType,
-        caseBackground
+        caseBackground,
+        // 自認地雷掃描要依角色判斷哪些自認對我方有利或有害。
+        litigationRole: clientRole
       });
       setMineScanResult(res);
       setCurrentStage('PHASE_3');

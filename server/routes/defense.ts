@@ -82,9 +82,14 @@ router.post("/api/defense/triage", async (req: Request, res: Response) => {
 
 // 2. Mine Scan
 router.post("/api/defense/scan-mines", async (req: Request, res: Response) => {
-  const { clientInput, opponentClaims, caseType } = req.body;
+  // 前端送的是 caseBackground（見 apiClient.defenseScanMines），
+  // 但端點原本只讀 opponentClaims，導致對手陳述從未進入掃描邏輯——
+  // 而「自認地雷掃描」的核心正是比對當事人陳述與對手主張。
+  // 兩個名稱都接受，以 opponentClaims 優先（語意較明確）。
+  const { clientInput, opponentClaims, caseType, caseBackground, litigationRole } = req.body;
+  const 對手陳述 = opponentClaims ?? caseBackground;
 
-  const precheck = precheckLegalInput(`${clientInput || ''} ${opponentClaims || ''}`);
+  const precheck = precheckLegalInput(`${clientInput || ''} ${對手陳述 || ''}`);
   if (precheck.status === "reject") {
     return res.status(422).json({
       error: "輸入內容包含顯著異常或虛構之法律條號，已被安全機制攔截",
@@ -92,10 +97,13 @@ router.post("/api/defense/scan-mines", async (req: Request, res: Response) => {
     });
   }
 
-  const ragQuery = `${caseType || ""} ${clientInput ? clientInput.slice(0, 70) : ""} ${opponentClaims ? opponentClaims.slice(0, 70) : ""}`.trim() || "訴訟風險抗辯實務裁判";
+  const ragQuery = `${caseType || ""} ${clientInput ? clientInput.slice(0, 70) : ""} ${對手陳述 ? String(對手陳述).slice(0, 70) : ""}`.trim() || "訴訟風險抗辯實務裁判";
   const legalContext = await defaultLegalRetrievalService.retrieveContext(ragQuery);
 
-  const prompt = getMineScanPrompt(clientInput || "", opponentClaims || "", caseType || "civil");
+  // 參數順序為 (當事人陳述, 案件類型, 對手陳述)。
+  // 先前誤傳成 (陳述, 對手陳述, 案件類型)，
+  // 等於讓 AI 把對手主張當成案件類型、案件類型當成背景資料。
+  const prompt = getMineScanPrompt(clientInput || "", caseType || "civil", String(對手陳述 || ""));
   const fullPrompt = `${prompt}\n\n${legalContext.promptBlock}\n\n${UNIVERSAL_SYLLOGISM_RULES}`;
 
   try {

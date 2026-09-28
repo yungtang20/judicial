@@ -180,6 +180,12 @@ export const apiClient = {
     clientInput: string;
     caseType?: string;
     caseBackground?: string;
+    /**
+     * 當事人在訴訟中的角色（原告／被告）。
+     * 端點會把它交給 AI 提示詞——B點實益判定的基礎就是
+     * 「這個角色有沒有可主張的空間」，缺了角色等於在盲判。
+     */
+    litigationRole?: string;
     courtName?: string;
     caseNo?: string;
   }) => {
@@ -194,6 +200,8 @@ export const apiClient = {
     clientInput: string;
     caseType?: string;
     caseBackground?: string;
+    /** 當事人角色（原告／被告），自認地雷的利害判斷依此為準。 */
+    litigationRole?: string;
   }) => {
     return fetchWithHandler('/api/defense/scan-mines', {
       method: 'POST',
