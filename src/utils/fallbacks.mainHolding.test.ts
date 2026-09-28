@@ -55,6 +55,29 @@ describe('降級模式的裁判主文', () => {
     expect(結果.judgmentSummary.mainHolding).toBe('被告處有期徒刑十五年。');
   });
 
+  it('主文不得連同下一個段落一起被抽進來', () => {
+    // 修正前單行寫法貪婪吃到行尾，會把「事實及理由」當成主文。
+    // 使用者在畫面上看到「被告有期徒刑三個月。事實及理由：被告於民國…」
+    // 根本不知道判決結果到底是哪一句。
+    const 單行 = '臺灣臺北地方法院刑事判決書，主文：被告有期徒刑三個月。事實及理由：被告於民國113年3月1日竊取財物。';
+    const 結果 = buildFallbackJudgmentAnalysis(單行);
+    expect(結果.judgmentSummary.mainHolding).toBe('被告有期徒刑三個月。');
+    expect(結果.judgmentSummary.mainHolding).not.toContain('事實及理由');
+  });
+
+  it('主文後接中華民國日期時也要停止', () => {
+    const 文本 = '刑事判決\n主文\n被告處有期徒刑三個月。\n中華民國115年3月15日\n事實及理由\n略';
+    const 結果 = buildFallbackJudgmentAnalysis(文本);
+    expect(結果.judgmentSummary.mainHolding).toBe('被告處有期徒刑三個月。');
+    expect(結果.judgmentSummary.mainHolding).not.toContain('中華民國');
+  });
+
+  it('單行結尾無後續段落時取到行尾', () => {
+    const 結果 = buildFallbackJudgmentAnalysis('主文：原告之訴駁回。');
+    expect(結果.mainHoldingSource).toBe('EXTRACTED');
+    expect(結果.judgmentSummary.mainHolding).toBe('原告之訴駁回。');
+  });
+
   it('行政案件不得套用民事的判決主文', () => {
     // 先前 isAdmin 分支填的是「原告之訴駁回」——那是民事用語，
     // 行政訴訟沒有「原告之訴」這種訴的型態。

@@ -161,9 +161,14 @@ export function buildFallbackJudgmentAnalysis(judgmentText: string) {
   // 等於把範例的刑期當成這個案件的判決主文回傳——
   // 輸入寫三個月，輸出卻寫六個月。使用者若未察覺即據以判斷能不能上訴。
   let extractedHolding = "";
+  // 兩種寫法都要支援，但都必須在遇到下一個段落標記時停止：
+  //   「主文\n被告有期徒刑三個月。\n事實及理由」
+  //   「主文：被告有期徒刑三個月。事實及理由：被告於…」
+  // 先前單行寫法貪婪吃到行尾，會把「事實及理由」一併當成主文。
+  const 段切 = '(?:事\\s*實|理\\s*由|中\\s*華\\s*民\\s*國|附\\s*錄)';
   const holdingMatch =
-    judgmentText.match(/主\s*文\s*[:：]?\s*([^\r\n]{1,300})/) ||
-    judgmentText.match(/主\s*文\s*[\r\n]+([\s\S]*?)(?:事\s*實|理\s*由|中\s*華\s*民\s*國|附\s*錄)/);
+    judgmentText.match(new RegExp(`主\\s*文\\s*[:：]?\\s*([^\\r\\n]{1,300}?)(?:${段切}|$)`)) ||
+    judgmentText.match(new RegExp(`主\\s*文\\s*[\\r\\n]+([\\s\\S]*?)${段切}`));
   if (holdingMatch) {
     extractedHolding = holdingMatch[1].trim().replace(/\r?\n\s*/g, '；').replace(/[。；]+$/, '。');
   }
