@@ -1,10 +1,33 @@
-import React from 'react';
-import { ShieldCheck, CheckCircle2 } from "lucide-react";
+import React, { useEffect, useState } from 'react';
+import { ShieldCheck, CheckCircle2, Info } from "lucide-react";
 import { AntiGhostBadge } from "../AntiGhostBadge";
 import { LegalSourcesDisplay } from "../LegalSourcesDisplay";
 import type { AppealStepContext } from './appealStepContext';
+import { fetchWithAuth } from '../../lib/apiClient';
+
 
 export function AppealStep1({ ctx }: { ctx: AppealStepContext }) {
+  // 與 AppealStep4 相同：先確認進階檢索是否啟用，
+  // 使用者才不會點下去才被告知功能未開通。
+  //
+  // 必須用 fetchWithAuth 而非裸 fetch：
+  // 正式環境的 /api/* 需要訪客權杖，裸 fetch 會 401。
+  const [tlrStatus, setTlrStatus] = useState<'loading' | 'enabled' | 'disabled' | 'unknown'>('loading');
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchWithAuth('/api/health', { signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        if (typeof data?.tlrStatus?.enabled !== 'boolean') throw new Error('invalid health');
+        setTlrStatus(data.tlrStatus.enabled ? 'enabled' : 'disabled');
+      })
+      .catch((error) => {
+        if (error instanceof DOMException && error.name === 'AbortError') return;
+        setTlrStatus('unknown');
+      });
+    return () => controller.abort();
+  }, []);
   const {
     currentStep,
     rawText,
@@ -90,6 +113,25 @@ export function AppealStep1({ ctx }: { ctx: AppealStepContext }) {
                   </label>
                 </div>
               </div>
+
+                {/*
+                  未啟用的功能必須在使用者點下去之前就說明。
+
+                  實測：按鈕寫「判決全文庫檢索載入 (2,250萬筆免帳密)」，
+                  使用者點下去才看到「進階 TW-Legal-RAG 尚未啟用」。
+                  介面宣傳了一個開不起的功能，等於誤導。
+                */}
+                {tlrStatus === 'disabled' && (
+                  <p className="mt-2 text-[11px] text-amber-300/90 flex items-start gap-1.5 leading-relaxed">
+                    <Info className="w-3 h-3 mt-0.5 shrink-0" aria-hidden="true" />
+                    <span>進階全文檢索（TW-Legal-RAG）尚未開通，點擊後無法載入。請改用司法院官方 API 或直接貼上判決全文。</span>
+                  </p>
+                )}
+                {tlrStatus === 'unknown' && (
+                  <p className="mt-2 text-[11px] text-[var(--color-text-muted)]">
+                    無法確認進階全文檢索的可用狀態；若載入失敗，請改用司法院官方 API 或直接貼上判決全文。
+                  </p>
+                )}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-2 mb-2">
                 <input
                   type="url"
