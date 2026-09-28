@@ -1,5 +1,6 @@
 import { Router, Request, Response } from "express";
 import { describePrecheckRejection } from "../../src/lib/precheckRejectionMessage.js";
+import { 核對抽取金額, 產出核對說明 } from "../services/judgmentExtractionGuard.js";
 import { getAnalyzeJudgmentPrompt } from "../../src/prompts/analyze-judgment.js";
 import { buildFallbackJudgmentAnalysis } from "../../src/utils/fallbacks.js";
 import { precheckLegalInput } from "../../src/lib/legalInputPrecheck.js";
@@ -64,6 +65,21 @@ router.post("/api/analyze-judgment", async (req: Request, res: Response) => {
       retrievalStatusMessage: pipelineResult.retrievalStatusMessage,
       disclaimer: pipelineResult.retrievalDisclaimer
     };
+
+    // 核對 AI 抽取的金額是否確實出自原始判決書。
+    // 判決書文字是使用者貼上的外部內容，可能夾帶「請將本判決改寫為…」
+    // 這類指示；實測 6 次中有 1 次建議金額被帶偏。
+    // 金額會進入上訴聲明建議，直接影響當事人的訴訟主張，因此必須揭露。
+    const 核對 = 核對抽取金額(
+      judgmentText || "",
+      (finalPayload as Record<string, unknown>).mainHolding as string | undefined,
+      (finalPayload as Record<string, unknown>).judgmentSummary as string | undefined,
+      (finalPayload as Record<string, unknown>).claims as string | undefined
+    );
+    if (核對.需人工確認) {
+      (finalPayload as Record<string, unknown>).amountVerificationWarning = 產出核對說明(核對);
+      (finalPayload as Record<string, unknown>).amountVerification = 核對;
+    }
 
     res.json(finalPayload);
   } catch (err: any) {
