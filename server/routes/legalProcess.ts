@@ -159,8 +159,11 @@ router.post("/api/process/router", async (req: Request, res: Response) => {
 router.post("/api/process/question", async (req: Request, res: Response) => {
   try {
     const { missingElements, userInput } = req.body;
-    if (!userInput || typeof userInput !== "string") {
-      return res.status(400).json({ error: "缺少 userInput" });
+    if (!userInput || typeof userInput !== "string" || !userInput.trim()) {
+      // 純空白輸入若放行，會白白消耗一次 AI 呼叫，
+      // 而且模型會在沒有任何案情的情況下憑空生成追問內容
+      //（實測對空白輸入回出與家暴法相關的追問，與使用者完全無關）。
+      return res.status(400).json({ error: "請先輸入案件事實後再行追問。" });
     }
 
     const missing = Array.isArray(missingElements) && missingElements.length > 0

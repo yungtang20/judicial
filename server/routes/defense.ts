@@ -22,7 +22,7 @@ router.post("/api/defense/triage", async (req: Request, res: Response) => {
   const precheck = precheckLegalInput(clientInput || "", 'analysis', officialPrecheckOptions());
   if (precheck.status === "reject") {
     return res.status(422).json({
-      error: "輸入內容包含顯著異常或虛構之法律條號，已被安全機制攔截",
+      error: describePrecheckRejection(precheck),
       issues: precheck.issues
     });
   }
@@ -93,7 +93,7 @@ router.post("/api/defense/scan-mines", async (req: Request, res: Response) => {
   const precheck = precheckLegalInput(`${clientInput || ''} ${對手陳述 || ''}`, 'analysis', officialPrecheckOptions());
   if (precheck.status === "reject") {
     return res.status(422).json({
-      error: "輸入內容包含顯著異常或虛構之法律條號，已被安全機制攔截",
+      error: describePrecheckRejection(precheck),
       issues: precheck.issues
     });
   }
@@ -149,7 +149,7 @@ router.post("/api/defense/generate-pleading", async (req: Request, res: Response
   const precheck = precheckLegalInput(clientInput, "generation", officialPrecheckOptions());
   if (precheck.status === "reject") {
     return res.status(422).json({
-      error: "輸入內容包含顯著異常或虛構之法律條號，已被安全機制攔截",
+      error: describePrecheckRejection(precheck),
       issues: precheck.issues
     });
   }

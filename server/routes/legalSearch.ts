@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { searchLegalSources } from '../../src/lib/twLegalRagClient.js';
 import { precheckLegalInput } from '../../src/lib/legalInputPrecheck.js';
+import { describePrecheckRejection } from "../../src/lib/precheckRejectionMessage.js";
 import { officialPrecheckOptions } from "../services/statuteExistenceProvider.js";
 
 const router = Router();
@@ -23,11 +24,12 @@ router.post('/api/legal-search', async (req: Request, res: Response) => {
   const precheck = precheckLegalInput(query.trim(), 'analysis', officialPrecheckOptions());
   if (precheck.status === 'reject') {
     return res.status(400).json({
-      error: precheck.issues[0]?.message || '查詢內容不符合檢索條件。',
+      // 與其他端點一致：使用使用者看得懂的描述，而非預檢的內部訊息。
+      // 內部訊息會出現「本機規則」這類開發者術語，使用者無從理解。
+      error: describePrecheckRejection(precheck),
       code: 'LEGAL_INPUT_REJECTED'
     });
   }
-
   // 檢索失敗時一律回傳 enabled:false 的空結果（fail-closed），
   // 不得以空結果冒充「查無此資料」。
   return res.json(await searchLegalSources(query.trim()));

@@ -83,7 +83,7 @@ router.post("/api/generate-appeal-petition", async (req: Request, res: Response)
   const precheck = precheckLegalInput(combinedInput, "generation", officialPrecheckOptions());
   if (precheck.status === "reject") {
     return res.status(422).json({
-      error: "輸入內容包含顯著異常或虛構之法律條號，已被安全機制攔截",
+      error: describePrecheckRejection(precheck),
       issues: precheck.issues
     });
   }

@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import { buildIntelligentRuleBasedTriage, enforceTriageConsistency } from "../../src/lib/universalTriage.js";
 import { normalizeObsoleteOffenseNamesInPayload } from "../../src/lib/legalAnalysisConsistency.js";
 import { precheckLegalInput } from "../../src/lib/legalInputPrecheck.js";
+import { describePrecheckRejection } from "../../src/lib/precheckRejectionMessage.js";
 import { officialPrecheckOptions } from "../services/statuteExistenceProvider.js";
 import { LEGAL_TOOLS } from "../../src/lib/legalToolRegistry.js";
 import { defaultLegalGenerationPipeline } from "../services/legalGenerationPipeline.js";
@@ -21,7 +22,7 @@ router.post("/api/triage/universal", async (req: Request, res: Response) => {
   const precheck = precheckLegalInput(rawInput, 'analysis', officialPrecheckOptions());
   if (precheck.status === "reject") {
     return res.status(422).json({
-      error: "輸入內容包含顯著異常或虛構之法律條號，已被安全機制攔截",
+      error: describePrecheckRejection(precheck),
       issues: precheck.issues
     });
   }

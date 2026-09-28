@@ -6,6 +6,7 @@ import {
   ProductionToolboxFallbackBlockedError
 } from "../../src/utils/toolboxFallbacks.js";
 import { precheckLegalInput } from "../../src/lib/legalInputPrecheck.js";
+import { describePrecheckRejection } from "../../src/lib/precheckRejectionMessage.js";
 import { officialPrecheckOptions } from "../services/statuteExistenceProvider.js";
 import { verifyLegalCitations } from "../../src/lib/citationVerifier.js";
 import { LEGAL_TOOL_TITLES } from "../../src/lib/legalToolTitles.js";
@@ -79,7 +80,7 @@ router.post("/api/toolbox/generate", async (req: Request, res: Response) => {
   const precheck = precheckLegalInput(serializedInput, "generation", officialPrecheckOptions());
   if (precheck.status === "reject") {
     return res.status(422).json({
-      error: "輸入內容包含顯著異常或虛構之法律條號，已被安全機制攔截",
+      error: describePrecheckRejection(precheck),
       issues: precheck.issues
     });
   }
