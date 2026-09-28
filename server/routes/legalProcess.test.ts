@@ -73,7 +73,11 @@ describe("3-Node Legal Process Pipeline", { timeout: 30000 }, () => {
       expect(prompt).toContain("你是一位富有同理心的法律諮詢助手");
       expect(prompt).toContain("先簡短確認目前理解的現狀");
       expect(prompt).toContain("說明為什麼需要補充這些資訊");
-      expect(prompt).toContain("附上 2~3 個 [選項按鈕]");
+      // 選項格式改用明確的【選項：…】，並要求模型提供輸出範例。
+      // 舊寫法把「[選項按鈕]」當成佔位詞寫進提示，模型有時會原樣輸出，
+      // 使用者就在畫面上看到 [選項按鈕] 這串內部語法。
+      expect(prompt).toContain("【選項：甲】");
+      expect(prompt).toContain("輸出範例");
     });
 
     it("generates questions and suggested button options via API", async () => {

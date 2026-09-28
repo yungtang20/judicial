@@ -180,8 +180,22 @@ router.post("/api/process/question", async (req: Request, res: Response) => {
       const response = await Promise.race([aiPromise, timeoutPromise]);
 
       rawMessage = response.text;
-      const optionMatches = rawMessage.match(/\[(.*?)\]/g) || [];
-      options = optionMatches.map(m => m.replace(/^\[|\]$/g, "").trim()).filter(Boolean);
+      // 選項可能以【選項：…】或舊格式 […] 表示，兩種都接受。
+      const optionMatches = rawMessage.match(/[【\[](?:選項[：:])?\s*([^\]】]+)\s*[\]】]/g) || [];
+      options = optionMatches
+        .map(m => m.replace(/^[【\[]|[】\]]$/g, '').replace(/^選項[：:]\s*/, '').trim())
+        .filter(Boolean)
+        // 「選項按鈕」是提示詞的佔位詞，不是真正的選項。
+        .filter(o => o !== '選項按鈕' && o !== '選項');
+      // 追問文字會原樣顯示給使用者，內部的書名號／方括號語法
+      // 不該出現在畫面上——那些內容已經成為按鈕。
+      rawMessage = rawMessage
+        .replace(/[【\[](?:選項[：:])?\s*[^\]】]+\s*[\]】]/g, '')
+        .replace(/[ \t]{2,}/g, ' ')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+      // 同一選項被重複輸出時只保留一次（實測模型確實會重複）。
+      options = [...new Set(options)];
     } catch (aiErr) {
       console.warn("[LegalProcess] AI Questioning 呼叫異常或逾時，切換至標準追問模板:", aiErr instanceof Error ? aiErr.message : String(aiErr));
       const missingLabels = missing.join("、");
