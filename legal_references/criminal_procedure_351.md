@@ -6,14 +6,20 @@
 - officialSource: 全國法規資料庫
 - sourceUrl: https://law.moj.gov.tw/LawClass/LawSingle.aspx?flno=351&pcode=C0010001
 - effectiveDate: 未於本次官方條文頁面確認
-- verifiedDate: 2026-09-14
+- verifiedDate: 2026-09-18
 - verificationStatus: VERIFIED
-- contentHash: bba9369ebd8cfcb3c7e2ed05249d37c38ab795c27ac12d3e937d3edc02d6227e（SHA-256；`## Exact Official Text` 本體去除前後換行後之 UTF-8）
+- contentHash: 843987b2b220a740f9500cea13b062e86eb0de360081aeb9dca953674b7723c6（SHA-256；`## Exact Official Text` 本體去除前後換行後之 UTF-8）
 
 ## Exact Official Text
 
 在監獄或看守所之被告，於上訴期間內向監所長官提出上訴書狀者，視為上訴期間內之上訴。
+被告不能自作上訴書狀者，監所公務員應為之代作。
+監所長官接受上訴書狀後，應附記接受之年、月、日、時，送交原審法院。
+被告之上訴書狀，未經監所長官提出者，原審法院之書記官於接到上訴書狀後，應即通知監所長官。
 
 ## Notes
 
 本檔僅凍結官方條文原文；不判斷個案上訴期間或是否在監所。
+
+先前版本只凍結第 1 段，遺漏「被告不能自作上訴書狀者，監所公務員應為之代作」等其餘三段，
+卻標記為 VERIFIED。已依全國法規資料庫完整條文重建。

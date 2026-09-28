@@ -11,23 +11,25 @@ import { CIVIL_PLEADING_RULES } from './civilPleadingRuleProfile';
 const sources = {
   civil116: ['legal_references/civil_procedure_116.md', '583118b5c8bfd76d72c79dbb5a1dbcd0b2250bd84d9c04cbaf7a7b51bfd02f46'],
   civil117: ['legal_references/civil_procedure_117.md', '1faf63748048f3a029dd8382e4b3d27bb73fbaf9be9e9a95f692cf8a04bfd23d'],
-  civil266: ['legal_references/civil_procedure_266.md', 'db647b7b5a6524e701673ab9a4901c33b56c863517a531a18ff339b286f8d0f2'],
-  civil441: ['legal_references/civil_procedure_441.md', '9bce1191e38a11c581dd00878ae66321432e3cd2a0f3cd6f02bef3014b866b2a'],
-  civil4691: ['legal_references/civil_procedure_469_1.md', 'b83794d9c7650156fc873d1c031c2814e7990ea923cd6db2fcaa6117f1b5c659'],
-  civil470: ['legal_references/civil_procedure_470.md', '6b64113337ab2d67aa58b973cfff8b3f4f7fc01d6b3b5e8ea61e7a4c0ed79fe7'],
-  civil488: ['legal_references/civil_procedure_488.md', '611fbb916422a955cc97f61555fd4da696a0c6cdbf9dfa68b42c64fdb686395b'],
-  civil501: ['legal_references/civil_procedure_501.md', '074541083acdcbc47ea94c7d3f15dfa3786a1a31764e6da60e83008fc51ecd4f'],
+  civil266: ['legal_references/civil_procedure_266.md', '60a774038e5836509cd82ce532f14f7eb8b08b02064a0e5b7b44393304264178'],
+  civil441: ['legal_references/civil_procedure_441.md', '03612aa6afac178300d5d491ec775f8d9bace1ab15f6c223afe2ff4025614f4f'],
+  civil4691: ['legal_references/civil_procedure_469_1.md', '11fada6097504459656d9e722ab23b81e2170df30f753e3240f3f14f42a0e3e7'],
+  civil470: ['legal_references/civil_procedure_470.md', 'b79d904f9db8082bcad886169d726ccf31df5e29466f73ac7a1d3d2b1e8cd556'],
+  civil488: ['legal_references/civil_procedure_488.md', '9568f04169ffea33c5923b72ef2bae42659aad26c135e4e3b3aed5263c280814'],
+  civil501: ['legal_references/civil_procedure_501.md', '14109a4a48b41c6e2342f81e189991a28daac3b03a7c7ecb668153714900da47'],
   criminal53: ['legal_references/criminal_procedure_53.md', '81fb3f20efa744a639e3a3dc49e3f06ee237db061ddd7fbc8e1c8ef86274be95'],
-  criminal350: ['legal_references/criminal_procedure_350.md', '5b84863f1765010f03e1680173e7f75997f5543e018de928a8bea67ebcaf88b0'],
-  criminal351: ['legal_references/criminal_procedure_351.md', 'bba9369ebd8cfcb3c7e2ed05249d37c38ab795c27ac12d3e937d3edc02d6227e'],
+  criminal350: ['legal_references/criminal_procedure_350.md', '45eb7a275d29bcb7c771fae7eade53e7d85ad9eb241ba7424fe9bd3e7d8a74c5'],
+  // 2026-09-29 修正：原快照只凍結第 1 段卻標記 VERIFIED，
+  // 產製路徑可能把不完整的條文寫進書狀。已依官方完整條文重建為 4 段。
+  criminal351: ['legal_references/criminal_procedure_351.md', '843987b2b220a740f9500cea13b062e86eb0de360081aeb9dca953674b7723c6'],
   criminal352: ['legal_references/criminal_procedure_352.md', 'fadc47eb0a016672e6449c9210ea3a35e844810cc7baba5436bb8aa1d92542c7'],
-  criminal361: ['legal_references/criminal_procedure_361.md', 'e44e9dc6adce290221b640da382df04a814ecea56905f89900ac3af035f2550b'],
-  criminal382: ['legal_references/criminal_procedure_382.md', 'a93736498a926211df6b1b5228765bc79e8fbfb53e12bcf93ca4c77e3928ff30'],
-  admin57: ['legal_references/administrative_litigation_57.md', '44987c4c98a5f848ea48159e14eb17e72614d4e594b686110c8eb5508562c0ad'],
-  admin244: ['legal_references/administrative_litigation_244.md', 'c6140b78015cfc96f93572c910a5d41b7e1b45a9f18afeedc20fd2e46e4df215'],
-  enforcement5: ['legal_references/compulsory_enforcement_5.md', 'e5aef36605920af4f3c03cd2ba861cbf78fb5b3d44e94888d751e795a9c866c8'],
-  enforcement6: ['legal_references/compulsory_enforcement_6.md', '039ee74e84c415d659bcbdf0041da392c69cef2969e38a301cb0a94a95495408'],
-  nonContentious30: ['legal_references/non_contentious_30.md', '45bc1867ff86425851cc6cdef943a1f2d61d9711a625492e08f6cda577d65403']
+  criminal361: ['legal_references/criminal_procedure_361.md', '4157cbc6a32e7b8bbc4e34a873b002f420f00fde19f2a5a63d82fba4db3e9f8b'],
+  criminal382: ['legal_references/criminal_procedure_382.md', '065f0706caf1c1c56fa55afae9564976d21b3fa224b6ae69c0d9c42867311203'],
+  admin57: ['legal_references/administrative_litigation_57.md', 'a08dee9fdda3858c72b42833db5437a1d228ea11045d9bb91e731aca6bcb918a'],
+  admin244: ['legal_references/administrative_litigation_244.md', '56fac13f7eacb3692a501751a02b064b47382970df1c8e684960235286ef06b4'],
+  enforcement5: ['legal_references/compulsory_enforcement_5.md', '7336156f9d3231fa02f998c6947d241fabcd7a30ae2647be5d5cdb95db94683e'],
+  enforcement6: ['legal_references/compulsory_enforcement_6.md', 'ecec20dcc9ec57eee56844ac4e20c0788d2a6ab9e547994b3015a6a21e98791b'],
+  nonContentious30: ['legal_references/non_contentious_30.md', '74ac805e742bdbb2c6d4a99d5e11f6a2c5f0656b4304bc9a61cea2be94e37c0d']
 } as const;
 
 type SourceKey = keyof typeof sources;
