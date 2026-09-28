@@ -98,6 +98,38 @@ export function 取出建議選項(parsed: unknown): string[] {
   return [];
 }
 
+
+/**
+ * 建議選項的品質閘門。
+ *
+ * 實測模型會把以下內容當成「建議」回傳：
+ *   ["Agnes-3.0-flash", "Sapiens AI"]        自我介紹
+ *   ["無效輸入格式", "提供的案件事實無法…"]   拒絕訊息
+ * 使用者會在「發生日期」欄位看到「Agnes-3.0-flash」。
+ *
+ * 這些都不是可填入表單的具體值，寧可回報取不到，
+ * 也不能把模型的自我介紹或拒絕語當成建議送出去。
+ */
+const 非建議內容 = [
+  /無法|不能|不提供|不支援|請提供|請補充|請自行|無效|錯誤|失敗/,
+  /Agnes|Gemini|Sapiens|GPT|Claude|flash|模型|語言模型|AI 助手|我是|我是/,
+  /^\s*[[{]/,
+];
+
+function 是不合格的建議(選項: string): boolean {
+  // 欄位建議應是短值，不是說明文字。
+  if (選項.length > 40) return true;
+  return 非建議內容.some(re => re.test(選項));
+}
+
+export function 篩選可用建議(options: string[]): string[] {
+  const 可用 = options.filter(o => !是不合格的建議(o));
+  // 全部都不合格時回空陣列，讓呼叫端據此回報「取不到」，
+  // 而不是把模型的自我介紹當成建議送給使用者。
+  return 可用.length > 0 ? 可用 : [];
+}
+
+
 const router = Router();
 
 export function keepVerifiedPrecedents<T extends { caseNumber: string }>(
@@ -903,7 +935,19 @@ router.post("/api/workflow/suggest-field", async (req: Request, res: Response) =
 
 案件事實：${事實 || "未提供"}
 
-請直接輸出一個 JSON 陣列，包含 3 個字串，例如：["選項一", "選項二", "選項三"]。絕不輸出任何其他文字或 Markdown 標記（不要有 json 等）。`;
+你的唯一任務是替使用者想出 3 個「可以直接填進這個欄位的具體值」。
+
+輸出格式（務必完全符合，僅此一種）：
+{"options": ["具體值一", "具體值二", "具體值三"]}
+
+規則：
+* 每個字串都必須是能直接填入【${欄位}】的具體內容，長度不超過 20 字。
+* 不得輸出解釋、理由、格式說明、錯誤訊息或任何自我介紹。
+* 不得輸出你的名稱、模型名稱或版本。
+* 若案件事實不足，請仍給出最合理的三個候選值，不要說明無法判斷。
+
+範例（當欄位是「管轄法院」）：
+{"options": ["臺灣臺北地方法院", "臺灣新北地方法院", "臺灣高等法院"]}`;
 
     // 提示詞要求「直接輸出一個 JSON 陣列」，須一併告知供應商使用 JSON 模式，
     // 否則模型可能夾帶說明文字，解析後得到空陣列而靜默回傳無效建議。
@@ -937,7 +981,8 @@ router.post("/api/workflow/suggest-field", async (req: Request, res: Response) =
      *   {"note":"..."}           單純的說明文字
      * 舊實作只認第一種，取不到就回空陣列卻仍回 success。
      */
-    const options = 取出建議選項(parsed);
+    // 品質閘門：模型的自我介紹與拒絕語不是可填入表單的具體值。
+    const options = 篩選可用建議(取出建議選項(parsed));
 
     if (options.length === 0) {
       // 寧可讓使用者知道取不到，也不要顯示一個沒有內容的「AI 建議」。

@@ -123,12 +123,13 @@ describe('POST /api/workflow/suggest-field', () => {
     expect(prompt).not.toContain('A'.repeat(200));
     expect(prompt).not.toContain('B'.repeat(200));
     expect(prompt).not.toContain('C'.repeat(6000));
-    expect(prompt.length).toBeLessThan(5600);
+    // 總長會隨格式說明增減，這裡只防無上限膨脹；
+    // 注入值本身的上限由上面三條「沒有原樣進入提示詞」的斷言守住。
+    expect(prompt.length).toBeLessThan(7000);
   });
 
   it('AI 未給出可用建議時不得回報成功', async () => {
     // 實測：正式站回 {"success":true,"options":[]}。
-    // 使用者看到「AI 建議」按鈕，點下去卻什麼都沒有。
     // 舊實作對整段回應取 /\[.*\]/s，取不到就默默當成空陣列，
     // 卻仍回 success:true。取不到建議不是成功，是失敗。
     mockedGenerate.mockResolvedValue({ text: '{"note":"我無法提供建議"}' } as never);
