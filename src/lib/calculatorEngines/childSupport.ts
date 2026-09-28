@@ -1,3 +1,4 @@
+import { clampNonNegative } from './safeNumber';
 import { LegalCalculatorConfig } from '../../types/legalTools';
 import { REGIONAL_LIVING_EXPENSES_113, REGIONAL_LIVING_EXPENSES_BASIS_YEAR, formatCurrency } from './statutoryStandards';
 
@@ -64,13 +65,15 @@ export const CHILD_SUPPORT_CALCULATOR_CONFIG: LegalCalculatorConfig = {
   calculate: (inputs) => {
     const regionKey = inputs.region || 'TAIPEI';
     const standardAmount = REGIONAL_LIVING_EXPENSES_113[regionKey]?.amount || 34321;
-    const actualExpense = Number(inputs.actualExpense) || 0;
+    // Infinity 為真值，Math.max(0, Number(Infinity) || 0) 仍是 Infinity，
+    // 會讓金額欄位顯示 $NaN。必須明確判斷有限性。
+    const actualExpense = clampNonNegative(inputs.actualExpense, 100000000000, 0);
     const monthlyPerChild = actualExpense > 0 ? actualExpense : standardAmount;
-    const childCount = Math.max(1, Number(inputs.childCount) || 1);
-    const childAge = Math.min(18, Math.max(0, Number(inputs.childAge) || 0));
+    const childCount = Math.max(1, Math.round(clampNonNegative(inputs.childCount, 100, 1)));
+    const childAge = Math.min(18, clampNonNegative(inputs.childAge, 100000000000, 0));
     
-    const payerIncome = Math.max(0, Number(inputs.payerIncome) || 0);
-    const receiverIncome = Math.max(0, Number(inputs.receiverIncome) || 0);
+    const payerIncome = clampNonNegative(inputs.payerIncome, 100000000000, 0);
+    const receiverIncome = clampNonNegative(inputs.receiverIncome, 100000000000, 0);
     const totalIncome = payerIncome + receiverIncome;
 
     // 依比例分攤，若雙方皆未填收入，則預設 1:1 (各 50%)
@@ -104,6 +107,8 @@ export const CHILD_SUPPORT_CALCULATOR_CONFIG: LegalCalculatorConfig = {
       ],
       legalClause: clause,
       notice: '註：此試算金額為法院裁判或協商常採之基準，非絕對法定單一標準；雙方如有特殊醫療、教育需求（如私校、早療），可另行提出具體單據協議或由法院審酌調增。'
+        + '本試算對每名子女採同一標準，未另行處理「單數子女」是否適用較低標準的情形，'
+        + '實際給付額以法院審酌或雙方協議為準。'
     };
   },
   guide: [

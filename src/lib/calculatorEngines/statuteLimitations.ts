@@ -34,8 +34,11 @@ export const STATUTE_LIMITATIONS_CALCULATOR_CONFIG: LegalCalculatorConfig = {
     }
   ],
   calculate: (inputs) => {
-    const domain = inputs.legalDomain || 'CIVIL_GENERAL';
-    const dateStr = (inputs.startDate || '2024-01-15').trim();
+    // legalDomain 同樣可能不是字串，後續有 startsWith 呼叫。
+    const domain = typeof inputs.legalDomain === 'string' ? inputs.legalDomain : 'CIVIL_GENERAL';
+    // 輸入可能是非字串（數字、物件、陣列），直接呼叫 .trim() 會拋 TypeError
+    // 讓整個計算器崩潰。先確保是字串再處理。
+    const dateStr = (typeof inputs.startDate === 'string' ? inputs.startDate : '').trim() || '2024-01-15';
     
     let baseDate = new Date(dateStr);
     if (isNaN(baseDate.getTime())) {

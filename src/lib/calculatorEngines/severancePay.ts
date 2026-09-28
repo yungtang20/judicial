@@ -1,3 +1,4 @@
+import { clampNonNegative } from './safeNumber';
 import { LegalCalculatorConfig } from '../../types/legalTools';
 import { formatCurrency } from './statutoryStandards';
 
@@ -55,11 +56,11 @@ export const SEVERANCE_PAY_CALCULATOR_CONFIG: LegalCalculatorConfig = {
     }
   ],
   calculate: (inputs) => {
-    const salary = Math.max(0, Number(inputs.monthlySalary) || 0);
-    const years = Math.max(0, Number(inputs.seniorityYears) || 0);
-    const months = Math.max(0, Number(inputs.seniorityMonths) || 0);
-    const days = Math.max(0, Number(inputs.seniorityDays) || 0);
-    const unusedDays = Math.max(0, Number(inputs.unusedLeaveDays) || 0);
+    const salary = clampNonNegative(inputs.monthlySalary, 100000000000, 0);
+    const years = clampNonNegative(inputs.seniorityYears, 100000000000, 0);
+    const months = clampNonNegative(inputs.seniorityMonths, 100000000000, 0);
+    const days = clampNonNegative(inputs.seniorityDays, 100000000000, 0);
+    const unusedDays = clampNonNegative(inputs.unusedLeaveDays, 100000000000, 0);
 
     // 換算總年資 (小數點)
     const totalSeniorityYears = years + (months / 12) + (days / 365);
