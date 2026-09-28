@@ -787,9 +787,26 @@ export const VERIFIED_REAL_PRECEDENTS: RealPrecedentDatabaseItem[] = [
   }
 ];
 
+/**
+ * 官方法規存在性查詢。
+ *
+ * 回報 'UNKNOWN' 代表「此刻無法確定」，呼叫端必須據此維持原有的
+ * fail-closed 行為，不得把查不到當成查到了。
+ */
+export type StatuteExistenceCheck = (
+  lawName: string,
+  article: number,
+  subArticle?: number
+) => 'EXISTS' | 'ABSENT' | 'UNKNOWN';
+
 export interface VerifyCitationsOptions {
   allowedCitations?: string[];
   strictAllowedOnly?: boolean;
+  /**
+ * 官方法規即時查詢。提供時以官方資料為準，
+ * 取代會過期的本機靜態索引；查不到（UNKNOWN）則維持原有行為。
+   */
+  statuteExistence?: StatuteExistenceCheck;
 }
 
 /**
@@ -945,7 +962,51 @@ export function verifyLegalCitations(
     const knownStatute = VERIFIED_REAL_STATUTES[baseKey] || (altKey ? VERIFIED_REAL_STATUTES[altKey] : undefined);
     const maxArticleForLaw = STATUTE_MAX_ARTICLES[lawName];
 
-    if (maxArticleForLaw && parseInt(mainArt, 10) > maxArticleForLaw) {
+    // 官方法規即時索引（可選）。若呼叫端提供了查詢能力，
+    // 以官方資料為準，不再用本機靜態索引推測條號真偽。
+    //
+    // 這解決兩個實測問題：
+    // 1. 本機索引只收錄極少數條文（民法 3.3%、民訴法 1.2%），
+    //    內容正確的書狀被 fail-closed 誤擋。
+    // 2. 硬編的條號上限已經過期：民事訴訟法實際有 640 條而索引寫 607，
+    //    票據法實際 146 條而索引寫 144——第 608～640 條是真實的，
+    //    卻會被判定為「該法最高僅至第607條」的捏造引用。
+    //
+    // 官方查不到時（UNKNOWN）維持原有邏輯，不得因無法查證就放行。
+    const officialExistence = options?.statuteExistence
+      ? options.statuteExistence(lawName, Number(mainArt), subArt ? Number(subArt) : undefined)
+      : 'UNKNOWN' as const;
+
+    if (officialExistence === 'EXISTS') {
+      results.push({
+        verified: true,
+        citationText: fullMatch,
+        type: 'STATUTE',
+        legalClaim,
+        claimSupportStatus: 'NEEDS_REVIEW',
+        officialTitle: baseKey,
+        officialSourceUrl: 'https://law.moj.gov.tw/',
+        isGhostOrFake: false,
+        hallucinationRisk: 'SAFE_VERIFIED',
+        verificationStatus: 'VERIFIED'
+      });
+    } else if (officialExistence === 'ABSENT') {
+      // 官方確認該法沒有這一條：這是確定性的捏造，不是「查不到」。
+      results.push({
+        verified: false,
+        citationText: fullMatch,
+        type: 'STATUTE',
+        legalClaim,
+        claimSupportStatus: 'NEEDS_REVIEW',
+        officialTitle: `${baseKey}（全國法規資料庫無此條文）`,
+        officialSourceUrl: 'https://law.moj.gov.tw/',
+        isGhostOrFake: true,
+        hallucinationRisk: 'SUSPICIOUS_NUMBERING',
+        verificationStatus: 'REJECTED',
+        correctionSuggestion: `請核對正確條號；全國法規資料庫的現行${lawName}中沒有第${mainArt}條${subArt ? '之' + subArt : ''}。`
+      });
+    } else if (maxArticleForLaw && parseInt(mainArt, 10) > maxArticleForLaw) {
+
       // Impossible article number (e.g. 刑法第999條)
       results.push({
         verified: false,

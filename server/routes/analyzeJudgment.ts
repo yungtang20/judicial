@@ -3,6 +3,7 @@ import { describePrecheckRejection } from "../../src/lib/precheckRejectionMessag
 import { getAnalyzeJudgmentPrompt } from "../../src/prompts/analyze-judgment.js";
 import { buildFallbackJudgmentAnalysis } from "../../src/utils/fallbacks.js";
 import { precheckLegalInput } from "../../src/lib/legalInputPrecheck.js";
+import { officialPrecheckOptions } from "../services/statuteExistenceProvider.js";
 import { defaultLegalGenerationPipeline } from "../services/legalGenerationPipeline.js";
 
 // Note: UNIVERSAL_SYLLOGISM_RULES is enforced centrally within defaultLegalGenerationPipeline
@@ -17,7 +18,7 @@ router.post("/api/analyze-judgment", async (req: Request, res: Response) => {
   }
 
   // Pre-check
-  const precheck = precheckLegalInput(judgmentText || "");
+  const precheck = precheckLegalInput(judgmentText || "", 'analysis', officialPrecheckOptions());
   if (precheck.status === "reject") {
     return res.status(422).json({
       error: describePrecheckRejection(precheck),

@@ -4,6 +4,14 @@ import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
 import { createExpressApp } from "./server/index.js";
 import { validateSecurityConfiguration } from "./server/middleware/auth.js";
+import { warmOfficialStatuteIndex } from "./server/services/statuteExistenceProvider.js";
+
+// 預載官方法規索引，讓法條查證以官方即時資料為準，
+// 而不是會過期的本機靜態索引（實測該索引只涵蓋民法 3.3%，
+// 且硬編的條號上限已落後：民訴法實際 640 條，索引仍寫 607）。
+// 刻意不 await：官方來源不可用時伺服器仍應正常啟動，
+// 該情況下查證會退回本機索引，fail-closed 行為不變。
+void warmOfficialStatuteIndex();
 
 process.env.DOTENV_CONFIG_QUIET = "true";
 const _log = console.log;

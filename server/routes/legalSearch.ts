@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { searchLegalSources } from '../../src/lib/twLegalRagClient.js';
 import { precheckLegalInput } from '../../src/lib/legalInputPrecheck.js';
+import { officialPrecheckOptions } from "../services/statuteExistenceProvider.js";
 
 const router = Router();
 
@@ -19,7 +20,7 @@ router.post('/api/legal-search', async (req: Request, res: Response) => {
   }
 
   // 與其他端點一致：先做輸入預檢，避免把明顯無效的查詢送到外部法源。
-  const precheck = precheckLegalInput(query.trim());
+  const precheck = precheckLegalInput(query.trim(), 'analysis', officialPrecheckOptions());
   if (precheck.status === 'reject') {
     return res.status(400).json({
       error: precheck.issues[0]?.message || '查詢內容不符合檢索條件。',

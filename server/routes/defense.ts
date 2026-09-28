@@ -6,6 +6,7 @@ import { defaultAIProvider as configuredAIProvider } from "../../src/ai/provider
 import { getBPointTriagePrompt, getMineScanPrompt, getDefensePleadingPrompt } from "../../src/prompts/defense-workflow.js";
 import { buildFallbackDefenseTriage, buildFallbackMineScan, buildFallbackDefensePleading } from "../../src/utils/defenseFallbacks.js";
 import { precheckLegalInput } from "../../src/lib/legalInputPrecheck.js";
+import { officialPrecheckOptions } from "../services/statuteExistenceProvider.js";
 import { defaultLegalGenerationPipeline, defaultLegalRetrievalService } from "../services/legalGenerationPipeline.js";
 import { extractJsonFromText } from './extractJson.js';
 import { toTraditionalChineseIn } from './toTraditionalIn.js';
@@ -18,7 +19,7 @@ const router = Router();
 router.post("/api/defense/triage", async (req: Request, res: Response) => {
   const { clientInput, litigationRole, caseType, courtName, caseNo } = req.body;
 
-  const precheck = precheckLegalInput(clientInput || "");
+  const precheck = precheckLegalInput(clientInput || "", 'analysis', officialPrecheckOptions());
   if (precheck.status === "reject") {
     return res.status(422).json({
       error: "輸入內容包含顯著異常或虛構之法律條號，已被安全機制攔截",
@@ -89,7 +90,7 @@ router.post("/api/defense/scan-mines", async (req: Request, res: Response) => {
   const { clientInput, opponentClaims, caseType, caseBackground, litigationRole } = req.body;
   const 對手陳述 = opponentClaims ?? caseBackground;
 
-  const precheck = precheckLegalInput(`${clientInput || ''} ${對手陳述 || ''}`);
+  const precheck = precheckLegalInput(`${clientInput || ''} ${對手陳述 || ''}`, 'analysis', officialPrecheckOptions());
   if (precheck.status === "reject") {
     return res.status(422).json({
       error: "輸入內容包含顯著異常或虛構之法律條號，已被安全機制攔截",
@@ -145,7 +146,7 @@ router.post("/api/defense/generate-pleading", async (req: Request, res: Response
   // 等於在法律工具中埋下日後恢復此路徑時會直接產出假事實的陷阱。
   const { clientInput = "" } = req.body;
 
-  const precheck = precheckLegalInput(clientInput, "generation");
+  const precheck = precheckLegalInput(clientInput, "generation", officialPrecheckOptions());
   if (precheck.status === "reject") {
     return res.status(422).json({
       error: "輸入內容包含顯著異常或虛構之法律條號，已被安全機制攔截",

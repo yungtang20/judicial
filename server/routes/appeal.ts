@@ -3,6 +3,7 @@ import { describePrecheckRejection } from "../../src/lib/precheckRejectionMessag
 import { getGenerateAppealPetitionPrompt } from "../../src/prompts/generate-appeal-petition.js";
 import { buildFallbackPetition } from "../../src/utils/fallbacks.js";
 import { precheckLegalInput } from "../../src/lib/legalInputPrecheck.js";
+import { officialPrecheckOptions } from "../services/statuteExistenceProvider.js";
 import { findUnreadRetrievedCitations } from "../../src/domain/case/citationGate.js";
 import { defaultLegalGenerationPipeline } from "../services/legalGenerationPipeline.js";
 
@@ -79,7 +80,7 @@ router.post("/api/generate-appeal-petition", async (req: Request, res: Response)
     evidences: normalized.evidences,
     claims: normalized.claims
   });
-  const precheck = precheckLegalInput(combinedInput, "generation");
+  const precheck = precheckLegalInput(combinedInput, "generation", officialPrecheckOptions());
   if (precheck.status === "reject") {
     return res.status(422).json({
       error: "輸入內容包含顯著異常或虛構之法律條號，已被安全機制攔截",

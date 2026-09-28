@@ -6,6 +6,7 @@ import {
   ProductionToolboxFallbackBlockedError
 } from "../../src/utils/toolboxFallbacks.js";
 import { precheckLegalInput } from "../../src/lib/legalInputPrecheck.js";
+import { officialPrecheckOptions } from "../services/statuteExistenceProvider.js";
 import { verifyLegalCitations } from "../../src/lib/citationVerifier.js";
 import { LEGAL_TOOL_TITLES } from "../../src/lib/legalToolTitles.js";
 import { LEGAL_TOOLS } from "../../src/lib/legalToolRegistry.js";
@@ -75,7 +76,7 @@ router.post("/api/toolbox/generate", async (req: Request, res: Response) => {
   if (unreadCitations.length > 0) {
     return res.status(422).json({ error: '檢索裁判尚未取得全文，拒絕將未讀取來源帶入生成', code: 'CITATION_FULLTEXT_REQUIRED', citations: unreadCitations.map(item => item.citation) });
   }
-  const precheck = precheckLegalInput(serializedInput, "generation");
+  const precheck = precheckLegalInput(serializedInput, "generation", officialPrecheckOptions());
   if (precheck.status === "reject") {
     return res.status(422).json({
       error: "輸入內容包含顯著異常或虛構之法律條號，已被安全機制攔截",
