@@ -31,7 +31,12 @@ router.post("/api/defense/triage", async (req: Request, res: Response) => {
   const fullPrompt = `${prompt}\n\n${legalContext.promptBlock}\n\n${UNIVERSAL_SYLLOGISM_RULES}`;
 
   try {
-    const aiRes = await configuredAIProvider.generate(fullPrompt);
+    // 提示詞要求「嚴格輸出標準 JSON」，但未告知供應商需要 JSON 模式。
+    // 實測 defense-triage 幾乎每次都靜默降級成 32 字的規則輸出，
+    // 而同樣呼叫 AI 的 agent-chat / triage-universal 都正常——差別就在這裡。
+    // 供應商支援 response_format: json_object，與提示詞的宣告一致，
+    // 模型就不會夾帶說明文字或 markdown 導致解析失敗。
+    const aiRes = await configuredAIProvider.generate(fullPrompt, { responseMimeType: 'application/json' });
     let parsed: any;
     try {
       const cleaned = aiRes.text.replace(/```json/gi, "").replace(/```/g, "").trim();
@@ -78,7 +83,8 @@ router.post("/api/defense/scan-mines", async (req: Request, res: Response) => {
   const fullPrompt = `${prompt}\n\n${legalContext.promptBlock}\n\n${UNIVERSAL_SYLLOGISM_RULES}`;
 
   try {
-    const aiRes = await configuredAIProvider.generate(fullPrompt);
+    // 與上方同理：提示詞要求 JSON 輸出，須一併告知供應商。
+    const aiRes = await configuredAIProvider.generate(fullPrompt, { responseMimeType: 'application/json' });
     let parsed: any;
     try {
       const cleaned = aiRes.text.replace(/```json/gi, "").replace(/```/g, "").trim();

@@ -837,7 +837,9 @@ router.post("/api/workflow/suggest-field", async (req: Request, res: Response) =
 
 請直接輸出一個 JSON 陣列，包含 3 個字串，例如：["選項一", "選項二", "選項三"]。絕不輸出任何其他文字或 Markdown 標記（不要有 json 等）。`;
 
-    const response = await defaultAIProvider.generate(prompt, { temperature: 0.7 });
+    // 提示詞要求「直接輸出一個 JSON 陣列」，須一併告知供應商使用 JSON 模式，
+    // 否則模型可能夾帶說明文字，解析後得到空陣列而靜默回傳無效建議。
+    const response = await defaultAIProvider.generate(prompt, { temperature: 0.7, responseMimeType: 'application/json' });
     let text = response.text.trim();
     if (text.startsWith('```json')) {
       text = text.replace(/^```json/, '').replace(/```$/, '').trim();
