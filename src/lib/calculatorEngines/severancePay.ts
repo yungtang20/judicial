@@ -69,16 +69,25 @@ export const SEVERANCE_PAY_CALCULATOR_CONFIG: LegalCalculatorConfig = {
     const cappedMultiplier = Math.min(6, rawMultiplier);
     const severancePay = Math.round(salary * cappedMultiplier);
 
-    // 勞基法第 16 條預告期
-    let noticeDays = 0;
+    // 勞基法第16條第2項的預告期級距：
+    //   滿3年以上      → 30 日
+    //   滿1年未滿3年   → 20 日
+    //   滿6個月未滿1年 → 10 日
+    //   未滿6個月      → 5 日
+    //
+    // 先前實作的問題：
+    // 1. 門檻寫成 3/12（3 個月），應為 6 個月——年資 3~6 個月的勞工多算 5 日。
+    // 2. else 分岐給 0 日，漏掉「未滿6個月應預告 5 日」這一級——
+    //    年資未滿 6 個月的勞工直接少領 5 日工資。
+    let noticeDays: number;
     if (totalSeniorityYears >= 3) {
       noticeDays = 30;
     } else if (totalSeniorityYears >= 1) {
       noticeDays = 20;
-    } else if (totalSeniorityYears >= (3 / 12)) {
+    } else if (totalSeniorityYears >= 0.5) {
       noticeDays = 10;
     } else {
-      noticeDays = 0;
+      noticeDays = 5;
     }
 
     // 預告期間工資（雇主若未依法提前預告，須補發預告工資）
@@ -96,7 +105,7 @@ export const SEVERANCE_PAY_CALCULATOR_CONFIG: LegalCalculatorConfig = {
       summary: [
         { label: '資遣結算給付總額（含預告與特休）', value: formatCurrency(grandTotal), isHighlight: true },
         { label: '新制法定資遣費金額', value: formatCurrency(severancePay), note: `基數：${cappedMultiplier.toFixed(3)} 個月工資` },
-        { label: '法定預告期間', value: `${noticeDays} 天`, note: noticeDays > 0 ? `未預告折現工資：${formatCurrency(noticeWage)}` : '未滿三個月無預告期' },
+        { label: '法定預告期間', value: `${noticeDays} 天`, note: `未預告折現工資：${formatCurrency(noticeWage)}` },
         { label: '特休未休工資折現', value: formatCurrency(unusedLeaveWage), note: `${unusedDays} 天工資` }
       ],
       breakdown: [
