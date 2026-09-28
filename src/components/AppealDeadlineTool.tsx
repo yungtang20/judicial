@@ -241,8 +241,17 @@ export default function AppealDeadlineTool() {
     if (!recvDate) return null;
 
     if (litigationType === 'criminal' && remedyType === 'appeal12') {
-      // 刑事一審上訴二審：上訴期間(20日+在途)屆滿後 20 日內補提 -> 即送達後 40日 + 在途
-      const rawReasonEnd = new Date(recvDate.getTime() + (40 + Number(travelDays)) * 24 * 60 * 60 * 1000);
+      // 刑事一審上訴二審：上訴期間屆滿後 20 日內補提（刑事訴訟法第 382 條）。
+      //
+      // 起算基準必須是**實際屆滿日**（已順延後的 finalEndDate），
+      // 不能從送達日直接加 40 日。
+      //
+      // 實測錯誤：送達 115/6/7，主期限末日 6/27（週六）→ 順延至 6/29。
+      // 舊實作得 6/7 + 40 = 7/17，與主期限只差 18 天，
+      // 畫面上兩個數字互相矛盾，且比法定期間早了 3 天。
+      const 屆滿日 = finalEndDate;
+      if (!屆滿日) return null;
+      const rawReasonEnd = new Date(屆滿日.getTime() + 20 * 24 * 60 * 60 * 1000);
       return getNextWorkingDay(rawReasonEnd).date;
     }
 
