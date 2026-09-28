@@ -134,6 +134,10 @@ ${toolsSummary}
     // 規則本身是確定性的（只看查詢字串與既有法源），
     // 對降級輸出同樣適用，且成本為零。
     let finalPayload = enforceTriageConsistency(pipelineResult.payload, rawInput);
+    // 舊稱改寫同樣必須涵蓋所有路徑。降級輸出雖是本機程式碼、不太可能
+    // 出現已廢止的罪名，但把守門放在單一路徑上，
+    // 日後新增產出分支時很容易又漏掉——與詐欺分類的缺陷同一個成因。
+    finalPayload = normalizeObsoleteOffenseNamesInPayload(finalPayload);
 
     // Attach RAG sources and status
     finalPayload.sources = pipelineResult.legalSources;
