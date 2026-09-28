@@ -361,13 +361,21 @@ describe("agentChat service", () => {
 
   it("returns error when LLM times out", async () => {
     setupHappyPath();
-    // Never resolves → triggers 15s timeout
+    // 永不 resolve → 觸發逾時。
+    // 逾時現為 45 秒（AGENT_CHAT_TIMEOUT_MS 可調），
+    // 測試透過環境變數縮短，不需真的等 45 秒。
+    // Promise.withResolvers 需 ES2024 lib，本專案尚未啟用，故用 executor 形式。
     mockGenerate.mockReturnValue(new Promise(() => {}));
+    vi.stubEnv("AGENT_CHAT_TIMEOUT_MS", "50");
 
-    const result = await handleAgentChat({ userInput: "test" });
-    expect(result.success).toBe(false);
-    expect(result.error).toBeDefined();
-  }, 20000);
+    try {
+      const result = await handleAgentChat({ userInput: "test" });
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  }, 10000);
 
   // ── Disclaimer ──────────────────────────────────────────────────────────
 

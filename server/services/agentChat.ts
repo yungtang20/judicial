@@ -225,8 +225,13 @@ export async function handleAgentChat(
   try {
     const callOnce = async (text: string) => {
       const aiPromise = defaultAIProvider.generate(text, { temperature: 0.3 });
+      // 逾時原本硬寫 15 秒，但正式站實測正常回應需 6.7~14.3 秒
+      // （第 3 輪在 15.3 秒被判逾時而回 503，使用者看到的是錯誤而非分析）。
+      // 逾時設得比實際延遲還短，會把大量正當回覆誤判為失敗。
+      // 45 秒對實測中位數約 11 秒有三倍餘裕，仍能及時回應真正的上游故障。
+      const 逾時毫秒 = Number(process.env.AGENT_CHAT_TIMEOUT_MS) || 45000;
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("AGENT_CHAT_TIMEOUT")), 15000)
+        setTimeout(() => reject(new Error("AGENT_CHAT_TIMEOUT")), 逾時毫秒)
       );
       const response = await Promise.race([aiPromise, timeoutPromise]);
       return response.text;

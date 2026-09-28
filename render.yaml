@@ -22,6 +22,10 @@ services:
       # 使用者等了近 30 秒卻拿到降級答案。設為 60 秒讓真實回應完成。
       - key: AGNES_TIMEOUT_MS
         value: "60000"
+      # 實測正式站對話回應需 6.7~14.3 秒；原硬寫 15 秒會把正當回覆
+      # 誤判為逾時並回 503。設為 45 秒留足餘裕。
+      - key: AGENT_CHAT_TIMEOUT_MS
+        value: "45000"
       - key: JWT_SECRET
         sync: false
       - key: HCNSEC_API_KEY
