@@ -169,7 +169,7 @@ describe('independentlyReReview', () => {
   });
 
   it('allows P8 scope checks to pass while preserving an unrelated pre-existing blocker for P9', async () => {
-    const input = completeInput({ court: '民法第184條' });
+    const input = completeInput({ court: '民法第479條' });
     const result = await independentlyReReview(await factScenario(input));
 
     expect(result.allChecksPassed).toBe(true);
@@ -311,7 +311,7 @@ describe('independentlyReReviewUnchangedDraft', () => {
   });
 
   it('does not mark an unchanged draft with an UNVERIFIED finding as passed', async () => {
-    const caseInput = completeInput({ court: '民法第184條' });
+    const caseInput = completeInput({ court: '民法第479條' });
     const draft = buildStructuredPleadingDraft(caseInput);
     const originalReviewReport = await review(draft, caseInput);
     const result = await independentlyReReviewUnchangedDraft({

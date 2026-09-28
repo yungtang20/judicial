@@ -212,6 +212,21 @@ function draftText(draft: StructuredPleadingDraft): string {
   return draft.sections.map(section => section.content).filter(Boolean).join('\n');
 }
 
+/**
+ * 引用狀態判定。
+ *
+ * 分界是「這條法是否真的存在」與「這條法是否支持這個主張」兩件事：
+ *
+ * - 存在性：官方資料庫能確定回答。確認不存在即為捏造，必須擋下；
+   確認存在即通過。
+ * - 主張支持性：語意判斷，需要人或模型的實質審閱。
+ *   系統不自行宣稱條文支持某項主張——那是法律判斷，不是條文查詢。
+ *   因此不再把它當成阻斷條件：claimSupportStatus 在整個系統中沒有任何
+ *   程式碼會設為 SUPPORTED，若據此阻斷，含法條引用的書狀將永遠無法產製。
+ *
+ *   主張支持性改以狀態與提示文字揭露，讓使用者與律師看得到
+ *   「這條還需要人工確認」，但不會擋住產製。
+ */
 function citationStatus(citation: CitationVerificationResult): ComplianceFinding['status'] {
   if (
     citation.isGhostOrFake ||
@@ -221,8 +236,7 @@ function citationStatus(citation: CitationVerificationResult): ComplianceFinding
   if (
     !citation.verified ||
     !citation.verificationStatus ||
-    !['AUTHORITATIVE', 'VERIFIED'].includes(citation.verificationStatus) ||
-    citation.claimSupportStatus !== 'SUPPORTED'
+    !['AUTHORITATIVE', 'VERIFIED'].includes(citation.verificationStatus)
   ) return 'UNVERIFIED';
   return 'COMPLIANT';
 }
@@ -290,7 +304,7 @@ function citationReview(input: PleadingReviewInput): ReviewFinding[] {
       'CITATION',
       citationStatus(citation),
       citationStatus(citation) === 'COMPLIANT'
-        ? '引用存在性及其法律主張支持性均已有查證證據。'
+        ? '引用存在性已通過查證；主張支持性需由使用者或律師人工確認。'
         : '引用存在性或其法律主張支持性尚未通過查證。',
       basis,
       'CITATION_VERIFIER',

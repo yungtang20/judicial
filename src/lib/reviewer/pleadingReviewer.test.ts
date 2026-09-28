@@ -273,7 +273,11 @@ describe('reviewStructuredPleading', () => {
     }));
   });
 
-  it('requires citation claim support and validates evidence against the current draft', async () => {
+  it('存在性已查證即通過，主張支持性改為提示而非阻斷', async () => {
+    // 主張支持性是語意判斷，需要人工審閱。系統不自行宣稱條文支持某項主張，
+    // 而 claimSupportStatus 在整個系統中沒有任何程式碼會設為 SUPPORTED——
+    // 若據此阻斷，含法條引用的書狀將永遠無法產製（實測 HTTP 422）。
+    // 這裡改為：存在性確認即通過，並在文字中揭露需人工確認。
     const review = completeReview();
     review.citationVerification = {
       documentText: review.draft.sections.map(section => section.content).filter(Boolean).join('\n'),
@@ -297,7 +301,42 @@ describe('reviewStructuredPleading', () => {
 
     const report = await reviewStructuredPleading(review);
 
-    expect(report.findings.find(finding => finding.category === 'CITATION' && finding.ruleId === '民事訴訟法第116條')?.status).toBe('UNVERIFIED');
+    const finding = report.findings.find(
+      item => item.category === 'CITATION' && item.ruleId === '民事訴訟法第116條'
+    );
+    expect(finding?.status).toBe('COMPLIANT');
+    expect(finding?.note).toContain('主張支持性需由使用者或律師人工確認');
+  });
+
+  it('官方確認不存在的引用仍為衝突狀態', async () => {
+    // 降級只針對「主張支持性」，不得放寬捏造引用的阻斷。
+    const review = completeReview();
+    review.citationVerification = {
+      documentText: review.draft.sections.map(section => section.content).filter(Boolean).join('\n'),
+      antiGhostVerification: {
+        totalCitationsChecked: 1,
+        ghostCitationsFound: 1,
+        verificationPassed: false,
+        verifiedCitations: [{
+          verified: false,
+          citationText: '民法第9999條',
+          type: 'STATUTE',
+          officialTitle: '民法第9999條（全國法規資料庫無此條文）',
+          officialSourceUrl: 'https://law.moj.gov.tw/',
+          isGhostOrFake: true,
+          hallucinationRisk: 'SUSPICIOUS_NUMBERING',
+          verificationStatus: 'REJECTED',
+          claimSupportStatus: 'NEEDS_REVIEW'
+        }]
+      }
+    };
+
+    const report = await reviewStructuredPleading(review);
+
+    const finding = report.findings.find(
+      item => item.category === 'CITATION' && item.ruleId === '民法第9999條'
+    );
+    expect(finding?.status).toBe('CONFLICT');
   });
 
   it('detects structural and format findings for a different contract', async () => {
