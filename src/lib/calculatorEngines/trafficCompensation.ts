@@ -4,7 +4,7 @@ import { formatCurrency } from './statutoryStandards';
 export const TRAFFIC_COMPENSATION_CALCULATOR_CONFIG: LegalCalculatorConfig = {
   toolId: 'TRAFFIC_COMPENSATION_CALCULATOR',
   title: '車禍理賠與折舊線上試算器',
-  subtitle: '整合醫療、工作損失、看護費、車輛零件折舊（平均法/定率遞減法）與肇事責任比例分攤，產出求償明細與和解條款',
+  subtitle: '整合醫療、工作損失、看護費、車輛零件折舊（可選定率遞減法或平均法）與肇事責任比例分攤，產出求償明細與和解條款',
   category: 'TRAFFIC',
   categoryName: '車禍 · 交通事故',
   inputs: [
@@ -71,6 +71,25 @@ export const TRAFFIC_COMPENSATION_CALCULATOR_CONFIG: LegalCalculatorConfig = {
       max: 100,
       suffix: '%',
       helperText: '依初判表或車鑑會鑑定意見：完全無責填 0%；同為肇事原因填 50%；主次因可填 30% 或 70%。'
+    },
+    {
+      id: 'depreciationMethod',
+      label: '車輛零件折舊方法',
+      type: 'select',
+      defaultValue: 'DECLINING',
+      options: [
+        {
+          value: 'DECLINING',
+          label: '定率遞減法（每年 0.369，殘值 10%）',
+          subtitle: '法院與保險實務常用定率；折舊較快，較接近實際現值'
+        },
+        {
+          value: 'STRAIGHT_LINE',
+          label: '平均法（直線折舊，耐用年數 5 年）',
+          subtitle: '折舊較慢，索賠金額較高；協商時對方較不易接受'
+        }
+      ],
+      helperText: '定率遞減法為目前車損估價的常用方式。同一組數字在兩種方法下差額可達數萬元，計算結果會標示所用方法，請依個案協商情形選擇。'
     }
   ],
   calculate: (inputs) => {
@@ -83,13 +102,28 @@ export const TRAFFIC_COMPENSATION_CALCULATOR_CONFIG: LegalCalculatorConfig = {
     const carAge = Math.max(0, Number(inputs.carAgeYears) || 0);
     const faultRatio = Math.min(100, Math.max(0, Number(inputs.myFaultRatio) || 0));
 
-    // 自用小客車耐用年數 5 年，定率遞減法每年折舊率 0.369，最後殘值不得低於 1/10 (即 10%)
-    // 簡化平均法折舊：殘值 = 成本 / (耐用年數+1)，折舊額 = (成本 - 殘值) / 耐用年數 * 使用年數
-    const usefulLife = 5;
-    const residual = parts / (usefulLife + 1);
-    const yearlyDeprec = (parts - residual) / usefulLife;
-    const totalDeprec = Math.min(parts - residual, yearlyDeprec * Math.min(carAge, usefulLife));
-    const depreciatedParts = Math.max(residual, parts - totalDeprec);
+    // 車輛零件折舊：零件以新品更換舊品，依最高法院見解應予折舊；
+    // 工資與烤漆費用則不折舊。
+    //
+    // 兩種方法在車齡 2 年、零件 8 萬元時相差逾兩萬元
+    // （定率遞減 31,843 元 vs 平均法 53,333 元），
+    // 會直接影響談判金額，因此提供選單並在結果中標示所用方法。
+    // 先前這段註解宣稱「定率遞減法 0.369」但實際實作是平均法，
+    // 註解與程式互相矛盾，容易誤導維護者。
+    const 折舊方法 = inputs.depreciationMethod === 'STRAIGHT_LINE' ? 'STRAIGHT_LINE' : 'DECLINING';
+    const 耐用年數 = 5;
+    const 受限年數 = Math.min(carAge, 耐用年數);
+    const depreciatedParts = 折舊方法 === 'DECLINING'
+      // 定率遞減法：每年乘以 (1 - 0.369)，5 年後殘值不低於原價 10%。
+      ? Math.max(parts * 0.1, parts * Math.pow(1 - 0.369, 受限年數))
+      // 平均法：殘值 = 成本 / (耐用年數 + 1)，直線折舊。
+      : (() => {
+          const 殘值 = parts / (耐用年數 + 1);
+          const 每年折舊 = (parts - 殘值) / 耐用年數;
+          return Math.max(殘值, parts - 每年折舊 * 受限年數);
+        })();
+    const 折舊額 = parts - depreciatedParts;
+    const 方法名稱 = 折舊方法 === 'DECLINING' ? '定率遞減法' : '平均法';
 
     const vehicleTotal = Math.round(depreciatedParts + labor);
     const grossTotal = medical + nursing + workLoss + solatium + vehicleTotal;
@@ -104,7 +138,7 @@ export const TRAFFIC_COMPENSATION_CALCULATOR_CONFIG: LegalCalculatorConfig = {
       summary: [
         { label: '扣除過失比例後得求償總額', value: formatCurrency(claimableTotal), isHighlight: true, note: `對造負擔比例 ${(100 - faultRatio)}%` },
         { label: '車禍損害總估算額（未扣肇責）', value: formatCurrency(grossTotal) },
-        { label: '車輛零件折舊後現值', value: formatCurrency(Math.round(depreciatedParts)), note: `原零件費用 ${formatCurrency(parts)}，折舊 ${formatCurrency(Math.round(totalDeprec))}` },
+        { label: '車輛零件折舊後現值', value: formatCurrency(Math.round(depreciatedParts)), note: `原零件費用 ${formatCurrency(parts)}，折舊 ${formatCurrency(Math.round(折舊額))}；採${方法名稱}` },
         { label: '人身傷亡損害合計', value: formatCurrency(medical + nursing + workLoss + solatium), note: '醫療、看護、休養工資與慰撫金' }
       ],
       breakdown: [
