@@ -20,7 +20,7 @@ import {
   enforceTriageConsistency,
 } from "../../src/lib/universalTriage.js";
 import { scrubPersonalInfo } from "../../src/lib/deidentifier.js";
-import { containsSimplifiedChinese } from "../../src/lib/traditionalChineseGuard.js";
+import { containsSimplifiedChinese, toTraditionalChinese } from "../../src/lib/traditionalChineseGuard.js";
 import { fetchFromOpenData } from "./judicialDataFetcher.js";
 import { isWithinServiceHours } from "./judicialServiceHours.js";
 import { OBJECTIVE_LEGAL_ANALYSIS_SYSTEM_PROMPT } from "../../src/prompts/objective-legal-analysis.js";
@@ -232,12 +232,20 @@ export async function handleAgentChat(
       return response.text;
     };
     llmText = await callOnce(prompt);
-    // 提示詞雖已要求繁體中文，模型仍偶爾以簡體中文回覆（實測出現「此时」「不当得利」）。
-    // 這裡重試一次並加重要求；仍失敗則交由後續的繁體檢查擋下，不交付簡體法律文字。
+    // 模型偶爾以簡體中文回覆（實測出現「此时」「不当得利」）。
+    //
+    // 先前處方式是「要求模型改用繁體重新回答」——那是一次完整的 AI 呼叫，
+    // 等於把已花掉的時間再花一次（實測多輪對話第 2 輪耗時 20.9 秒），
+    // 而且不保證成功。
+    //
+    // 改為本機確定性轉換：成本近乎為零、結果確定。
+    // 轉換後仍有殘留才交由下方繁體閘門擋下——
+    // 那是對照表未涵蓋的字，不能保證轉換正確，fail-closed 原則不動搖。
     if (containsSimplifiedChinese(llmText)) {
-      llmText = await callOnce(
-        `${prompt}\n\n【重要】上一次回答出現了簡體中文。請全部改用繁體中文重新回答，僅輸出答案本身。`
-      );
+      const 轉換後 = toTraditionalChinese(llmText);
+      if (!containsSimplifiedChinese(轉換後)) {
+        llmText = 轉換後;
+      }
     }
   } catch (err) {
     console.error("[AgentChat] LLM generation failed:", err);
