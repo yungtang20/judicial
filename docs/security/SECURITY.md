@@ -29,3 +29,22 @@
 
 - CI 必須執行 production dependency audit；已知 advisory 必須記錄狀態，不得由高門檻設定隱藏。
 - SQLite audit 在未掛 persistent disk 時只屬短期診斷資料；需要合規保存時，必須設定 durable `AUDIT_DB_PATH` 與 `AUDIT_PERSISTENCE_REQUIRED=true`。
+
+## 七、速率限制的實際邊界（實測）
+
+`server/middleware/security.ts` 的 `apiLimiter` 為 300 次 / 15 分鐘 / 每 IP，套用於 `/api` 全部路由（含 guest token 簽發），回應帶標準 `RateLimit-*` 標頭。
+
+**限制：計數器在行程記憶體中，不跨實例共享。**
+
+正式站實測（2026-09-29，320 次併發請求）：
+
+```
+RateLimit-Limit: 300; w=900
+RateLimit-Remaining: 194      ← 320 次請求後僅計入 106 次
+```
+
+連續 12 次請求的 `remaining` 並非嚴格遞減，並出現兩個不同的 `reset` 值（802 與 870），表示請求被分配到不同實例、計數互不干擾。
+
+影響：多實例部署時，實際上限為 300 × 實例數，且請求可因路由到其他實例而略過計數。限流仍提供**每實例**的保護，但不是全站一致的配額。
+
+需要全站一致配額時，必須改用跨實例共享的儲存（Redis 等），並相應設定環境變數。目前部署未使用此類基礎設施，故本節記錄實測結果而非聲稱已達成全站限流。
