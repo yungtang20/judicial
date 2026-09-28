@@ -8,6 +8,7 @@ import { buildFallbackDefenseTriage, buildFallbackMineScan, buildFallbackDefense
 import { precheckLegalInput } from "../../src/lib/legalInputPrecheck.js";
 import { defaultLegalGenerationPipeline, defaultLegalRetrievalService } from "../services/legalGenerationPipeline.js";
 import { extractJsonFromText } from './extractJson.js';
+import { toTraditionalChineseIn } from './toTraditionalIn.js';
 
 // Enforced centrally via defaultLegalGenerationPipeline
 
@@ -42,14 +43,29 @@ router.post("/api/defense/triage", async (req: Request, res: Response) => {
     // 直接對整段回應做 JSON.parse 會失敗而靜默降級。
     // 實測未做寬容擷取時 3 次呼叫有 2 次降級。
     const parsedFromAI = extractJsonFromText<any>(aiRes.text);
-    // 後續的繁體中文閘門可能再改寫它，因此用 let。
-    let parsed: any = parsedFromAI ?? buildFallbackDefenseTriage(clientInput || "", caseType, courtName, caseNo);
-    // 繁體中文閘門：分類結果的 lawBasis、cause 等欄位會顯示在
-    // 「法遵檢核項目」與結論區，直接呈現給使用者。
-    if (JSON.stringify(parsed).match(/[\u4e00-\u9fff]/) && containsSimplifiedChinese(JSON.stringify(parsed))) {
-      console.warn("[Defense] 分類輸出含簡體中文，改用本機規則產生的結果");
+    let parsed: any;
+
+    if (parsedFromAI) {
+      // 繁體中文閘門。
+      //
+      // AI 產出通常只夾帶少量簡體字（例如「担保」而非「擔保」），
+      // 其餘是完整可用的法律分析。先前因為幾個字就整份丟棄、
+      // 退回規則備援，使用者拿到 41 字的通用輸出，
+      // 等於把可修正的小瑕疵升級成「AI 完全沒用上」的結果。
+      //
+      // 正確做法是先轉換為繁體；轉換後仍有殘留才 fail-closed，
+      // 因為那代表對照表未涵蓋的字，不能保證轉換正確。
+      const 已轉換 = toTraditionalChineseIn(parsedFromAI);
+      if (containsSimplifiedChinese(JSON.stringify(已轉換))) {
+        console.warn("[Defense] 轉換後仍含簡體中文，改用本機規則產生的結果");
+        parsed = buildFallbackDefenseTriage(clientInput || "", caseType, courtName, caseNo);
+      } else {
+        parsed = 已轉換;
+      }
+    } else {
       parsed = buildFallbackDefenseTriage(clientInput || "", caseType, courtName, caseNo);
     }
+
     parsed.legalSources = legalContext.sources;
     parsed.isExternalRetrievalUsed = legalContext.isExternalRetrievalUsed;
     parsed.retrievalStatusMessage = legalContext.statusMessage;
@@ -86,9 +102,17 @@ router.post("/api/defense/scan-mines", async (req: Request, res: Response) => {
     // 與上方同理：提示詞要求 JSON 輸出，須一併告知供應商。
     const aiRes = await configuredAIProvider.generate(fullPrompt, { responseMimeType: 'application/json' });
     const parsedFromAI = extractJsonFromText<any>(aiRes.text);
-    let parsed: any = parsedFromAI ?? buildFallbackMineScan(clientInput || "");
-    if (JSON.stringify(parsed).match(/[\u4e00-\u9fff]/) && containsSimplifiedChinese(JSON.stringify(parsed))) {
-      console.warn("[Defense] 地雷掃描輸出含簡體中文，改用本機規則產生的結果");
+    let parsed: any;
+    if (parsedFromAI) {
+      // 與 defense-triage 同理：先轉換，轉不掉的才 fail-closed。
+      const 已轉換 = toTraditionalChineseIn(parsedFromAI);
+      if (containsSimplifiedChinese(JSON.stringify(已轉換))) {
+        console.warn("[Defense] 地雷掃描轉換後仍含簡體中文，改用本機規則產生的結果");
+        parsed = buildFallbackMineScan(clientInput || "");
+      } else {
+        parsed = 已轉換;
+      }
+    } else {
       parsed = buildFallbackMineScan(clientInput || "");
     }
     parsed.legalSources = legalContext.sources;
