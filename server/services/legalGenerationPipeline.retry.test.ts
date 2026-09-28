@@ -58,18 +58,35 @@ afterEach(() => {
 
 describe('isTransientProviderError', () => {
   it('連線層級的暫時性故障應重試', () => {
+    // 這些情況下一次嘗試很可能就會成功。
     for (const message of [
-      'This operation was aborted',
-      'Request timed out',
       'AGNES_HTTP_522',
       'AGNES_HTTP_503',
       'AGNES_HTTP_429',
       'fetch failed',
       'socket hang up',
       'ECONNRESET',
-      'ETIMEDOUT'
+      'ECONNREFUSED',
+      'ENOTFOUND',
+      'EAI_AGAIN',
+      'ETIMEDOUT',
     ]) {
-      expect(isTransientProviderError(new Error(message))).toBe(true);
+      expect(isTransientProviderError(new Error(message)), `「${message}」應重試`).toBe(true);
+    }
+  });
+
+  it('逾時不重試，等待時間才不會三倍化', () => {
+    // 逾時代表上游在 60 秒內無法完成，同一份提示詞再送一次
+    // 成功的機率不高，卻讓等待變成
+    // 60s + 0.8s + 60s + 2s + 60s = 182.8 秒。
+    // 使用者盯著畫面三分鐘，比直接拿到明確的錯誤更糟。
+    for (const message of [
+      'This operation was aborted',
+      'Request timed out',
+      'timeout of 60000ms exceeded',
+      'ABORT_ERR',
+    ]) {
+      expect(isTransientProviderError(new Error(message)), `「${message}」不應重試`).toBe(false);
     }
   });
 

@@ -37,7 +37,18 @@ export function isTransientProviderError(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
   const message = error.message || '';
   if (/GHOST_CITATION|VERIFICATION|INVALID_|REJECT|_REQUIRED|DENIED|unauthorized/i.test(message)) return false;
-  if (/aborted|timeout|timed out|ECONNRESET|ECONNREFUSED|ETIMEDOUT|ENOTFOUND|EAI_AGAIN|socket hang up|fetch failed/i.test(message)) return true;
+  // 逾時不重試。
+  //
+  // 逾時代表上游在 60 秒內無法完成；同一份提示詞再送一次，
+  // 成功的機率不高，卻讓等待時間三倍化：
+  // 60s + 0.8s + 60s + 2s + 60s = 182.8 秒。
+  // 使用者按下「分析判決書」後可能盯著畫面三分鐘，
+  // 比直接拿到明確的錯誤更糟。
+  if (/aborted|timeout|timed out/i.test(message)) return false;
+
+  // 連線層失敗與上游忙碌（5xx / 429）才值得重試：
+  // 這兩種情況下一次嘗試很可能就會成功。
+  if (/ECONNRESET|ECONNREFUSED|ETIMEDOUT|ENOTFOUND|EAI_AGAIN|socket hang up|fetch failed/i.test(message)) return true;
   return /_HTTP_(5\d\d|429)\b/.test(message);
 }
 
