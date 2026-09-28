@@ -311,7 +311,7 @@ ${issuesText || "原審採認事實顯有違背法令及證據法則之處，懇
 ${appealCourtName || "臺灣高等法院"} 公鑑
 
 具狀人：${appellantName || "當事人"} （蓋章）
-中華民國 115 年 ${new Date().getMonth() + 1} 月 ${new Date().getDate()} 日
+中華民國 ${new Date().getFullYear() - 1911} 年 ${new Date().getMonth() + 1} 月 ${new Date().getDate()} 日
 `;
 }
 

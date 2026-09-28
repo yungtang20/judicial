@@ -265,7 +265,7 @@ ${court}  公鑑
 具狀人即被告：${clientName}
 訴訟代理人：${lawyer}  （簽名蓋章）
 
-中華民國 115 年 ${new Date().getMonth() + 1} 月 ${new Date().getDate()} 日
+中華民國 ${new Date().getFullYear() - 1911} 年 ${new Date().getMonth() + 1} 月 ${new Date().getDate()} 日
 `;
 
     return {
@@ -306,7 +306,7 @@ ${court}  公鑑
 
 陳報人即${clientRole}：${clientName} （親筆簽名捺印）
 
-中華民國 115 年 ${new Date().getMonth() + 1} 月 ${new Date().getDate()} 日
+中華民國 ${new Date().getFullYear() - 1911} 年 ${new Date().getMonth() + 1} 月 ${new Date().getDate()} 日
 `;
 
     return {

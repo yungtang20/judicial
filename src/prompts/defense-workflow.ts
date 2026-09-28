@@ -237,7 +237,7 @@ ${isLawyer ? `
    ${caseInfo.courtName || '臺灣臺北地方法院'}  公鑑
 
    陳報人即${caseInfo.clientRole || '被告'}：${caseInfo.clientName || '當事人'} （親筆簽名捺印）
-   中華民國 115 年 ${new Date().getMonth() + 1} 月 ${new Date().getDate()} 日」
+   中華民國 ${new Date().getFullYear() - 1911} 年 ${new Date().getMonth() + 1} 月 ${new Date().getDate()} 日」
 `}
 
 請直接輸出完整書狀全文：
