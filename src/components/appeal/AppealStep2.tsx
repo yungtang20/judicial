@@ -136,7 +136,7 @@ export function AppealStep2({ ctx }: { ctx: AppealStepContext }) {
                       <span>裁判結果（刑期或裁判結果要旨）</span>
                     </div>
                     <div className="p-2.5 bg-[var(--color-status-danger-bg)]/70 rounded-md border border-[var(--color-status-danger)]/30 text-xs font-bold text-red-950 whitespace-pre-line leading-relaxed">
-                      {judgmentSummary.mainHolding || '（尚未載入裁判主文）'}
+                      {judgmentSummary.mainHolding || '（無法從所提供的文字確認裁判主文，請自行對照判決書正本填寫）'}
                     </div>
                   </div>
                 </div>

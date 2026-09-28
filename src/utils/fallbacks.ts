@@ -154,24 +154,25 @@ export function buildFallbackJudgmentAnalysis(judgmentText: string) {
   const judgeDate = dateMatch ? dateMatch[1] : "";
 
   // 嘗試從判決書中精準擷取「主文」
+  //
+  // 先前要求「主文」之後必須換行，實測以下常見寫法會抽取失敗：
+  //   「主文：被告有期徒刑三個月。」（同一行、用冒號）
+  // 抽取失敗後又直接填入寫死的範例句，
+  // 等於把範例的刑期當成這個案件的判決主文回傳——
+  // 輸入寫三個月，輸出卻寫六個月。使用者若未察覺即據以判斷能不能上訴。
   let extractedHolding = "";
-  const holdingMatch = judgmentText.match(/主\s*文\s*[\r\n]+([\s\S]*?)(?:事\s*實|理\s*由|中\s*華\s*民\s*國|附\s*錄)/);
+  const holdingMatch =
+    judgmentText.match(/主\s*文\s*[:：]?\s*([^\r\n]{1,300})/) ||
+    judgmentText.match(/主\s*文\s*[\r\n]+([\s\S]*?)(?:事\s*實|理\s*由|中\s*華\s*民\s*國|附\s*錄)/);
   if (holdingMatch) {
-    extractedHolding = holdingMatch[1].trim().replace(/\r?\n\s*/g, '；');
+    extractedHolding = holdingMatch[1].trim().replace(/\r?\n\s*/g, '；').replace(/[。；]+$/, '。');
   }
 
-  let defaultHolding = "";
-  if (extractedHolding) {
-    defaultHolding = extractedHolding;
-  } else if (isCriminalComp) {
-    defaultHolding = "准予刑事補償每日新臺幣 3,000 元，共計核發新臺幣 450,000 元。其餘請求駁回。";
-  } else if (isCriminal) {
-    defaultHolding = "處有期徒刑 6 月，如易科罰金，以新臺幣 1,000 元折算 1 日。";
-  } else if (isAdmin) {
-    defaultHolding = "原告之訴駁回。訴訟費用由原告負擔。";
-  } else {
-    defaultHolding = "原告之訴及假執行之聲請均駁回。訴訟費用由原告負擔。";
-  }
+  // 抽取不到就誠實回報抓不到，不得寫死範例句。
+  // 前端對空值已有「（尚未載入裁判主文）」的處理；
+  // 捏造主文的風險遠高於留白——刑期、給付金額都可能改變救濟判斷。
+  const mainHolding = extractedHolding;
+  const mainHoldingSource: 'EXTRACTED' | 'NOT_FOUND' = extractedHolding ? 'EXTRACTED' : 'NOT_FOUND';
 
   // 產生生動詳盡之案件事實故事（綜合被害人、涉嫌人/被告、證人觀點，無公文死板標題，字數超過500字）
   const story = generateStorytellingNarrative(judgmentText, courtName, caseNo, isCriminal, isCriminalComp, isAdmin);
@@ -191,12 +192,15 @@ export function buildFallbackJudgmentAnalysis(judgmentText: string) {
     judgmentSummary: {
       storyNarrative: story,
       overview: story,
-      mainHolding: defaultHolding
+      mainHolding
     },
+    // 主文是否真的從判決書提煉而來。NOT_FOUND 表示原文找不到「主文」段落，
+    // 使用者必須自行確認，不能把留白當成「無主文」。
+    mainHoldingSource,
     // 誠實揭露來源：這是本機規則備援產生的結果，不是從判決書以 AI 提煉而來。
     // 使用者必須知道手上的故事化文字是範本，而不是自己案件的內容。
     isLocalFallback: true,
-    fallbackNotice: "本結果由本機規則備援產生，敘事為固定範本而非從判決書提煉而來，僅供定位段落與格式參考，不得作為案件事實引用。",
+    fallbackNotice: "本結果由本機規則備援產生，敘事為固定範本而非從判決書提煉而來，僅供定位段落與格式參考，不得作為案件事實引用。裁判主文一欄僅在原文明載「主文」時才會填入，未填寫者代表無法從本段文字確認，請自行對照判決書正本。",
     suggestedPrecedents: isCriminalComp ? [
       {
         type: "最高法院刑事判例",
