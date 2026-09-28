@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { routeDisplayName } from '../../types/navigationLabels';
 import { History, RotateCcw } from 'lucide-react';
 import { RecentUsage } from '../RecentUsage';
 
@@ -17,7 +18,7 @@ export const UnifiedHeader: React.FC<UnifiedHeaderProps> = (props) => {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div className="space-y-1.5">
               <h1 className="text-xl md:text-2xl font-black text-white tracking-tight">
-                我遇到問題要處理
+                {routeDisplayName({ view: 'analysis' })}
               </h1>
               <div className="h-0.5 w-16 rounded-full bg-[var(--color-module-analysis)]" aria-hidden="true" />
               <p className="text-xs text-[var(--color-text-muted)] max-w-2xl leading-relaxed">

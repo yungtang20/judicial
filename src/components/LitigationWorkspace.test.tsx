@@ -44,14 +44,16 @@ describe('LitigationWorkspace', () => {
   });
 
   it.each([
-    ['deadline', '期限工具'],
-    ['appeal', '判決分析工具'],
-    ['defense', '訴訟防禦工具'],
-    ['issues', '爭點工具'],
-  ] as const)('renders the %s section selected from the sidebar', async (initialTab, content) => {
+    // 頁面標題要反映「目前在這個階段」，而不是整條流程的通稱。
+    // 名稱取自 navigationLabels，與側邊欄子項一致。
+    ['deadline', '期限工具', '還有多少時間可以上訴'],
+    ['appeal', '判決分析工具', '我收到判決書了'],
+    ['defense', '訴訟防禦工具', '準備防守與答辯'],
+    ['issues', '爭點工具', '整理爭點與證據'],
+  ] as const)('renders the %s section selected from the sidebar', async (initialTab, content, 標題) => {
     render(<ToolProvider><LitigationWorkspace initialTab={initialTab} appealOnly /></ToolProvider>);
 
-    expect(screen.getByText('我收到判決書了')).toBeInTheDocument();
+    expect(screen.getByText(標題)).toBeInTheDocument();
     expect(await screen.findByText(content)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /上訴法定期間試算/ })).not.toBeInTheDocument();
   });

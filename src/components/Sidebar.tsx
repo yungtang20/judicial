@@ -8,10 +8,12 @@ import {
   Gavel,
   MessagesSquare,
   BookOpenCheck,
+  GitBranch,
   type LucideIcon,
 } from 'lucide-react';
 import { useToolContext } from '../contexts/ToolContext';
 import { canonicalizeRoute } from '../types/navigation';
+import { routeDisplayName } from '../types/navigationLabels';
 
 interface NavItem {
   id: string;
@@ -41,7 +43,7 @@ interface NavItem {
 const primaryEntries: NavItem[] = [
   {
     id: 'unified',
-    label: '我遇到問題要處理',
+    label: routeDisplayName({ view: 'analysis' }),
     sublabel: '點選你的情況，系統直接帶你到該做的事',
     icon: Compass,
     // 情境導診頁：16 個常見生活情境，點一下即派單到對應工具。
@@ -51,7 +53,7 @@ const primaryEntries: NavItem[] = [
   },
   {
     id: 'appeal',
-    label: '我收到判決書了',
+    label: routeDisplayName({ view: 'appeal', section: 'analysis' }),
     sublabel: '先看期限還有多少天，再分析上訴怎麼打',
     icon: Scale,
     children: [
@@ -63,7 +65,7 @@ const primaryEntries: NavItem[] = [
   },
   {
     id: 'litigation',
-    label: '我要自己做一份文件',
+    label: routeDisplayName({ view: 'litigation', section: 'toolbox' }),
     sublabel: '選擇文件種類，填寫內容後產製',
     icon: Gavel,
     children: [
@@ -93,6 +95,25 @@ const secondaryEntries: NavItem[] = [
     icon: MessagesSquare,
   },
 ];
+
+/**
+ * 開發者專用入口。
+ *
+ * SDLC 交付工作台是軟體工程工具，不屬於使用者功能。
+ * 專案沒有網址路由，先前移除選單後連開發者自己也進不去，
+ * 等於「程式保留」形同虛設；因此只在開發環境把它接回來。
+ */
+// 以函式而非模組層常數求值：環境判斷必須在渲染時進行，
+// 否則會在模組載入時就固定，測試也無法切換環境驗證兩種行為。
+function getDevOnlyEntries(): NavItem[] {
+  if (!import.meta.env.DEV) return [];
+  return [{
+    id: 'sdlc',
+    label: 'SDLC 交付工作台（開發用）',
+    sublabel: '規劃到部署的階段閘門與稽核軌跡',
+    icon: GitBranch,
+  }];
+}
 
 /** AppRoute.view 與 NavItem.id 的對應，用於標示最近使用的項目。 */
 const ROUTE_VIEW_TO_ENTRY_ID: Record<string, string> = {
@@ -309,7 +330,7 @@ export default function Sidebar() {
           </div>
         </div>
         <ul className="list-none px-3 pb-3 m-0 space-y-1">
-          {secondaryEntries.map((entry) => {
+          {[...secondaryEntries, ...getDevOnlyEntries()].map((entry) => {
             const Icon = entry.icon;
             const active = isActive(entry);
             return (

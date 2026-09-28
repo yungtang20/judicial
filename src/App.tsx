@@ -5,7 +5,11 @@ import { ToolProvider, useToolContext } from './contexts/ToolContext';
 import { GlobalUIProvider } from './contexts/GlobalUIContext';
 
 import UnifiedEntry from './components/UnifiedEntry';
-const LegalSdlcWorkbench = React.lazy(() => import('./components/LegalSdlcWorkbench').then(m => ({ default: m.default || m.LegalSdlcWorkbench })));
+// SDLC 交付工作台是軟體工程工具，不是使用者功能。
+// 保留元件供開發使用，但僅在開發環境掛載，正式建置不會載入這段。
+const LegalSdlcWorkbench = import.meta.env.DEV
+  ? React.lazy(() => import('./components/LegalSdlcWorkbench').then(m => ({ default: m.default || m.LegalSdlcWorkbench })))
+  : null;
 const LitigationWorkspace = React.lazy(() => import('./components/LitigationWorkspace').then(m => ({ default: m.default || m.LitigationWorkspace })));
 const AgentChat = React.lazy(() => import('./components/AgentChat').then(m => ({ default: m.default || m.AgentChat })));
 const JudicialAndAiChecker = React.lazy(() => import('./components/JudicialAndAiChecker').then(m => ({ default: m.default || m.JudicialAndAiChecker })));
@@ -22,6 +26,18 @@ function LoadingFallback() {
       <div className="text-center space-y-4">
         <div className="w-12 h-12 mx-auto border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
         <p className="text-[var(--color-text-muted)] text-sm">載入中...</p>
+      </div>
+    </div>
+  );
+}
+
+/** 該功能在目前環境未提供時的顯示。不暴露功能名稱，避免一般使用者困惑。 */
+function UnavailableView() {
+  return (
+    <div className="flex-1 flex items-center justify-center p-8 bg-[var(--color-surface-base)]">
+      <div className="text-center space-y-2">
+        <p className="text-sm font-semibold text-slate-200">這個頁面目前無法使用</p>
+        <p className="text-xs text-[var(--color-text-muted)]">請從左側選單選擇其他功能。</p>
       </div>
     </div>
   );
@@ -64,7 +80,8 @@ function AppContent() {
       case 'process-guide':
         return <LegalProcessGuide onNavigateToTool={handleSelectTool} />;
       case 'sdlc':
-        return <LegalSdlcWorkbench />;
+        // 正式環境不掛載 SDLC：即使路由被外部傳入也不渲染工程工具。
+        return LegalSdlcWorkbench ? <LegalSdlcWorkbench /> : <UnavailableView />;
       case 'agent-chat':
         return <AgentChat />;
       case 'checker':

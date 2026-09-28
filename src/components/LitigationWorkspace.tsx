@@ -7,6 +7,7 @@ import {
 import { loadCrossFeatureContext } from '../lib/crossFeatureContext';
 import { buildAppealContext } from '../domain/case/appealContext';
 import type { AppealSection, LitigationSection, RouteHandoff, WorkspaceRoot } from '../types/navigation';
+import { workspaceDisplayName } from '../types/navigationLabels';
 
 const SmartAppealAssistant = React.lazy(() => import('./SmartAppealAssistant'));
 const DefenseWorkflowTool = React.lazy(() => import('./DefenseWorkflowTool').then(module => ({ default: module.DefenseWorkflowTool })));
@@ -87,9 +88,10 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({
    *
    * litigation 的 guide 段落是情境導診頁，由「我遇到問題要處理」進入；
    * 若一律顯示「我要自己做一份文件」，使用者會以為走錯頁。
+   * 名稱取自單一來源，避免與側邊欄不一致。
    */
   const 是情境導診 = workspaceRoot !== 'appeal' && effectiveSection === 'guide';
-  const 標題文字 = workspaceRoot === 'appeal' ? '我收到判決書了' : 是情境導診 ? '我遇到問題要處理' : '我要自己做一份文件';
+  const 標題文字 = workspaceDisplayName(workspaceRoot, effectiveSection);
   const 標題標籤 = workspaceRoot === 'appeal' ? '上訴救濟' : 是情境導診 ? '情境導診' : '書狀製作';
   const 標題說明 = workspaceRoot === 'appeal'
     ? '整合期限試算、判決剖析、訴訟防禦與爭點證據'

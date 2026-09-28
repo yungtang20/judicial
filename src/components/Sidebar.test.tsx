@@ -1,6 +1,6 @@
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { ToolProvider, useToolContext } from '../contexts/ToolContext';
 import Sidebar from './Sidebar';
 
@@ -39,11 +39,29 @@ describe('Sidebar 的資訊架構', () => {
     expect(screen.queryByText('全方位實用法務工具箱')).not.toBeInTheDocument();
   });
 
-  it('軟體工程工具不得出現在使用者介面', () => {
-    renderSidebar();
-    // SDLC 是規劃到部署的階段閘門，與解決法律問題無關
-    expect(screen.queryByText(/SDLC/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/階段閘門與稽核軌跡/)).not.toBeInTheDocument();
+  it('正式環境不得出現工程工具入口', () => {
+    // 測試預設在 DEV 模式，須明確切到正式環境才能驗證使用者的實際畫面。
+    vi.stubEnv('DEV', false);
+    try {
+      renderSidebar();
+      // SDLC 是規劃到部署的階段閘門，與解決法律問題無關
+      expect(screen.queryByText(/SDLC/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/階段閘門與稽核軌跡/)).not.toBeInTheDocument();
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it('開發環境保留工程工具入口，且明確標示為開發用', () => {
+    // 專案沒有網址路由，移除選單後開發者自己也進不去，
+    // 「程式保留」會形同虛設，因此開發環境要接得回來。
+    vi.stubEnv('DEV', true);
+    try {
+      renderSidebar();
+      expect(screen.getByText(/SDLC 交付工作台（開發用）/)).toBeInTheDocument();
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it('不得有內容重疊的兩個功能區塊', () => {
