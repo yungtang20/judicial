@@ -193,6 +193,24 @@ export function isSelectableDocument(documentId: string): boolean {
   return Boolean(entry?.enabled && entry.selectionEnabled);
 }
 
+
+/**
+ * 該工具目前能否產出文件。
+ *
+ * 與 isSelectableDocument 的差別：後者只問「文件目錄中的項目是否可選」，
+ * 但工具箱裡的存證信函、借據、計算器等根本不在文件目錄中——
+ * 對它們呼叫 isSelectableDocument 一律得到 false，
+ * 會把 33 個實際可產製的工具全標成不可用。
+ *
+ * 實測（正式站逐一產製 52 個工具）：33 個可產製、19 個被 P9 擋下。
+ * 以「不在目錄中即視為可用」判定，數量與實測完全一致。
+ */
+export function isToolProducible(toolId: string): boolean {
+  const entry = getDocumentCatalogEntry(toolId);
+  if (!entry) return true;
+  return Boolean(entry.enabled && entry.selectionEnabled);
+}
+
 export const CANONICAL_DOCUMENT_IDS = entries
   .filter(entry => entry.generationPath === 'CANONICAL_P4_P9')
   .map(entry => entry.id);

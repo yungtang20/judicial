@@ -22,7 +22,7 @@ import { InteractiveCalculatorView } from './toolbox/InteractiveCalculatorView';
 import { evaluatePleadingDelivery } from '../lib/finalGate/pleadingDeliveryBrowser';
 import { TOOL_FIELD_SCHEMAS } from '../lib/toolFieldSchemas';
 import { resolveDocumentTool } from '../lib/documentSelectionRules';
-import { DEFAULT_DOCUMENT_TOOL_ID, OFFICIAL_TEMPLATE_UI_ENABLED } from '../lib/documentCatalog';
+import { DEFAULT_DOCUMENT_TOOL_ID, OFFICIAL_TEMPLATE_UI_ENABLED, isToolProducible } from '../lib/documentCatalog';
 import { OfficialTemplateDirectory } from './toolbox/OfficialTemplateDirectory';
 
 type DocumentGenerationStage = 'input' | 'analyzing' | 'formatting' | 'ready' | 'error';
@@ -384,6 +384,31 @@ export const LegalToolbox: React.FC<{ initialToolId?: string; initialFacts?: str
                     onClearInjectedNotice={() => setInjectedNotice(null)}
                   />
 
+                  {/*
+                    可用性預先提示。
+
+                    實測：52 個工具中有 19 個（多為刑事告訴狀、保護令等
+                    法院書狀）尚未取得經核准的格式結構，伺服器一律以
+                    P9_FINAL_GATE_FAILED 擋下。
+                    介面先前沒有任何事前標示，使用者得把整張表單填完，
+                    按下產製才被告知「此類書狀尚未開放產製」——
+                    與表單欄位缺漏是同一種浪費使用者時間的失敗型態。
+
+                    這裡用與伺服器同一份真相來源（documentCatalog），
+                    在填表前就說明，避免白填。
+                  */}
+                  {currentTool && !isToolProducible(currentTool.id) && (
+                    <div className="mt-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-200 leading-relaxed">
+                      <div className="flex items-center gap-1.5 font-bold mb-1">
+                        <AlertTriangle className="w-3.5 h-3.5" />
+                        此類書狀尚未開放產製
+                      </div>
+                      <p>
+                        該書狀的格式與合規結構尚未完成核准，系統不會交付未經授權的法院書狀。
+                        你仍可整理下方資料作為草稿，或改用其他已開放的工具。
+                      </p>
+                    </div>
+                  )}
                   <button
                     onClick={handleGenerate}
                     disabled={isLoading || generationStage === 'analyzing' || generationStage === 'formatting'}
