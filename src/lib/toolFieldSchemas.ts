@@ -121,6 +121,37 @@ export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
       "type": "text",
       "showAiSuggest": true
     }
+  ,
+    {
+      "key": "prosecutorOffice",
+      "label": "移送機關（檢察署）",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "complainantPhone",
+      "label": "告訴人電話",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "complainantAddress",
+      "label": "告訴人住址",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "incidentDate",
+      "label": "案發日期",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "bankAccount",
+      "label": "匯款帳號",
+      "type": "text",
+      "showAiSuggest": true
+    }
   ],
   "CRIMINAL_COMPLAINT_DEFAMATION": [
     {
@@ -140,6 +171,31 @@ export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
       "label": "侮辱言論與公開媒介",
       "type": "textarea",
       "rows": 5,
+      "showAiSuggest": true
+    }
+  ,
+    {
+      "key": "prosecutorOffice",
+      "label": "移送機關（檢察署）",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "accusedAddress",
+      "label": "被告住址",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "incidentDate",
+      "label": "案發日期",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "incidentLocation",
+      "label": "發生地點",
+      "type": "text",
       "showAiSuggest": true
     }
   ],
@@ -193,6 +249,25 @@ export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
       "type": "text",
       "showAiSuggest": true
     }
+  ,
+    {
+      "key": "complainantPhone",
+      "label": "告訴人電話",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "complainantAddress",
+      "label": "告訴人住址",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "accusedAddress",
+      "label": "被告住址",
+      "type": "text",
+      "showAiSuggest": true
+    }
   ],
   "DOMESTIC_VIOLENCE_PROTECTION_ORDER": [
     {
@@ -232,6 +307,49 @@ export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
       "type": "text",
       "showAiSuggest": true
     }
+  ,
+    {
+      "key": "petitionerName",
+      "label": "聲請人姓名",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "respondentName",
+      "label": "相對人姓名",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "complainantAddress",
+      "label": "告訴人住址",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "complainantPhone",
+      "label": "告訴人電話",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "accusedAddress",
+      "label": "被告住址",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "incidentDate",
+      "label": "案發日期",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "incidentLocation",
+      "label": "發生地點",
+      "type": "text",
+      "showAiSuggest": true
+    }
   ],
   "CIVIL_TORT_SEXUAL_ASSAULT": [
     {
@@ -263,6 +381,43 @@ export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
       "label": "侵害情節與精神身心創傷事由",
       "type": "textarea",
       "rows": 5,
+      "showAiSuggest": true
+    }
+  ,
+    {
+      "key": "plaintiffName",
+      "label": "原告姓名",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "defendantName",
+      "label": "被告姓名",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "complainantAddress",
+      "label": "告訴人住址",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "accusedAddress",
+      "label": "被告住址",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "incidentDate",
+      "label": "案發日期",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "incidentLocation",
+      "label": "發生地點",
+      "type": "text",
       "showAiSuggest": true
     }
   ],
@@ -310,6 +465,37 @@ export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
       "type": "text",
       "showAiSuggest": true
     }
+  ,
+    {
+      "key": "complainantPhone",
+      "label": "告訴人電話",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "complainantAddress",
+      "label": "告訴人住址",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "accusedAddress",
+      "label": "被告住址",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "incidentDate",
+      "label": "案發日期",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "incidentLocation",
+      "label": "發生地點",
+      "type": "text",
+      "showAiSuggest": true
+    }
   ],
   "CRIMINAL_COMPLAINT_INTIMIDATION": [
     {
@@ -331,6 +517,31 @@ export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
       "rows": 5,
       "showAiSuggest": true
     }
+  ,
+    {
+      "key": "accusedName",
+      "label": "被告姓名",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "complainantAddress",
+      "label": "告訴人住址",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "accusedAddress",
+      "label": "被告住址",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "incidentDate",
+      "label": "案發日期",
+      "type": "text",
+      "showAiSuggest": true
+    }
   ],
   "CRIMINAL_COMPLAINT_PRIVACY": [
     {
@@ -350,6 +561,31 @@ export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
       "label": "偷拍竊錄或未經同意散布情節",
       "type": "textarea",
       "rows": 5,
+      "showAiSuggest": true
+    }
+  ,
+    {
+      "key": "prosecutorOffice",
+      "label": "移送機關（檢察署）",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "complainantAddress",
+      "label": "告訴人住址",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "accusedAddress",
+      "label": "被告住址",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "incidentDate",
+      "label": "案發日期",
+      "type": "text",
       "showAiSuggest": true
     }
   ],
@@ -408,6 +644,25 @@ export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
     {
       "key": "claimTotalAmount",
       "label": "請求損害賠償金額（元）",
+      "type": "text",
+      "showAiSuggest": true
+    }
+  ,
+    {
+      "key": "plaintiffName",
+      "label": "原告姓名",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "complainantAddress",
+      "label": "告訴人住址",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "accusedAddress",
+      "label": "被告住址",
       "type": "text",
       "showAiSuggest": true
     }
@@ -487,6 +742,13 @@ export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
       "type": "textarea",
       "rows": 8,
       "showAiSuggest": false
+    }
+  ,
+    {
+      "key": "prosecutorOffice",
+      "label": "移送機關（檢察署）",
+      "type": "text",
+      "showAiSuggest": true
     }
   ],
   "CRIMINAL_SUPPLEMENTARY_CIVIL": [
@@ -592,6 +854,13 @@ export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
       "type": "text",
       "showAiSuggest": true
     }
+  ,
+    {
+      "key": "totalEstate",
+      "label": "遺產總額",
+      "type": "text",
+      "showAiSuggest": true
+    }
   ],
   "FORCED_SHARE_CALCULATOR": [
     {
@@ -609,6 +878,13 @@ export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
     {
       "key": "childrenCount",
       "label": "子女數",
+      "type": "text",
+      "showAiSuggest": true
+    }
+  ,
+    {
+      "key": "totalEstate",
+      "label": "遺產總額",
       "type": "text",
       "showAiSuggest": true
     }
@@ -683,6 +959,37 @@ export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
       "type": "text",
       "showAiSuggest": true
     }
+  ,
+    {
+      "key": "courtName",
+      "label": "管轄法院",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "idNo",
+      "label": "身分證字號",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "petitionerAddress",
+      "label": "聲請人住址",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "petitionerPhone",
+      "label": "聲請人電話",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "deceasedAddress",
+      "label": "被繼承人住址",
+      "type": "text",
+      "showAiSuggest": true
+    }
   ],
   "DIVORCE_AGREEMENT": [
     {
@@ -735,6 +1042,13 @@ export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
       "rows": 5,
       "showAiSuggest": true
     }
+  ,
+    {
+      "key": "payDay",
+      "label": "給付日",
+      "type": "text",
+      "showAiSuggest": true
+    }
   ],
   "GUARDIANSHIP_PETITION": [
     {
@@ -759,6 +1073,37 @@ export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
       "key": "supervisorName",
       "label": "會同開具財產清冊人",
       "type": "text",
+      "showAiSuggest": true
+    }
+  ,
+    {
+      "key": "courtName",
+      "label": "管轄法院",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "petitionerAddress",
+      "label": "聲請人住址",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "petitionerPhone",
+      "label": "聲請人電話",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "wardIdNo",
+      "label": "受監護人身分證字號",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "relationship",
+      "label": "雙方關係",
+      "type": "textarea", "rows": 5,
       "showAiSuggest": true
     }
   ],
@@ -787,6 +1132,13 @@ export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
       "type": "text",
       "showAiSuggest": true
     }
+  ,
+    {
+      "key": "courtName",
+      "label": "管轄法院",
+      "type": "text",
+      "showAiSuggest": true
+    }
   ],
   "CONTRACTUAL_GUARDIANSHIP": [
     {
@@ -810,6 +1162,31 @@ export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
     {
       "key": "supervisorName",
       "label": "會同開具財產清冊人",
+      "type": "text",
+      "showAiSuggest": true
+    }
+  ,
+    {
+      "key": "principalName",
+      "label": "本人姓名",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "guardianName",
+      "label": "監護人姓名",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "principalId",
+      "label": "本人身分證字號",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "guardianId",
+      "label": "監護人身分證字號",
       "type": "text",
       "showAiSuggest": true
     }
@@ -848,6 +1225,19 @@ export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
     {
       "key": "noteDueDate",
       "label": "到期日",
+      "type": "text",
+      "showAiSuggest": true
+    }
+  ,
+    {
+      "key": "courtName",
+      "label": "管轄法院",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "paymentPlace",
+      "label": "給付地點",
       "type": "text",
       "showAiSuggest": true
     }
@@ -959,6 +1349,37 @@ export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
       "type": "text",
       "showAiSuggest": true
     }
+  ,
+    {
+      "key": "creditorId",
+      "label": "債權人身分證字號",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "debtorId",
+      "label": "債務人身分證字號",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "borrowerBank",
+      "label": "匯款銀行",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "noteDate",
+      "label": "票據簽發日",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "noteDueDate",
+      "label": "票據到期日",
+      "type": "text",
+      "showAiSuggest": true
+    }
   ],
   "INTEREST_CALCULATOR": [
     {
@@ -999,6 +1420,31 @@ export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
       "type": "text",
       "showAiSuggest": true
     }
+  ,
+    {
+      "key": "courtName",
+      "label": "管轄法院",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "employerAddress",
+      "label": "雇主地址",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "titleCaseNo",
+      "label": "標的案號",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "debtAmount",
+      "label": "債權金額",
+      "type": "text",
+      "showAiSuggest": true
+    }
   ],
   "EXECUTION_BANK_REAL_ESTATE": [
     {
@@ -1019,6 +1465,25 @@ export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
       "type": "text",
       "showAiSuggest": true
     }
+  ,
+    {
+      "key": "courtName",
+      "label": "管轄法院",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "realEstateAddress",
+      "label": "不動產地址",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "debtAmount",
+      "label": "債權金額",
+      "type": "text",
+      "showAiSuggest": true
+    }
   ],
   "PROVISIONAL_ATTACHMENT": [
     {
@@ -1036,6 +1501,19 @@ export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
     {
       "key": "titleCaseNo",
       "label": "執行名義案號",
+      "type": "text",
+      "showAiSuggest": true
+    }
+  ,
+    {
+      "key": "courtName",
+      "label": "管轄法院",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "claimAmount",
+      "label": "請求金額",
       "type": "text",
       "showAiSuggest": true
     }
@@ -1204,6 +1682,13 @@ export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
       "rows": 3,
       "showAiSuggest": true
     }
+  ,
+    {
+      "key": "defendant",
+      "label": "被告",
+      "type": "text",
+      "showAiSuggest": true
+    }
   ],
   "DEMAND_LETTER_DEBT": [
     {
@@ -1282,6 +1767,25 @@ export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
       "rows": 5,
       "showAiSuggest": true
     }
+  ,
+    {
+      "key": "senderAddress",
+      "label": "寄件人住址",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "recipientAddress",
+      "label": "收件人住址",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "contractDate",
+      "label": "契約簽訂日",
+      "type": "text",
+      "showAiSuggest": true
+    }
   ],
   "DEMAND_LETTER_LABOR": [
     {
@@ -1309,6 +1813,43 @@ export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
       "rows": 5,
       "showAiSuggest": true
     }
+  ,
+    {
+      "key": "senderAddress",
+      "label": "寄件人住址",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "recipientAddress",
+      "label": "收件人住址",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "hireDate",
+      "label": "到職日",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "salary",
+      "label": "月薪",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "violationPeriod",
+      "label": "違規期間",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "severancePay",
+      "label": "資遣費",
+      "type": "text",
+      "showAiSuggest": true
+    }
   ],
   "DEMAND_LETTER_RENT_DEFAULT": [
     {
@@ -1334,6 +1875,43 @@ export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
       "label": "催告事由經過",
       "type": "textarea",
       "rows": 5,
+      "showAiSuggest": true
+    }
+  ,
+    {
+      "key": "senderAddress",
+      "label": "寄件人住址",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "recipientAddress",
+      "label": "收件人住址",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "leaseAddress",
+      "label": "租賃物地址",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "monthlyRent",
+      "label": "月租金",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "startDefaultMonth",
+      "label": "起算年月",
+      "type": "text",
+      "showAiSuggest": true
+    },
+    {
+      "key": "defaultMonths",
+      "label": "欠租月數",
+      "type": "text",
       "showAiSuggest": true
     }
   ],
@@ -1421,6 +1999,13 @@ export const TOOL_FIELD_SCHEMAS: Record<string, ToolFieldDef[]> = {
     { "key": "defendantName", "label": "被告姓名", "type": "text", "showAiSuggest": true },
     { "key": "claimAmount", "label": "訴訟標的金額（元）", "type": "text", "showAiSuggest": true },
     { "key": "incidentDetails", "label": "起訴請求事實與理由", "type": "textarea", "rows": 5, "showAiSuggest": true }
+  ,
+    {
+      "key": "searchQuery",
+      "label": "案件關鍵字",
+      "type": "text",
+      "showAiSuggest": true
+    }
   ],
   "COURT_FEE_CALCULATOR": [
     { "key": "claimAmount", "label": "訴訟標的金額（元）", "type": "number", "showAiSuggest": true },
