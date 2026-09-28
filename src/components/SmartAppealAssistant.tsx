@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import { TRAVEL_DAYS_OPTIONS } from '../lib/travelDays';
 import { useSmartAppealAssistant } from '../hooks/useSmartAppealAssistant';
 import { AppealWorkflowContext, useAppealStore } from '../store/useAppealStore';
 import { getActiveCase, useCaseStore } from '../store/useCaseStore';
@@ -59,9 +60,12 @@ export default function SmartAppealAssistant({ initialFacts, workflowContext }: 
               <span>送達日期：<input type="date" value={deliveryDate} onChange={e => setDeliveryDate(e.target.value)} className="border rounded px-1 text-xs font-bold" /></span>
               <span>在途期間加計：
                 <select value={travelDays} onChange={e => setTravelDays(Number(e.target.value))} className="border rounded px-1 text-xs">
-                  <option value={0}>0 天（同縣市）</option>
-                  <option value={2}>2 天（鄰近縣市）</option>
-                  <option value={4}>4 天（長途/離島）</option>
+                  {/* 選項取自司法院標準的共用表。先前此處只有 0/2/4 天三項，
+                      且把 4 天標為「長途/離島」；依標準離島是 8 天，
+                      金馬澎當事人算少 4 天可能喪失上訴權。 */}
+                  {TRAVEL_DAYS_OPTIONS.map((o) => (
+                    <option key={o.days} value={o.days}>{o.label}</option>
+                  ))}
                 </select>
               </span>
             </div>

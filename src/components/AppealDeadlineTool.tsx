@@ -26,15 +26,12 @@ type LitigationType = 'criminal' | 'civil' | 'administrative';
 // 救濟程序類型
 type RemedyType = 'appeal12' | 'appeal23' | 'interlocutory' | 'retrial';
 
-// 常用在途期間參考資料（依司法院「法院訴訟當事人在途期間標準」）
-const TRAVEL_DAYS_OPTIONS = [
-  { label: '同一行政區 / 所在地法院 (0天)', days: 0 },
-  { label: '同縣市不同區 / 鄰近縣市 (2天)', days: 2 },
-  { label: '跨中長程縣市 (如基隆-台中) (3天)', days: 3 },
-  { label: '跨長程縣市 (如台北-高雄) (4天)', days: 4 },
-  { label: '花蓮、台東、澎湖等地區 (5天)', days: 5 },
-  { label: '金門、馬祖等離島地區 (8天)', days: 8 },
-];
+// 在途期間天數取自共用表，避免與其他畫面不一致。
+// 見 src/lib/travelDays.ts：金馬澎當事人若用到選項較少的表，
+// 期限會少算 4 天，在 20 日不變期間內可能喪失上訴權。
+import { TRAVEL_DAYS_OPTIONS as TRAVEL_DAYS_SHARED } from '../lib/travelDays';
+
+const TRAVEL_DAYS_OPTIONS = TRAVEL_DAYS_SHARED;
 
 // 法定救濟期間數據總表（對照司法院標準）
 const STATUTORY_RULES = {
