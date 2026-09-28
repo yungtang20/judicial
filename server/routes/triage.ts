@@ -125,8 +125,16 @@ ${toolsSummary}
       appendSyllogismRules: true
     });
 
-    let finalPayload = pipelineResult.payload;
-    
+    // 一致性規則必須在「所有」產出路徑上套用，不只是 AI 成功時。
+    //
+    // 實測：詐欺案件在 AI 降級時走的是 buildIntelligentRuleBasedTriage，
+    // 完全未經過 enforceTriageConsistency，於是被判為 CIVIL，
+    // UI 顯示「💼 純民事事件（無刑事責任）」——正是修正要解決的誤導。
+    //
+    // 規則本身是確定性的（只看查詢字串與既有法源），
+    // 對降級輸出同樣適用，且成本為零。
+    let finalPayload = enforceTriageConsistency(pipelineResult.payload, rawInput);
+
     // Attach RAG sources and status
     finalPayload.sources = pipelineResult.legalSources;
     finalPayload.isExternalRetrievalUsed = pipelineResult.isExternalRetrievalUsed;
