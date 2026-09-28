@@ -288,12 +288,13 @@ export default function JudgmentSearchTool() {
             1. 資料來源
           </h3>
 
-          <input 
-            type="file" 
+          <input
+            type="file"
             id="folderInput"
             ref={fileInputRef}
-            multiple 
+            multiple
             accept=".json,.pdf,.txt"
+            aria-label="上傳裁判書資料夾或檔案"
             onChange={handleFileSelect}
             className="hidden"
           />

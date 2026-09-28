@@ -86,7 +86,7 @@ export function AppealStep1({ ctx }: { ctx: AppealStepContext }) {
                   </button>
                   <label className="bg-[var(--color-surface-raised)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-overlay)] px-3 py-1 rounded text-xs font-bold cursor-pointer transition-colors flex items-center gap-1">
                     📁 上傳裁判 PDF / TXT 檔
-                    <input type="file" accept=".pdf,.txt" onChange={(e) => handleFileUpload(e, 'first')} className="hidden" />
+                    <input type="file" accept=".pdf,.txt" aria-label="上傳原審裁判書 PDF 或 TXT" onChange={(e) => handleFileUpload(e, 'first')} className="hidden" />
                   </label>
                 </div>
               </div>
@@ -142,7 +142,7 @@ export function AppealStep1({ ctx }: { ctx: AppealStepContext }) {
                       </button>
                       <label className="bg-[var(--color-surface-overlay)] border border-[var(--color-border-strong)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-overlay)] px-2.5 py-1 rounded text-2xs font-bold cursor-pointer transition flex items-center gap-0.5">
                         📁 上傳 PDF
-                        <input type="file" accept=".pdf,.txt" onChange={(e) => handleFileUpload(e, 'first')} className="hidden" />
+                        <input type="file" accept=".pdf,.txt" aria-label="上傳原審裁判書 PDF 或 TXT" onChange={(e) => handleFileUpload(e, 'first')} className="hidden" />
                       </label>
                     </div>
                   </div>
@@ -192,7 +192,7 @@ export function AppealStep1({ ctx }: { ctx: AppealStepContext }) {
                       </button>
                       <label className="bg-[var(--color-surface-overlay)] border border-[var(--color-border-strong)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-overlay)] px-2.5 py-1 rounded text-2xs font-bold cursor-pointer transition flex items-center gap-0.5">
                         📁 上傳 PDF
-                        <input type="file" accept=".pdf,.txt" onChange={(e) => handleFileUpload(e, 'second')} className="hidden" />
+                        <input type="file" accept=".pdf,.txt" aria-label="上傳第二份裁判書 PDF 或 TXT（對照剖析用）" onChange={(e) => handleFileUpload(e, 'second')} className="hidden" />
                       </label>
                     </div>
                   </div>
