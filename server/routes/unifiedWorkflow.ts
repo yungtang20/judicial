@@ -32,6 +32,46 @@ import { isProviderConfigError } from '../services/agentChat';
 import { extractJsonFromText } from './extractJson.js';
 import { toTraditionalChineseIn } from './toTraditionalIn.js';
 
+
+/**
+ * 從模型輸出中取出建議選項。
+ *
+ * 實測模型會回多種形狀：直接陣列、包在 options/suggestions 的物件、
+ * 以索引為鍵的物件，或單純的說明文字。
+ * 只認第一種會讓取不到時回空陣列，使用者看到「AI 建議」按鈕卻什麼都沒有。
+ *
+ * 全部取不到時回空陣列，由呼叫端據此回報失敗而非假裝成功。
+ */
+export function 取出建議選項(parsed: unknown): string[] {
+  const 正規化 = (values: unknown[]): string[] =>
+    values.map(v => String(v).trim()).filter(v => v.length > 0 && v.length <= 200);
+
+  if (Array.isArray(parsed)) {
+    // [{text:"A"},{text:"B"}] 這種物件陣列，取每個物件的第一個值。
+    return 正規化(parsed.map(item =>
+      item && typeof item === 'object' && !Array.isArray(item)
+        ? Object.values(item as Record<string, unknown>)[0]
+        : item,
+    ));
+  }
+  if (parsed === null || typeof parsed !== 'object') return [];
+
+  const obj = parsed as Record<string, unknown>;
+  // 優先取常見的陣列欄位
+  for (const key of ['options', 'suggestions', 'items', 'results', 'values']) {
+    const value = obj[key];
+    if (Array.isArray(value)) return 正規化(value);
+  }
+
+  // 以數字為鍵的物件：{"1":"A","2":"B"}
+  // 只認數字鍵。{"note":"我無法提供建議"} 這類說明欄位不是建議選項，
+  // 把它當成建議只會讓使用者拿到一句毫無用處的解釋。
+  const 索引項 = Object.entries(obj)
+    .filter(([key, value]) => /^\d+$/.test(key) && (typeof value === 'string' || typeof value === 'number'))
+    .map(([, value]) => value);
+  return 正規化(索引項);
+}
+
 const router = Router();
 
 export function keepVerifiedPrecedents<T extends { caseNumber: string }>(
@@ -860,15 +900,18 @@ router.post("/api/workflow/suggest-field", async (req: Request, res: Response) =
       });
     }
 
-    const options = Array.isArray(parsed)
-      ? parsed.map((item: unknown) => String(item).trim()).filter(Boolean)
-      // 模型可能把選項包在物件裡（例如 {"options": [...]}），一併處理。
-      : (() => {
-          const inner = (parsed as { options?: unknown } | null)?.options;
-          return Array.isArray(inner)
-            ? inner.map((item: unknown) => String(item).trim()).filter(Boolean)
-            : [];
-        })();
+    /**
+     * 取出建議選項。
+     *
+     * 實測模型會回多種形狀：
+     *   ["A","B","C"]            直接陣列
+     *   {"options":["A","B"]}    包在 options
+     *   {"suggestions":["A"]}    包在 suggestions
+     *   {"1":"A","2":"B"}        以索引為鍵的物件
+     *   {"note":"..."}           單純的說明文字
+     * 舊實作只認第一種，取不到就回空陣列卻仍回 success。
+     */
+    const options = 取出建議選項(parsed);
 
     if (options.length === 0) {
       // 寧可讓使用者知道取不到，也不要顯示一個沒有內容的「AI 建議」。
