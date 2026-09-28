@@ -74,6 +74,50 @@ describe('POST /api/toolbox/generate：未填欄位閘門', () => {
     expect(res.body.code).toBe('TOOLBOX_CATEGORY_REQUIRED');
   });
 });
+describe('POST /api/toolbox/verify-citations：空白文件', () => {
+  it('空白字串與純空白都必須被拒絕', async () => {
+    // 實測不一致：空白字串回 400，純空白（「   \n\n  」）卻回 200 VERIFIED。
+    // 後者會讓前端顯示「檢核通過」，使用者以為空文件已經驗過。
+    // 空白不是文件。
+    const 空白 = ['', '   ', '\n\n', '\t', ' \r\n '];
+    for (const documentText of 空白) {
+      const res = await request(建立App())
+        .post('/api/toolbox/verify-citations')
+        .send({ documentText });
+      expect(res.status, `JSON.stringify(${JSON.stringify(documentText)}) 應回 400`).toBe(400);
+    }
+  });
+
+  it('非字型的文件內容必須被拒絕', async () => {
+    for (const documentText of [null, 123, [], {}]) {
+      const res = await request(建立App())
+        .post('/api/toolbox/verify-citations')
+        .send({ documentText });
+      expect(res.status, `${JSON.stringify(documentText)} 應回 400`).toBe(400);
+    }
+  });
+
+  it('含有比較符號的合法文件不得被誤拒', async () => {
+    // 法律文件可能含不等號或括號（例如比較兩項損害額）。
+    // 清洗中介層只移除 script 標籤，不得連帶影響這些內容。
+    const 合法 = '請求被告給付<新台幣>500,000元，年息<5%，損失額 a<b 且 c>d 時分別計算。';
+    const res = await request(建立App())
+      .post('/api/toolbox/verify-citations')
+      .send({ documentText: 合法 });
+    expect(res.status).toBe(200);
+    expect(res.body.antiGhostVerification.status).toBe('VERIFIED');
+  });
+
+  it('空白文件不得被回報為已查核', async () => {
+    // 反向確認：真正有內容但無引用的文件，status 才會是 VERIFIED。
+    const res = await request(建立App())
+      .post('/api/toolbox/verify-citations')
+      .send({ documentText: '本案爭點在於契約是否成立。' });
+    expect(res.status).toBe(200);
+    expect(res.body.antiGhostVerification.status).toBe('VERIFIED');
+    expect(res.body.antiGhostVerification.totalCitationsChecked).toBe(0);
+  });
+});
 
 describe('未填欄位標記', () => {
   it('前後端使用同一個常數', () => {

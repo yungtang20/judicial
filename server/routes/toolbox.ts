@@ -212,11 +212,15 @@ router.post("/api/toolbox/generate", async (req: Request, res: Response) => {
 // 2. Citation Verification Endpoint
 router.post("/api/toolbox/verify-citations", (req: Request, res: Response) => {
   const { documentText } = req.body;
-  if (!documentText) {
+  // 先去頭尾空白再判斷。空白字串回 400、純空白卻回 200 VERIFIED，
+  // 同一件事兩種結果；後者會讓前端顯示「檢核通過」，
+  // 使用者以為空文件已經驗過。空白不是文件。
+  const 內容 = typeof documentText === 'string' ? documentText.trim() : '';
+  if (!內容) {
     return res.status(400).json({ error: "請提供欲檢核之法律文件內容" });
   }
 
-  const raw = verifyLegalCitations(documentText);
+  const raw = verifyLegalCitations(內容);
   // status 是人工覆核閘門的唯一權威依據：未回傳 status 會讓前端把「未查核」誤讀為「已通過」。
   // 只有在整份文件掃描完成且未發現幽靈引用時才宣告 VERIFIED；
   // 任一處引用被判定為幽靈或虛構一律 FAIL，文件不得交付。
