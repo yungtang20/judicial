@@ -42,9 +42,30 @@ import { toTraditionalChineseIn } from './toTraditionalIn.js';
  *
  * 全部取不到時回空陣列，由呼叫端據此回報失敗而非假裝成功。
  */
+/**
+ * 判斷模型輸出其實是錯誤回應。
+ *
+ * 實測正式站出現過建議選項為
+ *   ["無法解析請求參數", "400"]
+ * 也就是上游回傳的錯誤物件被當成建議清單送到使用者手上。
+ * 這類 payload 的特徵是「只有錯誤欄位、沒有任何建議內容」，
+ * 而且值看起來是錯誤訊息而非可填入表單的內容。
+ */
+const 錯誤欄位 = new Set(['error', 'code', 'message', 'detail', 'details', 'status', 'statusCode', 'type']);
+function 是錯誤回應(value: unknown): boolean {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
+  const keys = Object.keys(value as Record<string, unknown>);
+  if (keys.length === 0) return false;
+  // 全部欄位都是錯誤類欄位，且沒有任何陣列欄位（陣列欄位才是建議）
+  return keys.every(k => 錯誤欄位.has(k.toLowerCase()));
+}
+
 export function 取出建議選項(parsed: unknown): string[] {
   const 正規化 = (values: unknown[]): string[] =>
     values.map(v => String(v).trim()).filter(v => v.length > 0 && v.length <= 200);
+
+  // 錯誤回應不是建議。
+  if (是錯誤回應(parsed)) return [];
 
   if (Array.isArray(parsed)) {
     // [{text:"A"},{text:"B"}] 這種物件陣列，取每個物件的第一個值。
