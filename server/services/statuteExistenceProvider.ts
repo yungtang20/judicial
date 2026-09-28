@@ -1,6 +1,7 @@
 import { loadOfficialStatuteIndex, type OfficialStatuteIndex } from './officialStatuteIndex.js';
 import type { StatuteExistenceCheck } from '../../src/lib/citationVerifier.js';
 import type { LegalInputPrecheckOptions } from '../../src/lib/legalInputPrecheck.js';
+import { setStatuteExistenceProvider } from '../../src/lib/citationVerifier.js';
 
 /**
  * 把官方法規索引提供給同步的前檢查。
@@ -33,6 +34,9 @@ export function warmOfficialStatuteIndex(): Promise<void> {
     .then((index) => {
       if (index) {
         current = index;
+        // 引用驗證的呼叫點散佈在產製管線、工具箱、律師工作流等多處，
+        // 在此注入一次即可全部生效，不需逐處傳遞。
+        setStatuteExistenceProvider((lawName, article, subArticle) => index.verify(lawName, article, subArticle));
         if (retryTimer) {
           clearTimeout(retryTimer);
           retryTimer = null;
@@ -83,6 +87,10 @@ export function isOfficialStatuteIndexReady(): boolean {
 /** 僅供測試使用：注入或清除索引。 */
 export function __setOfficialStatuteIndexForTest(index: OfficialStatuteIndex | null): void {
   current = index;
+  // 模組層級的供應者必須同步更新，否則測試會讀到上一個索引。
+  setStatuteExistenceProvider(
+    index ? (lawName, article, subArticle) => index.verify(lawName, article, subArticle) : undefined
+  );
 }
 
 /**

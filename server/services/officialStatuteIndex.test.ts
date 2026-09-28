@@ -217,3 +217,37 @@ describe('官方來源實際可用性', () => {
     expect(索引.verify('民事訴訟法', 630)).toBe('EXISTS');
   });
 });
+
+describe('產出驗證同樣採用官方資料', () => {
+  beforeEach(() => {
+    resetOfficialStatuteIndexCache();
+    __setOfficialStatuteIndexForTest(null);
+  });
+
+  it('未注入時沿用本機索引，行為與原本相同', () => {
+    // 治理測試與單元測試不注入官方資料時，必須完全等同於上線前行為。
+    expect(verifyLegalCitations('依民法第184條規定。').results[0]?.verified).toBe(true);
+    expect(verifyLegalCitations('依民法第479條規定。').results[0]?.verified).toBe(false);
+  });
+
+  it('注入後產出路徑也能查證真實法條', () => {
+    // 實測缺陷：輸入預檢雖已改用官方資料，但產出驗證仍走本機索引，
+    // 導致任何使用者輸入的法條引用都讓產製失敗（HTTP 422）。
+    // 這裡鎖住「注入一次即全面生效」。
+    const 索引 = buildIndex(官方資料([
+      { LawName: '民法', 条: ['第 1 條', '第 184 條', '第 471 條', '第 479 條'] }
+    ]));
+    __setOfficialStatuteIndexForTest(索引);
+    expect(verifyLegalCitations('依民法第479條規定。').results[0]?.verified).toBe(true);
+    expect(verifyLegalCitations('依民法第9999條規定。').results[0]?.verified).toBe(false);
+  });
+
+  it('撤回注入後回到本機索引，不得殘留官方判斷', () => {
+    const 索引 = buildIndex(官方資料([{ LawName: '民法', 条: ['第 479 條'] }]));
+    __setOfficialStatuteIndexForTest(索引);
+    expect(verifyLegalCitations('依民法第479條規定。').results[0]?.verified).toBe(true);
+    __setOfficialStatuteIndexForTest(null);
+    expect(verifyLegalCitations('依民法第479條規定。').results[0]?.verified).toBe(false);
+  });
+});
+

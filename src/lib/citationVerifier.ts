@@ -810,6 +810,27 @@ export interface VerifyCitationsOptions {
 }
 
 /**
+ * 模組層級的官方法規查詢提供者。
+ *
+ * 引用驗證的呼叫點散佈在產製管線、工具箱、律師工作流等多處，
+ * 逐一傳入選項容易漏掉而讓過期索引靜默生效。改由伺服器啟動時
+ * 注入一次，未注入（例如前端、單元測試、離線）時行為與原本相同。
+ *
+ * 放這裡而不是讓 src/lib 直接依賴伺服器模組，是為了維持分層：
+ * 網路存取留在 server/，src/lib 只持有可注入的函式。
+ */
+let defaultStatuteExistence: StatuteExistenceCheck | undefined;
+
+/** 伺服器啟動時注入官方法規查詢。傳入 undefined 退回本機索引。 */
+export function setStatuteExistenceProvider(provider: StatuteExistenceCheck | undefined): void {
+  defaultStatuteExistence = provider;
+}
+
+function resolveStatuteExistence(options?: VerifyCitationsOptions): StatuteExistenceCheck | undefined {
+  return options?.statuteExistence || defaultStatuteExistence;
+}
+
+/**
  * Anti-Hallucination Ghost Citation Verifier
  * Scans generated legal text for statutory articles and case citations,
  * verifying them against official database rules and allowed_citations to detect ghost/hallucinated items.
@@ -973,9 +994,10 @@ export function verifyLegalCitations(
     //    卻會被判定為「該法最高僅至第607條」的捏造引用。
     //
     // 官方查不到時（UNKNOWN）維持原有邏輯，不得因無法查證就放行。
-    const officialExistence = options?.statuteExistence
-      ? options.statuteExistence(lawName, Number(mainArt), subArt ? Number(subArt) : undefined)
-      : 'UNKNOWN' as const;
+    const officialExistenceCheck = resolveStatuteExistence(options);
+    const officialExistence = officialExistenceCheck
+      ? officialExistenceCheck(lawName, Number(mainArt), subArt ? Number(subArt) : undefined)
+      : ('UNKNOWN' as const);
 
     if (officialExistence === 'EXISTS') {
       results.push({
