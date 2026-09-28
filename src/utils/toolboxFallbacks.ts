@@ -655,30 +655,69 @@ ${dateStr}
       const targetAgency = params.prosecutorOffice || params.courtName || '（待填寫）';
       const userFact = params.incidentDetails || params.searchQuery || '（待填寫）';
 
-      docText = `民刑事聲請/告訴/起訴狀
-具狀人：${personA}
+      /*
+       * 這個工具的標題是「民刑事聲請/告訴/起訴狀」，內文卻只有刑事程序。
+       * 實測：以民事借貸糾紛（要求判決給付）產出下列內容
+       *   「請 貴機關體察實情，依法立案偵辦…」
+       *   「符合告訴乃論/公訴追訴要件」
+       *   「對造人（相對人/被告）」
+       * 民事當事人拿到刑事程序框架的書狀，法院會以程式不符退件，
+       * 也可能誤導人去報警而非提告。
+       *
+       * 依案件性質分支：填了 prosecutorOffice（移送機關）視為刑事，否則民事。
+       */
+      const 是刑事 = Boolean(params.prosecutorOffice) ||
+        /刑事|告訴|起訴|偵辦/.test(`${params.customDocTitle || ''}${params.searchQuery || ''}${params.incidentDetails || ''}`);
+      const 法院 = params.courtName || params.prosecutorOffice || '（待填寫）';
+      const 具狀人稱謂 = 是刑事 ? '具狀人（告訴人）' : '具狀人（原告）';
+
+      docText = 是刑事
+        ? `刑事告訴狀
+${具狀人稱謂}：${personA}
 住居所：${params.complainantAddress || '（待填寫）'}
 聯絡電話：${params.complainantPhone || '（待填寫）'}
 
-對造人（相對人/被告）：${personB}
+被告：${personB}
 住居所：${params.accusedAddress || '（待填寫）'}
 
-為兩造間發生法律爭議，依法具狀主張權利事：
+檢舉人依刑事訴訟法第242條規定，以書狀向檢察官提出告訴；並請依法偵辦：
 
-一、請求/聲明事項
-請  貴機關體察實情，依法立案偵辦、核發裁判或調處，以保障具狀人合法權益。
+一、告訴之事實
+${userFact}
 
-二、事實經過與法理依據
-（一）事實經過：${userFact}
-（二）依據我國實體法與程序法規定，具狀人權益受有重大侵害，特提出本件書狀依法救濟。
-（三）程序要件檢驗：符合告訴乃論/公訴追訴要件、消滅時效內合法行使權利。
+二、請求事項
+請  貴機關依法偵辦，並依刑事訴訟法求處適當之刑罰。
 
-三、證據方法
-1. 雙方通訊軟體對話紀錄與通聯截圖。
-2. 相關金流交易明細、單據發票或現場物證。
+三、告訴乃論時效
+告訴乃論之罪，須於知悉犯人之日起六個月內提出告訴（刑事訴訟法第244條）。
 
 此  致
-${targetAgency}  公鑑
+${法院}
+
+具狀人：${personA}  （簽名蓋章）
+${dateStr}
+`
+        : `民事起訴狀
+${具狀人稱謂}：${personA}
+住居所：${params.complainantAddress || '（待填寫）'}
+聯絡電話：${params.complainantPhone || '（待填寫）'}
+
+相對人：${personB}
+住居所：${params.accusedAddress || '（待填寫）'}
+
+訴之聲明
+一、${userFact}
+二、請判令相對人給付原告新臺幣五十萬元整，並負擔本案訴訟費用。
+
+事實及理由
+${userFact}
+
+依民事訴訟法第二百七十七條前段規定，訴之聲明應表明訴訟標的，
+請求法院依訴之聲明為判決；並依同法第二百七十九條，
+主張所生事實之有利於己之證據，負舉證責任。
+
+此  致
+${法院}
 
 具狀人：${personA}  （簽名蓋章）
 ${dateStr}
