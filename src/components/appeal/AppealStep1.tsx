@@ -280,12 +280,12 @@ export function AppealStep1({ ctx }: { ctx: AppealStepContext }) {
 
             {judgmentSummary ? (
               <div className="space-y-4 text-xs leading-relaxed">
-                {/* 1. 案件事實用說故事的方式 (至少五百字・綜合被害人、涉嫌人、證人觀點) */}
+                {/* 1. 案件事實忠實整理（字數與內容範圍需與提示詞一致） */}
                 <div className="bg-[var(--color-surface-overlay)] p-4 rounded-lg border border-[var(--color-status-info)]/30 shadow-2xs space-y-2">
                   <div className="font-bold text-sm text-[var(--color-status-info)] flex items-center justify-between border-b border-[var(--color-status-info)]/30 pb-2">
                     <span className="flex items-center gap-2">
                       <span className="bg-blue-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-2xs font-bold">1</span>
-                      <span>案件事實用說故事的方式（至少五百字・綜合被害人、涉嫌人與證人觀點）</span>
+                      <span>案件事實忠實整理（200~400 字・只寫判決書記載的內容）</span>
                     </span>
                     {(judgmentSummary.storyNarrative || judgmentSummary.overview) && (
                       <span className="text-3xs text-[var(--color-text-muted)] font-mono font-normal">
@@ -313,7 +313,7 @@ export function AppealStep1({ ctx }: { ctx: AppealStepContext }) {
               <div className="text-[var(--color-text-secondary)] text-xs py-3 leading-relaxed">
                 💡 貼上或匯入判決書全文後，點擊下方按鈕即可自動提煉：
                 <ul className="list-disc list-inside mt-2 space-y-1.5 text-[var(--color-text-secondary)] font-medium">
-                  <li><b>1. 案件事實用說故事的方式</b>（至少五百字・綜合被害人、涉嫌人與證人觀點）</li>
+                  <li><b>1. 案件事實忠實整理</b>（200~400 字・只寫判決書記載的內容）</li>
                   <li><b>2. 裁判結果</b>（刑期或判決主文要旨）</li>
                 </ul>
               </div>
