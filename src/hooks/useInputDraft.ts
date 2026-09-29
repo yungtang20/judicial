@@ -31,24 +31,31 @@ export function useInputDraft(
   分析已完成: boolean
 ): void {
   const 計時器 = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // 掛載時記錄初值，避免把「空」寫回去蓋掉既有草稿。
-  const 初次載入 = useRef(true);
+  /** 正在從草稿還原，用來避免寫入效果以掛載時的空值覆蓋草稿。 */
+  const 還原中 = useRef(false);
 
-  // 恢復草稿：僅在輸入框為空時，避免覆蓋使用者正在輸入的內容。
+  // 恢復草稿。
+  //
+  // 實測：只在「首次掛載」恢復不夠——切換功能頁面後攔截 localStorage.getItem
+  // 確認根本沒有讀取，151 字的草稿留在儲存裡而輸入框是空的。
+  //
+  // 改為「輸入框為空且草稿存在就恢復」。不會造成誤恢復：
+  // 使用者主動清空輸入時，下方的寫入效果會把草稿一併移除，
+  // 沒有草稿就不會恢復。
   useEffect(() => {
-    if (初次載入.current) {
-      初次載入.current = false;
-      if (!inputNarrative.trim()) {
-        try {
-          const 草稿 = window.localStorage.getItem(草稿鍵);
-          if (草稿 && 草稿.trim()) setInputNarrative(草稿);
-        } catch {
-          // localStorage 不可用（無痕模式、權限限制）時靜默略過，
-          // 不能因為無法保存草稿就讓整個輸入框不可用。
-        }
+    if (分析已完成) return;
+    if (inputNarrative.trim()) return;
+    try {
+      const 草稿 = window.localStorage.getItem(草稿鍵);
+      if (草稿 && 草稿.trim()) {
+        還原中.current = true;
+        setInputNarrative(草稿);
       }
+    } catch {
+      // localStorage 不可用（無痕模式、權限限制）時靜默略過，
+      // 不能因為無法保存草稿就讓整個輸入框不可用。
     }
-  }, [inputNarrative, setInputNarrative]);
+  }, [inputNarrative, 分析已完成, setInputNarrative]);
 
   // 寫入草稿。
   useEffect(() => {
@@ -65,6 +72,7 @@ export function useInputDraft(
 
     clearTimeout(計時器.current);
     計時器.current = setTimeout(() => {
+      還原中.current = false;
       try {
         if (inputNarrative.trim()) {
           window.localStorage.setItem(草稿鍵, inputNarrative);
