@@ -105,7 +105,11 @@ export class LegalRetrievalService implements ILegalRetrievalService {
     try {
       const extSources = await searchLegalSources(query, this.fetchImpl);
       if (extSources.enabled && extSources.provider === 'tw-legal-rag' && (extSources.allowedCitations?.length || 0) > 0) {
-        return extSources;
+        // 判例可供分析參考，但不作為引用授權來源。
+        // 理由同 retrieveContext：allowedCitations 非空會在產出驗證開啟
+        // strictAllowedOnly，讓引用查證結果隨檢索內容浮動——
+        // 實測會擋下真實案號（如北簡字第7197號因號碼 > 6000 被判為幽靈）。
+        return { ...extSources, allowedCitations: [] };
       }
     } catch (err: any) {
       console.warn('[LegalRetrievalService] 外部 TW-Legal-RAG 查詢異常，降級本機知識庫:', err?.message || err);
@@ -150,10 +154,23 @@ export class LegalRetrievalService implements ILegalRetrievalService {
     );
 
     if (isExternal && context && context.hasCitations) {
+      // 檢索結果只作為分析脈絡，不作為書狀的引用授權來源。
+      //
+      // 理由：allowedCitations 非空會在產出驗證開啟 strictAllowedOnly，
+      // 等於「書狀只能引用本次檢索到的案號」。但實測：
+      // 1. TLR 回傳的 22 種案由代號中，驗證器只認 4 種，其餘無法解析
+      //    → 引用被擋，使用者只看到「產製不出來」而不知原因。
+      // 2. 驗證規則 numVal > 6000 會把真實的高號案號（如北簡字第7197號）
+      //    判為幽靈。
+      // 兩者都讓引用查證的行為隨檢索結果浮動。
+      //
+      // 因此清空 allowedCitations：判例仍進入提示詞供模型參考，
+      // 書狀的引用授權回到既有的本機索引與官方法規查證規則。
       return {
         ...context,
+        allowedCitations: [],
         isExternalRetrievalUsed: true,
-        statusMessage: '已連線外部 TW-Legal-RAG 檢索實務裁判見解'
+        statusMessage: '已連線外部 TW-Legal-RAG 檢索實務裁判見解（僅供分析參考；書狀引用需另行指定）'
       };
     }
 
