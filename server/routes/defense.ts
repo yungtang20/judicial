@@ -44,7 +44,26 @@ router.post("/api/defense/triage", async (req: Request, res: Response) => {
     // 而同樣呼叫 AI 的 agent-chat / triage-universal 都正常——差別就在這裡。
     // 供應商支援 response_format: json_object，與提示詞的宣告一致，
     // 模型就不會夾帶說明文字或 markdown 導致解析失敗。
-    const aiRes = await configuredAIProvider.generate(fullPrompt, { responseMimeType: 'application/json' });
+    // 平台請求逾時防線。
+    //
+    // 實測正式站 defense/triage 的回應時間 p50 為 26.9 秒、max 30.8 秒，
+    // 與 502 的出現時點（30 秒附近）重疊——那是 Render 代理的請求逾時，
+    // 不是應用程式的錯誤（應用若出錯會回 500）。
+    //
+    // 應用雖設定 AGNES_TIMEOUT_MS=60000，但永遠輪不到它生效：
+    // 平台會先切斷連線，使用者只看到 502，完全拿不到內容。
+    //
+    // 因此在平台上限之前主動降級：逾時就走本機規則分析，
+    // 使用者至少拿到可用的分析與證據清單。
+    // 25 秒留有餘裕，可在正常情況（多數 19~29 秒）完成真實 AI 分析。
+    const 平台安全邊際 = Number(process.env.DEFENSE_AI_BUDGET_MS) || 25_000;
+    const 逾時 = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('DEFENSE_AI_BUDGET_EXCEEDED')), 平台安全邊際)
+    );
+    const aiRes = await Promise.race([
+      configuredAIProvider.generate(fullPrompt, { responseMimeType: 'application/json' }),
+      逾時
+    ]);
     // 寬容擷取：模型可能在 JSON 前後加上說明文字，
     // 直接對整段回應做 JSON.parse 會失敗而靜默降級。
     // 實測未做寬容擷取時 3 次呼叫有 2 次降級。
