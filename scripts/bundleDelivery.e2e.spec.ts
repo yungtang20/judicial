@@ -77,7 +77,7 @@ test('blocks tampered P9 content before download and allows the authorized TXT p
   }));
 
   await page.goto('/');
-  await page.getByRole('button', { name: /書狀與法律文件製作/ }).click();
+  await page.getByRole('button', { name: /選擇文件並填寫內容/ }).click();
   await page.getByRole('button', { name: /司法院官方範本/ }).click();
   await expect(page.getByRole('heading', { name: '司法院官方書狀範本' })).toBeVisible();
   await expect(page.getByRole('button', { name: '一鍵生成專業法律書狀' })).toHaveCount(0);
