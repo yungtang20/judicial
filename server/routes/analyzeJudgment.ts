@@ -1,6 +1,7 @@
 import { 檢查輸入長度 } from "../services/inputLengthGuard.js";
 import { Router, Request, Response } from "express";
 import { describePrecheckRejection } from "../../src/lib/precheckRejectionMessage.js";
+import { 校正法院欄位 } from "../../src/lib/judgmentFieldExtraction.js";
 import { 核對抽取金額, 產出核對說明, 偵測注入指令 } from "../services/judgmentExtractionGuard.js";
 import { getAnalyzeJudgmentPrompt } from "../../src/prompts/analyze-judgment.js";
 import { buildFallbackJudgmentAnalysis } from "../../src/utils/fallbacks.js";
@@ -58,8 +59,14 @@ router.post("/api/analyze-judgment", async (req: Request, res: Response) => {
       }
     });
 
+    // 法院、案號與審級以規則抽取為準，校正 AI 的猜測。
+    // 實測四個真實判決格式中，AI 有三個把「臺灣高等法院」與「最高法院」
+    // 判成「臺灣地方法院／第一審判決」——審級判錯會讓上訴法院判錯，
+    // 使用者可能把第二審判決當第一審處理而漏掉上訴。
+    // 這三個欄位在判決書開頭就寫著，規則抽取是確定性的。
+    const 原始文本 = judgmentText || '';
     const finalPayload = {
-      ...(pipelineResult.payload || {}),
+      ...校正法院欄位(pipelineResult.payload || {}, 原始文本),
       antiGhostVerification: pipelineResult.antiGhostVerification,
       legalSources: pipelineResult.legalSources,
       isExternalRetrievalUsed: pipelineResult.isExternalRetrievalUsed,
