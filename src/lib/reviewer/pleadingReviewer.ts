@@ -334,6 +334,7 @@ function partyLines(input: CaseInput, representatives: boolean): string[] {
       return [
         text(party.name) && `${party.role}：${text(party.name)}`,
         address && `${party.role}住所或送達處所：${address}`,
+        text(party.contactPhone) && `${party.role}聯絡電話：${text(party.contactPhone)}`,
         representatives && text(party.relationshipToParty)
           ? `與當事人之關係：${text(party.relationshipToParty)}`
           : ''

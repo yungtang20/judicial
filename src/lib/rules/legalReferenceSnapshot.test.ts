@@ -62,9 +62,22 @@ async function 載入官方條文(): Promise<((key: string) => string | null) | 
   const 索引 = await loadOfficialStatuteIndex();
   if (!索引) return null;
 
-  const 回應 = await fetch('https://law.moj.gov.tw/api/ch/law/json', {
-    headers: { accept: 'application/zip, */*' },
-  });
+  // 官方資料約 6 MB，逾時必須自行設限。
+  // 沒有逾時時，來源稍慢就會讓整個測試以 timeout 失敗——
+  // 那是外部網路問題，卻被呈現成程式缺陷。
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 20_000);
+  let 回應: Response;
+  try {
+    回應 = await fetch('https://law.moj.gov.tw/api/ch/law/json', {
+      signal: controller.signal,
+      headers: { accept: 'application/zip, */*' }
+    });
+  } catch {
+    return null; // 來源無法取得時跳過比對
+  } finally {
+    clearTimeout(timer);
+  }
   if (!回應.ok) return null;
   const { extractFirstZipEntry } = await import('../../../server/services/officialStatuteIndex');
   const zip = Buffer.from(await 回應.arrayBuffer());

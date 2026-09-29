@@ -62,7 +62,8 @@ function buildParties(params: CanonicalParams, claimantRole: string, respondentR
     id: randomUUID(),
     role: claimantRole,
     name: text(params, 'plaintiffName', 'claimantName', 'creditorName', 'complainantName', 'petitionerName'),
-    address: text(params, 'plaintiffAddress', 'claimantAddress', 'creditorAddress', 'complainantAddress', 'petitionerAddress')
+    address: text(params, 'plaintiffAddress', 'claimantAddress', 'creditorAddress', 'complainantAddress', 'petitionerAddress'),
+    contactPhone: text(params, 'plaintiffPhone', 'claimantPhone', 'creditorPhone', 'complainantPhone', 'petitionerPhone') || undefined
   };
   const defendants = [1, 2]
     .map(index => ({

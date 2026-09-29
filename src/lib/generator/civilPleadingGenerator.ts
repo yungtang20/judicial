@@ -66,6 +66,11 @@ function renderParties(input: CaseInput, representatives: boolean): SectionValue
         return [
           text(party.name) && `${party.role}：${text(party.name)}`,
           address && `${party.role}住所或送達處所：${address}`,
+          // 聯絡電話：備援範本（toolboxFallbacks）一直有輸出「電話：…」，
+          // 但正規書狀管線沒有，導致同一欄位在不同產製路徑結果不同——
+          // 使用者填了電話，某些產出有、某些沒有。此處與備援範本對齊，
+          // 僅在使用者確實填寫時輸出。
+          text(party.contactPhone) && `${party.role}聯絡電話：${text(party.contactPhone)}`,
           representatives && text(party.relationshipToParty)
             ? `與當事人之關係：${text(party.relationshipToParty)}`
             : ''

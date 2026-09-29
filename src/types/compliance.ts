@@ -205,6 +205,11 @@ export interface Party {
   role: string;
   name: string;
   address?: string;
+  /**
+   * 聯絡電話。備援範本（toolboxFallbacks）一直有輸出「電話：…」，
+   * 但正規書狀管線先前未渲染，導致同一欄位在不同產製路徑結果不同。
+   */
+  contactPhone?: string;
   representativeIds?: string[];
   representedPartyId?: string;
   relationshipToParty?: string;
