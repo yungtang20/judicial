@@ -53,6 +53,14 @@ describe('供應器層的暫時性故障重試', () => {
     }
   });
 
+  it('只有快速失敗才重試（避免加倍等待）', () => {
+    // 實測 defense/triage 首次常在約 30 秒後失敗。
+    // 若首次已耗掉大部分逾時預算，重試只會讓使用者多等一輪，
+    // 最壞可能把一次請求拖到兩分鐘。
+    expect(供應器).toContain('逾時上限 * 0.6');
+    expect(供應器).toMatch(/if \(已耗時 >= 逾時上限 \* 0.6\) throw firstError;/);
+  });
+
   it('重試之間有退避，且最多重試一次', () => {
     expect(供應器).toMatch(/setTimeout\(resolve, ATTEMPT_RETRY_MS\)/);
     expect(供應器).toContain('ATTEMPT_RETRY_MS = 800');

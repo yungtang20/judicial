@@ -98,10 +98,20 @@ export class OpenAICompatibleProvider implements AIProvider {
       const m = e instanceof Error ? e.message : String(e);
       return /HTTP_5\d\d|HTTP_429|fetch failed|ECONNRESET|ECONNREFUSED|ETIMEDOUT|ENOTFOUND|aborted|AbortError/i.test(m);
     };
+    const 逾時上限 = this.config.timeoutMs ?? Number(process.env[this.config.timeoutEnv] || 60_000);
+    const 開始 = Date.now();
     try {
       return await this.request(prompt, options);
     } catch (firstError) {
       if (!暫時性(firstError)) throw firstError;
+      // 只有「快速失敗」才重試。
+      //
+      // 實測 defense/triage 首次常在約 30 秒後失敗，重試後成功——
+      // 但若首次已耗掉大部分逾時預算，重試只會讓使用者多等一輪。
+      // 這裡以逾時上限的 60% 為界：明顯的暫時性抖動會重試，
+      // 已經很慢的請求則直接回報失敗，不加倍等待。
+      const 已耗時 = Date.now() - 開始;
+      if (已耗時 >= 逾時上限 * 0.6) throw firstError;
       await new Promise((resolve) => setTimeout(resolve, ATTEMPT_RETRY_MS));
       return this.request(prompt, options);
     }
