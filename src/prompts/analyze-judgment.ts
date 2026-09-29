@@ -65,7 +65,11 @@ export const getAnalyzeJudgmentPrompt = (judgmentText: string, secondJudgmentTex
   "courtName": "原審法院/決定機關名稱，例如：臺灣新北地方法院",
   "appealCourtName": "上訴/覆審管轄法院名稱，例如：臺灣高等法院 或 司法院刑事補償法庭",
   "caseNo": "原審案號，例如：115年度侵訴字第33號",
-  "judgeDate": "裁判/決定日期，例如：民國115年3月15日",
+  // 找不到就留空字串，嚴禁推估或捏造。裁判日期決定上訴期限的起算，
+  // 捏造日期會讓當事人算錯期限而失去救濟機會。
+  // 實測：提示詞只給範例而未說明找不到時如何處理，模型便照範例捏造
+  // 「民國113年」甚至「民國113年5月20日」這種原文不存在的完整日期。
+  "judgeDate": "裁判/決定日期，格式如民國115年3月15日；原文未載明時填空字串",
   "courtLevel": "第一審判決 | 第二審判決 | 刑事補償決定",
   "appealEligibility": "ALLOWED | RESTRICTED | FORBIDDEN",
   "eligibilityStatusTitle": "🟢 依法得於 20 日內提起上訴 / 🟢 依法得於 20 日內聲請覆審 / 🔴 依法不得上訴",
