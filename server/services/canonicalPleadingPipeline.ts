@@ -40,6 +40,15 @@ const 欄位標籤: Record<string, string> = {
   statements: '訴之聲明（請求內容）',
   evidence: '證據清單',
   attachments: '附件',
+  // 產生器 section id 與金額類欄位（civilPleadingGenerator.ts 已有中文對應）
+  judgment_relief: '訴之聲明（請求內容）',
+  subject_and_facts_reason: '起訴事實與理由',
+  debtAmount: '請求金額',
+  claimAmount: '訴訟標的金額',
+  amount: '金額',
+  representatives: '訴訟代理人',
+  styleProfile: '文件格式',
+  ruleProfile: '書狀格式規則',
   legalReferences: '法律引用',
   documentDate: '書狀日期',
   proceeding: '程序階段'

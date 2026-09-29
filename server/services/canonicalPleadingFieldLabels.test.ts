@@ -29,7 +29,9 @@ describe('缺欄位訊息的可行動性', () => {
       'parties[0].name', 'parties[0].address', 'parties[0].contactPhone',
       'parties[1].name', 'parties[1].address', 'parties[2].name', 'parties[2].address',
       'signature', 'court', 'caseNo', 'subject_and_facts', 'statements',
-      'evidence', 'attachments', 'legalReferences', 'documentDate', 'proceeding'
+      'evidence', 'attachments', 'legalReferences', 'documentDate', 'proceeding',
+      'judgment_relief', 'subject_and_facts_reason', 'debtAmount',
+      'claimAmount', 'amount', 'representatives', 'styleProfile', 'ruleProfile'
     ];
     const 訊息 = 建錯誤(...已知);
     for (const f of 已知) {
