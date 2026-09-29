@@ -197,7 +197,8 @@ describe('官方來源實際可用性', () => {
     __setOfficialStatuteIndexForTest(null);
   });
 
-  it('可從法務部全國法規資料庫取得索引', async () => {
+  // 下載官方資料約 6 MB，vitest 預設 5 秒逾時不足（實測曾因此間歇性失敗）。
+  it('可從法務部全國法規資料庫取得索引', { timeout: 60_000 }, async () => {
     const 索引 = await loadOfficialStatuteIndex();
     // 官方來源是外部依賴，離線時不得讓整個測試套件失敗，
     // 但能取得時必須驗證它確實可用且資料新鮮。
