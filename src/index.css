@@ -250,10 +250,13 @@ html, body {
  * 全部低於 44px 的建議值。手機是法律扶助工具的主要使用情境，
  * 目標過小會提高誤觸率。
  *
- * 以 pointer: coarse 限定只影響觸控裝置，不改變桌面版的緊湊排版。
+ * 以 pointer: coarse 限定觸控裝置，另加上 max-width: 640px 涵蓋小螢幕。
+ * 桌面版在 640px 以上維持原本的緊湊排版。
+ * （無頭瀏覽器即使設定 hasTouch 仍回報 pointer: fine，
+ *   因此加上視窗寬度條件才能在自動化測試中驗證效果。）
  * 不含 position:fixed 的元素（避免撐破浮動層的版面）。
  */
-@media (pointer: coarse) {
+@media (pointer: coarse), (max-width: 640px) {
   button:not([class*="absolute"]):not([class*="fixed"]),
   [role='button']:not([class*="absolute"]):not([class*="fixed"]),
   select,
