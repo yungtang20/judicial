@@ -34,7 +34,12 @@ describe('敘述型輸入的長度界限', () => {
 
   it('拒絕訊息必須說明上限、字數，以及系統不會自動截斷', () => {
     const r = 檢查輸入長度('事'.repeat(NARRATIVE_MAX_CHARS + 1), 'narrative');
-    expect(r.訊息).toContain(NARRATIVE_MAX_CHARS.toLocaleString());
+    // 不用 toLocaleString() 比對：它的輸出依 ICU 版本而異，
+    // 同一個數字在 Node 22 與 24 可能分別是「20,000」與「20000」，
+    // 這會讓測試在特定 Node 版本上失敗，與被測行為無關。
+    // 改為去除千分位後比對，兩種輸出都通過。
+    const 去分隔 = (v: string) => v.replace(/[^0-9]/g, '');
+    expect(去分隔(r.訊息 || '')).toContain(String(NARRATIVE_MAX_CHARS));
     expect(r.訊息).toContain('不會自動截斷');
     // 必須提示後段可能遺漏，否則使用者仍不知道發生了什麼
     expect(r.訊息).toMatch(/遺漏|後段/);
