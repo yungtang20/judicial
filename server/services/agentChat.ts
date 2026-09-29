@@ -20,6 +20,8 @@ import {
   enforceTriageConsistency,
 } from "../../src/lib/universalTriage.js";
 import { scrubPersonalInfo } from "../../src/lib/deidentifier.js";
+import { officialStatuteExistence } from "./statuteExistenceProvider.js";
+import { loadOfficialStatuteIndex } from "./officialStatuteIndex.js";
 import { containsSimplifiedChinese, toTraditionalChinese } from "../../src/lib/traditionalChineseGuard.js";
 import { fetchFromOpenData } from "./judicialDataFetcher.js";
 import { isWithinServiceHours } from "./judicialServiceHours.js";
@@ -46,7 +48,7 @@ export interface AgentChatResponse {
   reply?: string;
   disclaimer?: string;
   usedRetrieval?: boolean;
-  sourceProvider?: "tlr" | "opendata" | "local" | "none";
+  sourceProvider?: "tlr" | "opendata" | "local" | "official-statute-index" | "none";
   gateStatus?: "PASS" | "NEEDS_REVIEW" | "FAIL";
   followUpQuestions?: TriageQuestion[];
   error?: string;
@@ -72,12 +74,17 @@ function getMaxHistoryTurns(): number {
 // Disclaimer
 // ---------------------------------------------------------------------------
 
-function getDisclaimer(source: "tlr" | "opendata" | "local" | "none"): string {
+function getDisclaimer(source: "tlr" | "opendata" | "local" | "official-statute-index" | "none"): string {
   // 逐則免責聲明只負責標示資料來源。
   // 「不構成法律意見」由頁尾的全域免責區塊統一負責，兩處重複只會讓使用者以為系統出錯。
   const sourceMap: Record<string, string> = {
     tlr: "資料來源：TW Legal RAG 外部法源檢索",
     opendata: "資料來源：司法院法學資料檢索系統 OpenData",
+    // 官方索引是帶更新日期的權威來源，必須如實標示，
+    // 使用者才能判斷這個回答基於哪一版法規。
+    // 未標示的話會落到 none：「本回覆未引用外部法律資料」——
+    // 但實際有引用官方條文，等於對使用者說謊。
+    "official-statute-index": "資料來源：法務部全國法規資料庫（官方現行條文）",
     local: "資料來源：本機法規與函釋快照（僅收錄 24 條常用法規，非即時更新）",
     none: "本回覆未引用外部法律資料"
   };
@@ -121,7 +128,7 @@ export async function handleAgentChat(
 
   // 3. Retrieve context (local vector store)
   let legalContext = "";
-  let sourceProvider: "tlr" | "opendata" | "local" | "none" = "local";
+  let sourceProvider: "tlr" | "opendata" | "local" | "official-statute-index" | "none" = "local";
   let usedRetrieval = false;
 
   try {
@@ -154,6 +161,30 @@ export async function handleAgentChat(
     } catch (err) {
       console.warn("[AgentChat] TLR retrieval failed:", err);
     }
+  }
+
+  // 3.5 官方法規索引：使用者提問中的法條，直接以官方資料確認後注入提示詞。
+  //
+  // 助理原本只能靠 24 筆本機種子回答，於是真實法條（如民法第479條）
+  // 會被標記為 UNKNOWN——等於對使用者說這條不存在。
+  // 官方索引涵蓋 43,854 條條文，可在這裡直接確認。
+  try {
+    const 索引 = (await loadOfficialStatuteIndex());
+    const 查詢 = 索引 ? (法: string, 條: number, 之?: number) => 索引.verify(法, 條, 之) : null;
+    if (查詢) {
+      const 命中: string[] = [];
+      for (const m of userText.matchAll(/(民法|民事訴訟法|刑法|刑事訴訟法|票據法|勞動基準法|強制執行法|家事事件法|家庭暴力防治法|非訟事件法)第([0-9]+)(?:條之([0-9]+))?/g)) {
+        const 存在 = 查詢(m[1], Number(m[2]), m[3] ? Number(m[3]) : undefined);
+        命中.push(`${m[0]}：${存在 === 'EXISTS' ? '存在（已由全國法規資料庫確認）' : 存在 === 'ABSENT' ? '不存在' : '無法確認'}`);
+      }
+      if (命中.length) {
+        legalContext = [legalContext, '【全國法規資料庫確認結果】', ...命中].filter(Boolean).join('\n');
+        usedRetrieval = true;
+        sourceProvider = 'official-statute-index';
+      }
+    }
+  } catch (err) {
+    console.warn("[AgentChat] 官方法規索引查詢失敗:", err);
   }
 
   // 4. OpenData fallback
@@ -291,7 +322,10 @@ export async function handleAgentChat(
   }
 
   // 8. Citation Gate
-  const verification = verifyLegalCitations(llmText);
+  // 引用查證須使用官方法規索引：助理的檢索只有 24 筆本機種子
+  // （TLR 已停用），無法確認真實法條會被誤標為 UNKNOWN。
+  const 官方查詢 = officialStatuteExistence();
+  const verification = verifyLegalCitations(llmText, { statuteExistence: 官方查詢 });
   let gateStatus: "PASS" | "NEEDS_REVIEW" | "FAIL" = "NEEDS_REVIEW";
 
   if (verification.ghostCount > 0) {

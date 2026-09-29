@@ -127,7 +127,9 @@ describe("AgentChat Route — 輸入驗證與回應結構", () => {
     });
 
     expect(result.success).toBe(true);
-    expect(["tlr", "opendata", "local", "none"]).toContain(
+    // official-statute-index：法務部全國法規資料庫，
+    // 助理已接上官方索引，不再只靠 24 筆本機種子回答。
+    expect(["tlr", "opendata", "local", "official-statute-index", "none"]).toContain(
       result.sourceProvider
     );
   });
