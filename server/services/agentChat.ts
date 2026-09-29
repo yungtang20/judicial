@@ -283,7 +283,29 @@ export async function handleAgentChat(
       const response = await Promise.race([aiPromise, timeoutPromise]);
       return response.text;
     };
-    llmText = await callOnce(prompt);
+    // 暫時性故障重試一次。
+    //
+    // 實測：相同輸入連續 3 次，2 次 200、1 次在 30.3 秒後回 503。
+    // 下方既有註解也記載「我方逾時是 45 秒，而上游在約 30 秒就回錯誤」
+    // ——這是上游的暫時性抖動，不是穩定故障。
+    // 沒有重試就讓使用者每次都可能撞上，直接看到失敗。
+    //
+    // 只重試暫時性錯誤（逾時、5xx、429、連線中斷）。
+    // 設定類錯誤（金鑰未設）重試永遠不會成功，只會延長等待。
+    const 暫時性故障 = (e: unknown) => {
+      if (isProviderConfigError(e)) return false;
+      const m = e instanceof Error ? e.message : String(e);
+      return /HTTP_5\d\d|HTTP_429|fetch failed|ECONNRESET|ECONNREFUSED|ETIMEDOUT|ENOTFOUND|aborted|AGENT_CHAT_TIMEOUT/i.test(m);
+    };
+    try {
+      llmText = await callOnce(prompt);
+    } catch (第一次失敗) {
+      if (!暫時性故障(第一次失敗)) throw 第一次失敗;
+      console.warn("[AgentChat] 上游暫時性錯誤，重試一次:", 第一次失敗);
+      // 短暫退避後再試，避免緊接著撞上同一個故障。
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      llmText = await callOnce(prompt);
+    }
     // 模型偶爾以簡體中文回覆（實測出現「此时」「不当得利」）。
     //
     // 先前處方式是「要求模型改用繁體重新回答」——那是一次完整的 AI 呼叫，
