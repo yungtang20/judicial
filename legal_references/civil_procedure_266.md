@@ -9,7 +9,7 @@
 - effectiveDate: 未於本次官方條文頁面確認
 - verifiedDate: 2026-09-14
 - verificationStatus: VERIFIED
-- contentHash: 60a774038e5836509cd82ce532f14f7eb8b08b02064a0e5b7b44393304264178（SHA-256；Exact Official Text 去除前後換行後之 UTF-8）
+- contentHash: db647b7b5a6524e701673ab9a4901c33b56c863517a531a18ff339b286f8d0f2（SHA-256；Exact Official Text 去除前後換行後之 UTF-8）
 - exactText: |
     原告準備言詞辯論之書狀，應記載下列各款事項：
     一、請求所依據之事實及理由。

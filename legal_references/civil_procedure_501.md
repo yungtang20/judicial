@@ -8,7 +8,7 @@
 - effectiveDate: 未於本次官方條文頁面確認
 - verifiedDate: 2026-09-14
 - verificationStatus: VERIFIED
-- contentHash: 14109a4a48b41c6e2342f81e189991a28daac3b03a7c7ecb668153714900da47（SHA-256；Exact Official Text 去除前後換行後之 UTF-8）
+- contentHash: 074541083acdcbc47ea94c7d3f15dfa3786a1a31764e6da60e83008fc51ecd4f（SHA-256；Exact Official Text 去除前後換行後之 UTF-8）
 
 ## Exact Official Text
 

@@ -8,7 +8,7 @@
 - effectiveDate: 2026-03-20（官方修正條文載明自發布日施行）
 - verifiedDate: 2026-09-14
 - verificationStatus: VERIFIED
-- contentHash: d09a009dbb073e396f59698e4b0c008e32582c0d366a804707743def43f2e252（SHA-256；Exact Official Text 去除前後換行後之 UTF-8）
+- contentHash: 15c69567ccc8c904f814a9d95fc44f738d5a782d359be9168ec3df9b1478c0e6（SHA-256；Exact Official Text 去除前後換行後之 UTF-8）
 
 ## Exact Official Text
 

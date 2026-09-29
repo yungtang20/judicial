@@ -38,7 +38,11 @@ function 解析快照(檔名: string, 內容: string): 快照 | null {
   const 條號Raw = 內容.match(/article:\s*([0-9]+(?:-[0-9]+)?)/)?.[1];
   if (!法名 || !條號Raw) return null;
   const [主, 次] = 條號Raw.split('-');
-  const 條文 = 內容.match(/## Exact Official Text\s*\n([\s\S]*)$/)?.[1]?.split(/\n## /)[0]?.trim();
+  // contentHash 是「這段條文經過查證」的憑證，必須能從已提交內容重現。
+  // .gitattributes 宣告 *.md text eol=lf，repo 與 CI 檢出的都是 LF；
+  // 若直接雜湊工作副本讀到的原文，Windows 上讀到 CRLF 就會算出不同的值，
+  // 讓同一份快照在本機通過、在 CI 失敗。雜湊前一律正典化為 LF。
+  const 條文 = 內容.match(/## Exact Official Text\s*\n([\s\S]*)$/)?.[1]?.split(/\n## /)[0]?.trim().replace(/\r\n/g, '\n');
   if (!條文) return null;
   return {
     檔名,
@@ -55,6 +59,9 @@ const 快照清單: 快照[] = readdirSync('legal_references')
   .filter(f => f.endsWith('.md'))
   .map(f => 解析快照(f, readFileSync(`legal_references/${f}`, 'utf8')))
   .filter((x): x is 快照 => x !== null);
+
+/** ZIP 結尾中央目錄（End of Central Directory）簽章，用來確認回應確實是 ZIP。 */
+const EOCD_SIGNATURE = Buffer.from([0x50, 0x4b, 0x05, 0x06]);
 
 /** 官方條文原文。官方索引刻意不保留全文以省記憶體，因此另行取用。 */
 async function 載入官方條文(): Promise<((key: string) => string | null) | null> {
@@ -81,6 +88,17 @@ async function 載入官方條文(): Promise<((key: string) => string | null) | 
   if (!回應.ok) return null;
   const { extractFirstZipEntry } = await import('../../../server/services/officialStatuteIndex');
   const zip = Buffer.from(await 回應.arrayBuffer());
+  // 站台可能對不同來源回應不同內容：CI 執行器所在的資料中心 IP 拿到 200，
+  // 內容卻是錯誤頁或限流頁而非 ZIP。這與「來源取不到」是同一類外部依賴失效，
+  // 依本檔約定的設計應跳過，而不是讓第三方站台的行為變成程式缺陷。
+  // 只在「確定拿到官方 ZIP」時才做條文比對，否則這項檢查形同虛設。
+  if (!zip.includes(EOCD_SIGNATURE)) {
+    console.warn(
+      `[條文快照] 官方來源未回傳 ZIP（Content-Type: ${回應.headers.get('content-type') ?? '無'}，` +
+      `${zip.length} bytes），本次跳過與全國法規資料庫的逐字比對。`
+    );
+    return null;
+  }
   const json = extractFirstZipEntry(zip).toString('utf8');
   const feed = JSON.parse(json.charCodeAt(0) === 0xfeff ? json.slice(1) : json);
   const 快取 = new Map<string, string>();
