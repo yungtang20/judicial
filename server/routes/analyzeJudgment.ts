@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import { describePrecheckRejection } from "../../src/lib/precheckRejectionMessage.js";
-import { 核對抽取金額, 產出核對說明 } from "../services/judgmentExtractionGuard.js";
+import { 核對抽取金額, 產出核對說明, 偵測注入指令 } from "../services/judgmentExtractionGuard.js";
 import { getAnalyzeJudgmentPrompt } from "../../src/prompts/analyze-judgment.js";
 import { buildFallbackJudgmentAnalysis } from "../../src/utils/fallbacks.js";
 import { precheckLegalInput } from "../../src/lib/legalInputPrecheck.js";
@@ -76,6 +76,12 @@ router.post("/api/analyze-judgment", async (req: Request, res: Response) => {
       (finalPayload as Record<string, unknown>).judgmentSummary as string | undefined,
       (finalPayload as Record<string, unknown>).claims as string | undefined
     );
+    // 金額核對單獨使用會被繞過：注入指令本身就在輸入文字裡，
+    // 該金額確實「出現在原文」而不會被標記。因此另偵測指令型文字。
+    const 注入 = 偵測注入指令(judgmentText || "");
+    if (注入.有注入跡象) {
+      (finalPayload as Record<string, unknown>).injectionWarning = 注入.說明;
+    }
     if (核對.需人工確認) {
       (finalPayload as Record<string, unknown>).amountVerificationWarning = 產出核對說明(核對);
       (finalPayload as Record<string, unknown>).amountVerification = 核對;
