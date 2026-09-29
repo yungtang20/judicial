@@ -1,3 +1,4 @@
+import { useUnsavedInputWarning } from '../hooks/useUnsavedInputWarning';
 import React, { useState, useEffect, useRef } from 'react';
 import { copyToClipboard } from '../lib/citationFormatter';
 import { UnifiedHeader } from './unified/UnifiedHeader';
@@ -152,6 +153,9 @@ export const UnifiedEntry: React.FC = () => {
   };
 
   // 將當前文字框內容設為自訂案例
+  // 輸入尚未送出時，離開頁面前給予提示（防止誤觸重新整理白費輸入）
+  useUnsavedInputWarning(inputNarrative, Boolean(workflowState));
+
   const handleSaveCurrentAsCustomPreset = () => {
     if (!inputNarrative.trim()) {
       // 原本使用原生 alert()，會凍結整個頁面且無法樣式化與翻譯。
