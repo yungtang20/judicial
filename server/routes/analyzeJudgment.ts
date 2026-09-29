@@ -1,3 +1,4 @@
+import { 檢查輸入長度 } from "../services/inputLengthGuard.js";
 import { Router, Request, Response } from "express";
 import { describePrecheckRejection } from "../../src/lib/precheckRejectionMessage.js";
 import { 核對抽取金額, 產出核對說明, 偵測注入指令 } from "../services/judgmentExtractionGuard.js";

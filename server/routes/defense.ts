@@ -1,3 +1,4 @@
+import { 檢查輸入長度 } from "../services/inputLengthGuard.js";
 import { UNIVERSAL_SYLLOGISM_RULES } from "../../src/prompts/universal-syllogism.js";
 import { containsSimplifiedChinese } from "../../src/lib/traditionalChineseGuard.js";
 import { describePrecheckRejection } from "../../src/lib/precheckRejectionMessage.js";
@@ -19,6 +20,10 @@ const router = Router();
 router.post("/api/defense/triage", async (req: Request, res: Response) => {
   const { clientInput, litigationRole, caseType, courtName, caseNo } = req.body;
 
+  const 長度 = 檢查輸入長度(clientInput, 'narrative');
+  if (!長度.通過) {
+    return res.status(413).json({ code: "INPUT_TOO_LONG", error: 長度.訊息 });
+  }
   const precheck = precheckLegalInput(clientInput || "", 'analysis', officialPrecheckOptions());
   if (precheck.status === "reject") {
     return res.status(422).json({
@@ -146,6 +151,10 @@ router.post("/api/defense/generate-pleading", async (req: Request, res: Response
   // 等於在法律工具中埋下日後恢復此路徑時會直接產出假事實的陷阱。
   const { clientInput = "" } = req.body;
 
+  const 長度 = 檢查輸入長度(clientInput, 'narrative');
+  if (!長度.通過) {
+    return res.status(413).json({ code: "INPUT_TOO_LONG", error: 長度.訊息 });
+  }
   const precheck = precheckLegalInput(clientInput, "generation", officialPrecheckOptions());
   if (precheck.status === "reject") {
     return res.status(422).json({

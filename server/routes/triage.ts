@@ -1,3 +1,4 @@
+import { 檢查輸入長度 } from "../services/inputLengthGuard.js";
 import { Router, Request, Response } from "express";
 import { buildIntelligentRuleBasedTriage, enforceTriageConsistency } from "../../src/lib/universalTriage.js";
 import { normalizeObsoleteOffenseNamesInPayload } from "../../src/lib/legalAnalysisConsistency.js";
@@ -19,6 +20,10 @@ router.post("/api/triage/universal", async (req: Request, res: Response) => {
     return res.status(400).json({ error: "請輸入案件敘述或法律諮詢問題" });
   }
 
+  const 長度 = 檢查輸入長度(rawInput, 'narrative');
+  if (!長度.通過) {
+    return res.status(413).json({ code: "INPUT_TOO_LONG", error: 長度.訊息 });
+  }
   const precheck = precheckLegalInput(rawInput, 'analysis', officialPrecheckOptions());
   if (precheck.status === "reject") {
     return res.status(422).json({

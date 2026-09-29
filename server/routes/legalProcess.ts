@@ -1,3 +1,4 @@
+import { 檢查輸入長度 } from "../services/inputLengthGuard.js";
 import { Router, Request, Response } from "express";
 import { containsSimplifiedChinese } from "../../src/lib/traditionalChineseGuard.js";
 import { defaultAIProvider } from "../../src/ai/providers/providerRegistry.js";
