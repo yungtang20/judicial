@@ -17,11 +17,44 @@ function formatRocToday(): string {
   return `中華民國 ${now.getFullYear() - 1911} 年 ${now.getMonth() + 1} 月 ${now.getDate()} 日`;
 }
 
+/**
+ * 內部 CaseInput 欄位 → 使用者在表單上看到的標籤。
+ *
+ * 實測缺陷：未填欄位時錯誤訊息回傳
+ * 「書狀輸入不足：parties[0].name, signature, subject_and_facts」。
+ * 這些是內部欄位路徑；表單上顯示的是「原告姓名」「簽名或蓋章」
+ * 「起訴事實」——使用者無從對應，只會以為系統壞了。
+ */
+const 欄位標籤: Record<string, string> = {
+  'parties[0].name': '原告姓名',
+  'parties[0].address': '原告地址',
+  'parties[0].contactPhone': '原告電話',
+  'parties[1].name': '被告姓名',
+  'parties[1].address': '被告地址',
+  'parties[2].name': '第三人姓名',
+  'parties[2].address': '第三人地址',
+  signature: '簽名或蓋章',
+  court: '管轄法院',
+  caseNo: '案號',
+  subject_and_facts: '起訴事實與理由',
+  statements: '訴之聲明（請求內容）',
+  evidence: '證據清單',
+  attachments: '附件',
+  legalReferences: '法律引用',
+  documentDate: '書狀日期',
+  proceeding: '程序階段'
+};
+
+function 欄位顯示名稱(field: string): string {
+  return 欄位標籤[field] || field;
+}
+
 export class CanonicalPleadingInputError extends Error {
   readonly code = 'CANONICAL_PLEADING_INPUT_REQUIRED';
 
   constructor(readonly missingInputs: MissingInput[]) {
-    super(`書狀輸入不足：${[...new Set(missingInputs.map(item => item.field))].join(', ')}`);
+    const 欄位 = [...new Set(missingInputs.map(item => item.field))];
+    super(`書狀輸入不足，請補齊以下欄位：${欄位.map(欄位顯示名稱).join('、')}`);
   }
 }
 
