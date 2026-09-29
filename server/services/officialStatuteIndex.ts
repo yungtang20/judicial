@@ -39,6 +39,15 @@ export interface OfficialStatuteIndex {
    * @param subArticle 條之 N（如「第1113條之10」的 10），無則省略
    */
   verify(lawName: string, article: number, subArticle?: number): StatuteExistence;
+  /**
+   * 取回條文摘錄。
+   *
+   * 用途：把「這一條真的怎麼寫」交給模型，而不是只告訴它「這一條存在」。
+   * 只確認存在會讓模型自行編造內容（實測民法第479條被答成第174條的內容），
+   * 使用者看到 AI 引用該條更容易當真，危害比直接說查不到更大。
+   * 查不到時回傳 undefined，呼叫端須據此要求使用者人工查證。
+   */
+  articleText(lawName: string, article: number, subArticle?: number): string | undefined;
 }
 
 const FEED_URL = 'https://law.moj.gov.tw/api/ch/law/json';
@@ -49,11 +58,37 @@ const MAX_AGE_MS = 12 * 60 * 60 * 1000;
 /** 下載 6MB 壓縮檔需要較長逾時；逾時一律視為查不到（UNKNOWN），不得放行。 */
 const FETCH_TIMEOUT_MS = 60_000;
 
+/** 官方資料以這些文字標示已刪除或已廢止的條文。 */
+const REPEALED_MARKERS = ['（刪除）', '(刪除)', '（已廢止）', '（已删除）'];
+
+/** 該條是否已被刪除或廢止。引用已廢止條文等同引用不存在的規定。 */
+export function isRepealedText(text: string | undefined): boolean {
+  if (!text) return false;
+  const t = text.replace(/\s+/g, '');
+  return REPEALED_MARKERS.some(m => t === m || t.startsWith(m));
+}
+
+/** 條文摘錄的最大長度。超出部分對判斷引用是否切題已足夠。 */
+const EXCERPT_LIMIT = 220;
+
 interface LawEntry {
   /** 主條號集合，含條之 N 的母條。 */
   main: Set<number>;
   /** 含「條之N」的完整鍵，例如 "1113:10"。數量極少。 */
   sub: Set<string>;
+  /**
+   * 條文摘錄，鍵為 `${主條號}` 或 `${主條號}:${次條號}`。
+   *
+   * 為什麼要存：只告訴模型「這一條存在」是不夠的。
+   * 實測助理因此捏造了民法第479條的內容——回答成「無權代理之追認效力」
+   *（實為第174條），而官方文本是「借用人不能以種類、品質、數量相同之物
+   * 返還者，應以其物在返還時、返還地所應有之價值償還之」。
+   * 確認存在卻給不出內容，等於核發一張「這條是真的」的空頭支票，
+   * 模型就會自己編。使用者看到 AI 引用該條，更容易當真。
+   *
+   * 截斷至 EXCERPT_LIMIT 字以控制記憶體。
+   */
+  text: Map<string, string>;
 }
 
 /**
@@ -135,7 +170,7 @@ interface FeedShape {
   UpdateDate?: string;
   Laws?: Array<{
     LawName?: string;
-    LawArticles?: Array<{ ArticleType?: string; ArticleNo?: unknown }>;
+    LawArticles?: Array<{ ArticleType?: string; ArticleNo?: unknown; ArticleContent?: unknown }>;
   }>;
 }
 
@@ -150,12 +185,17 @@ export function buildIndex(feed: FeedShape): OfficialStatuteIndex {
     const articles = (law.LawArticles || []).filter((a) => a.ArticleType === 'A');
     if (articles.length === 0) continue;
 
-    const entry: LawEntry = { main: new Set<number>(), sub: new Set<string>() };
+    const entry: LawEntry = { main: new Set<number>(), sub: new Set<string>(), text: new Map<string, string>() };
     for (const a of articles) {
       const parsed = parseOfficialArticleNo(a.ArticleNo);
       if (!parsed) continue;
       entry.main.add(parsed.main);
-      if (parsed.sub !== undefined) entry.sub.add(`${parsed.main}:${parsed.sub}`);
+      const 鍵 = parsed.sub !== undefined ? `${parsed.main}:${parsed.sub}` : String(parsed.main);
+      if (parsed.sub !== undefined) entry.sub.add(鍵);
+      const 內文 = typeof a.ArticleContent === 'string'
+        ? a.ArticleContent.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim()
+        : '';
+      if (內文) entry.text.set(鍵, 內文.slice(0, EXCERPT_LIMIT));
     }
     if (entry.main.size === 0) continue;
     articleCount += entry.main.size;
@@ -178,6 +218,14 @@ export function buildIndex(feed: FeedShape): OfficialStatuteIndex {
         return entry.main.has(article) ? 'EXISTS' : 'ABSENT';
       }
       return entry.main.has(article) ? 'EXISTS' : 'ABSENT';
+    },
+    articleText(lawName: string, article: number, subArticle?: number): string | undefined {
+      const entry = laws.get(normalizeLawName(lawName));
+      if (!entry || !Number.isFinite(article)) return undefined;
+      if (subArticle !== undefined) {
+        return entry.text.get(`${article}:${subArticle}`);
+      }
+      return entry.text.get(String(article));
     },
   };
 }

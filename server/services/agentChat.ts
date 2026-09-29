@@ -21,7 +21,7 @@ import {
 } from "../../src/lib/universalTriage.js";
 import { scrubPersonalInfo } from "../../src/lib/deidentifier.js";
 import { officialStatuteExistence } from "./statuteExistenceProvider.js";
-import { loadOfficialStatuteIndex } from "./officialStatuteIndex.js";
+import { loadOfficialStatuteIndex, isRepealedText } from "./officialStatuteIndex.js";
 import { containsSimplifiedChinese, toTraditionalChinese } from "../../src/lib/traditionalChineseGuard.js";
 import { fetchFromOpenData } from "./judicialDataFetcher.js";
 import { isWithinServiceHours } from "./judicialServiceHours.js";
@@ -175,7 +175,23 @@ export async function handleAgentChat(
       const 命中: string[] = [];
       for (const m of userText.matchAll(/(民法|民事訴訟法|刑法|刑事訴訟法|票據法|勞動基準法|強制執行法|家事事件法|家庭暴力防治法|非訟事件法)第([0-9]+)(?:條之([0-9]+))?/g)) {
         const 存在 = 查詢(m[1], Number(m[2]), m[3] ? Number(m[3]) : undefined);
-        命中.push(`${m[0]}：${存在 === 'EXISTS' ? '存在（已由全國法規資料庫確認）' : 存在 === 'ABSENT' ? '不存在' : '無法確認'}`);
+        // 必須連同條文原文一起提供：只說「存在」會讓模型自行編造內容。
+        // 實測助理把民法第479條答成「無權代理之追認效力」（實為第174條），
+        // 而官方文本是「借用人不能以種類、品質、數量相同之物返還者…」。
+        const 條文 = 存在 === "EXISTS"
+          ? 索引.articleText(m[1], Number(m[2]), m[3] ? Number(m[3]) : undefined)
+          : undefined;
+        // 官方資料以「（刪除）」標示已廢止的條文。實測民事訴訟法第630條
+        // 屬此類：條號存在但內容已刪除。若當成現行條文提供，
+        // 等於建議使用者引用一條已不存在的規定。
+        const 已廢止 = isRepealedText(條文);
+        命中.push(
+          已廢止
+            ? `${m[0]}：已廢止（官方資料標示為「（刪除）」）。此條不得作為現行法依據，請改用其他規定。`
+            : 條文
+              ? `${m[0]} 條文原文（以此為準，不得另行杜撰）：${條文}`
+              : `${m[0]}：${存在 === "EXISTS" ? "存在（但未取得條文原文，請勿引用其內容）" : 存在 === "ABSENT" ? "不存在" : "無法確認"}`
+        );
       }
       if (命中.length) {
         legalContext = [legalContext, '【全國法規資料庫確認結果】', ...命中].filter(Boolean).join('\n');
