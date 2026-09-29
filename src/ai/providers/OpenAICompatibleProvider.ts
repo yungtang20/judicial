@@ -71,7 +71,43 @@ export class OpenAICompatibleProvider implements AIProvider {
     }
   }
 
-  generate(prompt: string, options?: AIProviderGenerateOptions) { return this.request(prompt, options); }
+  /**
+   * 暫時性故障重試一次。
+   *
+   * 實測：正式站對相同輸入，出現過約 1/3 的 5xx 與逾時
+   * （defense-triage、agent-chat 都發生過，失敗多半在 30 秒附近）。
+   * 這是上游的暫時性抖動，不是穩定故障——沒有重試時，
+   * 使用者每次提問都可能撞上。
+   *
+   * 放在供應器層而非各路由，是為了讓所有呼叫路徑一致受益：
+   * 辯護分流、判決分析、追問、律師助理、書狀產製都經過這裡。
+   *
+   * 只重試暫時性錯誤（逾時、5xx、429、連線中斷）。
+   * 設定類錯誤（金鑰未設、格式錯誤）重試永遠不會成功，
+   * 只會把失敗延後並讓使用者多等一輪。
+   */
+  private async requestWithRetry(prompt: string, options?: AIProviderGenerateOptions): Promise<AIProviderResponse> {
+    const ATTEMPT_RETRY_MS = 800;
+    const 暫時性 = (e: unknown) => {
+      // 設定類錯誤：金鑰未設或設定不合法，重試永遠不會成功。
+      // 與 server/services/agentChat.ts 的 isProviderConfigError 同一組樣式，
+      // 但此層不可依賴 server 模組（src 需能在前端環境建置）。
+      const msg = e instanceof Error ? e.message : String(e);
+      if (/API_KEY_UNAVAILABLE|PROVIDER_CONFIG|CONFIG_INVALID|NO_API_KEY/i.test(msg)) return false;
+      if (e instanceof Error && e.name === 'AbortError') return true;
+      const m = e instanceof Error ? e.message : String(e);
+      return /HTTP_5\d\d|HTTP_429|fetch failed|ECONNRESET|ECONNREFUSED|ETIMEDOUT|ENOTFOUND|aborted|AbortError/i.test(m);
+    };
+    try {
+      return await this.request(prompt, options);
+    } catch (firstError) {
+      if (!暫時性(firstError)) throw firstError;
+      await new Promise((resolve) => setTimeout(resolve, ATTEMPT_RETRY_MS));
+      return this.request(prompt, options);
+    }
+  }
+
+  generate(prompt: string, options?: AIProviderGenerateOptions) { return this.requestWithRetry(prompt, options); }
 
   async generateStructured<T = any>(prompt: string, schema: any, options?: AIProviderGenerateOptions): Promise<T> {
     const result = await this.request(prompt, { ...options, responseMimeType: 'application/json', responseSchema: schema });
