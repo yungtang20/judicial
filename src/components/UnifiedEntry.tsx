@@ -1,4 +1,5 @@
 import { useUnsavedInputWarning } from '../hooks/useUnsavedInputWarning';
+import { useInputDraft } from '../hooks/useInputDraft';
 import React, { useState, useEffect, useRef } from 'react';
 import { copyToClipboard } from '../lib/citationFormatter';
 import { UnifiedHeader } from './unified/UnifiedHeader';
@@ -155,6 +156,8 @@ export const UnifiedEntry: React.FC = () => {
   // 將當前文字框內容設為自訂案例
   // 輸入尚未送出時，離開頁面前給予提示（防止誤觸重新整理白費輸入）
   useUnsavedInputWarning(inputNarrative, Boolean(workflowState));
+  // 草稿保留：切換功能頁面後輸入內容不應消失（實測 151 字會遺失）
+  useInputDraft(inputNarrative, setInputNarrative, Boolean(workflowState));
 
   const handleSaveCurrentAsCustomPreset = () => {
     if (!inputNarrative.trim()) {
