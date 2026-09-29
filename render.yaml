@@ -26,6 +26,15 @@ services:
       # 誤判為逾時並回 503。設為 45 秒留足餘裕。
       - key: AGENT_CHAT_TIMEOUT_MS
         value: "45000"
+      # 外部判例檢索（tw-legal-rag）。實測服務可用、查詢 680~723ms，
+      # 押金與違約金類問題都能檢索到切題裁判。
+      # 開啟後判例僅作為分析脈絡進入提示詞，不作為書狀的引用授權來源
+      # （allowedCitations 維持空白），引用查證仍由本機索引與
+      # 官方法規資料庫決定——理由見 legalGenerationPipeline.ts。
+      - key: TLR_ENABLED
+        value: "true"
+      - key: TLR_BASE_URL
+        value: https://tlr.dr-legal.com.tw
       - key: JWT_SECRET
         sync: false
       - key: HCNSEC_API_KEY
