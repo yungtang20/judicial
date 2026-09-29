@@ -1,6 +1,6 @@
 import express, { Express } from "express";
 import type { NextFunction, Request, Response } from "express";
-import { securityHeaders, apiLimiter, sanitizeRequest, globalErrorHandler } from "./middleware/security.js";
+import { securityHeaders, apiLimiter, sanitizeRequest, globalErrorHandler, noStoreForApi } from "./middleware/security.js";
 import { requestIdMiddleware, authenticate, validateSecurityConfiguration } from "./middleware/auth.js";
 import { tenantScopeMiddleware } from "./middleware/tenantScope.js";
 import analyzeJudgmentRouter from "./routes/analyzeJudgment.js";
@@ -53,6 +53,10 @@ export function createExpressApp(): Express {
   // 1. 中介軟體
   app.use(requestIdMiddleware);
   app.use(securityHeaders);
+  // API 回應一律 no-store：agent-chat 等端點的回應含有使用者個資，
+  // 未禁止快取時中介層可能留存並回應給他人。原本由各路由手動設定，
+  // 容易遺漏，改為在此統一處理。
+  app.use(noStoreForApi);
 
   // Infrastructure health probes must remain available and must not consume
   // the shared application API quota.

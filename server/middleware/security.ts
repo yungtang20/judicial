@@ -110,6 +110,28 @@ export function sanitizeValue(value: unknown): unknown {
  * 2. 檢測實際 Body 大小，不只依賴可能缺失的 Content-Length
  * 3. 遞迴清洗 req.body
  */
+/**
+ * API 回應一律禁止中介層快取。
+ *
+ * 實測缺陷：Cache-Control 原本由各路由手動設定（toolbox、officialTemplates 有），
+ * 但 /api/agent-chat 與 /api/health 沒有。
+ * agent-chat 的回應包含使用者輸入的身分證字號、手機與整份法律分析，
+ * 未禁止快取時，CDN 或中介代理可能把這份含有個資的內容留存並回應給他人。
+ *
+ * 改為在中介軟體層統一設定：新路由不會因為忘記加而洩漏。
+ * 各路由仍可個別覆寫（個別設定優先）。
+ */
+export const noStoreForApi = (_req: Request, res: Response, next: NextFunction) => {
+  // 僅限 API 路徑；靜態檔案應交由伺服器或 CDN 正常快取。
+  if (_req.path.startsWith('/api/')) {
+    res.setHeader('Cache-Control', 'no-store');
+  }
+  // 權限策略：明確關閉本系統不需要的瀏覽器能力。
+  // helmet 未預設提供此標頭。
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=()');
+  next();
+};
+
 export function sanitizeRequest(req: Request, res: Response, next: NextFunction) {
   // 檢查 Content-Length header (若存在)
   const contentLength = req.headers['content-length'];
