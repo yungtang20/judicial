@@ -156,7 +156,12 @@ export class AuditLogService {
     return {
       ...describePersistence(this.persistenceMode, this.activeDbPath, isEphemeralDisk()),
       error: this.persistenceError,
-      path: this.activeDbPath
+      // 只輸出檔名，不輸出絕對路徑。
+      // 這個方法會經由未經認證的 /api/health 對外公開，
+      // 實測會回傳「/opt/render/project/src/data/audit_logs.sqlite」——
+      // 等於公開部署結構，便於外部 reconnaissance。
+      // 管理者要確認位置時看 AUDIT_DB_PATH 環境變數即可。
+      path: this.activeDbPath ? this.activeDbPath.split(/[\\/]/).pop() : undefined
     };
   }
 
