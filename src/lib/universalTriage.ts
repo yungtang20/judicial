@@ -73,7 +73,21 @@ export function buildIntelligentRuleBasedTriage(query: string) {
     }
 
     // 2. 傷害罪 / 互毆 / 正當防衛 (刑事告訴乃論，6個月時效)
-    if (q.includes("打架") || q.includes("互毆") || q.includes("被揍") || q.includes("被打") || q.includes("毆打") || q.includes("打人") || q.includes("動手") || q.includes("還手") || (q.includes("傷害") && !q.includes("過失傷害")) || q.includes("正當防衛")) {
+    //
+    // 「傷害」二字必須配合指向人身的行為才成立。實測誤判兩例：
+    //   「他毀謗我的名譽，讓我遭受嚴重的精神傷害」→ 普通傷害罪（應為名譽）
+    //   「房東說要對我造成傷害，不退押金」→ 普通傷害罪（應為租賃糾紛）
+    // 原因是最後一個條件只看有沒有「傷害」二字、不看上下文，
+    // 而名譽與租賃分支都排在後面，於是永遠走不到。
+    const 指向人身傷害 = ["打架", "互毆", "被揍", "被打", "毆打", "打人", "動手", "還手", "正當防衛"]
+      .some(k => q.includes(k));
+    const 單獨傷害詞 = q.includes("傷害") && !q.includes("過失傷害")
+      && !q.includes("名譽") && !q.includes("誹謗") && !q.includes("侮辱")
+      && !q.includes("精神傷害") && !q.includes("財產傷害") && !q.includes("權益")
+      && !q.includes("損害")
+      // 租賃、房貸、押金等不動產糾紛中的「傷害」是契約施壓，非人身傷害。
+      && !q.includes("押金") && !q.includes("房東") && !q.includes("房貸") && !q.includes("租屋");
+    if (指向人身傷害 || 單獨傷害詞) {
       const cat = "CRIMINAL_COMPLAINT_ASSAULT";
       const fallbackDoc = buildFallbackToolboxResult(cat, { incidentDetails: query, searchQuery: query });
       return {
@@ -116,7 +130,9 @@ export function buildIntelligentRuleBasedTriage(query: string) {
     }
 
     // 3. 公然侮辱 / 誹謗 / 妨害名譽 / 直播辱罵 (刑事告訴乃論，6個月時效)
-    if (q.includes("辱罵") || q.includes("罵我") || q.includes("侮辱") || q.includes("誹謗") || q.includes("名譽") || q.includes("造謠") || q.includes("抹黑") || q.includes("直播") || q.includes("酸民") || q.includes("公然") || q.includes("三字經")) {
+    // 「直播」必須搭配辱罵內容才算妨害名譽：實測「我在直播賣商品」
+    // 只因出現「直播」二字就被判為公然侮辱罪。直播本身完全合法。
+    if (q.includes("辱罵") || q.includes("罵我") || q.includes("侮辱") || q.includes("誹謗") || q.includes("名譽") || q.includes("造謠") || q.includes("抹黑") || (q.includes("直播") && (q.includes("辱罵") || q.includes("罵") || q.includes("侮辱") || q.includes("誹謗"))) || q.includes("酸民") || q.includes("公然") || q.includes("三字經")) {
       const cat = "DEFAMATION_CEASE_AND_DESIST";
       const fallbackDoc = buildFallbackToolboxResult(cat, { incidentDetails: query, searchQuery: query });
       return {
