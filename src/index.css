@@ -242,3 +242,32 @@ html, body {
   }
 }
 
+
+/* 觸控裝置的最小點擊目標
+ *
+ * 實測 390×844 視窗：首頁可點擊元素高度落在 26～40px
+ * （範例案件按鈕 32px、開始分析 40px、歷史記錄 30px），
+ * 全部低於 44px 的建議值。手機是法律扶助工具的主要使用情境，
+ * 目標過小會提高誤觸率。
+ *
+ * 以 pointer: coarse 限定只影響觸控裝置，不改變桌面版的緊湊排版。
+ * 不含 position:fixed 的元素（避免撐破浮動層的版面）。
+ */
+@media (pointer: coarse) {
+  button:not([class*="absolute"]):not([class*="fixed"]),
+  [role='button']:not([class*="absolute"]):not([class*="fixed"]),
+  select,
+  input[type='text'],
+  input[type='number'],
+  input[type='date'],
+  input[type='search'] {
+    min-height: 44px;
+  }
+
+  /* 文字輸入欄位另外確保可讀的行高 */
+  input[type='text'],
+  input[type='number'],
+  input[type='search'] {
+    font-size: 16px; /* 小於 16px 時 iOS 會在聚焦時自動縮放版面 */
+  }
+}
