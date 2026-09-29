@@ -11,7 +11,11 @@
 
 ## 三、輸入/輸出安全與 SSRF 防禦
 - 外部 URL 僅允許 HTTP/HTTPS；每次 redirect 重新驗證 DNS，拒絕私有/保留位址，並將連線 pin 至已驗證 IP，保留 Host/SNI；正文以串流 2 MiB 上限與 deadline 讀取。
-- 驗證管線內嵌 `PrivacyValidator` 與 `SecurityValidator`，即時偵測個資洩漏與 Prompt Injection。
+- 請求層級的 `sanitizeRequest` 僅檢查負載大小（1 MiB），不做內容掃描。Prompt Injection 的防護位於提示詞組裝與產出閘門，不在請求中介軟體。
+- **個資防護的實際狀態（2026-09-29 實測更正）**：`PrivacyValidator`（`src/domain/workflow/verification.ts`）已實作且測試完整，可偵測身分證字號與手機號碼（FAIL），以及電子信箱、詳細地址、市內電話（NEEDS_REVIEW）。但該類別**未被任何正式程式碼呼叫**，僅存在於測試中。
+  實測：使用者在案情描述中輸入真實身分證字號與手機號碼後，請求未被攔截，內容照原樣送至外部 AI 服務並於回應中重現。
+  產製的法院書狀本身含當事人身分資訊，屬法院要求登載事項，與「外傳給第三方」是兩個不同問題。
+  因此**目前並不存在輸入端的個資遮蔽機制**。需要該保障時，必須實作「送外部 AI 前遮蔽、組裝書狀時還原」，屬尚未完成的工作。
 
 ## 四、Production 預設安全模式
 
