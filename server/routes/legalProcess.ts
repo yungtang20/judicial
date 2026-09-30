@@ -1,6 +1,7 @@
 import { 檢查輸入長度 } from "../services/inputLengthGuard.js";
 import { Router, Request, Response } from "express";
 import { containsSimplifiedChinese } from "../../src/lib/traditionalChineseGuard.js";
+import { toTraditionalChineseIn } from "./toTraditionalIn.js";
 import { defaultAIProvider } from "../../src/ai/providers/providerRegistry.js";
 import {
   buildRouterPrompt,
@@ -159,12 +160,20 @@ router.post("/api/process/router", async (req: Request, res: Response) => {
       result = evaluateRouterFallback(trimmedInput);
     }
 
-    // 繁體中文閘門：路由結果的 chapter、cause、legalBasis 都會顯示給使用者。
-    // 先前只保護了 missing_elements，漏掉這幾個同樣會顯示的欄位
-    // （實測統一入口的結果出現「当」字）。
-    if (containsSimplifiedChinese([result.chapter, result.cause, ...(result.missing_elements || [])].filter(Boolean).join(''))) {
-      console.warn("[LegalProcess] 路由輸出含簡體中文，缺漏清單改用繁體預設");
+    // 繁體中文閘門：會顯示給使用者的欄位為 domain、chapter、cause 與
+    // missing_elements（介面 LegalProcessGuide 第 566 行起逐項呈現）。
+    // 先前只檢查 chapter／cause／missing_elements，漏掉同樣會顯示的 domain。
+    // 更大的問題是偵測到之後只替換 missing_elements，
+    // chapter／cause 原文照樣顯示——等於只記錄不修正。
+    // 台灣法律文件出現簡體中文是正確性問題，與幽靈引用同級。
+    if (containsSimplifiedChinese([result.domain, result.chapter, result.cause, ...(result.missing_elements || [])].filter(Boolean).join(''))) {
+      console.warn("[LegalProcess] 路由輸出含簡體中文，改以繁體預設缺漏清單並轉換顯示欄位");
       result.missing_elements = defaultMissingElementsPrompt;
+      // domain 僅能取自允許集合（刑事／民事／家事／行政），盲目轉換會產生非法值
+      const 允許領域 = ['刑事', '民事', '家事', '行政'];
+      if (!允許領域.includes(String(result.domain))) result.domain = '民事';
+      result.chapter = toTraditionalChineseIn(result.chapter);
+      result.cause = toTraditionalChineseIn(result.cause);
     }
 
     // 啟發式安全保險 (Heuristic Guardrail)：檢查性侵害、家暴或跟蹤騷擾，若吻合則強制 is_sensitive = true
