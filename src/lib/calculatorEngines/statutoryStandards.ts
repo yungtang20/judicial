@@ -60,40 +60,37 @@ export function calculateCourtFee(
   if (claimAmount <= 0) {
     firstInstanceFee = 0;
   } else if (claimAmount <= 100000) {
-    firstInstanceFee = 1000;
+    // 司法院「民事事件費用徵收標準」：10萬元以下部分 1,500 元。
+    // 先前實作為 1,000 元，與官方表不符。
+    firstInstanceFee = 1500;
   } else {
-    // 逾10萬元至100萬元部分：每萬元加徵100元 (1%)
-    // 逾100萬元至1000萬元部分：每萬元加徵90元 (0.9%)
-    // 逾1000萬元至1億元部分：每萬元加徵80元 (0.8%)
-    // 逾1億元部分：每萬元加徵70元 (0.7%)
+    // 費率取自司法院「民事事件費用徵收標準」（民訴§77-13）對照表：
+    //   逾10萬元～100萬元部分   每萬元 130 元
+    //   逾100萬元～1000萬元部分 每萬元 117 元
+    //   逾1000萬元～1億元部分   每萬元  88 元
+    //   逾1億元～10億元部分    每萬元  77 元
+    //   逾10億元部分            每萬元  66 元
+    // 畸零之數不滿萬元者以萬元計算。
+    //
+    // 先前實作使用的是 100／90／80／70 元這組自創費率，與官方表不符，
+    // 且未隨法規更新。以 1 億元標的為例，舊值 811,000 元，官方表為 910,500 元；
+    // 差額會直接影響使用者對訴訟成本的預估。
     let remaining = claimAmount;
-    let fee = 0;
-
-    // 0 - 100,000
-    fee += 1000;
+    let fee = 1500; // 0 - 100,000 部分
     remaining -= 100000;
 
-    if (remaining > 0) {
-      const tier1 = Math.min(remaining, 900000); // 10萬~100萬
-      fee += Math.ceil(tier1 / 10000) * 100;
-      remaining -= tier1;
-    }
-
-    if (remaining > 0) {
-      const tier2 = Math.min(remaining, 9000000); // 100萬~1000萬
-      fee += Math.ceil(tier2 / 10000) * 90;
-      remaining -= tier2;
-    }
-
-    if (remaining > 0) {
-      const tier3 = Math.min(remaining, 90000000); // 1000萬~1億
-      fee += Math.ceil(tier3 / 10000) * 80;
-      remaining -= tier3;
-    }
-
-    if (remaining > 0) {
-      // 逾1億元
-      fee += Math.ceil(remaining / 10000) * 70;
+    const 級距: Array<[額度: number, 單價: number]> = [
+      [900000, 130],    // 10萬～100萬
+      [9000000, 117],   // 100萬～1000萬
+      [90000000, 88],   // 1000萬～1億
+      [900000000, 77],  // 1億～10億
+      [Infinity, 66]    // 逾10億
+    ];
+    for (const [額度, 單價] of 級距) {
+      if (remaining <= 0) break;
+      const 取 = Math.min(remaining, 額度);
+      fee += Math.ceil(取 / 10000) * 單價;
+      remaining -= 取;
     }
 
     firstInstanceFee = fee;
@@ -113,7 +110,16 @@ export function calculateCourtFee(
 
   return {
     fee: firstInstanceFee,
-    basisRule: '民事訴訟法第77條之13：因財產權而起訴之分級累進費率'
+    // 司法院同一張表附註5明確警告：各法院得依民訴§77-27 提高徵收額數
+    // （例如臺灣高等法院自113年底起對10萬元以下加徵十分之五、
+    //   10萬至1000萬加徵十分之三、逾1000萬加徵十分之一）。
+    // 因此本試算為法定起算基礎，實際應繳金額須以受理法院的核定為準。
+    basisRule:
+      '民事訴訟法第77條之13：因財產權而起訴之分級累進費率。' +
+      '本值為法定基礎額；依同法第77條之27，各法院得提高徵收額數' +
+      '（例如臺灣高等法院對10萬元以下加徵十分之五、10萬至1000萬加徵十分之三、' +
+      '逾1000萬加徵十分之一），實際應繳金額請以受理法院核定為準，' +
+      '或查詢司法院民事裁判費試算表 gdgt.judicial.gov.tw/judtool/wkc/GDGT23.htm。'
   };
 }
 

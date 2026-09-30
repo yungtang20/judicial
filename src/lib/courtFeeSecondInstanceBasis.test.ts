@@ -11,11 +11,11 @@ import { COURT_FEE_CALCULATOR_CONFIG } from './calculatorEngines/courtFee';
  * 兩種情形金額相差可達四倍。
  */
 describe('民事裁判費試算', () => {
-  it('一審費率階梯符合民訴§77-13', () => {
+  it('一審費率階梯符合民訴§77-13（司法院「民事事件費用徵收標準」對照表）', () => {
     expect(calculateCourtFee(0).fee).toBe(0);
-    expect(calculateCourtFee(100000, 'first').fee).toBe(1000);
-    // 100 萬：1000 + 90 萬/1 萬 × 100 = 1000 + 9000
-    expect(calculateCourtFee(1000000, 'first').fee).toBe(10000);
+    expect(calculateCourtFee(100000, 'first').fee).toBe(1500);
+    // 100 萬：1,500 + 90 萬/1 萬 × 130 = 1,500 + 11,700 = 13,200
+    expect(calculateCourtFee(1000000, 'first').fee).toBe(13200);
   });
 
   it('支付命令為定額 500 元', () => {

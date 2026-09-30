@@ -14,14 +14,15 @@ import { STATUTE_LIMITATIONS_CALCULATOR_CONFIG } from './statuteLimitations';
 
 describe('Legal Calculator Engines Suite', () => {
   it('calculates court fee progressively according to civil litigation act', () => {
-    // 10 萬元以下：1,000 元
-    expect(calculateCourtFee(50000, 'first').fee).toBe(1000);
-    // 100 萬元：10萬~100萬每萬100元 = 1000 + 90*100 = 10000 元
-    expect(calculateCourtFee(1000000, 'first').fee).toBe(10000);
+    // 費率依司法院「民事事件費用徵收標準」對照表（民訴§77-13）
+    // 10 萬元以下：1,500 元
+    expect(calculateCourtFee(50000, 'first').fee).toBe(1500);
+    // 100 萬元：1,500 + 90萬×130元/萬 = 13,200 元
+    expect(calculateCourtFee(1000000, 'first').fee).toBe(13200);
     // 支付命令固定 500 元
     expect(calculateCourtFee(1000000, 'payment_order').fee).toBe(500);
-    // 二審上訴 1.5 倍
-    expect(calculateCourtFee(1000000, 'second_third').fee).toBe(15000);
+    // 二審上訴：一審已酌減者加徵十分之五 = 19,800 元
+    expect(calculateCourtFee(1000000, 'second_third').fee).toBe(19800);
   });
 
   it('calculates child support based on regional average expenditure and income ratio', () => {
