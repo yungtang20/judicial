@@ -42,6 +42,15 @@ vi.mock("./judicialServiceHours.js", () => ({
   isWithinServiceHours: vi.fn(),
 }));
 
+// 官方法規索引會實際抓取全國法規資料庫（約 6 MB、43,854 條）。
+// 本測試只驗證對話行為，不需要真實索引；不 mock 會讓測試成敗取決於外部主機的
+// 可用性與速度，在 CI 上可能逾時。
+vi.mock("./officialStatuteIndex.js", () => ({
+  loadOfficialStatuteIndex: async () => null,
+  resetOfficialStatuteIndexCache: () => {},
+  isRepealedText: () => false,
+}));
+
 // ---------------------------------------------------------------------------
 // Imports after mock setup
 // ---------------------------------------------------------------------------

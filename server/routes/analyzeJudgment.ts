@@ -11,6 +11,21 @@ import { defaultLegalGenerationPipeline } from "../services/legalGenerationPipel
 
 // Note: UNIVERSAL_SYLLOGISM_RULES is enforced centrally within defaultLegalGenerationPipeline
 
+/**
+ * 取出摘要中實際顯示給使用者的敘事字串。
+ * judgmentSummary 的型別是物件（overview／storyNarrative／evidenceBasis），
+ * 任何需要「字串」的處理都必須先經過這裡；直接把物件當字串使用
+ * 會在呼叫 .match() / .replace() 時拋出 TypeError。
+ */
+function 摘要敘事文字(payload: Record<string, unknown>): string | undefined {
+  const 摘要 = payload.judgmentSummary;
+  if (typeof 摘要 === 'string') return 摘要;
+  if (typeof 摘要 !== 'object' || 摘要 === null) return undefined;
+  const record = 摘要 as Record<string, unknown>;
+  const 敘事 = record.storyNarrative || record.overview;
+  return typeof 敘事 === 'string' ? 敘事 : undefined;
+}
+
 const router = Router();
 
 router.post("/api/analyze-judgment", async (req: Request, res: Response) => {
@@ -81,7 +96,9 @@ router.post("/api/analyze-judgment", async (req: Request, res: Response) => {
     const 核對 = 核對抽取金額(
       judgmentText || "",
       (finalPayload as Record<string, unknown>).mainHolding as string | undefined,
-      (finalPayload as Record<string, unknown>).judgmentSummary as string | undefined,
+      // judgmentSummary 是物件（overview／storyNarrative／evidenceBasis），
+      // 先前謊報為 string 會讓核對函式拿到非字串。取實際顯示的敘事字串。
+      摘要敘事文字(finalPayload as Record<string, unknown>),
       (finalPayload as Record<string, unknown>).claims as string | undefined
     );
     // 金額核對單獨使用會被繞過：注入指令本身就在輸入文字裡，

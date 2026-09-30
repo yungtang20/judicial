@@ -366,7 +366,12 @@ export function useSmartAppealAssistant() {
         setRejectedCitation(data.rejectedCitation || null);
         // 模型可能補寫原文未載明的內容（實測以極短無意義原文即可產出長篇捏造事實）。
         // 此處只做提醒不阻擋，實際防線是要求使用者逐句核對原始裁判書。
-        const grounding = assessGrounding(rawText, data.judgmentSummary);
+        // 注意：judgmentSummary 是物件（overview／storyNarrative／evidenceBasis），
+        // 不是字串。直接傳入會讓 tokenize 呼叫 source.match 而拋出 TypeError，
+        // 整個處理器中止——爭點從未寫入、使用者也永遠停在步驟一。
+        // 這裡比對的是使用者實際看到的那段敘事。
+        const 敘事 = data.judgmentSummary?.storyNarrative || data.judgmentSummary?.overview || '';
+        const grounding = assessGrounding(rawText, 敘事);
         // 本機規則備援的故事化文字是固定範本（含「案發當日」「特定現場」等
         // 未填入的佔位詞），不是從判決書提煉而來。
         // 先前這裡沒有把 fallbackNotice 併入，導致畫面同時顯示
@@ -425,7 +430,16 @@ export function useSmartAppealAssistant() {
         }, 100);
       }
     } catch (err: any) {
-      if (isCurrentAppealScope(requestScope)) notifyError(err.message || '分析發生錯誤');
+      // 分析失敗必須讓使用者看見原因。過往只顯示 err.message，
+      // 而 TypeError 的訊息（如「source.match is not a function」）對使用者無意義。
+      console.error('[analyze-judgment] 處理失敗', err);
+      if (isCurrentAppealScope(requestScope)) {
+        notifyError(
+          err instanceof TypeError
+            ? '分析結果的格式有誤，無法完成爭點整理。請稍後再試或改用上傳裁判書檔案。'
+            : (err?.message || '分析發生錯誤')
+        );
+      }
     } finally {
         setIsAnalyzing(false);
         setIsAnalyzingSummaryOnly(false);

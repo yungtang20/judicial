@@ -42,6 +42,20 @@ vi.mock('../legalGenerationPipeline.js', () => ({
   },
 }));
 
+// 與 agentChat.errorMessage.test.ts 相同：這兩處是即時外部呼叫
+// （官方法規開放資料 5 秒逾時、全國法規資料庫約 6 MB）。
+// 不 mock 時，本測試的成敗取決於該主機是否連得上以及多快反應，
+// 連得上但較慢就會在 CI 上失敗。此處只需驗證簡體中文的攔截邏輯。
+vi.mock('../judicialDataFetcher.js', () => ({
+  fetchFromOpenData: async () => ({ success: false, html: '' })
+}));
+
+vi.mock('./officialStatuteIndex.js', () => ({
+  loadOfficialStatuteIndex: async () => null,
+  resetOfficialStatuteIndexCache: () => {},
+  isRepealedText: () => false
+}));
+
 const 提問 = { userInput: '我借錢給對方不還怎麼辦？', history: [] };
 
 describe('對話的簡體中文處理', () => {

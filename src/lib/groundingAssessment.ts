@@ -12,7 +12,10 @@
  */
 /** 中文以字為單位、英文以詞為單位的詞元切分。 */
 function tokenize(text: string): string[] {
-  const source = text || '';
+  // 型別標示是 string，但真實資料來自模型輸出，曾實際傳入物件而拋出
+  // 「source.match is not a function」，讓整段分析中止。
+  // 這是純比對用的工具函式，遇到非字串應退化成空結果，不得中斷流程。
+  const source = typeof text === 'string' ? text : '';
   // 英文詞必須在移除空白之前切出，否則整句會被合併成單一詞而無法比對。
   const latin = (source.match(/[A-Za-z0-9]+/g) || []).map(word => word.toLowerCase());
   const cjk = source.replace(/[\s　]/g, '').match(/[一-龥]/g) || [];
