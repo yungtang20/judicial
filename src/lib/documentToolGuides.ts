@@ -120,7 +120,7 @@ export const DOCUMENT_TOOL_GUIDES: Record<string, DocumentToolGuide> = {
       '家事起訴/聲請調解狀正本及繕本'
     ],
     courtOrAgency: '夫妻住所地或夫或妻一方住所地之地方法院家事法庭',
-    feeStandard: '聲請家事調解徵收規費 1,000 元；起訴裁判離婚第一審徵收裁判費 3,000 元',
+    feeStandard: '聲請家事調解徵收規費 1,000 元；起訴裁判離婚第一審徵收裁判費 4,500 元',
     guideSections: [
       {
         title: '破綻主義與可歸責性',

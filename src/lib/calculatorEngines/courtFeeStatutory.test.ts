@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { calculateCourtFee } from './statutoryStandards';
+import { COURT_FEE_CALCULATOR_CONFIG } from './courtFee';
 
 /**
  * 裁判費試算必須符合民訴法第77條之13 的累進費率。
@@ -116,5 +117,31 @@ describe('裁判費試算', () => {
     const r = calculateCourtFee(1000000, 'first');
     expect(r.basisRule).toContain('77條之27');
     expect(r.basisRule).toContain('受理法院');
+  });
+
+  it('非財產權訴訟費符合司法院對照表（第一審 4,500 元）', () => {
+    // 司法院「民事事件費用徵收標準」：非因財產權起訴／上訴
+    //   第一審 4,500 元；第二、三審 6,750 元。
+    // 先前實作沿用加徵前的舊額 3,000 元，第一審少算 1,500 元。
+    const 一審 = (COURT_FEE_CALCULATOR_CONFIG as any).calculate({
+      claimAmount: 0, procedureType: 'first', isNonProperty: 'true', firstInstanceFeeReduced: 'true'
+    });
+    expect(一審.summary[0].value).toBe('$4,500');
+
+    const 二審 = (COURT_FEE_CALCULATOR_CONFIG as any).calculate({
+      claimAmount: 0, procedureType: 'second_third', isNonProperty: 'true', firstInstanceFeeReduced: 'true'
+    });
+    expect(二審.summary[0].value).toBe('$6,750');
+
+    const 二審未酌減 = (COURT_FEE_CALCULATOR_CONFIG as any).calculate({
+      claimAmount: 0, procedureType: 'second_third', isNonProperty: 'true', firstInstanceFeeReduced: 'false'
+    });
+    expect(二審未酌減.summary[0].value).toBe('$2,250');
+  });
+
+  it('使用者可見的說明文字不得出現加徵前的舊額 3,000 元', () => {
+    // 說明文字與實際計算不同步時，使用者會依錯誤金額做財務規劃。
+    const 全域說明 = JSON.stringify(COURT_FEE_CALCULATOR_CONFIG);
+    expect(全域說明).not.toContain('3,000 元');
   });
 });

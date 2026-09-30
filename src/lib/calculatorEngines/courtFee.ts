@@ -14,7 +14,7 @@ export const COURT_FEE_CALCULATOR_CONFIG: LegalCalculatorConfig = {
       type: 'number',
       defaultValue: 1000000,
       suffix: '元',
-      helperText: '例如：請求借款 1,000,000 元、車禍賠償 500,000 元。非財產權訴訟（如確認親子關係、離婚）則依民事訴訟法第77條之14徵收定額 3,000 元。'
+      helperText: '例如：請求借款 1,000,000 元、車禍賠償 500,000 元。非財產權訴訟（如確認親子關係、離婚）則依民事訴訟法第77條之14、第77條之27徵收定額 4,500 元。'
     },
     {
       id: 'procedureType',
@@ -34,7 +34,7 @@ export const COURT_FEE_CALCULATOR_CONFIG: LegalCalculatorConfig = {
       defaultValue: 'false',
       options: [
         { label: '否（財產權訴訟，依訴訟標的金額累進計費）', value: 'false' },
-        { label: '是（非財產權訴訟，徵收固定規費 3,000 元）', value: 'true' }
+        { label: '是（非財產權訴訟，徵收固定規費 4,500 元）', value: 'true' }
       ]
     },
     {
@@ -62,12 +62,16 @@ export const COURT_FEE_CALCULATOR_CONFIG: LegalCalculatorConfig = {
     let ruleText = '';
 
     if (isNonProp) {
+      // 非因財產權起訴之裁判費，依司法院「民事事件費用徵收標準」對照表
+      // （民訴§77-14、§77-16、§77-27）：第一審 4,500 元、第二三審 6,750 元。
+      // 先前實作以 3,000 元為基礎（第一審 3,000、二審 4,500 或 1,500），
+      // 該金額為加徵前舊額，與現行對照表不符，第一審少算 1,500 元。
       if (proc === 'second_third') {
-        fee = 一審已酌減 ? 4500 : 1500;
-        ruleText = `民事訴訟法第77條之14、第77條之16：非財產權訴訟二審／三審${一審已酌減 ? '加徵 5/10，徵收 4,500 元' : '徵收一審之 1/2，計 1,500 元'}`;
+        fee = 一審已酌減 ? 6750 : 2250;
+        ruleText = `民事訴訟法第77條之14、第77條之16、第77條之27：非財產權訴訟二審／三審${一審已酌減 ? '加徵 5/10，徵收 6,750 元' : '徵收一審之 1/2，計 2,250 元'}`;
       } else {
-        fee = 3000;
-        ruleText = '民事訴訟法第77條之14：非因財產權而起訴者，徵收裁判費 3,000 元';
+        fee = 4500;
+        ruleText = '民事訴訟法第77條之14、第77條之27：非因財產權而起訴者，徵收裁判費 4,500 元';
       }
     } else {
       const res = calculateCourtFee(claimAmount, proc, 一審已酌減);
@@ -75,9 +79,9 @@ export const COURT_FEE_CALCULATOR_CONFIG: LegalCalculatorConfig = {
       ruleText = res.basisRule;
     }
 
-    const firstFee = isNonProp ? 3000 : calculateCourtFee(claimAmount, 'first').fee;
+    const firstFee = isNonProp ? 4500 : calculateCourtFee(claimAmount, 'first').fee;
     const secondFee = isNonProp
-      ? (一審已酌減 ? 4500 : 1500)
+      ? (一審已酌減 ? 6750 : 2250)
       : calculateCourtFee(claimAmount, 'second_third', 一審已酌減).fee;
 
     const clause = `訴訟費用由被告負擔。\n（聲明事項：請准原告提供擔保宣告假執行，並命被告負擔第一審裁判費新臺幣 ${formatCurrency(fee).replace('$', '')} 元）`;
