@@ -72,8 +72,27 @@ describe('AI 抽取金額的核對', () => {
   });
 
   it('欄位為 undefined 或非字串時安全略過', () => {
-    const r = 核對抽取金額(真實判決, undefined, '', '主文正常');
+    // 本測試名稱原本宣稱涵蓋「非字串」，實際只傳了 undefined 與空字串。
+    // 真值但非字串（模型把物件／陣列塞進應為字串的欄位）才是會崩潰的型態——
+    // 同一批缺陷曾讓 tokenize 對物件呼叫 .match 而中止整段分析。
+    // 這裡明確傳入物件與陣列，確認被安全略過且不影響其他欄位的核對。
+    const r = 核對抽取金額(
+      真實判決,
+      undefined,
+      '',
+      '主文正常',
+      { storyNarrative: '含 999,999 元' } as unknown as string,
+      ['含 888,888 元'] as unknown as string
+    );
     expect(r.需人工確認).toBe(false);
+    expect(r.無依據金額).toEqual([]);
+  });
+
+  it('非字串欄位不得使其餘欄位漏核', () => {
+    // 非字串被略過不代表其餘欄位可以跟著失效。
+    const r = 核對抽取金額(真實判決, { x: 1 } as unknown as string, '應給付新臺幣500萬元');
+    expect(r.需人工確認).toBe(true);
+    expect(r.無依據金額).toEqual(expect.arrayContaining([5000000]));
   });
 
   it('空原文時全部金額都算無依據（寧可警示也不默放）', () => {
