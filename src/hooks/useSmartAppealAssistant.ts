@@ -128,9 +128,12 @@ export function useSmartAppealAssistant() {
   useAutoSave(
     `SmartAppealAssistant_Draft_v1_${appealScope}`,
     // 法律原文、當事人資料與生成書狀不得自動寫入 localStorage；僅保留非敏感 UI 位置。
+    // 但既然不落地任何內容，重新載入後步驕二以後必定是空的——實測草稿內容
+    // 只有 {"currentStep":2}，返回使用者會落在沒有輸入框、沒有爭點的畫面，
+    // 看起來像功能壞掉。因此只還原步驕一，其餘步驟讓使用者從頭開始。
     { currentStep },
     (data: any) => {
-      if (data.currentStep) setCurrentStep(data.currentStep);
+      if (data.currentStep === 1) setCurrentStep(data.currentStep);
     }
   );
   // ------------------------------------------------
@@ -384,11 +387,21 @@ export function useSmartAppealAssistant() {
         );
       }
 
+      // 爭點與證據必須同時寫進上訴 store 與案件 store。
+      // ctx.issues 讀的是 activeCase.issues（案件 store），只呼叫 setIssues
+      // 會讓分析結果停在另一個 store，步驟二永遠顯示「共 0 爭點」——
+      // 實測 API 成功回傳 2 筆爭點，畫面卻是 0。
       const mappedIssues = mapSuggestedIssues(data.suggestedIssues);
-      if (mappedIssues.length > 0) setIssues(mappedIssues);
+      if (mappedIssues.length > 0) {
+        setIssues(mappedIssues);
+        updateCaseIssues(mappedIssues);
+      }
 
       const mappedEvidences = mapSuggestedEvidences(data.suggestedEvidences);
-      if (mappedEvidences.length > 0) setEvidences(mappedEvidences);
+      if (mappedEvidences.length > 0) {
+        setEvidences(mappedEvidences);
+        updateCaseEvidences(mappedEvidences);
+      }
 
       const mappedKeywords = mapRecommendedKeywords(data.recommendedKeywords);
       if (mappedKeywords) setKeywords(mappedKeywords);
