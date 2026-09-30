@@ -35,6 +35,16 @@ router.post("/api/analyze-judgment", async (req: Request, res: Response) => {
     return res.status(400).json({ error: "請提供裁判書全文或司法院連結" });
   }
 
+  // 輸入長度守衛。裁判書屬「文件」而非「敘述」，上限依 DOCUMENT_MAX_CHARS。
+  // 本檔先前已匯入檢查輸入長度卻從未呼叫，等於門檻形同虛設：
+  // 實測貼上 75,646 字（narrative 上限的 3.8 倍）仍回應 200 並產出分析。
+  // 守衛自帶的訊息已說明為何不能自動截斷——只分析前段會遺漏後段的訴求與證據，
+  // 因此寧可拒收讓使用者自行選取段落，也不要交回一份完整度未知的結果。
+  const 長度檢查 = 檢查輸入長度(judgmentText || "", "document");
+  if (!長度檢查.通過) {
+    return res.status(413).json({ code: "INPUT_TOO_LONG", error: 長度檢查.訊息 });
+  }
+
   // Pre-check
   const precheck = precheckLegalInput(judgmentText || "", 'analysis', officialPrecheckOptions());
   if (precheck.status === "reject") {
