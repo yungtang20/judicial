@@ -430,14 +430,20 @@ export function useSmartAppealAssistant() {
         }, 100);
       }
     } catch (err: any) {
-      // 分析失敗必須讓使用者看見原因。過往只顯示 err.message，
-      // 而 TypeError 的訊息（如「source.match is not a function」）對使用者無意義。
+      // 分析失敗必須讓使用者看見原因，而且原因要對得上實際情況。
+      // fetch 在連線中斷時拋的是 TypeError('Failed to fetch')，與
+      // 「回應內容格式不對」是同一個型別。先前一視同仁地說成格式有誤，
+      // 會讓網路不穩的使用者以為自己的判決書有問題而反覆重整一份沒問題的文件。
       console.error('[analyze-judgment] 處理失敗', err);
       if (isCurrentAppealScope(requestScope)) {
+        const 訊息 = String(err?.message || '');
+        const 連線失敗 = 訊息 === 'Failed to fetch' || 訊息 === 'NetworkError when attempting to fetch resource.';
         notifyError(
-          err instanceof TypeError
-            ? '分析結果的格式有誤，無法完成爭點整理。請稍後再試或改用上傳裁判書檔案。'
-            : (err?.message || '分析發生錯誤')
+          連線失敗
+            ? '無法連線至分析服務，請檢查網路後再試一次。你的裁判書內容不會因此遺失。'
+            : err instanceof TypeError
+              ? '分析結果的格式有誤，無法完成爭點整理。請稍後再試或改用上傳裁判書檔案。'
+              : (err?.message || '分析發生錯誤')
         );
       }
     } finally {
