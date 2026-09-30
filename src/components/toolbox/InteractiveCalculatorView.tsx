@@ -257,6 +257,16 @@ export const InteractiveCalculatorView: React.FC<InteractiveCalculatorViewProps>
               <div className="bg-slate-950 rounded-xl p-3.5 sm:p-4 border border-slate-800/80 font-mono text-xs leading-relaxed text-slate-300 whitespace-pre-wrap selection:bg-blue-500/30 overflow-x-auto">
                 {result.legalClause}
               </div>
+
+              {/* 條款中的全形空格（　）是刻意留給使用者於簽約時填寫的欄位，
+                  例如給付日期、年月。在畫面上與一般空白無異，使用者可能誤以為
+                  是格式錯誤而直接複製，導致法院書狀出現未填的日期。 */}
+              <p className="mt-2 text-[11px] leading-relaxed text-slate-400">
+                條款中的全形空格為
+                <span className="font-mono text-slate-300">　</span>
+                處，是刻意留給您於簽約或用印時填寫的欄位（例如給付日期、年月）。
+                帶入書狀前請先補齊，勿將空白一併送出。
+              </p>
             </div>
           </div>
         </div>
