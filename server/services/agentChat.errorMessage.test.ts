@@ -29,6 +29,22 @@ vi.mock('../legalGenerationPipeline.js', () => ({
   },
 }));
 
+// 官方法規開放資料是即時外部呼叫（agentChat 內以 5 秒逾時抓取）。
+// 不 mock 的話，本測試的成敗取決於該主機是否連得上以及多快反應：
+// 連不上時快速失敗、測試通過；連得上但較慢時就會在 CI 上逾時。
+// 這裡固定回傳「查無資料」，讓測試只驗證錯誤訊息的分類是否正確。
+vi.mock('./judicialDataFetcher.js', () => ({
+  fetchFromOpenData: async () => ({ success: false, html: '' })
+}));
+
+// 官方法規索引會實際抓取全國法規資料庫（約 6 MB、43,854 條）並解析。
+// 這裡只需驗證錯誤訊息的分類，不需要真實索引；回傳 null 會讓該段直接略過。
+vi.mock('./officialStatuteIndex.js', () => ({
+  loadOfficialStatuteIndex: async () => null,
+  resetOfficialStatuteIndexCache: () => {},
+  isRepealedText: () => false
+}));
+
 const 提問 = { userInput: '我被房東趕出門口怎麼辦？', history: [] as never[] };
 
 describe('對話錯誤訊息的準確性', () => {
