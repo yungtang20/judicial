@@ -6,6 +6,7 @@ import { useState, useRef, useMemo, useEffect } from "react";
 import { IssueRow, EvidenceRow, PrecedentItem } from "../types";
 import { useAppealBindings } from './useAppealBindings';
 import { useCaseStore } from "../store/useCaseStore";
+import { useUnsavedInputWarning } from './useUnsavedInputWarning';
 import { assessGrounding } from '../lib/groundingAssessment';
 import { verifyLegalCitations } from "../lib/services/citationCheck";
 import type { LegalSearchSources } from '../lib/twLegalRagClient';
@@ -137,6 +138,15 @@ export function useSmartAppealAssistant() {
     }
   );
   // ------------------------------------------------
+
+  // 貼上的裁判書不會落地（見上方隱私考量），因此誤觸重新整理或關閉分頁
+  // 就全部白費。首頁的案情描述輸入早已接上 useUnsavedInputWarning，
+  // 上訴頁要貼的是整份判決書，輸入成本更高，卻沒有同樣的提示。
+  // 實測：貼上後重新整理，內容歸零且畫面無任何說明。
+  useUnsavedInputWarning(
+    `${rawText}\n${secondText}`,
+    Boolean(judgmentSummary) || currentStep > 1
+  );
 
 
   // 1. PDF File Import Handler
