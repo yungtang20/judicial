@@ -301,7 +301,7 @@ export const DOCUMENT_TOOL_GUIDES: Record<string, DocumentToolGuide> = {
       '原證一、原證二各項書證清冊（借據、合約、單據、發票等）'
     ],
     courtOrAgency: '被告住所地、契約履行地或侵權行為地之管轄地方法院民事庭',
-    feeStandard: '依訴訟標的金額按民事訴訟法第77條之13累進計徵裁判費（10萬元約1,000元，100萬元約10,900元）',
+    feeStandard: '依訴訟標的金額按民事訴訟法第77條之13累進計徵裁判費（10萬元1,500元，100萬元13,200元；費率依司法院「民事事件費用徵收標準」對照表，各法院得依同法第77條之27加徵）',
     guideSections: [
       {
         title: '訴之聲明明確性原則',
