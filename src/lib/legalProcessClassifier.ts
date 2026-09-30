@@ -63,6 +63,27 @@ const SEXUAL_ASSAULT_KEYWORDS = [
   '性騷擾', '硬上', '侵犯我', '碰我私密處'
 ];
 
+// 自然敘述很少用固定詞組。當事人會說「摸我胸部」「摸了我的胸部」
+// 「用手摸胸部」，動詞與身體部位之間常夾著字，純字串比對會整組漏掉。
+// 這裡以樣式補足：動詞與部位之間允許少量插字，但部位詞必須出現，
+// 動詞必須本身即指向暴力或性接觸。像「打」「抓」「親」單獨出現時
+// 極為常見（「打電話」「抓住我的手」「親耳聽見」），放進來會把無辜的
+// 敘述誤判成敏感案件，而誤判會讓不曾受暴者看到家庭暴力警示。
+// 因此這裡只放語意明確的動詞，並要求部位或器物詞確實出現。
+const SEXUAL_ASSAULT_PATTERNS: RegExp[] = [
+  /(摸|撫摸|觸摸|碰)[^。！？，\n]{0,4}(胸|臀|屁股|下體|私處|私密處|大腿|大腿根|生殖器)/,
+  /(舔|含住|吸吮)[^。！？，\n]{0,3}(胸|下體|私處|生殖器)/,
+  /(脫|扯|扒)[^。！？，\n]{0,3}(衣|褲|內衣|內褲)/,
+  /(強行|硬|強迫|不容拒絕)[^。！？，\n]{0,6}(親|摸|碰|抱|脫|褪)/,
+  /未經[^。！？，\n]{0,4}(同意|允許)[^。！？，\n]{0,6}(拍|錄|摸|碰|親)/
+];
+
+// 家暴的常見說法同樣多變：砸、拳頭、腳踢、推撞、拿刀等都不在字串清單內。
+const DOMESTIC_ASSAULT_PATTERNS: RegExp[] = [
+  /(砸|毆|毆打|揍|踢|踹|推撞|拉扯|咬|掐|扭|搥|捶|掌摑)[^。！？，\n]{0,4}(我|她|他|頭|臉|身體|手臂|腳|脖子|胸|背|腿|拳頭|棍|刀|酒瓶|玻璃)/,
+  /(拿|揮)[^。！？，\n]{0,4}(刀|棍|棒|鐵棍|酒瓶|玻璃瓶|椅子|水杯)/
+];
+
 const INCAPACITATED_KEYWORDS = [
   '睡覺', '熟睡', '昏睡', '意識不清', '酒醉', '喝醉', '灌醉', '麻醉', '迷昏', '下藥',
   '不能抗拒', '不知抗拒', '無法動彈', '不省人事'
@@ -101,10 +122,22 @@ export function filterSensitiveKeywords(text: string): KeywordFilterResult {
     return found;
   };
 
-  const hasSexual = check(SEXUAL_ASSAULT_KEYWORDS);
+  const checkPatterns = (patterns: RegExp[]) => {
+    let found = false;
+    for (const re of patterns) {
+      const m = t.match(re);
+      if (m) {
+        found = true;
+        detected.push(m[0]);
+      }
+    }
+    return found;
+  };
+
+  const hasSexual = check(SEXUAL_ASSAULT_KEYWORDS) || checkPatterns(SEXUAL_ASSAULT_PATTERNS);
   const hasIncap = check(INCAPACITATED_KEYWORDS);
   const hasPrivate = check(PRIVATE_MEDIA_KEYWORDS);
-  const hasDomestic = check(DOMESTIC_KEYWORDS);
+  const hasDomestic = check(DOMESTIC_KEYWORDS) || checkPatterns(DOMESTIC_ASSAULT_PATTERNS);
   const hasThreat = t.includes('威脅') || t.includes('恐嚇') || t.includes('跟蹤') || t.includes('騷擾');
 
   return {

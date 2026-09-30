@@ -14,6 +14,24 @@ import { extractJsonFromText } from './extractJson.js';
 
 const router = Router();
 
+/** AI 未能真正完成分類時會吐出的佔位用字。這些值會直接顯示給使用者，
+ *  也會被當成三段論分析的主題，必須視為「沒有結果」。 */
+const DEGENERATE_ROUTING_VALUES = [
+  '未知', '未提供', '無法判斷', '不詳', '未提供案情', '無', '不適用',
+  'unknown', 'n/a', 'na', 'null', 'undefined', '待補', '缺少'
+];
+
+function isDegenerateRouting(result: RouterEvaluationResult): boolean {
+  const 值 = [result.domain, result.chapter, result.cause]
+    .filter((v): v is string => typeof v === 'string')
+    .map((v) => v.trim().toLowerCase());
+  if (!值.length) return true;
+  return 值.every((v) =>
+    v.length === 0 ||
+    DEGENERATE_ROUTING_VALUES.some((d) => v === d || v.includes(d))
+  );
+}
+
 /**
  * 本地智能路由降級評估 (嚴格遵循判斷標準)
  */
@@ -61,6 +79,18 @@ function evaluateRouterFallback(trimmedInput: string): RouterEvaluationResult {
     domain = "民事";
     chapter = "民法債權租賃專節";
     cause = "返還租賃押金與租約終止爭議";
+  } else if (/(借|借錢|借據|欠|借款|清償|本金|利息|匯款|票據)/.test(trimmedInput)) {
+    domain = "民事";
+    chapter = "民法債權契約（借貸與清償）";
+    cause = "清償借款本息與借據契約爭議";
+  } else if (/(國稅|稅單|罰單|稅捐|被查報|課稅|便民服務|公務機關|機關|處分|訴願|申訴)/.test(trimmedInput)) {
+    domain = "行政";
+    chapter = "行政程序與行政處分爭議";
+    cause = "行政處分撤銷與程序救濟";
+  } else if (/(離婚|配偶|夫妻|親權|監護|未成年子女|遺產|繼承|贍養)/.test(trimmedInput)) {
+    domain = "家事";
+    chapter = "家事事件法相關";
+    cause = "家事事件程序";
   }
 
   // 這份清單會直接呈現給使用者，模型偶爾以簡體中文回覆
@@ -117,6 +147,15 @@ router.post("/api/process/router", async (req: Request, res: Response) => {
 
     // 若 AI 未回傳有效 JSON 或異常，採用嚴格符合 Prompt 規範的評估引擎
     if (!result) {
+      result = evaluateRouterFallback(trimmedInput);
+    }
+
+    // AI 可能回傳「未知」「未提供案情」這類退化值——那是物件而非 null，
+    // 上面的 !result 判斷擋不住，於是占位文字會直接顯示給使用者，
+    // 並被當成三段論分析的主題。實測同一段借貸案情三次得到三種結果，
+    // 兩次是退化值。輸入明明存在卻給不出分類時，寧可改用確定性規則引擎。
+    if (result && isDegenerateRouting(result)) {
+      console.warn("[LegalProcess] 路由輸出為退化佔位值，改用本地規範規則引擎:", result.domain, result.chapter, result.cause);
       result = evaluateRouterFallback(trimmedInput);
     }
 
