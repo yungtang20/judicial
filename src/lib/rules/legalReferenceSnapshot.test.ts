@@ -63,8 +63,43 @@ const 快照清單: 快照[] = readdirSync('legal_references')
 /** ZIP 結尾中央目錄（End of Central Directory）簽章，用來確認回應確實是 ZIP。 */
 const EOCD_SIGNATURE = Buffer.from([0x50, 0x4b, 0x05, 0x06]);
 
-/** 官方條文原文。官方索引刻意不保留全文以省記憶體，因此另行取用。 */
+/**
+ * 對外部來源的取用設時間上限。
+ * 逾時或拋錯都視同「來源不可用」並回傳 null，讓依賴該來源的檢查
+ * 依本檔約定跳過，而不是被測試本身的 timeout 判成程式缺陷。
+ */
+async function 逾時保護<T>(工作: () => Promise<T>, 毫秒: number): Promise<T | null> {
+  let 計時器: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      工作(),
+      new Promise<null>((resolve) => {
+        計時器 = setTimeout(() => {
+          console.warn(`[條文快照] 官方來源取用超過 ${毫秒 / 1000} 秒，本次跳過與全國法規資料庫的比對。`);
+          resolve(null);
+        }, 毫秒);
+      })
+    ]);
+  } catch (err) {
+    console.warn('[條文快照] 官方來源取用失敗，本次跳過與全國法規資料庫的比對：', err);
+    return null;
+  } finally {
+    if (計時器) clearTimeout(計時器);
+  }
+}
+
+/**
+ * 官方條文原文。官方索引刻意不保留全文以省記憶體，因此另行取用。
+ *
+ * 整個取用過程都綁在同一個時間上限內：索引建置與後續下載合計約 12 MB，
+ * 慢速網路下會超過測試本身的 timeout，讓「來源取得不到」被呈現成程式缺陷。
+ * 逾時視同來源不可用（回傳 null），由呼叫端依本檔約定跳過該項比對。
+ */
 async function 載入官方條文(): Promise<((key: string) => string | null) | null> {
+  return 逾時保護(取得官方條文查詢, 45_000);
+}
+
+async function 取得官方條文查詢(): Promise<((key: string) => string | null) | null> {
   resetOfficialStatuteIndexCache();
   const 索引 = await loadOfficialStatuteIndex();
   if (!索引) return null;
