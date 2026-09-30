@@ -199,9 +199,9 @@ export function AppealStep1({ ctx }: { ctx: AppealStepContext }) {
                   的輸入會回 413，但在送出前先讓使用者看到字數與上限，
                   免得貼完才被拒。超過上限時明確告知不能自動截斷的原因。 */}
               {rawText.length > 0 && (
-                <p className={`mt-1 text-2xs font-medium ${rawText.length > 200_000 ? 'text-[var(--color-status-danger)]' : 'text-[var(--color-text-muted)]'}`}>
+                <p className={`mt-1 text-2xs font-medium ${rawText.length > 120_000 ? 'text-[var(--color-status-danger)]' : 'text-[var(--color-text-muted)]'}`}>
                   已貼上 {rawText.length.toLocaleString()} 字
-                  {rawText.length > 200_000 && '（超過 200,000 字上限，無法送出。系統不會自動截斷——只分析前段會遺漏後段的訴求與證據，請自行刪除無關段落後再試）'}
+                  {rawText.length > 120_000 && '（超過 120,000 字上限，無法送出。系統不會自動截斷——只分析前段會遺漏後段的訴求與證據，請自行刪除無關段落後再試）'}
                 </p>
               )}
             </div>
@@ -432,7 +432,7 @@ export function AppealStep1({ ctx }: { ctx: AppealStepContext }) {
               </button>
               <button
                 onClick={() => handleAnalyzeJudgment(false)}
-                disabled={isAnalyzing || isAnalyzingSummaryOnly || !rawText.trim() || rawText.length > 200_000}
+                disabled={isAnalyzing || isAnalyzingSummaryOnly || !rawText.trim() || rawText.length > 120_000}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg font-bold text-xs shadow-xs transition-all disabled:opacity-50 flex items-center gap-1.5"
               >
                 {isAnalyzingSummaryOnly ? (
@@ -447,7 +447,7 @@ export function AppealStep1({ ctx }: { ctx: AppealStepContext }) {
 
               <button
                 onClick={() => handleAnalyzeJudgment(true)}
-                disabled={isAnalyzing || isAnalyzingSummaryOnly || !rawText.trim() || rawText.length > 200_000}
+                disabled={isAnalyzing || isAnalyzingSummaryOnly || !rawText.trim() || rawText.length > 120_000}
                 className="bg-[var(--color-brand-primary)] text-white px-5 py-2.5 rounded-lg font-bold text-xs hover:opacity-90 transition-all shadow-xs disabled:opacity-50 flex items-center gap-1.5"
               >
                 {isAnalyzing ? (

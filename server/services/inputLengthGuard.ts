@@ -21,8 +21,14 @@
 /** 敘述型輸入的字元上限。遠高於正常口語陳述（數百至數千字）。 */
 export const NARRATIVE_MAX_CHARS = 20_000;
 
-/** 文書型輸入的字元上限。真實判決書可能達數萬字。 */
-export const DOCUMENT_MAX_CHARS = 200_000;
+/**
+ * 文書型輸入的字元上限。真實判決書可能達數萬字，120,000 遠高於該規模。
+ *
+ * 不設更高的原因：本檔開頭記載的截斷實測發生在 170,061 字。
+ * 上限必須低於該點，否則守衛會放行一段已知會被模型靜默截斷的輸入，
+ * 等於沒有守衛——使用者仍會拿到只分析了前段的結果且毫無警訊。
+ */
+export const DOCUMENT_MAX_CHARS = 120_000;
 
 export type InputKind = 'narrative' | 'document';
 
