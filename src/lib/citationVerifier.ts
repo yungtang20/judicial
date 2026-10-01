@@ -969,10 +969,39 @@ export function verifyLegalCitations(
   );
   let match: RegExpExecArray | null;
 
+  /**
+   * 取出引用所在的整個條列作為它所支持的法律主張。
+   *
+   * 先前是取引用「前 30 個字」，等於拿到上一條的內容：
+   * 實測「一、依民法第184條規定…二、依民法第191條之1規定…」中，
+   * 民法第191條之1 配到的 legalClaim 是 184 條那段話，
+   * 而 184 條只配到「請求權基礎\n一、依」這種殘段。
+   * 引用與主張錯配，會讓審閱者誤以為某法條支持了它其實不支援的主張。
+   *
+   * 中文法律文書的條列以句號、分號、換行或「一、二、三…」編號切分，
+   * 因此以這些邊界取出引用所屬的完整條列。
+   */
+  const 條列邊界 = /[。；;\n]|(?:^|\s)[一二三四五六七八九十]+[、.．]/g;
+  const 取出所屬條列 = (全文: string, 起點: number, 終點: number): string => {
+    let 條列起點 = 0;
+    let 條列終點 = 全文.length;
+    條列邊界.lastIndex = 0;
+    for (let m = 條列邊界.exec(全文); m !== null; m = 條列邊界.exec(全文)) {
+      const 邊界結束 = m.index + m[0].length;
+      if (邊界結束 <= 起點) {
+        條列起點 = 邊界結束;
+      } else if (邊界結束 > 終點) {
+        條列終點 = 邊界結束;
+        break;
+      }
+    }
+    return 全文.slice(條列起點, 條列終點).trim();
+  };
+
   while ((match = statuteRegex.exec(text)) !== null) {
     const fullMatch = match[0];
     const lawName = match[1];
-    const legalClaim = text.substring(Math.max(0, match.index - 30), match.index).trim();
+    const legalClaim = 取出所屬條列(text, match.index, match.index + fullMatch.length);
     const mainArt = 正規化數字(match[2]);
     const subArt = 正規化數字(match[3] || match[4]);
     const paraNum = match[5] ? Number(正規化數字(match[5])) : null;
@@ -1098,7 +1127,7 @@ export function verifyLegalCitations(
   while ((match = precedentRegex.exec(text)) !== null) {
     const fullMatch = match[0];
     const court = match[1];
-    const legalClaim = text.substring(Math.max(0, match.index - 30), match.index).trim();
+    const legalClaim = 取出所屬條列(text, match.index, match.index + fullMatch.length);
     const year = match[2].normalize('NFKC');
     const caseWord = match[3].normalize('NFKC');
     const caseNum = match[4].normalize('NFKC');
