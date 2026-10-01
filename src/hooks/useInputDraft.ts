@@ -22,8 +22,37 @@ import { useCallback, useEffect, useRef } from 'react';
 
 const 草稿鍵 = 'judicial_input_draft_v1';
 
-/** 延遲寫入，避免每個按鍵都動到 localStorage。 */
+/** 延遲寫入，避免每個按鍵都動到儲存區。 */
 const 寫入延遲毫秒 = 400;
+
+/**
+ * 讀取草稿，優先使用分頁隔離的 sessionStorage。
+ *
+ * 實測缺陷：草稿原本存在 localStorage，而 localStorage 是所有分頁共用的。
+ * 開第二個分頁會直接載入第一個分頁的案子草稿；
+ * 在分頁 B 輸入另一個案子後，分頁 A 重新整理會還原成案子 B 的內容，
+ * 案子 A 的草稿就永久遺失。對要同時比對多個案子的使用者是實際的資料損失。
+ *
+ * 案件卷宗（useCaseStore）本來就用 sessionStorage 並註明了理由：
+ * 足以跨重新整理保留工作階段，又不會在磁碟上長期留放明文個資。
+ * 草稿改用同一種儲存，行為才一致。
+ *
+ * localStorage 的舊草稿仍會被讀取一次，讓既有使用者的草稿不會因為
+ * 這次變更而消失；之後的寫入一律進 sessionStorage。
+ */
+function 讀取草稿(): string | null {
+  try {
+    const 本分頁 = window.sessionStorage.getItem(草稿鍵);
+    if (本分頁 !== null) return 本分頁;
+  } catch {
+    // 無痕模式或權限限制時往下走
+  }
+  try {
+    return window.localStorage.getItem(草稿鍵);
+  } catch {
+    return null;
+  }
+}
 
 export function useInputDraft(
   inputNarrative: string,
@@ -46,13 +75,13 @@ export function useInputDraft(
     if (分析已完成) return;
     if (inputNarrative.trim()) return;
     try {
-      const 草稿 = window.localStorage.getItem(草稿鍵);
+      const 草稿 = 讀取草稿();
       if (草稿 && 草稿.trim()) {
         還原中.current = true;
         setInputNarrative(草稿);
       }
     } catch {
-      // localStorage 不可用（無痕模式、權限限制）時靜默略過，
+      // 儲存區不可用（無痕模式、權限限制）時靜默略過，
       // 不能因為無法保存草稿就讓整個輸入框不可用。
     }
   }, [inputNarrative, 分析已完成, setInputNarrative]);
@@ -63,9 +92,17 @@ export function useInputDraft(
     // 留著只會讓使用者誤以為舊案情還沒送出。
     if (分析已完成) {
       try {
-        window.localStorage.removeItem(草稿鍵);
+        window.sessionStorage.removeItem(草稿鍵);
       } catch {
         // 同上，無法操作儲存時不影響功能。
+      }
+      try {
+        // 舊版草稿存在 localStorage。若只清本分頁，新開的分頁會透過
+        // 讀取草稿() 的回退路徑又把這份舊案情撈回來，
+        // 使用者會在新的案子裡看到上一個案子的內容。
+        window.localStorage.removeItem(草稿鍵);
+      } catch {
+        // 儲存區不可用時不影響功能
       }
       return;
     }
@@ -75,9 +112,9 @@ export function useInputDraft(
       還原中.current = false;
       try {
         if (inputNarrative.trim()) {
-          window.localStorage.setItem(草稿鍵, inputNarrative);
+          window.sessionStorage.setItem(草稿鍵, inputNarrative);
         } else {
-          window.localStorage.removeItem(草稿鍵);
+          window.sessionStorage.removeItem(草稿鍵);
         }
       } catch {
         // 儲存失敗不影響主要功能。

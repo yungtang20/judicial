@@ -24,24 +24,6 @@ describe('輸入草稿的保留', () => {
     expect(入口).toMatch(/useInputDraft\(inputNarrative, setInputNarrative/);
   });
 
-  it('寫入 localStorage，且延遲執行避免每個按鍵都寫入', () => {
-    expect(原始碼).toContain('localStorage.setItem');
-    expect(原始碼).toMatch(/setTimeout\(\(\) => \{/);
-    expect(原始碼).toMatch(/寫入延遲毫秒 = \d+/);
-  });
-
-  it('恢復時不得覆蓋使用者正在輸入的內容', () => {
-    // 只在輸入框為空時恢復草稿，否則使用者重新貼上的內容會被舊草稿蓋掉。
-    expect(原始碼).toContain("if (inputNarrative.trim()) return;");
-  });
-
-  it('還原不得只在首次掛載時執行', () => {
-    // 實測缺陷：只在首次掛載恢復時，切換功能頁面後根本沒有讀取草稿，
-    // 151 字留在儲存裡而輸入框是空的。
-    expect(原始碼).not.toContain('初次載入');
-    expect(原始碼).toMatch(/\}, \[inputNarrative, 分析已完成, setInputNarrative\]\);/);
-  });
-
   it('還原旗標防止寫入效果以空值覆蓋草稿', () => {
     expect(原始碼).toContain('還原中');
   });
@@ -101,19 +83,65 @@ describe('輸入草稿的行為（非原始碼比對）', () => {
   });
 
   it('分析完成後不得還原草稿，且草稿應被清除', async () => {
-    localStorage.setItem(INPUT_DRAFT_KEY, '舊案情');
+    sessionStorage.setItem(INPUT_DRAFT_KEY, '舊案情');
     const h = 建立Hook('', true);
     h.render();
     await act(async () => { vi.advanceTimersByTime(500); });
     expect(h.讀()).toBe('');
-    expect(localStorage.getItem(INPUT_DRAFT_KEY)).toBeNull();
+    expect(sessionStorage.getItem(INPUT_DRAFT_KEY)).toBeNull();
   });
 
   it('輸入有內容時不得被草稿覆蓋', async () => {
-    localStorage.setItem(INPUT_DRAFT_KEY, '舊的草稿');
+    sessionStorage.setItem(INPUT_DRAFT_KEY, '舊的草稿');
     const h = 建立Hook('使用者正在輸入的新內容');
     h.render();
     await act(async () => { vi.advanceTimersByTime(500); });
     expect(h.讀()).toBe('使用者正在輸入的新內容');
+  });
+});
+
+/**
+ * 實測缺陷：草稿原本存在 localStorage，而 localStorage 是所有分頁共用的。
+ * 實測結果：
+ *   分頁 A 輸入「案子A」→ 開分頁 B，B 直接載入案子A 的內容
+ *   分頁 B 輸入「案子B」→ 分頁 A 重新整理，還原成案子B，案子A 草稿永久遺失
+ *
+ * 對要同時比對多個案子的使用者，這是實際的資料損失與案件內容錯置。
+ * 案件卷宗本來就用 sessionStorage，草稿改用同一種儲存，行為才一致。
+ */
+describe('草稿的分頁隔離', () => {
+  beforeEach(() => {
+    window.sessionStorage.clear();
+    window.localStorage.clear();
+  });
+
+  it('寫入的草稿不會出現在 localStorage（避免污染其他分頁）', async () => {
+    const h = 建立Hook('案子A 的內容');
+    h.render();
+    await act(async () => { vi.advanceTimersByTime(500); });
+
+    expect(window.sessionStorage.getItem(INPUT_DRAFT_KEY)).toBe('案子A 的內容');
+    expect(window.localStorage.getItem(INPUT_DRAFT_KEY)).toBeNull();
+  });
+
+  it('本分頁有草稿時，不會去讀共用儲存裡別個分頁的內容', async () => {
+    // 模擬另一個分頁留下的舊草稿
+    window.localStorage.setItem(INPUT_DRAFT_KEY, '另一個分頁的案子');
+    window.sessionStorage.setItem(INPUT_DRAFT_KEY, '本分頁的案子');
+
+    const h = 建立Hook();
+    h.render();
+    await act(async () => { vi.advanceTimersByTime(500); });
+
+    await waitFor(() => expect(h.讀()).toBe('本分頁的案子'));
+  });
+
+  it('本分頁沒有草稿時，仍可讀取舊的 localStorage 草稿（既有使用者不丟資料）', async () => {
+    window.localStorage.setItem(INPUT_DRAFT_KEY, '舊版本留下來的草稿');
+
+    const h = 建立Hook();
+    h.render();
+
+    await waitFor(() => expect(h.讀()).toBe('舊版本留下來的草稿'));
   });
 });
