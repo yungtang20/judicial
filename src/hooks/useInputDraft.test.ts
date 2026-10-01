@@ -1,6 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { renderHook, act, waitFor } from '@testing-library/react';
+import { useInputDraft, INPUT_DRAFT_KEY } from './useInputDraft';
 
 /**
  * 案情描述的草稿必須在切換頁面後保留。
@@ -66,5 +68,52 @@ describe('輸入草稿的保留', () => {
     // 專案規範：clearTimeout 對 null/undefined 本就安全，
     // 加 if 判斷只會增加讀者需要推理的分支。
     expect(原始碼).not.toMatch(/if \(計時器\.current\) clearTimeout/);
+  });
+});
+
+function 建立Hook(初始值 = '', 分析已完成 = false) {
+  let 值 = 初始值;
+  const 設定 = (v: string) => { 值 = v; };
+  return {
+    讀: () => 值,
+    render: () => renderHook(() => useInputDraft(值, 設定, 分析已完成)),
+  };
+}
+
+describe('輸入草稿的行為（非原始碼比對）', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+  });
+
+  it('掛載時輸入為空且草稿存在，必須還原', async () => {
+    localStorage.setItem(INPUT_DRAFT_KEY, '房東不退還三萬元押金');
+    const h = 建立Hook();
+    h.render();
+    await waitFor(() => expect(h.讀()).toBe('房東不退還三萬元押金'));
+  });
+
+  it('輸入為空且無草稿時不得憑空產生內容', async () => {
+    const h = 建立Hook();
+    h.render();
+    await act(async () => { vi.advanceTimersByTime(500); });
+    expect(h.讀()).toBe('');
+  });
+
+  it('分析完成後不得還原草稿，且草稿應被清除', async () => {
+    localStorage.setItem(INPUT_DRAFT_KEY, '舊案情');
+    const h = 建立Hook('', true);
+    h.render();
+    await act(async () => { vi.advanceTimersByTime(500); });
+    expect(h.讀()).toBe('');
+    expect(localStorage.getItem(INPUT_DRAFT_KEY)).toBeNull();
+  });
+
+  it('輸入有內容時不得被草稿覆蓋', async () => {
+    localStorage.setItem(INPUT_DRAFT_KEY, '舊的草稿');
+    const h = 建立Hook('使用者正在輸入的新內容');
+    h.render();
+    await act(async () => { vi.advanceTimersByTime(500); });
+    expect(h.讀()).toBe('使用者正在輸入的新內容');
   });
 });

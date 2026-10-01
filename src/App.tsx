@@ -65,6 +65,7 @@ function AppContent() {
             // 本分支的 route.view 已收斂為 'litigation'，與 'appeal' 比較的分支不可達。
             // 上訴視圖由下方 case 'appeal' 各自處理導航。
             onSectionChange={section => navigate({ view: 'litigation', section }, handoff)}
+            onBackToAnalysis={() => navigate({ view: 'analysis' }, handoff)}
           />
         );
       case 'appeal':
@@ -75,6 +76,7 @@ function AppContent() {
             section={route.section}
             handoff={handoff}
             onSectionChange={section => navigate({ view: 'appeal', section }, handoff)}
+            onBackToAnalysis={() => navigate({ view: 'analysis' }, handoff)}
           />
         );
       case 'process-guide':

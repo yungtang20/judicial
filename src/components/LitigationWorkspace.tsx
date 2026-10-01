@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import {
   Table, 
   FileSpreadsheet, 
-  Gavel
+  Gavel,
+  ArrowLeft
 } from 'lucide-react';
 import { loadCrossFeatureContext } from '../lib/crossFeatureContext';
 import { buildAppealContext } from '../domain/case/appealContext';
@@ -27,6 +28,8 @@ interface LitigationWorkspaceProps {
   initialToolId?: string;
   initialFacts?: string;
   appealOnly?: boolean;
+  /** 返回 UnifiedEntry 的案件描述畫面（草稿保存在那裡）。 */
+  onBackToAnalysis?: () => void;
   onSectionChange?: (section: 'issues' | 'evidence') => void;
 }
 
@@ -39,6 +42,7 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({
   initialFacts,
   appealOnly = false,
   onSectionChange,
+  onBackToAnalysis,
 }) => {
   const crossCtx = loadCrossFeatureContext();
   const hasHandoff = handoff !== undefined && Object.keys(handoff).length > 0;
@@ -123,6 +127,18 @@ export const LitigationWorkspace: React.FC<LitigationWorkspaceProps> = ({
                 {標題說明}
               </p>
             </div>
+            {/* 返回案件描述。
+                草稿會被保存在 UnifiedEntry 的案情描述輸入框，但進入子頁面後
+                沒有任何路徑回到那個畫面——草稿等於保存了一個走不到的內容。
+                使用者要繼續同一個案子，只能重新整理頁面。 */}
+            <button
+              type="button"
+              onClick={onBackToAnalysis}
+              className="ml-auto shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-xs font-semibold border border-slate-700 transition-colors"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              回到案件描述
+            </button>
           </div>
         </div>
       </div>
