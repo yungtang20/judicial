@@ -873,6 +873,13 @@ router.post("/api/workflow/supplement", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "請提供補充內容" });
     }
 
+    // 輸入長度上限。先前 /api/workflow/execute 有檢查，supplement 這條沒有，
+    // 實測送出 32,000 字仍回 200 並觸發 AI 呼叫。
+    const 長度 = 檢查輸入長度(supplementText, "narrative");
+    if (!長度.通過) {
+      return res.status(413).json({ error: 長度.訊息, code: "INPUT_TOO_LONG", 字數: 長度.字數 });
+    }
+
     let requestAIProvider: AIProvider;
     try {
       requestAIProvider = await resolveRequestAIProvider(aiConfig);

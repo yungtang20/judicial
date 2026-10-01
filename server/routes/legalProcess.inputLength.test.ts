@@ -32,3 +32,26 @@ describe('法律流程端點的輸入長度限制', () => {
     expect(檢查輸入長度('一'.repeat(NARRATIVE_MAX_CHARS + 1), 'narrative').通過).toBe(false);
   });
 });
+
+/**
+ * /api/workflow/supplement 先前也沒有長度檢查：
+ * 實測送出 32,000 字仍回 200 並觸發 AI 呼叫。
+ * /api/workflow/suggest-field 則已有限制
+ * （fieldLabel 100、toolName 100、incidentDetails 5000，註明是縮小提示詞注入空間）。
+ */
+describe('補充與工具箱端點的長度限制', () => {
+  it('supplement 使用的檢查會擋下超長補充內容', () => {
+    const r = 檢查輸入長度('上週已交還鑰匙並結清費用。'.repeat(3000), 'narrative');
+    expect(r.通過).toBe(false);
+    expect(r.訊息).toContain('案情描述過長');
+  });
+
+  it('工具箱的參數總量以加總判斷，不綁欄位名稱', () => {
+    // 每個欄位都遠小於上限，但加總超過上限——逐一綁欄位名稱會漏掉這種
+    const 欄位 = { a: '一'.repeat(9000), b: '二'.repeat(9000), c: '三'.repeat(9000) };
+    const 總長 = Object.values(欄位).reduce((n: number, v: string) => n + v.length, 0);
+    // 每個欄位都遠小於上限，加總才會超過——逐一綁欄位名稱會漏掉這種
+    expect(Object.values(欄位).every(v => v.length < NARRATIVE_MAX_CHARS)).toBe(true);
+    expect(總長).toBeGreaterThan(NARRATIVE_MAX_CHARS);
+  });
+});

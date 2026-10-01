@@ -1,4 +1,5 @@
 import { Router, Request, Response } from "express";
+import { NARRATIVE_MAX_CHARS } from "../services/inputLengthGuard.js";
 import { getLegalToolboxPrompt } from "../../src/prompts/toolbox-prompts.js";
 import { verifyGeneratedDocument, assertGeneratedDocumentVerified, verifyGeneratedDocumentWithOfficialSources } from "../../src/lib/generatedDocumentPipeline.js";
 import {
@@ -51,6 +52,26 @@ const router = Router();
 // 1. Generate Toolbox Document
 router.post("/api/toolbox/generate", async (req: Request, res: Response) => {
   const { toolId, toolCategory, params } = req.body;
+
+  // 產製參數的總量上限。
+  //
+  // 這條路徑沒有逐欄位的長度檢查，canonicalPleadingPipeline 也沒有，
+  // 使用者可以把任意長度的文字塞進任一欄位後直接送去產製。
+  // 依「所有欄位加總」判斷，不綁任何欄位名稱——
+  // 欄位名稱會隨官方範本新增而變動，逐一綁定等於留下新的漏網路徑。
+  const 參數總長 = params && typeof params === "object"
+    ? Object.values(params as Record<string, unknown>)
+        .reduce<number>((合計: number, 值: unknown) => 合計 + (typeof 值 === "string" ? 值.length : 0), 0)
+    : 0;
+  if (參數總長 > NARRATIVE_MAX_CHARS) {
+    return res.status(413).json({
+      error: `產製參數過長（合計 ${參數總長.toLocaleString()} 字，上限 ${NARRATIVE_MAX_CHARS.toLocaleString()} 字）。`
+        + "請精簡重點事實後再試。系統不會自動截斷——截斷後的書狀可能遺漏必要事實。",
+      code: "INPUT_TOO_LONG",
+      字數: 參數總長,
+    });
+  }
+
   const rawCategory = toolCategory || toolId;
   if (typeof rawCategory !== 'string' || !rawCategory.trim()) {
     return res.status(400).json({
