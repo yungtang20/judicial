@@ -34,10 +34,15 @@ export interface GeneratePetitionPayload {
 
 class ApiError extends Error {
   code?: string;
-  constructor(message: string, code?: string) {
-    super(message);
+  /** 伺服器提供的可行動指引。多數端點會附上 detail.guidance，
+   *  例如「你的上訴權不受影響，以下是可以立刻採取的步驟⋯」。
+   *  先前只取 error 而把指引丟掉，使用者只會知道「尚未開放」而不知道下一步。 */
+  guidance?: string;
+  constructor(message: string, code?: string, guidance?: string) {
+    super(guidance ? `${message}\n${guidance}` : message);
     this.name = 'ApiError';
     this.code = code;
+    this.guidance = guidance;
   }
 }
 
@@ -85,7 +90,10 @@ async function fetchWithHandler(url: string, options: RequestInit) {
     } catch (e) {
       // Not JSON
     }
-    throw new ApiError(errData.error || `HTTP Error ${res.status}`, errData.code);
+    // 端點常在 detail.guidance 提供可行動的指引（例如「你的上訴權不受影響」與具體步驟）。
+    // 先前只取 error 與 code，指引被丟掉，使用者只會看到「尚未開放」而無從下一步。
+    const 引導 = typeof errData?.detail?.guidance === 'string' ? errData.detail.guidance : undefined;
+    throw new ApiError(errData.error || `HTTP Error ${res.status}`, errData.code, 引導);
   }
   return res.json();
 }

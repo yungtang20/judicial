@@ -185,12 +185,15 @@ router.post("/api/defense/generate-pleading", async (req: Request, res: Response
   // 目錄中尚未建立「答辯狀」經核准的書狀結構與 rule profile，因此這條路徑無法取得授權。
   // 這裡必須 fail-closed，但不得留下不可達的後續程式碼誤導維護者。
   return res.status(409).json({
-    error: '答辯狀尚未開放正式產製：此類書狀尚未建立經核准的格式結構與合規規則，系統不會交付未經授權的法院書狀。',
+    error: '答辯狀尚未開放正式產製：系統不會交付未經核准的法院書狀，因為結構或引用有誤的文件反而會讓你在法院站不住腳。',
     code: 'P9_FINAL_GATE_REQUIRED',
     detail: {
       reason: 'CANONICAL_STRUCTURE_NOT_APPROVED',
-      guidance: '請改用「全方位實用法務工具箱」中已開放的書狀類型。',
-      reference: 'src/lib/rules/courtPleadingRuleProfiles.ts'
+      guidance: '你的答辯權不受影響，也不會因系統未開放而失效。以下是可以立刻採取的步驟：'
+        + '一、向承辦法院索取答辯狀空白範本（法院各股室與民事服務處均可提供）。'
+        + '二、答辯狀應記載：答辯人與訴訟標的、答辯意旨（即為何主張駁回對方請求）、事實與理由、所舉證據方法。'
+        + '三、注意答辯期間：民事為判決送達後十五日內（民訴§158），逾時可能喪失辯論機會。'
+        + '四、本工具已整理好的事實與爭點清單，可直接作為撰寫答辯狀時的骨架。'
     }
   });
 });

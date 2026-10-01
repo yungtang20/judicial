@@ -387,7 +387,7 @@ export const DefenseWorkflowTool: React.FC = () => {
               <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
               <div>
                 <h4 className="font-bold text-sm">工作流執行錯誤</h4>
-                <p className="text-xs opacity-90">{workflowError}</p>
+                <p className="text-xs opacity-90 whitespace-pre-line">{workflowError}</p>
               </div>
             </div>
           )}
