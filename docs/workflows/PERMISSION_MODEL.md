@@ -19,3 +19,8 @@
 ## 3. AI 實體邊界硬性禁制
 - 實體型態為 `AI` 者，嚴禁被賦予 `APPROVE`、`DEPLOY` 或 `ADMIN` 權限。
 - AI Agent 嘗試簽核門閥或直接發布時，Orchestrator 一律拒絕並拋出 `AI_GATE_APPROVAL_FORBIDDEN` (HTTP 403)。
+
+## 4. 沙盒身分與 SANDBOX_APPROVE（非人工審批）
+- `SANDBOX` 角色僅存在於沙盒體驗流程，權限恆為 `READ`、`ANALYZE`、`GENERATE`、`VERIFY`、`SANDBOX_APPROVE`，恆不含 `APPROVE`、`DEPLOY`、`ADMIN`（見 `src/domain/workflow/authorization.ts` 之 `ROLE_PERMISSIONS`）。
+- `SANDBOX_APPROVE` 不等同 `APPROVE`：僅適用 SDLC 階段門閥，且僅限 `actorType` 為 `HUMAN`、持有有效 `sandboxGrant` 者；P9 Final Gate 等其他 Human Gate 不受影響。
+- 因此第 3 節「AI 恆禁 `APPROVE`、`DEPLOY`、`ADMIN`」不受沙盒路徑影響；沙盒訪客在結構上無法取得上述三種權限。

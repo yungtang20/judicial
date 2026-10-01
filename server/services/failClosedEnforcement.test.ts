@@ -46,13 +46,26 @@ describe('文件驗證必須在中央管線強制執行', () => {
   it('路由不得以註解代替實際的驗證呼叫', () => {
     // 先前 appeal.ts 匯入了 verifyGeneratedDocument 卻從未使用，
     // 只留一行註解宣稱驗證由中央管線負責。
-    const 路由檔 = ['routes/appeal.ts', 'routes/defense.ts', 'routes/unifiedWorkflow.ts'];
+    const 路由檔 = ['routes/appeal.ts', 'routes/defense.ts', 'routes/unifiedWorkflow.ts', 'routes/judicial.ts', 'routes/legalProcess.ts', 'routes/toolbox.ts', 'routes/draftRefiner.ts', 'routes/officialTemplates.ts', 'services/agentChat.ts'];
     for (const 檔 of 路由檔) {
       const src = readFileSync(path.join(SERVER, 檔), 'utf8');
       // 匯入了卻只出現一次（僅在 import 敘述中），即代表從未使用
       const 出現次數 = (src.match(/verifyGeneratedDocument/g) || []).length;
       const 匯入了但未使用 = /import\s*\{[^}]*verifyGeneratedDocument/.test(src) && 出現次數 === 1;
       expect(匯入了但未使用, `${檔} 匯入了 verifyGeneratedDocument 卻未使用——應移除匯入或實際呼叫`).toBe(false);
+    }
+  });
+
+  it('路由不得匯入中央管線卻從未使用', () => {
+    // appeal.ts、defense.ts 曾匯入 defaultLegalGenerationPipeline 卻從未呼叫，
+    // 只留註解宣稱由中央管線強制——與 verifyGeneratedDocument 的歷史盲點同類。
+    // 註解先剝除再計數，避免註解中的提及被誤認為實際呼叫。
+    const 管線路由檔 = ['routes/appeal.ts', 'routes/defense.ts', 'routes/analyzeJudgment.ts', 'routes/toolbox.ts', 'routes/triage.ts'];
+    for (const 檔 of 管線路由檔) {
+      const 程式碼 = readFileSync(path.join(SERVER, 檔), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').split('\n').map(line => line.replace(/\/\/.*$/, '')).join('\n');
+      const 出現次數 = (程式碼.match(/defaultLegalGenerationPipeline/g) || []).length;
+      const 匯入了但未使用 = /import\s*\{[^}]*defaultLegalGenerationPipeline/.test(程式碼) && 出現次數 === 1;
+      expect(匯入了但未使用, `${檔} 匯入了 defaultLegalGenerationPipeline 卻未使用——應移除匯入或實際呼叫`).toBe(false);
     }
   });
 

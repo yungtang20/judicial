@@ -4,15 +4,17 @@ import { containsSimplifiedChinese } from "../../src/lib/traditionalChineseGuard
 import { describePrecheckRejection } from "../../src/lib/precheckRejectionMessage.js";
 import { Router, Request, Response } from "express";
 import { defaultAIProvider as configuredAIProvider } from "../../src/ai/providers/providerRegistry.js";
-import { getBPointTriagePrompt, getMineScanPrompt, getDefensePleadingPrompt } from "../../src/prompts/defense-workflow.js";
-import { buildFallbackDefenseTriage, buildFallbackMineScan, buildFallbackDefensePleading } from "../../src/utils/defenseFallbacks.js";
+import { getBPointTriagePrompt, getMineScanPrompt } from "../../src/prompts/defense-workflow.js";
+import { buildFallbackDefenseTriage, buildFallbackMineScan } from "../../src/utils/defenseFallbacks.js";
 import { precheckLegalInput } from "../../src/lib/legalInputPrecheck.js";
 import { officialPrecheckOptions } from "../services/statuteExistenceProvider.js";
-import { defaultLegalGenerationPipeline, defaultLegalRetrievalService } from "../services/legalGenerationPipeline.js";
+import { defaultLegalRetrievalService } from "../services/legalGenerationPipeline.js";
 import { extractJsonFromText } from './extractJson.js';
 import { toTraditionalChineseIn } from './toTraditionalIn.js';
 
-// Enforced centrally via defaultLegalGenerationPipeline
+// 本路由 triage/scan 為分析型輸出，不走 defaultLegalGenerationPipeline；
+// 以檢索上下文＋寬容 JSON 解析＋本機備援＋繁體閘門把關。
+// 法院書狀交付另由 canonical 管線經 verifyGeneratedDocument/assert 強制驗證（見 toolbox.ts）。
 
 const router = Router();
 
