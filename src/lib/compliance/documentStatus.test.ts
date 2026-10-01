@@ -14,7 +14,7 @@ import { resolveDocumentStatus } from './documentStatus';
  */
 describe('文件狀態的 fail-closed 判定', () => {
   it('驗證明確通過且無幽靈引用才算已驗證', () => {
-    expect(resolveDocumentStatus({ verificationPassed: true, ghostCitationsFound: 0 })).toBe('VERIFIED');
+    expect(resolveDocumentStatus({ verificationPassed: true, ghostCitationsFound: 0, totalCitationsChecked: 2 })).toBe('VERIFIED');
   });
 
   it('驗證未執行或未回傳時不得標成已驗證', () => {
@@ -37,7 +37,32 @@ describe('文件狀態的 fail-closed 判定', () => {
   });
 
   it('幽靈引用數為 0 時才視為沒有幽靈引用', () => {
-    expect(resolveDocumentStatus({ verificationPassed: true, ghostCitationsFound: 0 })).toBe('VERIFIED');
+    expect(resolveDocumentStatus({ verificationPassed: true, ghostCitationsFound: 0, totalCitationsChecked: 2 })).toBe('VERIFIED');
     expect(resolveDocumentStatus({ verificationPassed: true, ghostCitationsFound: 1 })).toBe('NEEDS_HUMAN_REVIEW');
+  });
+});
+/**
+ * 實測缺陷：對完全沒有引用任何法條的文件，驗證器回
+ * { totalCitationsChecked: 0, ghostCitationsFound: 0, status: 'VERIFIED' }，
+ * 原本 resolveDocumentStatus 會給 'VERIFIED'。
+ *
+ * 但「沒有任何法律依據」不等於「法律依據已查核無誤」——
+ * 前者是根本沒東西可以查。專案在 IssueTableGenerator 已明確提示
+ * 「這份文件尚未引用任何法條或裁判」，文件狀態不該與之相反。
+ */
+describe('零引用不得算已驗證', () => {
+  it('沒有任何引用時落到人工審閱', () => {
+    expect(resolveDocumentStatus({ verificationPassed: true, ghostCitationsFound: 0, totalCitationsChecked: 0 }))
+      .toBe('NEEDS_HUMAN_REVIEW');
+  });
+
+  it('引用數未提供時同樣不信任', () => {
+    expect(resolveDocumentStatus({ verificationPassed: true, ghostCitationsFound: 0 }))
+      .toBe('NEEDS_HUMAN_REVIEW');
+  });
+
+  it('確實核對過引用且全部通過才算已驗證', () => {
+    expect(resolveDocumentStatus({ verificationPassed: true, ghostCitationsFound: 0, totalCitationsChecked: 3 }))
+      .toBe('VERIFIED');
   });
 });
