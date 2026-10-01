@@ -160,6 +160,14 @@ router.post("/api/process/router", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "請提供使用者案情描述" });
     }
 
+    // 輸入長度上限。本檔匯入了檢查輸入長度卻從未呼叫，等於門檻形同虛設：
+    // 實測送出 32,000 字（narrative 上限 20,000）仍回 200 並觸發 AI 呼叫。
+    // 與 analyzeJudgment.ts、unifiedWorkflow.ts 的處理一致。
+    const 長度 = 檢查輸入長度(userInput, "narrative");
+    if (!長度.通過) {
+      return res.status(413).json({ error: 長度.訊息, code: "INPUT_TOO_LONG", 字數: 長度.字數 });
+    }
+
     const trimmedInput = userInput.trim();
     let result: RouterEvaluationResult | null = null;
 
@@ -228,6 +236,11 @@ router.post("/api/process/question", async (req: Request, res: Response) => {
       // 而且模型會在沒有任何案情的情況下憑空生成追問內容
       //（實測對空白輸入回出與家暴法相關的追問，與使用者完全無關）。
       return res.status(400).json({ error: "請先輸入案件事實後再行追問。" });
+    }
+
+    const 長度 = 檢查輸入長度(userInput, "narrative");
+    if (!長度.通過) {
+      return res.status(413).json({ error: 長度.訊息, code: "INPUT_TOO_LONG", 字數: 長度.字數 });
     }
 
     const missing = Array.isArray(missingElements) && missingElements.length > 0
@@ -315,6 +328,11 @@ router.post("/api/process/syllogism", async (req: Request, res: Response) => {
     const { userFacts, queryTopic } = req.body;
     if (!userFacts || typeof userFacts !== "string" || userFacts.trim().length === 0) {
       return res.status(400).json({ error: "請提供案件事實 (userFacts)" });
+    }
+
+    const 長度 = 檢查輸入長度(userFacts, "narrative");
+    if (!長度.通過) {
+      return res.status(413).json({ error: 長度.訊息, code: "INPUT_TOO_LONG", 字數: 長度.字數 });
     }
 
     const searchQuery = queryTopic || userFacts.slice(0, 100);
