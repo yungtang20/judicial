@@ -93,8 +93,19 @@ function AppContent() {
 
   return (
     <div className="flex flex-col lg:flex-row h-screen bg-[var(--color-surface-base)] text-white overflow-hidden font-sans">
+      {/* 跳過功能選單，直接進入主要內容（WCAG 2.4.1 Bypass Blocks）。
+          實測：鍵盤使用者在首頁必須連按 19 次 Tab，
+          穿過側欄的 12 張功能卡、範例選單與備份按鈕，
+          才到得了「案件事實描述」這個主要輸入框。
+          此連結在未獲得焦點時完全隱藏，不影響畫面。 */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-[60] focus:top-2 focus:left-2 focus:px-4 focus:py-2 focus:rounded-lg focus:bg-indigo-600 focus:text-white focus:text-sm focus:font-bold focus:shadow-lg"
+      >
+        跳過功能選單，直接前往案件事實描述
+      </a>
       <Sidebar />
-      <main className="flex-1 overflow-y-auto">
+      <main id="main-content" tabIndex={-1} className="flex-1 overflow-y-auto focus:outline-none">
         <Suspense fallback={<LoadingFallback />}>
           {renderContent()}
         </Suspense>
