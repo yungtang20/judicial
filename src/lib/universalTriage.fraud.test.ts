@@ -88,4 +88,42 @@ describe('詐欺類案件的訴訟性質', () => {
       expect(結果.caseType, `${查詢} 應維持民事`).toBe('CIVIL');
     }
   });
+
+  describe('盜刷冒用等未經授權案件', () => {
+    const 盜刷案情 = '我在115年09月10日發現錢包不見，9月20日銀行通知信用卡有一筆2萬元盜刷消費，但我並沒有消費。';
+    it('應判為詐欺刑事告訴而非純民事', () => {
+      const 結果 = 建立(盜刷案情);
+      expect(結果.caseType).toMatch(/^CRIMINAL/);
+      expect(結果.category).toBe('CRIMINAL_COMPLAINT_FRAUD');
+    });
+    it('未授權消費亦同', () => {
+      const 結果 = 建立('信用卡出現一筆我未授權的消費3萬元。');
+      expect(結果.caseType).toMatch(/^CRIMINAL/);
+    });
+    it('法源必須包含刑法339條與告訴時效', () => {
+      const 結果 = 建立(盜刷案情);
+      expect(結果.legalBasis.join()).toContain('339');
+      expect(結果.legalBasis.join()).toContain('244');
+    });
+    it('行動建議必須包含報警與掛失爭議款', () => {
+      const 結果 = 建立(盜刷案情);
+      expect((結果.suggestedActions || []).join()).toContain('報案');
+      expect((結果.suggestedActions || []).join()).toContain('掛失');
+    });
+    it('犯人不明時須加註時效起算', () => {
+      const 結果 = 建立(盜刷案情);
+      expect(結果.statuteOfLimitations).toContain('知悉犯人');
+    });
+  });
+
+  it('錢包遺失加否認交易亦屬詐欺未用盜刷字眼', () => {
+    const 結果 = 建立('上週錢包不見了，昨天銀行說信用卡有一筆兩萬元消費，但我並沒有消費。');
+    expect(結果.caseType).toMatch(/^CRIMINAL/);
+    expect(結果.category).toBe('CRIMINAL_COMPLAINT_FRAUD');
+  });
+
+  it('類別為通用占位時亦須改寫為詐欺', () => {
+    const 結果 = 建立('信用卡被盜刷了五萬元。', { category: 'UNIVERSAL_AI_PLEADING' });
+    expect(結果.category).toBe('CRIMINAL_COMPLAINT_FRAUD');
+  });
 });

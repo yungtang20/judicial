@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import http from "http";
 import express from "express";
-import unifiedWorkflowRouter, { buildOfficialJudgmentQueries, buildOfficialSearchEvidence, buildRuleBasedQuestioning, keepVerifiedPrecedents, keepStatuteRelatedReferences } from "./unifiedWorkflow.js";
+import unifiedWorkflowRouter, { buildOfficialJudgmentQueries, buildOfficialSearchEvidence, buildForensicSummary, sortPrecedentsByOfficialStatus, buildRuleBasedQuestioning, keepVerifiedPrecedents, keepStatuteRelatedReferences } from "./unifiedWorkflow.js";
 
 describe("Unified StateGraph Workflow API", { timeout: 30000 }, () => {
   let server: http.Server;
@@ -300,5 +300,21 @@ describe("Unified StateGraph Workflow API", { timeout: 30000 }, () => {
         expect(state.verification.verificationStatus).toBe("NEEDS_REVIEW");
       }
     }
+  });
+
+  it("採證時效摘要所有案件皆附，過期顯示保守表述", () => {
+    const expired = buildForensicSummary("115年09月10日發生", new Date(2026, 9, 1));
+    expect(expired.withinWindow).toBe(false);
+    expect(expired.incidentDate).toBe("2026-09-10");
+    expect(expired.windowLabel).toContain("數位事證");
+    const missing = buildForensicSummary("錢包不見了", new Date(2026, 9, 1));
+    expect(missing.withinWindow).toBe(false);
+    expect(missing.incidentDate).toBeNull();
+  });
+
+  it("裁判按官方查核狀態排序，已驗證在前", () => {
+    const precedents = [{ caseNumber: "A" }, { caseNumber: "B" }];
+    const evidence = [{ citation: "B", type: "PRECEDENT", status: "VERIFIED", contentHash: "x" }];
+    expect(sortPrecedentsByOfficialStatus(precedents, evidence).map(p => p.caseNumber)).toEqual(["B", "A"]);
   });
 });

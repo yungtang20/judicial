@@ -53,6 +53,8 @@ export interface WorkflowRouterData {
   legalBasis?: string[]; // 分流引擎判定的法條與罪名／請求權名稱
   statuteOfLimitations?: string;
   suggestedActions?: string[];
+  /** 採證保存時效摘要（所有案件皆附，非僅敏感案件）。 */
+  forensic?: { withinWindow: boolean; incidentDate: string | null; windowLabel: string };
 }
 
 export interface WorkflowQuestioningData {
@@ -139,6 +141,8 @@ export interface LegalWorkflowState {
   rag?: WorkflowRagData;
   syllogism?: WorkflowSyllogismData;
   verification?: WorkflowVerificationData;
+  /** 採證保存時效摘要（所有案件皆附，非僅敏感案件）。 */
+  forensic?: { withinWindow: boolean; incidentDate: string | null; windowLabel: string };
   error?: string;
 }
 

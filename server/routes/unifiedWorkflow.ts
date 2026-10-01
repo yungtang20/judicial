@@ -150,6 +150,26 @@ export function keepStatuteRelatedReferences<T extends { citation: string; title
   return references.filter(item => targets.some(target => `${item.citation} ${item.title} ${item.excerpt || ""}`.includes(target))).slice(0, 3);
 }
 
+/**
+ * 採證保存時效摘要：所有案件皆附，非僅敏感案件。
+ * now 可注入，測試不得依賴真實時鐘。
+ */
+export function buildForensicSummary(narrative: string, now?: Date): { withinWindow: boolean; incidentDate: string | null; windowLabel: string } {
+  const forensic = resolveForensicWindowState(narrative, now);
+  return {
+    withinWindow: forensic.withinWindow,
+    incidentDate: forensic.incidentDate.date ? toCalendarDate(forensic.incidentDate.date) : null,
+    windowLabel: forensic.guidance.windowLabel,
+  };
+}
+export function sortPrecedentsByOfficialStatus<T extends { caseNumber: string }> (
+  precedents: T[],
+  officialEvidence: Array<{ citation: string; type: string; status: string; contentHash?: string }> = []
+): T[] {
+  const verified = new Set(officialEvidence.filter(item => item.type === 'PRECEDENT' && item.status === 'VERIFIED' && item.contentHash).map(item => item.citation));
+  return [...precedents].sort((a, b) => Number(verified.has(b.caseNumber)) - Number(verified.has(a.caseNumber)));
+}
+
 export interface CustomAIProviderInput {
   providerType?: "custom";
   baseUrl?: string;
@@ -219,6 +239,7 @@ async function runRouterNode(userInput: string): Promise<RouterEvaluationResult 
   statuteOfLimitations?: string;
   suggestedActions?: string[];
   temporalConflict?: ReturnType<typeof detectTemporalConflict>;
+  forensic?: { withinWindow: boolean; incidentDate: string | null; windowLabel: string };
 }> {
   const trimmed = userInput.trim();
 
@@ -263,7 +284,8 @@ async function runRouterNode(userInput: string): Promise<RouterEvaluationResult 
     suggestedActions: triage.suggestedActions,
     is_complete: isComplete,
     missing_elements: missingElements,
-    temporalConflict: temporal
+    temporalConflict: temporal,
+    forensic: buildForensicSummary(trimmed)
   };
 }
 
@@ -555,6 +577,21 @@ async function runSyllogismNode(
   const isSexualOrDomestic = routerMeta.is_sensitive || 
     routerMeta.category?.includes("SEXUAL") || 
     routerMeta.category?.includes("DOMESTIC");
+  const isFraudUnauthorizedUse = /盜刷|冒用|盜用|盜領|未授權|爭議款/.test(userFacts)
+    || (routerMeta.legalBasis || []).some(basis => /第\s?339\s?條/.test(basis));
+  const fraudFallbackAnalysis = `1. 大前提：
+依刑法第339條（詐欺取財罪），意圖為自己或第三人不法之所有，以詐術使人交付財物者，依法成立詐欺罪；被害人另得依民法第184條請求侵權行為損害賠償。
+
+2. 小前提：
+使用者陳述案件事實：「${userFacts.trim()}」。本件屬未經授權之消費爭議，使用者否認該筆交易為本人所為。
+
+3. 涵攝：
+經比對事實與法定構成要件：
+- 客觀事實：爭議款項發生於使用者否認授權之情形，初步具備冒用或詐欺之表徵。
+- 證據充分度：請備妥刷卡通知簡訊、帳單明細、掛失紀錄、報案證明與銀行爭議帳款申請紀錄，以利釐清交易真偽。
+
+4. 結論：
+請立即向警察機關報案並取得報案證明，向發卡銀行辦理掛失並申請爭議帳款；刑事部分得於知悉犯人之日起6個月內提出詐欺告訴，民事部分得依法主張損害賠償。`;
 
   try {
     const prompt = buildSyllogismEnginePrompt(legalElements, userFacts.trim(), routerMeta.missing_elements);
@@ -570,6 +607,8 @@ async function runSyllogismNode(
     // 若為性侵害或家暴，嚴禁使用泛用侵權起手
     if (isSexualOrDomestic) {
       fullAnalysis = `1. 大前提（妨害性自主與家暴防治專屬法條）：\n依刑法第221條（強制性交罪）、第225條（乘機性交猥褻罪）或家庭暴力防治法第2條、第14條，違背他人意願或利用不能抗拒狀態為性行為或實施身體騷擾威脅者，依法構成刑事重罪並得核發民事保護令。\n\n2. 小前提：\n使用者陳述事實：「${userFacts.trim()}」。\n\n3. 涵攝：\n- 行為人違背被害人意願或利用被害人意識不能抗拒之際為之，符合刑法妨害性自主罪章客觀構成要件。\n- 雙方具配偶或親密伴侶關係者，另該當家庭暴力防治法要件，得同步聲請保護令禁止施暴騷擾。\n\n4. 結論：\n本案涉及公訴刑事罪責與保護令聲請，應立即保全生物檢體與就醫驗傷，並得向地檢署具狀提出刑事告訴及向管轄地院聲請民事通常保護令。`;
+    } else if (isFraudUnauthorizedUse) {
+      fullAnalysis = fraudFallbackAnalysis;
     } else {
       const basisText = (routerMeta.legalBasis && routerMeta.legalBasis.length > 0)
         ? routerMeta.legalBasis.slice(0, 3).join("、")
@@ -600,6 +639,10 @@ async function runSyllogismNode(
     ].join("\n");
   }
 
+  if (simplifiedInAnalysis && isFraudUnauthorizedUse) {
+    fullAnalysis = fraudFallbackAnalysis;
+  }
+
   // fail-closed 一致性閘門：本機規則為權威，模型輸出與其矛盾時擋下該段分析，
   // 改以違規清單呈現，不得讓矛盾陳述進入使用者畫面。
   const analysisViolations = detectAnalysisContradictions(fullAnalysis, {
@@ -620,7 +663,7 @@ async function runSyllogismNode(
     : guardedAnalysis;
 
   return {
-    majorPremise: isSexualOrDomestic ? "刑法第221條、第225條及家庭暴力防治法" : "依中華民國法律構成要件與實務見解",
+    majorPremise: isSexualOrDomestic ? "刑法第221條、第225條及家庭暴力防治法" : isFraudUnauthorizedUse ? "刑法第339條詐欺取財罪、民法第184條侵權行為" : "依中華民國法律構成要件與實務見解",
     minorPremise: `用戶陳述事實：「${userFacts.slice(0, 100)}...」`,
     subsumption: "比對事實樣態與法定構成要件之關聯性及舉證門檻",
     conclusion: "具備初步法律主張與救濟程序基礎，應保全關鍵佐證",
@@ -749,8 +792,10 @@ async function completeWorkflow(
     state.verification.externalCitations,
     state.verification.officialEvidence
   );
+  state.rag.precedents = sortPrecedentsByOfficialStatus(state.rag.precedents, state.verification.officialEvidence);
   state.currentStep = 'COMPLETED';
   state.updatedAt = Date.now();
+  state.forensic = buildForensicSummary(narrative);
 }
 
 /**
