@@ -1,4 +1,5 @@
 import React from "react";
+import { resolveDocumentStatus } from '../lib/compliance/documentStatus';
 import { useAutoSave } from '../hooks/useAutoSave';
 import { fetchWithAuth } from '../lib/apiClient';
 import { notify, notifyError } from '../lib/userNotice';
@@ -571,7 +572,7 @@ export function useSmartAppealAssistant() {
           kind: 'APPEAL_PETITION',
           title: '上訴理由狀',
           text: data.petitionText,
-          status: data.antiGhostVerification?.verificationPassed === true ? 'VERIFIED' : 'NEEDS_HUMAN_REVIEW',
+          status: resolveDocumentStatus(data.antiGhostVerification),
           sourceTool: 'SmartAppealAssistant',
           createdAt: new Date().toISOString(),
           verification: data.antiGhostVerification

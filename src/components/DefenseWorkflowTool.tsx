@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { resolveDocumentStatus } from '../lib/compliance/documentStatus';
 import { copyToClipboard } from '../lib/citationFormatter';
 import { DefenseHeader } from './defense/DefenseHeader';
 import { WorkflowFlowchart } from './defense/WorkflowFlowchart';
@@ -254,7 +255,7 @@ export const DefenseWorkflowTool: React.FC = () => {
           kind: type,
           title: res.title || '防禦書狀',
           text: res.pleadingText,
-          status: res.antiGhostVerification?.ghostCitationsFound ? 'NEEDS_HUMAN_REVIEW' : 'VERIFIED',
+          status: resolveDocumentStatus(res.antiGhostVerification),
           sourceTool: 'DefenseWorkflowTool',
           createdAt: new Date().toISOString(),
           verification: res.antiGhostVerification

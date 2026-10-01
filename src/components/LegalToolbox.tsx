@@ -1,4 +1,5 @@
 import React, { useRef, useState, useMemo } from 'react';
+import { resolveDocumentStatus } from '../lib/compliance/documentStatus';
 import { 
   FileText, Check, Copy, Download, Search, AlertTriangle, 
   FolderLock, ArrowRight, BookOpen, Clock, Printer, LayoutTemplate, Sparkles, Scale, SearchCheck, CheckCircle2, ShieldCheck, HandHeart
@@ -155,7 +156,7 @@ export const LegalToolbox: React.FC<{ initialToolId?: string; initialFacts?: str
           kind: activeToolId,
           title: res.title || currentTool.name,
           text: res.documentText,
-          status: res.antiGhostVerification?.verificationPassed === true && !res.antiGhostVerification.ghostCitationsFound ? 'VERIFIED' : 'NEEDS_HUMAN_REVIEW',
+          status: resolveDocumentStatus(res.antiGhostVerification),
           sourceTool: 'LegalToolbox',
           createdAt: new Date().toISOString(),
           verification: res.antiGhostVerification
