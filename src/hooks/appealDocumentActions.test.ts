@@ -16,9 +16,9 @@ afterEach(() => {
 describe('calculateAppealDeadline', () => {
   it('fails closed for missing or invalid delivery dates', () => {
     expect(calculateAppealDeadline({ deliveryDate: '', travelDays: 0, caseType: 'civil' }))
-      .toEqual({ declarationDeadline: '未知', reasoningDeadline: '未知', daysLeft: 0 });
+      .toEqual({ declarationDeadline: '未知', reasoningDeadline: '未知', daysLeft: 0, declarationBeyondCoverage: false, reasoningBeyondCoverage: false });
     expect(calculateAppealDeadline({ deliveryDate: 'invalid', travelDays: 0, caseType: 'civil' }))
-      .toEqual({ declarationDeadline: '無效日期', reasoningDeadline: '無效日期', daysLeft: 0 });
+      .toEqual({ declarationDeadline: '無效日期', reasoningDeadline: '無效日期', daysLeft: 0, declarationBeyondCoverage: false, reasoningBeyondCoverage: false });
   });
 
   it('adds the declaration period and travel days deterministically', () => {

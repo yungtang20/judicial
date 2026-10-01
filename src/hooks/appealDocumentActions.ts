@@ -3,6 +3,7 @@ import { scrubPersonalInfo } from '../lib/deidentifier';
 import { fetchWithAuth } from '../lib/apiClient';
 import { parsePdfFile } from '../lib/pdfUtils';
 import { notify, notifyError } from '../lib/userNotice';
+import { calculateDeadline } from '../lib/deadlineCalculator';
 
 type TextSetter = (value: string) => void;
 type BooleanSetter = (value: boolean) => void;
@@ -183,6 +184,12 @@ export interface AppealDeadlineInfo {
   declarationDeadline: string;
   reasoningDeadline: string;
   daysLeft: number;
+  /**
+   * 期限末日是否落在國定假日表維護範圍之外。
+   * 超出時順延判斷不足以依賴，介面必須提示使用者另行向法院確認。
+   */
+  declarationBeyondCoverage: boolean;
+  reasoningBeyondCoverage: boolean;
 }
 
 export function calculateAppealDeadline({
@@ -192,27 +199,35 @@ export function calculateAppealDeadline({
   currentDate = new Date()
 }: AppealDeadlineOptions): AppealDeadlineInfo {
   if (!deliveryDate) {
-    return { declarationDeadline: '未知', reasoningDeadline: '未知', daysLeft: 0 };
+    return { declarationDeadline: '未知', reasoningDeadline: '未知', daysLeft: 0, declarationBeyondCoverage: false, reasoningBeyondCoverage: false };
   }
   const date = new Date(deliveryDate);
   if (Number.isNaN(date.getTime())) {
-    return { declarationDeadline: '無效日期', reasoningDeadline: '無效日期', daysLeft: 0 };
+    return { declarationDeadline: '無效日期', reasoningDeadline: '無效日期', daysLeft: 0, declarationBeyondCoverage: false, reasoningBeyondCoverage: false };
   }
 
-  const declarationDate = new Date(date);
-  declarationDate.setDate(declarationDate.getDate() + 20 + Number(travelDays));
-  if (declarationDate.getDay() === 6) declarationDate.setDate(declarationDate.getDate() + 2);
-  if (declarationDate.getDay() === 0) declarationDate.setDate(declarationDate.getDate() + 1);
+  // 期限計算必須以假日表為單一來源。
+  //
+  // 先前這裡自己寫了一份，只處理 getDay() === 6 與 0（週六、週日），
+  // 完全不查國定假日。專案另有一份會查表的
+  // src/lib/deadlineCalculator.ts（AppealDeadlineTool 用的就是那份），
+  // 兩套並存等於同一個法律計算有兩個答案。
+  //
+  // 實測後果：2026-10-25 送達、20 日不變期間，原始末日落在 2026-11-15，
+  // 但真正決定期限的是該日之後的國定假日順延；舊邏輯不看表，
+  // 就會把假日當成可遞狀日，使用者依畫面上的紅字期限遞狀而逾期。
+  // 另外舊邏輯也沒有涵蓋範圍警告，超出假日表維護範圍時同樣不會提示。
+  const travel = Number(travelDays) || 0;
+  const declaration = calculateDeadline(date, 20, travel);
+  const reasoning = calculateDeadline(date, caseType === 'criminal' ? 40 : 20, travel);
 
-  const reasoningDate = new Date(date);
-  reasoningDate.setDate(reasoningDate.getDate() + (caseType === 'criminal' ? 40 : 20) + Number(travelDays));
-  if (reasoningDate.getDay() === 6) reasoningDate.setDate(reasoningDate.getDate() + 2);
-  if (reasoningDate.getDay() === 0) reasoningDate.setDate(reasoningDate.getDate() + 1);
-
-  const diffTime = declarationDate.getTime() - currentDate.getTime();
+  const diffTime = declaration.date.getTime() - currentDate.getTime();
   return {
-    declarationDeadline: declarationDate.toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric' }),
-    reasoningDeadline: reasoningDate.toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric' }),
-    daysLeft: Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    declarationDeadline: declaration.date.toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric' }),
+    reasoningDeadline: reasoning.date.toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric' }),
+    daysLeft: Math.ceil(diffTime / (1000 * 60 * 60 * 24)),
+    // 超過假日表涵蓋範圍時必須讓介面知道，否則使用者會把不確定的日期當定論。
+    declarationBeyondCoverage: declaration.beyondHolidayCoverage,
+    reasoningBeyondCoverage: reasoning.beyondHolidayCoverage
   };
 }

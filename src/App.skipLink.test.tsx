@@ -12,30 +12,27 @@ import App from './App';
  * 只檢查原始碼含 href="#main-content" 的測試，
  * 把連結指向改錯、或讓 main 沒有 tabIndex 時都會失效，
  * 卻測不到鍵盤使用者真正遇到的問題。
+ *
+ * 整份檔案只 render 一次 App：渲染整個應用程式樹很吃資源，
+ * 平行跑整套測試時會拉高整體耗時，使其他依賴 waitFor 逾時的
+ * 測試在滿載時更容易失敗（先前就發生過）。
  */
 describe('跳過功能選單', () => {
-  it('第一個 Tab 焦點是跳過連結，且指向主要內容', () => {
-    render(<App />);
-    const 連結 = screen.getByRole('link', { name: /跳過功能選單/ });
-    expect(連結).toBeTruthy();
-    expect(連結.getAttribute('href')).toBe('#main-content');
-  });
-
-  it('主要內容可被程式聚焦（否則錨點只會捲動不會移動焦點）', () => {
+  it('第一個 Tab 焦點是跳過連結，指向可程式聚焦的主要內容', () => {
     const { container } = render(<App />);
-    const main = container.querySelector('main#main-content');
+
+    const 連結 = screen.getByRole('link', { name: /跳過功能選單/ });
+    expect(連結.getAttribute('href')).toBe('#main-content');
+    // sr-only 表示視覺上隱藏；focus:not-sr-only 讓它獲得焦點時浮現
+    expect(連結.className).toContain('sr-only');
+    expect(連結.className).toContain('focus:not-sr-only');
+
+    const main = container.querySelector('main#main-content') as HTMLElement | null;
     expect(main).not.toBeNull();
-    // tabIndex=-1 讓程式可以 focus，但不會把它放進 Tab 順序
+    // tabIndex=-1 讓程式可以 focus，但不會把它放進 Tab 順序；
+    // 少了它，錨點只會捲動而不會移動焦點，跳過連結就沒有用。
     expect(main?.getAttribute('tabindex')).toBe('-1');
     main?.focus();
     expect(document.activeElement).toBe(main);
-  });
-
-  it('連結在未獲得焦點前不會干擾畫面', () => {
-    const { container } = render(<App />);
-    const 連結 = container.querySelector('a[href="#main-content"]');
-    // sr-only 表示視覺上隱藏；focus:not-sr-only 讓它獲得焦點時浮現
-    expect(連結?.className).toContain('sr-only');
-    expect(連結?.className).toContain('focus:not-sr-only');
   });
 });

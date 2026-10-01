@@ -83,7 +83,16 @@ export default function SmartAppealAssistant({ initialFacts, workflowContext }: 
               {deadlineInfo.daysLeft > 0 ? `${deadlineInfo.daysLeft} 天` : '已逾期或今日截止'}
             </div>
           </div>
+      </div>
+      {/* 期限落在假日表維護範圍之外時必須明示。
+          順延判斷若漏掉未建檔的國定假日，畫面上這紅字期限就會是錯的，
+          使用者照著遞狀會喪失上訴權。沒有依據就講得確定，是最糟的呈現。 */}
+      {deadlineInfo.declarationBeyondCoverage && (
+        <div role="alert" className="mb-6 rounded-xl border border-rose-800 bg-rose-950/40 px-4 py-3 text-xs leading-relaxed text-rose-200">
+          此期限落在民國假日表維護範圍之外，該日之後的國定假日未納入順延計算，
+          期間末日可能偏早。請務必另行向法院或司法院確認，或採取較保守的期限。
         </div>
+      )}
       </div>
 
       {contextFacts && (
