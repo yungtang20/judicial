@@ -183,15 +183,22 @@ export const UnifiedResult: React.FC<UnifiedResultProps> = ({
   const authoritativeStatuteKeys = new Set(
     statuteEvidence.map(item => normalizeStatuteCitation(item.citation))
   );
-  const unverifiedCitations = allStatuteEvidence
-    .filter(item => !AUTHORITATIVE_STATUSES.includes(item.status))
-    .map(item => item.citation)
-    .concat(
-      (rag?.statuteCitations || []).filter(
-        citation => !authoritativeStatuteKeys.has(normalizeStatuteCitation(citation))
-      )
-    )
-    .filter((citation, index, all) => all.indexOf(citation) === index);
+  type UnverifiedReason = 'NOT_FOUND' | 'UNAVAILABLE';
+  const unverifiedByKey = new Map<string, { citation: string; reason: UnverifiedReason }>();
+  const markUnverified = (citation: string, reason: UnverifiedReason) => {
+    const key = normalizeStatuteCitation(citation);
+    const existing = unverifiedByKey.get(key);
+    if (!existing) unverifiedByKey.set(key, { citation, reason });
+    else if (existing.reason !== 'NOT_FOUND' && reason === 'NOT_FOUND') existing.reason = 'NOT_FOUND';
+  };
+  for (const item of allStatuteEvidence) {
+    if (AUTHORITATIVE_STATUSES.includes(item.status)) continue;
+    markUnverified(item.citation, item.status === 'NOT_FOUND' ? 'NOT_FOUND' : 'UNAVAILABLE');
+  }
+  for (const citation of rag?.statuteCitations || []) {
+    if (!authoritativeStatuteKeys.has(normalizeStatuteCitation(citation))) markUnverified(citation, 'UNAVAILABLE');
+  }
+  const unverifiedCitations = Array.from(unverifiedByKey.values());
   // 函釋需與案情有實質主題交集；僅條號相同者（例如民法第184條對應到物之毀損折舊函釋）不顯示。
   const relevantInterpretations = (rag?.interpretations || []).filter(item =>
     assessInterpretationRelevance({
@@ -306,11 +313,13 @@ export const UnifiedResult: React.FC<UnifiedResultProps> = ({
           <div className="space-y-2 rounded-lg border border-rose-800/60 bg-rose-950/20 p-3">
             <h2 className="text-sm font-bold text-rose-200">不可引用｜未通過官方查驗的法條</h2>
             <p className="text-xs leading-6 text-rose-200/80">
-              下列引用未能於全國法規資料庫完成即時查驗，可能為已廢止、過時或誤植的條號，<strong>不得用於書狀或法律主張</strong>。
+              下列引用未通過官方查驗，依原因分為兩種，但一律不得用於書狀或法律主張：
+              「查無此條」為官方資料庫查無收錄，可能已廢止或條號誤植；
+              「待查驗」為本次未能完成官方即時查驗（例如連線逾時），不代表條文不存在。
             </p>
             <ul className="space-y-1 text-xs text-rose-200/90">
-              {unverifiedCitations.map(citation => (
-                <li key={citation}>• {formatStatuteCitation(citation, router?.legalBasis || [])}</li>
+              {unverifiedCitations.map(({ citation, reason }) => (
+                <li key={citation}>• {formatStatuteCitation(citation, router?.legalBasis || [])}（{reason === 'NOT_FOUND' ? '查無此條：官方資料庫查無收錄' : '待查驗：本次未能完成官方即時查驗'}）</li>
               ))}
             </ul>
           </div>

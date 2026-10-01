@@ -95,4 +95,21 @@ describe('UnifiedResult', () => {
     const legacy = { ...baseState, verification: { ...baseState.verification!, verificationStatus: undefined } };
     expect(canUseWorkflowResult(legacy)).toBe(false);
   });
+
+  it('區分查無此條與待查驗', () => {
+    const mixed: LegalWorkflowState = {
+      ...baseState,
+      verification: {
+        ...baseState.verification!,
+        officialEvidence: [
+          { citation: '民法第999條', type: 'STATUTE', status: 'NOT_FOUND', source: '全國法規資料庫', sourceUrl: 'https://law.moj.gov.tw/', checkedAt: '2026-09-11' },
+          { citation: '刑法第339條', type: 'STATUTE', status: 'UNAVAILABLE', source: '全國法規資料庫', sourceUrl: 'https://law.moj.gov.tw/', checkedAt: '2026-09-11' },
+        ],
+      },
+    };
+    render(<UnifiedResult workflowState={mixed} {...handlers} />);
+    expect(screen.getByText('不可引用｜未通過官方查驗的法條')).toBeInTheDocument();
+    expect(screen.getByText(/查無此條：官方資料庫查無收錄/)).toBeInTheDocument();
+    expect(screen.getAllByText(/待查驗：本次未能完成官方即時查驗/)).toHaveLength(3);
+  });
 });
