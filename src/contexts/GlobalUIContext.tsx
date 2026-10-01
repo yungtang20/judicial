@@ -9,6 +9,26 @@ interface ToastOptions {
   duration?: number;
 }
 
+/**
+ * 提示的預設停留時間（毫秒）。
+ *
+ * 錯誤訊息通常帶有使用者接下來要做的動作，
+ * 例如「PDF 解析失敗，請直接複製貼上判決內文」。
+ * 原本不論哪一種語氣都只停留 3 秒，使用者很可能還沒讀完就消失了，
+ * 而且消失後無法再查。錯誤給較長的時間，其餘維持短提示。
+ */
+const 預設停留: Record<'error' | 'warning' | 'info' | 'success', number> = {
+  error: 8000,
+  warning: 6000,
+  info: 3000,
+  success: 3000
+};
+
+/** 取提示的停留時間；未指定時依語氣決定。 */
+function 停留時間(type: ToastOptions['type']): number {
+  return 預設停留[type ?? 'info'] ?? 3000;
+}
+
 interface GlobalUIContextType {
   isLoading: boolean;
   startLoading: () => void;
@@ -44,12 +64,11 @@ export function GlobalUIProvider({ children }: { children: ReactNode }) {
   }), []);
 
   useEffect(() => {
-    if (toast) {
-      const timer = setTimeout(() => {
-        setToast(null);
-      }, toast.duration || 3000);
-      return () => clearTimeout(timer);
-    }
+    if (!toast) return;
+    const timer = setTimeout(() => {
+      setToast(null);
+    }, toast.duration ?? 停留時間(toast.type));
+    return () => clearTimeout(timer);
   }, [toast]);
 
   return (
@@ -63,9 +82,20 @@ export function GlobalUIProvider({ children }: { children: ReactNode }) {
         </div>
       )}
 
-      {/* Toast Notification */}
+      {/*
+        * 提示必須能被螢幕報讀播報。
+        * 實測：上傳損壞的 PDF 會顯示「PDF 解析失敗，請直接複製貼上判決內文。」，
+        * 但這裡原本沒有 role 與 aria-live，依賴語音的使用者完全收不到這則錯誤，
+        * 只會看到輸入框沒有變化而不知道發生了什麼。
+        * 錯誤用 assertive 立即打斷；其餘用 polite 等語音空檔再播。
+        */}
       {toast && (
-        <div className="fixed bottom-4 right-4 z-[9999] animate-in slide-in-from-bottom-5 fade-in duration-300">
+        <div
+          role={toast.type === 'error' ? 'alert' : 'status'}
+          aria-live={toast.type === 'error' ? 'assertive' : 'polite'}
+          aria-atomic="true"
+          className="fixed bottom-4 right-4 z-[9999] animate-in slide-in-from-bottom-5 fade-in duration-300"
+        >
           <div className={`flex items-center gap-2.5 px-4 py-3 rounded-lg shadow-lg border ${
             toast.type === 'error' ? 'bg-rose-950 border-rose-800 text-rose-200 shadow-rose-900/20' :
             toast.type === 'info' ? 'bg-sky-950 border-sky-800 text-sky-200 shadow-sky-900/20' :
