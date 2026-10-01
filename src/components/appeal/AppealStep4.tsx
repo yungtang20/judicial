@@ -99,6 +99,8 @@ export function AppealStep4({ ctx }: { ctx: AppealStepContext }) {
   } = ctx;
   const generatedDocument = activeCase?.documents.find(document => document.id === generatedDocumentId);
   const isHumanApproved = generatedDocument?.status === 'HUMAN_APPROVED' && Boolean(humanGateNote.trim());
+  // 裁判書檢索視窗先前只能靠右上角的 ✕ 關閉，Escape 無效。
+  useModalA11y(showJudicialModal, () => setShowJudicialModal(false));
 
   return (
     <>
