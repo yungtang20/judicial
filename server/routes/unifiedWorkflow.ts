@@ -1,4 +1,5 @@
 import { Router, Request, Response } from "express";
+import { 檢查輸入長度 } from "../services/inputLengthGuard.js";
 import { AIProvider } from "../../src/ai/providers/AIProvider.js";
 import { defaultAIProvider } from "../../src/ai/providers/providerRegistry.js";
 import { OpenAICompatibleProvider } from "../../src/ai/providers/OpenAICompatibleProvider.js";
@@ -771,6 +772,20 @@ router.post("/api/workflow/execute", async (req: Request, res: Response) => {
     }
     if (inputType !== "facts" && inputType !== "judgment_document") {
       return res.status(400).json({ error: "輸入資料類型無效" });
+    }
+
+    // 輸入長度上限。統一入口是使用量最大的路徑，先前完全沒有檢查：
+    // 實測送出 48,000 字（narrative 上限 20,000）仍回 200 並逕行分析。
+    // analyzeJudgment 與 defense 兩條路徑都有檢查，門檻不一致；
+    // 過長輸入會直接送進 AI 請求，既浪費額度也可能拖垮服務。
+    // 判決書用 document 上限，其餘用 narrative 上限。
+    const 長度檢查 = 檢查輸入長度(userInput, inputType === "judgment_document" ? "document" : "narrative");
+    if (!長度檢查.通過) {
+      return res.status(413).json({
+        error: 長度檢查.訊息,
+        code: "INPUT_TOO_LONG",
+        字數: 長度檢查.字數,
+      });
     }
 
     let requestAIProvider: AIProvider;

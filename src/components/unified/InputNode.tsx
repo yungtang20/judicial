@@ -10,8 +10,18 @@ export interface InputNodeProps {
   [key: string]: any;
 }
 
+/** 案件描述字數上限；必須與伺服器的 NARRATIVE_MAX_CHARS 一致。 */
+export const 案件描述字數上限 = 20_000;
+
 export const InputNode: React.FC<InputNodeProps> = (props) => {
   const { inputNarrative, setInputNarrative, isSubmitting, customPreset, setShowCustomPresetModal, setEditPresetTitle, setEditPresetNarrative, handleExecuteWorkflow, handleSaveCurrentAsCustomPreset, defaultSample } = props;
+
+  /**
+   * 超過案件描述字數上限時先在畫面上講清楚，不要讓使用者送出後
+   * 才從伺服器收到 413。
+   * 上限與 server/services/inputLengthGuard.ts 的 NARRATIVE_MAX_CHARS 一致。
+   */
+  const 超出長度上限 = inputNarrative.length > 案件描述字數上限;
 
   const sampleCases = [
     { label: '租賃押金', narrative: defaultSample },
@@ -32,11 +42,26 @@ export const InputNode: React.FC<InputNodeProps> = (props) => {
               <span>案件事實描述</span>
             </label>
             <div className="flex items-center gap-3">
-              <span className="text-xs text-[var(--color-text-muted)]">
-                字數：{inputNarrative.length} 字
+              <span className={`text-xs ${超出長度上限 ? 'text-rose-300 font-semibold' : 'text-[var(--color-text-muted)]'}`}>
+                字數：{inputNarrative.length.toLocaleString()} 字
+                {超出長度上限 && `（上限 ${案件描述字數上限.toLocaleString()} 字）`}
               </span>
             </div>
           </div>
+
+          {/*
+            超過長度上限時先在畫面上講清楚，不要讓使用者送出後
+            才從伺服器收到 413。
+            上限與 server/services/inputLengthGuard.ts 的
+            NARRATIVE_MAX_CHARS 一致；統一入口用 narrative 上限。
+          */}
+          {超出長度上限 && (
+            <p role="alert" className="text-xs text-rose-300 leading-relaxed">
+              案情描述已超過 {案件描述字數上限.toLocaleString()} 字上限，無法送出分析。
+              請濃縮成關鍵事實，或分段提出。系統不會自動截斷——
+              只分析前段內容可能遺漏後段的重要事實。
+            </p>
+          )}
 
           <div className="flex flex-wrap items-center gap-2 pt-1">
             <select
@@ -99,7 +124,7 @@ export const InputNode: React.FC<InputNodeProps> = (props) => {
             <button
               type="button"
               onClick={() => handleExecuteWorkflow()}
-              disabled={!inputNarrative.trim() || isSubmitting}
+              disabled={!inputNarrative.trim() || isSubmitting || 超出長度上限}
               className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2 cursor-pointer"
             >
               {isSubmitting ? (
