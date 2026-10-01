@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { useModalA11y } from '../../hooks/useModalA11y';
 import {
   Send, Sparkles, ShieldAlert, ShieldCheck, AlertTriangle, CheckCircle2,
   Cpu, Layers, FileCheck2, FileText, RotateCcw, Copy, Check, Loader2,
@@ -21,11 +22,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = (props) => {
   const hasCriminalContext = workflowState?.router?.domain === '刑事';
   const resolveIntent = (explicitIntent: string) => resolveDocumentTool({ explicitIntent, domain: workflowState?.router?.domain });
 
+  // 本元件同時管理兩個彈窗（文書類型選擇、自訂預設案例設定）。
+  // Escape 需關閉當前開啟的那一個，否則鍵盤使用者無法離開。
+  useModalA11y(showDocTypeModal, () => setShowDocTypeModal(false));
+  useModalA11y(showCustomPresetModal, () => setShowCustomPresetModal(false));
+
   return (
     <>
         {/* Document Type Selection Modal */}
         {showDocTypeModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div
+              role="dialog"
+              aria-modal="true"
+              aria-label="選擇文書類型"
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+            >
             <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 w-[380px] space-y-4">
               <h3 className="text-base font-bold text-white">選擇文書類型</h3>
               <p className="text-xs text-[var(--color-text-muted)]">
@@ -154,7 +165,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = (props) => {
 
         {/* Custom Preset Case Modal */}
         {showCustomPresetModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div
+              role="dialog"
+              aria-modal="true"
+              aria-label="自訂預設案例設定"
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+            >
             <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 w-full max-w-xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
               <div className="flex items-center justify-between pb-3 border-b border-slate-800">
                 <div className="flex items-center gap-2">

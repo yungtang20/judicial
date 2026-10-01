@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useModalA11y } from '../../hooks/useModalA11y';
 import { copyToClipboard } from '../../lib/citationFormatter';
 import { ShieldCheck, CheckCircle2 } from "lucide-react";
 import { AntiGhostBadge } from "../AntiGhostBadge";
@@ -463,7 +464,12 @@ export function AppealStep4({ ctx }: { ctx: AppealStepContext }) {
 
             {/* 裁判書檢索與載入對話框 (Taiwan Legal RAG + 司法院官方 API) */}
       {showJudicialModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="裁判書檢索與載入"
+          className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn"
+        >
           <div className="bg-[var(--color-surface-overlay)] rounded-xl max-w-2xl w-full p-6 border border-[var(--color-border-subtle)] space-y-4 max-h-[90vh] overflow-y-auto">
             {/* Header */}
             <div className="flex justify-between items-start border-b pb-3">

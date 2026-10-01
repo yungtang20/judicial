@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useModalA11y } from '../../hooks/useModalA11y';
 import { Download, Upload, ShieldCheck, X } from 'lucide-react';
 import { useCaseStore } from '../../store/useCaseStore';
 
@@ -21,6 +22,7 @@ export const CaseBackupPanel: React.FC = () => {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  useModalA11y(open, () => setOpen(false));
 
   const exportEncryptedCase = useCaseStore(s => s.exportEncryptedCase);
   const importEncryptedCase = useCaseStore(s => s.importEncryptedCase);
@@ -85,7 +87,12 @@ export const CaseBackupPanel: React.FC = () => {
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="案件備份與還原"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+        >
           <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 w-[560px] max-w-full space-y-4 max-h-[88vh] overflow-y-auto">
             <div className="flex items-start justify-between gap-4">
               <div>

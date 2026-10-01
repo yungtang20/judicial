@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { useModalA11y } from '../../hooks/useModalA11y';
 import { LegalSourcesDisplay } from '../LegalSourcesDisplay';
 import { ScenarioDetailModal } from './ScenarioDetailModal';
 import { resolveDocumentTool } from '../../lib/documentSelectionRules';
@@ -29,6 +30,10 @@ export const GuideModals: React.FC<GuideModalsProps> = (props) => {
     QUICK_TAGS, handleRunAiTriage, handleLaunchScenario, handleSelectTool
   } = props;
   // 僅採用案件卷內已驗證／已人工核准的產製文件，不使用任何客戶端生成的草稿文字。
+  // 指引頁有兩個彈窗：情境詳細與 AI 診斷報告。Escape 需關閉當前開啟的那一個。
+  useModalA11y(Boolean(selectedScenario), () => setSelectedScenario(null));
+  useModalA11y(showAiTriageModal, () => setShowAiTriageModal(false));
+
   const caseDocuments = useCaseStore(state => getActiveCase(state).documents);
   const verifiedDocumentText = selectVerifiedDocumentText(caseDocuments);
 
@@ -55,7 +60,12 @@ export const GuideModals: React.FC<GuideModalsProps> = (props) => {
       )}
       {/* AI 全能即時診斷與書狀生成 Modal */}
       {showAiTriageModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="AI 全能案件深度法律診斷報告"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in"
+        >
           <div className="bg-slate-900 border border-indigo-500/30 rounded-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-6">
             <div className="flex items-start justify-between border-b border-slate-800 pb-4">
               <div className="flex items-center gap-3">

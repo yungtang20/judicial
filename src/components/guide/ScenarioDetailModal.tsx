@@ -1,4 +1,5 @@
 import React from 'react';
+import { useModalA11y } from '../../hooks/useModalA11y';
 import type { LucideIcon } from 'lucide-react';
 import {
   AlertTriangle,
@@ -42,8 +43,16 @@ export const ScenarioDetailModal: React.FC<ScenarioDetailModalProps> = ({
   onClose,
   onLaunch,
   onSelectTool
-}) => (
-  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+}) => {
+  // 掛載即代表彈窗開啟：此元件僅在情境導診點選後才被渲染。
+  useModalA11y(true, onClose);
+  return (
+  <div
+              role="dialog"
+              aria-modal="true"
+              aria-label={scenario.title}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in"
+            >
     <div className="bg-slate-900 border border-slate-700 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-6">
       <div className="flex items-start justify-between border-b border-slate-800 pb-4">
         <div className="flex items-center gap-3">
@@ -156,4 +165,5 @@ export const ScenarioDetailModal: React.FC<ScenarioDetailModalProps> = ({
       </div>
     </div>
   </div>
-);
+  );
+};
