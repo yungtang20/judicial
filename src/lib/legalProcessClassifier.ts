@@ -98,6 +98,28 @@ const DOMESTIC_KEYWORDS = [
   '威脅要殺', '趕出家門', '軟禁', '限制行動', '不准出門', '精神虐待', '施暴'
 ];
 
+// 當事人描述被打時，用的是「打我」「打了我」，不會寫「毆打」「打人」。
+// 這些字串本身不含「電話」等無關詞，可直接比對；
+// 不能把「打」丟進 DOMESTIC_ASSAULT_PATTERNS 的動詞清單，
+// 因為該樣式容許動詞與受詞之間夾字，「打他電話」「打她電話」會被誤判，
+// 而誤判會讓不曾受暴者看到家庭暴力警示（見上方樣式說明）。
+const DOMESTIC_VERBAL_ASSAULT_KEYWORDS = [
+  '打我', '打了我', '打我一下', '打我身上', '打我臉', '打我頭',
+  '被我打', '被我毆'
+];
+
+// 死亡與致死威脅是風險最高的訊號，語意明確、幾乎不會誤判，
+// 但先前只有「威脅要殺」這一個固定字串。
+// 實測輸入「我丈夫剛才打我，說要殺我，我現在很害怕」，
+// 舊的關鍵字表與樣式都沒有命中，畫面顯示「尚無特定風險關鍵詞」。
+const THREAT_OF_HARM_PATTERNS: RegExp[] = [
+  /(說|揚言|威脅|放話|警告|恐嚇)?[^。！？，\n]{0,4}(要|想|打算|即將)?(殺|打死|弄死|害死|毀掉|整死)(死)?(我|她|他|我們|自己)/,
+  /(我|她|他)[^。！？，\n]{0,3}(會|要|得|就要|快要)(死|沒命|活不下去)/,
+  // 「不讓我出門」「不准回家」「別想離開」等限制人身自由。
+  // 「不讓」是當事人最常見的說法，先前只列了不准／休想／別想。
+  /(不讓|不許|不准|休想|別想|禁止)[^。！？，\n]{0,3}(活|出去|回家|離開|見面|出門)/
+];
+
 const FAMILY_RELATION_KEYWORDS = [
   '老婆', '老公', '配偶', '妻子', '丈夫', '男友', '女友', '前夫', '前妻', '前男友',
   '前女友', '同居', '家人', '父母', '爸爸', '媽媽', '父親', '母親', '婆婆', '公公',
@@ -137,8 +159,12 @@ export function filterSensitiveKeywords(text: string): KeywordFilterResult {
   const hasSexual = check(SEXUAL_ASSAULT_KEYWORDS) || checkPatterns(SEXUAL_ASSAULT_PATTERNS);
   const hasIncap = check(INCAPACITATED_KEYWORDS);
   const hasPrivate = check(PRIVATE_MEDIA_KEYWORDS);
-  const hasDomestic = check(DOMESTIC_KEYWORDS) || checkPatterns(DOMESTIC_ASSAULT_PATTERNS);
-  const hasThreat = t.includes('威脅') || t.includes('恐嚇') || t.includes('跟蹤') || t.includes('騷擾');
+  // 補上自然敘述的毆打說法（「打我」）與致死威脅（「說要殺我」）。
+  // 這兩類先前都會漏判，實測「我丈夫剛才打我，說要殺我」顯示為無關鍵詞。
+  const hasVerbalAssault = check(DOMESTIC_VERBAL_ASSAULT_KEYWORDS);
+  const hasThreatOfHarm = checkPatterns(THREAT_OF_HARM_PATTERNS);
+  const hasDomestic = check(DOMESTIC_KEYWORDS) || checkPatterns(DOMESTIC_ASSAULT_PATTERNS) || hasVerbalAssault;
+  const hasThreat = hasThreatOfHarm || t.includes('威脅') || t.includes('恐嚇') || t.includes('跟蹤') || t.includes('騷擾');
 
   return {
     hasSexualAssaultKeywords: hasSexual,
