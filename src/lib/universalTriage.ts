@@ -83,13 +83,15 @@ export function buildIntelligentRuleBasedTriage(query: string) {
     // 而名譽與租賃分支都排在後面，於是永遠走不到。
     const 指向人身傷害 = ["打架", "互毆", "被揍", "被打", "毆打", "打人", "動手", "還手", "正當防衛"]
       .some(k => q.includes(k));
+    const 擴充暴力詞 = ["拍打", "掌摑", "推擠", "勒脖", "勒頸", "抓傷", "揮拳", "腳踹", "掐脖", "拉扯"].some(k => q.includes(k));
+    const 被動傷勢 = /(被|遭).{0,8}(打|拍|推|抓|踢|踹|勒|捶|咬|掐)/.test(q);
     const 單獨傷害詞 = q.includes("傷害") && !q.includes("過失傷害")
       && !q.includes("名譽") && !q.includes("誹謗") && !q.includes("侮辱")
       && !q.includes("精神傷害") && !q.includes("財產傷害") && !q.includes("權益")
       && !q.includes("損害")
       // 租賃、房貸、押金等不動產糾紛中的「傷害」是契約施壓，非人身傷害。
       && !q.includes("押金") && !q.includes("房東") && !q.includes("房貸") && !q.includes("租屋");
-    if (指向人身傷害 || 單獨傷害詞) {
+    if (指向人身傷害 || 擴充暴力詞 || 被動傷勢 || 單獨傷害詞) {
       const cat = "CRIMINAL_COMPLAINT_ASSAULT";
       const 恐嚇併存 = q.includes("恐嚇");
       const fallbackDoc = buildFallbackToolboxResult(cat, { incidentDetails: query, searchQuery: query });
@@ -1023,7 +1025,7 @@ export function enforceTriageConsistency(payload: any, query: string): any {
           "家庭暴力防治法第2條、第14條（民事通常保護令）",
           "刑法第277條（普通傷害罪）",
           "刑法第305條（恐嚇危害安全罪）",
-          "刑法第221條或第225條（妨害性自主）",
+          ...((isSexualAssault || has225 || /性自主|性侵|猥褻|乘機|妨害性自主/.test(query)) ? ["刑法第221條或第225條（妨害性自主）"] : []),
           "民法第184條、第195條"
         ];
       }
@@ -1084,6 +1086,9 @@ export function enforceTriageConsistency(payload: any, query: string): any {
     if (/(純民事糾紛無刑事責任|無刑事責任，非告訴乃論)/.test(p.statuteOfLimitations || "")) {
       p.statuteOfLimitations = "【告訴乃論（6個月極限）】詐欺為告訴乃論，須自知悉犯人之日起 6 個月內具狀提出告訴；民事侵權請求權時效為 2 年。";
     }
+    if (!/(6個月|告訴乃論)/.test(p.statuteOfLimitations || "")) {
+      p.statuteOfLimitations = ((p.statuteOfLimitations || "") + "【告訴乃論（6個月極限）】詐欺為告訴乃論，須自知悉犯人之日起 6 個月內具狀提出告訴；民事侵權請求權時效為 2 年。").trim();
+    }
     if (!/(犯人|嫌犯|行為人|車手|查獲|逮捕)/.test(query)) {
       // 犯人尚未查明時，6 個月自知悉犯人之日起算；現階段先報警保全時效。
       p.statuteOfLimitations = (p.statuteOfLimitations || "") + "犯人尚未查明者，告訴期間自知悉犯人之日起算，現階段請先報警保全時效。";
@@ -1120,6 +1125,74 @@ export function enforceTriageConsistency(payload: any, query: string): any {
   }
 
 
+  // 規則 3-4：舊案時效警示。事發日可抽取且明顯逾期者，不得只給常態時效。
+  const 事發日期 = extractIncidentDate(query);
+  if (事發日期.date) {
+    const 經過月數 = (Date.now() - 事發日期.date.getTime()) / 2592000000;
+    if (經過月數 > 24) {
+      p.statuteOfLimitations = (p.statuteOfLimitations || "") + "注意：事發距今已逾2年，民事2年時效與刑事6個月告訴期間可能均已完成，請速諮詢律師確認時效抗辯與中斷事由。";
+    } else if (經過月數 > 6) {
+      p.statuteOfLimitations = (p.statuteOfLimitations || "") + "注意：事發距今已逾6個月，刑事告訴期間可能已完成，請速諮詢律師確認。";
+    }
+  }
+
+
+  // 規則 3-5：跟蹤騷擾偵測。陌生跟蹤與親密跟蹤分流，後者疊加家暴防治與保護令指引。
+  const 跟騷特徵 = /(跟蹤|尾隨|守候|徘徊找尋|跟騷|盯梢)/.test(query) || /監視.{0,12}(行蹤|動態|生活)/.test(query);
+  const 親密跟騷 = /(親密.*(伴侶|關係)|前男友|前女友|交往|分手|恐怖情人)/.test(query);
+  if (跟騷特徵) {
+    const 跟騷法源 = Array.isArray(p.legalBasis) ? [...p.legalBasis] : [];
+    if (!跟騷法源.some((b) => b.includes("跟蹤騷擾"))) {
+      跟騷法源.push("跟蹤騷擾防制法（反覆持續接近、監視、跟蹤騷擾行為）");
+    }
+    if (親密跟騷 && !跟騷法源.some((b) => b.includes("家庭暴力防治"))) {
+      跟騷法源.push("家庭暴力防治法（親密關係暴力、保護令聲請）");
+    }
+    p.legalBasis = [...new Set(跟騷法源)];
+    const 跟騷行動 = ["檢具騷擾事證聲請保護令並通報跟蹤騷擾防制案件"];
+    const 既有跟騷行動 = Array.isArray(p.suggestedActions) ? [...p.suggestedActions] : [];
+    for (const 行動 of 跟騷行動) {
+      if (!既有跟騷行動.some((a) => a.includes(行動.slice(0, 2)))) {
+        既有跟騷行動.unshift(行動);
+      }
+    }
+    p.suggestedActions = 既有跟騷行動;
+  }
+
+
+  // 規則 3-6：毀損通用偵測（不限未成年）。器物被砸毀棄置即評估刑法354，是否故意由證據認定。
+  if (/(毀損|砸毀|砸壞|砸爛|破壞|損壞|丟棄|丟擲|砸碎|敲破|損毀)/.test(query)) {
+    const 毀損法源 = Array.isArray(p.legalBasis) ? [...p.legalBasis] : [];
+    if (!毀損法源.some((b) => b.includes("354"))) {
+      毀損法源.push("刑法第354條（毀損器物罪）");
+    }
+    p.legalBasis = [...new Set(毀損法源)];
+  }
+
+
+  // 規則 3-7：毒品案件偵測。查獲現行犯與一般諮詢分流：前者定刑事，後者只給法源與程序權利。
+  const 毒品訊號 = /(安非他命|甲基安非他命|愷他命|卡西酮|大麻|古柯鹼|海洛因|搖頭丸|毒品|依托咪酯|唾液快篩)/.test(query);
+  const 毒品查獲 = /(查獲|現行犯|逮捕|移送|攔查|盤查).{0,20}(毒品|安非他命|愷他命|陽性)|毒品.{0,12}(查獲|現行犯|逮捕)/.test(query);
+  if (毒品訊號) {
+    const 毒品法源 = Array.isArray(p.legalBasis) ? [...p.legalBasis] : [];
+    if (!毒品法源.some((b) => b.includes("毒品危害"))) {
+      毒品法源.push("毒品危害防制條例（持有、施用之刑責與程序保障）");
+    }
+    p.legalBasis = [...new Set(毒品法源)];
+    const 毒品行動 = ["保持緘默並即刻委任律師；搜索扣押須有令狀或符合現行犯附帶搜索要件", "拒絕夜間詢問、請求休息；尿液採驗不同意時由檢察官核發鑑定許可"];
+    const 既有毒品行動 = Array.isArray(p.suggestedActions) ? [...p.suggestedActions] : [];
+    for (const 行動 of 毒品行動) {
+      if (!既有毒品行動.some((a) => a.includes(行動.slice(0, 2)))) {
+        既有毒品行動.unshift(行動);
+      }
+    }
+    p.suggestedActions = 既有毒品行動;
+    if (毒品查獲 && (!p.caseType || !p.caseType.startsWith("CRIMINAL"))) {
+      p.caseType = "CRIMINAL_PUBLIC";
+    }
+  }
+
+
   // 規則 4：領域鎖定與防污染
   const isCriminalOrViolence = p.isSensitive || isSexualAssault || has225 || (p.caseType && p.caseType.startsWith("CRIMINAL"));
   if (isCriminalOrViolence && p.legalBasis) {
@@ -1152,6 +1225,13 @@ export function enforceTriageConsistency(payload: any, query: string): any {
       ...existingBasis.filter((b: string) => !/(315條之1|319條之3|第235條)/.test(b)),
       ...imageStatutes
     ];
+    const minorImageVictim = /(未滿18歲|未成年|少年|兒少|國中|國小|高中|兒童|青少年)/.test(query);
+    const paymentDemand = /(勒索|付錢|支付.*刪除|刪除.*付|恐嚇取財|取財)/.test(query);
+    const extraImageStatutes = [
+      ...(minorImageVictim ? ["兒童及少年性剝削防制條例（被害人未成年之性影像案件）"] : []),
+      ...(paymentDemand ? ["刑法第346條（恐嚇取財罪）"] : []),
+    ].filter((s) => !(p.legalBasis || []).some((b: string) => b.includes(s.includes("346") ? "346" : "性剝削")));
+    if (extraImageStatutes.length) p.legalBasis = [...(p.legalBasis || []), ...extraImageStatutes];
     const removalAction = "向相關平臺提出下架與移除請求，並向偵查機關聲請扣押相關裝置與雲端檔案";
     const existingActions = Array.isArray(p.suggestedActions) ? p.suggestedActions : [];
     if (!existingActions.some((a: string) => a.includes('下架'))) {

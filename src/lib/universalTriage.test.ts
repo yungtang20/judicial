@@ -73,5 +73,48 @@ describe('universalTriage', () => {
       expect(結果.legalBasis.join()).toContain("305");
     });
   });
+
+  describe("14案矩陣迴歸", () => {
+    const 分流 = (q) => enforceTriageConsistency({ caseType: "CIVIL", category: "CIVIL_TORT_GENERAL", legalBasis: ["民法第184條"] }, q);
+    it("假客服詐騙判刑事詐欺", () => {
+      const r = 分流("接到假客服電話，對方自稱銀行專員要求操作網銀轉帳，驚覺受騙。");
+      expect(r.caseType).toMatch(/^CRIMINAL/);
+    });
+    it("照片盜用不判詐欺", () => {
+      const r = 分流("照片遭色情網站盜用，已提個資法告訴。");
+      expect(r.caseType).toBe("CIVIL");
+      expect(r.legalBasis.join()).not.toContain("339");
+    });
+    it("十年舊案加註時效警示", () => {
+      const r = 分流("105年03月15日遭人恐嚇，115年09月報案提告。");
+      expect(r.statuteOfLimitations).toContain("時效抗辯");
+    });
+    it("跟蹤騷擾納入跟騷法", () => {
+      const r = 分流("遭陌生男子尾隨搭乘電扶梯並於出口徘徊，心生畏怖提跟騷告訴。");
+      expect(r.legalBasis.join()).toContain("跟蹤騷擾");
+    });
+    it("兒少性影像勒索納入兒少性剝削與346", () => {
+      const r = 分流("未成年與網友視訊裸聊遭側錄，對方要求付錢否則散布。");
+      expect(r.legalBasis.join()).toContain("性剝削");
+      expect(r.legalBasis.join()).toContain("346");
+    });
+    it("拍打傷勢判傷害", () => {
+      const r = buildIntelligentRuleBasedTriage("遭人拍打抓手致擦挫傷，已驗傷提告。");
+      expect(r.category).toBe("CRIMINAL_COMPLAINT_ASSAULT");
+    });
+    it("毀損通用納入354", () => {
+      const r = 分流("車窗遭人砸碎毀損，報案提告。");
+      expect(r.legalBasis.join()).toContain("354");
+    });
+    it("毒品查獲定刑事", () => {
+      const r = 分流("路檢查獲持有安非他命，唾液快篩陽性，依毒品罪嫌逮捕。");
+      expect(r.caseType).toMatch(/^CRIMINAL/);
+      expect(r.legalBasis.join()).toContain("毒品危害");
+    });
+    it("純家暴不帶221", () => {
+      const r = 分流("夫妻口角推擠，已家暴通報。");
+      expect(r.legalBasis.join()).not.toContain("221");
+    });
+  });
   });
 });
