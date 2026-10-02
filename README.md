@@ -66,6 +66,8 @@
 | `server/routes/` | toolbox 生成、Agent Chat、導診與草稿微調 API |
 | `data/official-templates/` | 官方範本來源與產物驗證相關資料 |
 | `server/knowledge-base/seeds/` | 本機法規與函釋快照（僅供離線檢索參考） |
+| `src/lib/universalTriage.ts` | 智慧分流引擎：案型偵測、時效警示、採證時效解析 |
+| `src/lib/workflow/unifiedStateGraph.ts` | 統一入口狀態機：Router／追問／RAG／三段論／驗證閘門的狀態定義 |
 
 完整模組邊界與資料流請見 [`ARCHITECTURE.md`](ARCHITECTURE.md)。
 
@@ -91,6 +93,8 @@ npm start
 
 若使用 AI provider 或外部法律檢索服務，請透過環境變數設定；金鑰不得放入前端、README、Git history 或 audit log。Production 必須確認 authentication、CSP、MCP／官方來源連線與 audit persistence 設定，服務不可用時應維持 fail-closed。
 
+Production API 需持有效 Bearer Token；Production API 需持有效 Bearer Token；允許訪客模式的 demo 環境可經 POST /api/auth/guest 取得 4 小時短效 token（獨立 tenant 隔離）。
+
 ## 驗證指令
 
 Windows 執行測試前，請使用 UTF-8 編碼環境，以免繁體中文路徑或測試名稱造成誤判。
@@ -100,6 +104,7 @@ npm run lint          # TypeScript 型別檢查
 npm test              # 單元與整合測試
 npm run test:eval     # 法治治理回歸
 npm run test:ssrf     # 直接驗證 production SSRF exports
+npm run test:coverage  # 覆蓋率（含 P4–P9 交付閘門 per-file 門檻）
 npm run test:e2e      # Vitest 案件生命週期 E2E
 npm run test:ui:e2e   # Playwright 真實瀏覽器交付 E2E
 npm run build         # Vite + esbuild 建置
@@ -132,6 +137,11 @@ playwright.config.ts
 ## 法律檢索端點
 
 `POST /api/legal-search` 供查詢外部法源。未設定 `TLR_ENABLED` 時一律回傳 `enabled: false` 與免責聲明，**不得以空結果冒充「查無此資料」**。
+## 統一入口 API
+
+`POST /api/workflow/execute` 接受白話案情，先經 Router 分流與動態追問；事實補齊後以 `POST /api/workflow/supplement` 推進至涵攝分析與驗證閘門。
+回應包含：`router`（領域、案由、法條、時效、行動建議）、`syllogism`（大前提／小前提／涵攝／結論）、`verification`（`PASS`／`NEEDS_REVIEW`／`FAIL`＋官方證據）、`forensic`（採證時效內／事發日期／說明文字）。
+分析入口不產出法院書狀；書狀交付一律走 `/api/toolbox/generate` P4–P9 管線。
 
 ## 產製類別一致性
 
