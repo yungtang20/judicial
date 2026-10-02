@@ -997,7 +997,7 @@ export function enforceTriageConsistency(payload: any, query: string): any {
   }
 
   // 規則 3：敏感案件保護路徑（性自主、家暴、跟蹤騷擾）
-  const sensitiveRegex = /(性侵|性騷|乘機性交|強暴|非禮|家暴|毆打|施暴|私密照|裸照|跟蹤|騷擾|保護令|掐脖)/;
+  const sensitiveRegex = /(性侵|性騷|乘機性交|強暴|非禮|家暴|家庭暴力|毆打|施暴|私密照|裸照|跟蹤|騷擾|保護令|掐脖)/;
   if (p.isSensitive || sensitiveRegex.test(query) || isSexualAssault || has225) {
     p.isSensitive = true;
     p.protectionNotice = "⚠️ 敏感案件保護提醒：\n1. 【緊急專線】：請優先撥打 113 全國婦幼保護專線（24小時）或 110 報案。\n2. 【生物檢體】：性自主案件切勿沐浴更衣，請立即將案發衣物以紙袋保全。\n3. 【驗傷採證】：請儘速於 72 小時內前往醫療院所急診驗傷採證並開立診斷書。\n4. 【心理資源】：可聯繫衛福部安心專線 1925、各縣市性侵害防治中心與心理諮商支持網絡。\n以上分析僅供司法程序參考，絕不影響您尋求即時救助之權利。";

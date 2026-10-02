@@ -126,4 +126,11 @@ describe('詐欺類案件的訴訟性質', () => {
     const 結果 = 建立('信用卡被盜刷了五萬元。', { category: 'UNIVERSAL_AI_PLEADING' });
     expect(結果.category).toBe('CRIMINAL_COMPLAINT_FRAUD');
   });
+
+  it('家庭暴力案由必須標敏感並給保護指引', () => {
+    const 結果 = 建立('案由：家庭暴力。夫妻爭吵後被害人被趕出門外反鎖，已通報。');
+    expect(結果.isSensitive).toBe(true);
+    expect(結果.protectionNotice).toContain('113');
+    expect(結果.category).toBe('DOMESTIC_VIOLENCE_PROTECTION');
+  });
 });

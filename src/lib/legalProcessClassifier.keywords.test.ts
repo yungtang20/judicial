@@ -79,5 +79,9 @@ describe('敏感關鍵詞篩查', () => {
       expect(r.hasDomesticViolenceKeywords).toBe(false);
       expect(r.hasThreatHarassmentKeywords).toBe(false);
     });
+
+    it('家庭暴力四字須被偵測', () => {
+      expect(篩('案由：家庭暴力，夫妻爭吵後被趕出門外').hasDomesticViolenceKeywords).toBe(true);
+    });
   });
 });
