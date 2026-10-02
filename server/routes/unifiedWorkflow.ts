@@ -579,6 +579,7 @@ async function runSyllogismNode(
     routerMeta.category?.includes("DOMESTIC");
   const isFraudUnauthorizedUse = /盜刷|冒用|盜用|盜領|未授權|爭議款/.test(userFacts)
     || (routerMeta.legalBasis || []).some(basis => /第\s?339\s?條/.test(basis));
+  const isJuvenileCase = /未成年|未滿18歲|少年|兒少/.test(userFacts);
   const fraudFallbackAnalysis = `1. 大前提：
 依刑法第339條（詐欺取財罪），意圖為自己或第三人不法之所有，以詐術使人交付財物者，依法成立詐欺罪；被害人另得依民法第184條請求侵權行為損害賠償。
 
@@ -592,6 +593,19 @@ async function runSyllogismNode(
 
 4. 結論：
 請立即向警察機關報案並取得報案證明，向發卡銀行辦理掛失並申請爭議帳款；刑事部分得於知悉犯人之日起6個月內提出詐欺告訴，民事部分得依法主張損害賠償。`;
+  const juvenileFallbackAnalysis = `1. 大前提：
+依刑法第277條（普通傷害罪），傷害人之身體或健康者依法成立傷害罪；被害人另得依民法第184條請求侵權行為損害賠償。行為人未滿18歲者，另適用少年事件處理程序，由少年法庭調查審理。
+
+2. 小前提：
+使用者陳述案件事實：「${userFacts.trim()}」。本件涉及未成年人之傷害爭議。
+
+3. 涵攝：
+經比對事實與法定構成要件：
+- 客觀事實：行為人之拍打、抓抱已造成被害人身體傷勢，初步該當傷害構成要件；器物遭丟擲毀損部分，另得依法評估毀損相關責任。
+- 證據充分度：請備妥驗傷診斷證明書、監視器畫面、報案證明與雙方身分年齡證明，以利釐清事實與適用程序。
+
+4. 結論：
+請由法定代理人陪同向警察機關提告並取得報案證明，保全驗傷與監視器證據；刑事告訴請注意6個月告訴期間，行為人未成年部分循少年事件處理程序，民事部分得依法主張損害賠償。`;
 
   try {
     const prompt = buildSyllogismEnginePrompt(legalElements, userFacts.trim(), routerMeta.missing_elements);
@@ -609,6 +623,8 @@ async function runSyllogismNode(
       fullAnalysis = `1. 大前提（妨害性自主與家暴防治專屬法條）：\n依刑法第221條（強制性交罪）、第225條（乘機性交猥褻罪）或家庭暴力防治法第2條、第14條，違背他人意願或利用不能抗拒狀態為性行為或實施身體騷擾威脅者，依法構成刑事重罪並得核發民事保護令。\n\n2. 小前提：\n使用者陳述事實：「${userFacts.trim()}」。\n\n3. 涵攝：\n- 行為人違背被害人意願或利用被害人意識不能抗拒之際為之，符合刑法妨害性自主罪章客觀構成要件。\n- 雙方具配偶或親密伴侶關係者，另該當家庭暴力防治法要件，得同步聲請保護令禁止施暴騷擾。\n\n4. 結論：\n本案涉及公訴刑事罪責與保護令聲請，應立即保全生物檢體與就醫驗傷，並得向地檢署具狀提出刑事告訴及向管轄地院聲請民事通常保護令。`;
     } else if (isFraudUnauthorizedUse) {
       fullAnalysis = fraudFallbackAnalysis;
+    } else if (isJuvenileCase) {
+      fullAnalysis = juvenileFallbackAnalysis;
     } else {
       const basisText = (routerMeta.legalBasis && routerMeta.legalBasis.length > 0)
         ? routerMeta.legalBasis.slice(0, 3).join("、")
@@ -639,8 +655,8 @@ async function runSyllogismNode(
     ].join("\n");
   }
 
-  if (simplifiedInAnalysis && isFraudUnauthorizedUse) {
-    fullAnalysis = fraudFallbackAnalysis;
+  if (simplifiedInAnalysis && (isFraudUnauthorizedUse || isJuvenileCase)) {
+    fullAnalysis = isFraudUnauthorizedUse ? fraudFallbackAnalysis : juvenileFallbackAnalysis;
   }
 
   // fail-closed 一致性閘門：本機規則為權威，模型輸出與其矛盾時擋下該段分析，
@@ -663,7 +679,7 @@ async function runSyllogismNode(
     : guardedAnalysis;
 
   return {
-    majorPremise: isSexualOrDomestic ? "刑法第221條、第225條及家庭暴力防治法" : isFraudUnauthorizedUse ? "刑法第339條詐欺取財罪、民法第184條侵權行為" : "依中華民國法律構成要件與實務見解",
+    majorPremise: isSexualOrDomestic ? "刑法第221條、第225條及家庭暴力防治法" : isFraudUnauthorizedUse ? "刑法第339條詐欺取財罪、民法第184條侵權行為" : isJuvenileCase ? "刑法第277條傷害罪、少年事件處理程序" : "依中華民國法律構成要件與實務見解",
     minorPremise: `用戶陳述事實：「${userFacts.slice(0, 100)}...」`,
     subsumption: "比對事實樣態與法定構成要件之關聯性及舉證門檻",
     conclusion: "具備初步法律主張與救濟程序基礎，應保全關鍵佐證",

@@ -1080,6 +1080,37 @@ export function enforceTriageConsistency(payload: any, query: string): any {
       p.statuteOfLimitations = (p.statuteOfLimitations || "") + "犯人尚未查明者，告訴期間自知悉犯人之日起算，現階段請先報警保全時效。";
     }
   }
+  // 規則 3-3：未成年人案件（被害人或行為人未滿18歲）。
+
+  // 實測兒少傷害案：雙方皆未滿18歲，系統只給成人傷害模板，
+  // 對少年事件處理程序與法定代理人陪同隻字未提。
+  // 少年事件處理法與刑法354（本機種子未收錄）只進 legalBasis 走官方查核，
+  // 不得寫進備援模板的引用句。
+  const 未成年訊號 = /(未滿18歲|未成年|少年|兒少|國中|國小|高中|兒童|青少年)/.test(query);
+  const 行為人未成年 = /(行為人|對方|同學|學童|雙方).{0,12}(未成年|未滿|少年|國中|國小)|未成年.{0,12}(行為人|對方|嫌犯)/.test(query);
+  const 毀損訊號 = /(毀損|丟棄|丟擲|砸毀|砸壞|破壞|損壞|砸爛)/.test(query);
+  if (未成年訊號) {
+    const 少年法源 = Array.isArray(p.legalBasis) ? [...p.legalBasis] : [];
+    if (行為人未成年 && !少年法源.some((b) => b.includes('少年事件'))) {
+      少年法源.push('少年事件處理法（行為人未成年之調查審理程序）');
+    }
+    if (毀損訊號 && !少年法源.some((b) => b.includes('354'))) {
+      少年法源.push('刑法第354條（毀損器物罪）');
+    }
+    p.legalBasis = [...new Set(少年法源)];
+    const 少年行動 = 行為人未成年
+      ? ['行為人未成年：案件適用少年事件處理程序，由少年法庭調查審理，告訴請由法定代理人陪同提出']
+      : ['被害人未成年：告訴請由法定代理人陪同提出，並可請求兒少保護協助'];
+    const 既有少年行動 = Array.isArray(p.suggestedActions) ? [...p.suggestedActions] : [];
+    for (const 行動 of 少年行動) {
+      if (!既有少年行動.some((a) => a.includes(行動.slice(0, 2)))) {
+        既有少年行動.unshift(行動);
+      }
+    }
+    p.suggestedActions = 既有少年行動;
+  }
+
+
   // 規則 4：領域鎖定與防污染
   const isCriminalOrViolence = p.isSensitive || isSexualAssault || has225 || (p.caseType && p.caseType.startsWith("CRIMINAL"));
   if (isCriminalOrViolence && p.legalBasis) {

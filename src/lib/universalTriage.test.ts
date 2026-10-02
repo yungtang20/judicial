@@ -50,4 +50,16 @@ describe('universalTriage', () => {
     expect(corrected.statuteAnalysis).not.toContain('767');
   });
 
+  describe('未成年人傷害案件', () => {
+    const 兒少案情 = '未成年周男在公園遭陌生男孩拍打致擦挫傷，雙方皆未滿18歲，已驗傷提告。';
+    it('行為人未成年須納入少年事件處理法', () => {
+      const 結果 = enforceTriageConsistency({ caseType: 'CIVIL', category: 'CRIMINAL_COMPLAINT_ASSAULT', legalBasis: ['刑法第277條'] }, 兒少案情);
+      expect(結果.legalBasis.join()).toContain('少年事件處理法');
+      expect(結果.suggestedActions.join()).toContain('法定代理人');
+    });
+    it('毀損訊號須納入刑法354', () => {
+      const 結果 = enforceTriageConsistency({ caseType: 'CIVIL', category: 'CRIMINAL_COMPLAINT_ASSAULT', legalBasis: ['刑法第277條'] }, '腳踏車遭人丟擲草叢損壞，雙方皆未滿18歲。');
+      expect(結果.legalBasis.join()).toContain('354');
+    });
+  });
 });
