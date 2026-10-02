@@ -101,4 +101,14 @@ describe('UnifiedEntry component', () => {
     expect(freshCase.evidences).toEqual([]);
   });
 
+  it('開立新案件時一併清除 Agent Chat 舊問答', async () => {
+    const { useAgentChatStore } = await import('../store/useAgentChatStore');
+    useAgentChatStore.setState({ messages: [{ id: 'old-1', role: 'user', content: '舊案問題', timestamp: '2026-01-01' }], error: null });
+    renderComponent();
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: '既有案件事實' } });
+    fireEvent.click(screen.getByRole('button', { name: '開始分析' }));
+    const newCaseButton = await screen.findByRole('button', { name: '開立新案件' });
+    fireEvent.click(newCaseButton);
+    expect(useAgentChatStore.getState().messages).toEqual([]);
+  });
 });

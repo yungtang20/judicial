@@ -43,6 +43,7 @@ import { toCalendarDate } from '../lib/forensicGuidance';
 import { verifyLegalCitations } from '../lib/citationVerifier';
 import { useCaseStore } from '../store/useCaseStore';
 import { useAppealStore } from '../store/useAppealStore';
+import { useAgentChatStore } from '../store/useAgentChatStore';
 
 interface CustomPresetCase {
   title: string;
@@ -419,6 +420,8 @@ export const UnifiedEntry: React.FC = () => {
     setWorkflowState(null);
     resetCase();
     resetAppealForNewCase();
+    // Agent Chat 問答屬於舊案脈絡，開新案一併清除，避免舊問答殘留在新案件畫面。
+    useAgentChatStore.getState().clearMessages();
     setInputNarrative('');
     setSupplementInput('');
     setAcknowledgeSafetyInSession(false);
