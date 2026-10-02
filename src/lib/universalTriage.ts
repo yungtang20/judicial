@@ -16,7 +16,9 @@ export function buildIntelligentRuleBasedTriage(query: string) {
     // 「咬傷」，使得「愛犬被車撞死」「貓走失」「狗吠嚇到我跌倒」都被說成遭咬傷。
     const hasAnimal = ["貓", "狗", "寵物", "動物"].some(k => q.includes(k));
     const hasBite = ["咬", "咬傷", "咬到", "被咬"].some(k => q.includes(k)) && !q.includes("人咬人");
-    if (hasAnimal || hasBite) {
+    const 動物語境排除 = /(狗嘴|貓嘴)/.test(q);
+    const 刑事訊號優先 = /(恐嚇|詐欺|竊盜|通緝|現行犯|函送|毒品|酒駕|槍砲|殺人|強盜|搶奪|縱火)/.test(q);
+    if ((hasAnimal || hasBite) && !動物語境排除 && !刑事訊號優先) {
       const cat = "CIVIL_PET_DISPUTE";
       const fallbackDoc = buildFallbackToolboxResult(cat, { incidentDetails: query, searchQuery: query });
       return {
@@ -89,14 +91,16 @@ export function buildIntelligentRuleBasedTriage(query: string) {
       && !q.includes("押金") && !q.includes("房東") && !q.includes("房貸") && !q.includes("租屋");
     if (指向人身傷害 || 單獨傷害詞) {
       const cat = "CRIMINAL_COMPLAINT_ASSAULT";
+      const 恐嚇併存 = q.includes("恐嚇");
       const fallbackDoc = buildFallbackToolboxResult(cat, { incidentDetails: query, searchQuery: query });
       return {
-        identifiedIssue: "普通傷害罪 / 互毆與正當防衛法律爭議",
+        identifiedIssue: "普通傷害罪 / 互毆與正當防衛法律爭議" + (恐嚇併存 ? "、恐嚇併存" : ""),
         category: cat,
         caseType: "CRIMINAL_COMPLAINT_REQUIRED",
         litigationNatureText: "⚠️ 刑事告訴乃論罪（知悉犯人起 6 個月內須具狀提告）",
         legalBasis: [
           "刑法第277條第1項（普通傷害罪）",
+          ...(恐嚇併存 ? ["刑法第305條（恐嚇危害安全罪）"] : []),
           "刑法第23條（正當防衛阻卻違法）",
           "民法第184條第1項（侵權行為損害賠償）",
           "民法第195條第1項（身體健康受損精神慰撫金）"
@@ -1038,9 +1042,11 @@ export function enforceTriageConsistency(payload: any, query: string): any {
   // 這是實質的誤導：詐欺為告訴乃論，被害人須自知悉犯人之日起
   // 6 個月內提出告訴（刑事訴訟法第244條）。看到「無刑事責任」的當事人
   // 可能因此不報警，放任刑訴時效經過，連民事求償都失去基礎。
-  const 詐欺特徵 = /(詐騙|詐欺|騙局|被騙|假投資|投資平台|匯款後|人頭帳戶|假警官|假冒|商業詐欺|電話詐騙|網路詐騙|盜刷|冒用|盜用|盜領|未授權|爭議款)/;
+  const 詐欺特徵 = /(詐騙|詐欺|騙局|被騙|假投資|投資平台|匯款後|人頭帳戶|假警官|假客服|假銀行|假檢警|假警察|假冒|誘騙|商業詐欺|電話詐騙|網路詐騙|盜刷|盜領|未授權|爭議款)/;
+  // 冒用盜用一詞多義（盜刷卡片 vs 盜用照片）：僅金融語境才算詐欺，照片圖文語境排除。
+  const 金融冒用 = /(冒用|盜用)/.test(query) && /(信用卡|金融卡|帳戶|提款|消費|刷卡|銀行|款項|金錢|轉帳|匯款)/.test(query) && !/(照片|圖片|圖文|肖像|大頭貼)/.test(query);
   const 錢包遺失否認交易 = /(錢包|信用卡|金融卡|提款卡|簽帳卡).{0,30}(不見|遺失|掉了|被偷|遺落)/.test(query) && /(否認|並沒有|並未|不是我|非本人|未經).{0,20}(消費|刷卡|交易|提領|扣款)/.test(query);
-  if (詐欺特徵.test(query) || 錢包遺失否認交易) {
+  if (詐欺特徵.test(query) || 金融冒用 || 錢包遺失否認交易) {
     // 分類與時效警示是兩件事，必須各自成立。
     //
     // 實測：模型自行判為 CRIMINAL（而非 CIVIL）時，分類正確但
@@ -1075,6 +1081,9 @@ export function enforceTriageConsistency(payload: any, query: string): any {
       "⚠️ 刑事告訴乃論（須於自知悉犯人之日起 6 個月內提出告訴）"
       + "｜民事損害賠償可另行主張，兩者程序互不取代。"
       + "建議立即報警並保存匯款紀錄、雙方通聯與對話截圖。";
+    if (/(純民事糾紛無刑事責任|無刑事責任，非告訴乃論)/.test(p.statuteOfLimitations || "")) {
+      p.statuteOfLimitations = "【告訴乃論（6個月極限）】詐欺為告訴乃論，須自知悉犯人之日起 6 個月內具狀提出告訴；民事侵權請求權時效為 2 年。";
+    }
     if (!/(犯人|嫌犯|行為人|車手|查獲|逮捕)/.test(query)) {
       // 犯人尚未查明時，6 個月自知悉犯人之日起算；現階段先報警保全時效。
       p.statuteOfLimitations = (p.statuteOfLimitations || "") + "犯人尚未查明者，告訴期間自知悉犯人之日起算，現階段請先報警保全時效。";

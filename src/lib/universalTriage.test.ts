@@ -61,5 +61,17 @@ describe('universalTriage', () => {
       const 結果 = enforceTriageConsistency({ caseType: 'CIVIL', category: 'CRIMINAL_COMPLAINT_ASSAULT', legalBasis: ['刑法第277條'] }, '腳踏車遭人丟擲草叢損壞，雙方皆未滿18歲。');
       expect(結果.legalBasis.join()).toContain('354');
     });
+
+  describe("動物分支守衛", () => {
+    it("狗嘴辱罵不得判為寵物糾紛", () => {
+      const 結果 = buildIntelligentRuleBasedTriage("調解時對方辱罵閉上你的狗嘴，致心生畏懼提恐嚇告訴。");
+      expect(結果.category).not.toBe("CIVIL_PET_DISPUTE");
+    });
+    it("傷害併恐嚇須納入刑法305", () => {
+      const 結果 = buildIntelligentRuleBasedTriage("遭人作勢毆打並辱罵恐嚇致心生畏懼，提傷害及恐嚇告訴。");
+      expect(結果.category).toBe("CRIMINAL_COMPLAINT_ASSAULT");
+      expect(結果.legalBasis.join()).toContain("305");
+    });
+  });
   });
 });
