@@ -36,6 +36,7 @@ jobs:
           path: coverage/
           if-no-files-found: warn
       - run: npm run test:eval
+      - run: npm run test:fixture
       - run: npm run test:e2e
       - run: npm run test:ssrf
       - run: npm run build
