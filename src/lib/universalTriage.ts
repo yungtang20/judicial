@@ -74,6 +74,232 @@ export function buildIntelligentRuleBasedTriage(query: string) {
       };
     }
 
+    // 1.1 特殊刑案類先判（避免落入詐欺/侵害/名譽等通用分支）
+    const 酒駕毒駕 = /(酒駕|酒測|毒駕|扣押|拖吊|開車.*飲酒|飲酒.*開車)/
+    const 跟騷跟蹤 = /(跟蹤|跟騷|尾隨|盯梢|守候|徘徊|緊盯|監視|不斷按鈴|持續聯繫)/
+    const 性騷擾 = /(性騷擾|猥褻|侵犯|強制猥褻|非禮|性騷)/
+    const 家暴 = /(家暴|家庭暴力|配偶|同居伴侶|保護令|親密關係暴力)/
+    const 偽造文書 = /(偽造|變造|冒用|盜用|偽造印章|偽造文件)/
+    const 侵佔 = /(侵占|侵占遺失物|占領遺失物|申報失物|遺失物)/
+    const 毀損 = /(毀損|毀壞|噴漆|破壞|砸爛|砸破|財物損壞)/
+    const 恐嚇 = /(恐嚇|嚇脅|暴嚇|揚言.*報復)/
+
+    if (酒駕毒駕.test(q)) {
+      const cat = "CRIMINAL_DANGER_PUBLIC";
+      const fallbackDoc = buildFallbackToolboxResult(cat, { incidentDetails: query, searchQuery: query });
+      return {
+        identifiedIssue: "公共危險罪 / 酒駕毒駕刑事案件",
+        category: cat,
+        caseType: "CRIMINAL_PUBLIC",
+        litigationNatureText: "⚡ 公訴罪，無需告訴乃論",
+        legalBasis: ["刑法第185-3條（公共危險罪）", "刑法第185條（妨害公眾安全罪）", "道路交通管理處罰條例第35條（酒駕）"],
+        statuteAnalysis: "刑法第185-3條、刑法第185條、道路交通管理處罰條例第35條",
+        isPublicProsecution: true,
+        statuteOfLimitations: "公訴罪，公訴時效以刑法第80條為準",
+        timeLimit: "公訴時效依刑法第80條",
+        plainExplanation: "酒駕或毒駕通常是公訴罪，除了駕駛人會被吊扣/吊銷執照，還可能同時追究刑事責任。",
+        recommendedAction: "報警請員警到場驗證檢測，若對方拒測依法開單或法院核復；必要時詢問律師。",
+        suggestedActions: ["報警同時請員警到場測試酒精濃度", "把測試單、告戒", "向警方索取檢核與吊扣憑據"],
+        evidenceChecklist: ["員警現場照片/錄影", "酒精檢測紀錄", "車輛扣押或移置保管憑證"],
+        targetToolCategory: cat,
+        recommendedToolId: cat,
+        readyDocumentTitle: fallbackDoc.title,
+        readyDocumentText: fallbackDoc.documentText,
+        pleadingDraft: fallbackDoc.documentText,
+        complianceChecklist: fallbackDoc.complianceChecklist,
+        antiGhostVerification: fallbackDoc.antiGhostVerification
+      };
+    }
+
+    if (跟騷跟蹤.test(q)) {
+      const cat = "CRIMINAL_HOUNDING";
+      const fallbackDoc = buildFallbackToolboxResult(cat, { incidentDetails: query, searchQuery: query });
+      return {
+        identifiedIssue: "跟蹤騷擾專項刑案",
+        category: cat,
+        caseType: "CRIMINAL_COMPLAINT_REQUIRED",
+        litigationNatureText: "⚠️ 告訴乃論罪（6個月時效）",
+        legalBasis: ["刑法第305條（恐嚇罪）","刑法第221條第2項（性騷擾相關）","跟蹤騷擾防制法第24條"],
+        statuteAnalysis: "刑法第305條、跟蹤騷擾防制法第24條、刑事訴訟法第237條",
+        isPublicProsecution: false,
+        statuteOfLimitations: "告訴乃論，自知悉犯人起6個月內須提告",
+        timeLimit: "告訴乃論6個月",
+        plainExplanation: "跟蹤騷擾通常包含反覆跟蹤、尾隨、盯梢、持續聯繫等行為，屬於告訴乃論罪。",
+        recommendedAction: "1.完整錄影抄變更2.向警方報案3.釐清是否涉及性騷擾或家暴，向地檢署提告",
+        suggestedActions: ["整理錄影與LINE對話紀錄", "向警方報案並備案", "向地檢署提出告訴狀"],
+        evidenceChecklist: ["監視器/手機錄影", "LINE對話紀錄", "警方報案三聯單"],
+        targetToolCategory: cat,
+        recommendedToolId: cat,
+        readyDocumentTitle: fallbackDoc.title,
+        readyDocumentText: fallbackDoc.documentText,
+        pleadingDraft: fallbackDoc.documentText,
+        complianceChecklist: fallbackDoc.complianceChecklist,
+        antiGhostVerification: fallbackDoc.antiGhostVerification
+      };
+    }
+
+    if (性騷擾.test(q)) {
+      const cat = "CRIMINAL_SEXUAL_HARASSMENT";
+      const fallbackDoc = buildFallbackToolboxResult(cat, { incidentDetails: query, searchQuery: query });
+      return {
+        identifiedIssue: "性騷擾防制法刑事告訴案件",
+        category: cat,
+        caseType: "CRIMINAL_COMPLAINT_REQUIRED",
+        litigationNatureText: "⚠️ 性騷擾防制法刑事案件（部分握告訴乃論）",
+        legalBasis: ["性騷擾防制法第25條", "性騷擾防制法第28條", "刑事訴訟法第237條"],
+        statuteAnalysis: "性騷擾防制法第25/28條、刑事訴訟法第237條",
+        isPublicProsecution: false,
+        statuteOfLimitations: "告訴乃論，自知悉犯人起6個月內提告",
+        timeLimit: "告訴乃論6個月",
+        plainExplanation: "性騷擾通常涉及性騷擾防制法，與刑事強制猥褻罪有不同法條，需釐清是侵犯還是純騷擾。",
+        recommendedAction: "1.保留證據2.向警方報案3.釐清是一般性騷或猥褻",
+        suggestedActions: ["保留監視器與對話紀錄", "向警方報案", "向地方檢察署提出選擇性騷告訴"],
+        evidenceChecklist: ["錄影/照片", "對話紀錄", "警方報案單"],
+        targetToolCategory: cat,
+        recommendedToolId: cat,
+        readyDocumentTitle: fallbackDoc.title,
+        readyDocumentText: fallbackDoc.documentText,
+        pleadingDraft: fallbackDoc.documentText,
+        complianceChecklist: fallbackDoc.complianceChecklist,
+        antiGhostVerification: fallbackDoc.antiGhostVerification
+      };
+    }
+
+    if (家暴.test(q)) {
+      const cat = "CRIMINAL_FAMILY_VIOLENCE";
+      const fallbackDoc = buildFallbackToolboxResult(cat, { incidentDetails: query, searchQuery: query });
+      return {
+        identifiedIssue: "家庭暴力防治刑事告訴案件",
+        category: cat,
+        caseType: "CRIMINAL_COMPLAINT_REQUIRED",
+        litigationNatureText: "⚠️ 告訴乃論罪，通常須知悉犯人起6個月提告",
+        legalBasis: ["刑法第277條（傷害罪）", "刑法第305條（恐嚇罪）", "家庭暴力防治法第14條第1項", "刑事訴訟法第237條"],
+        statuteAnalysis: "刑法第277條、刑法第305條、家庭暴力防治法第14條、刑事訴訟法第237條",
+        isPublicProsecution: false,
+        statuteOfLimitations: "告訴乃論，自知悉犯人起6個月內提告",
+        timeLimit: "告訴乃論6個月",
+        plainExplanation: "家暴案常涉及傷害、恐嚇、毀損等，可依家暴法要求保護令或刑事告訴，注意時效。",
+        recommendedAction: "1.報警備案2.向地方法院聲請保護令3.向地檢署提告",
+        suggestedActions: ["向警方報案備案", "向地方法院聲請保護令", "向檢方提出告訴"],
+        evidenceChecklist: ["警方報案三聯單", "保護令聲請單", "驗傷診斷書"],
+        targetToolCategory: cat,
+        recommendedToolId: cat,
+        readyDocumentTitle: fallbackDoc.title,
+        readyDocumentText: fallbackDoc.documentText,
+        pleadingDraft: fallbackDoc.documentText,
+        complianceChecklist: fallbackDoc.complianceChecklist,
+        antiGhostVerification: fallbackDoc.antiGhostVerification
+      };
+    }
+
+    if (偽造文書.test(q)) {
+      const cat = "CRIMINAL_FORGED_DOCUMENT";
+      const fallbackDoc = buildFallbackToolboxResult(cat, { incidentDetails: query, searchQuery: query });
+      return {
+        identifiedIssue: "偽造/變造文書刑事案件",
+        category: cat,
+        caseType: "CRIMINAL_COMPLAINT_REQUIRED",
+        litigationNatureText: "⚠️ 告訴乃論罪（部分の場合）",
+        legalBasis: ["刑法第210條（偽造、變造文書印文罪）", "刑法第217條（盜用印章印 文罪）", "刑法第216條（行使偽造變造之文書）"],
+        statuteAnalysis: "刑法第210-216條、第217條",
+        isPublicProsecution: false,
+        statuteOfLimitations: "告訴乃論，自知悉犯人起6個月內提告",
+        timeLimit: "告訴乃論6個月",
+        plainExplanation: "偽造文書、變造文件、冒用身分冒買都可能腳偽造文書罪，注意臨時用例是否為告訴乃論。",
+        recommendedAction: "1.保留偽造物證2.報警請鑑定3.向地檢署提出告訴",
+        suggestedActions: ["保存偽造文件", "向警方報案請鑑識鑑定", "向地檢署提出告訴"],
+        evidenceChecklist: ["偽造物證/文件", "鑑定報告", "警方報案單"],
+        targetToolCategory: cat,
+        recommendedToolId: cat,
+        readyDocumentTitle: fallbackDoc.title,
+        readyDocumentText: fallbackDoc.documentText,
+        pleadingDraft: fallbackDoc.documentText,
+        complianceChecklist: fallbackDoc.complianceChecklist,
+        antiGhostVerification: fallbackDoc.antiGhostVerification
+      };
+    }
+
+    if (侵佔.test(q)) {
+      const cat = "CRIMINAL_EMBEZZLEMENT";
+      const fallbackDoc = buildFallbackToolboxResult(cat, { incidentDetails: query, searchQuery: query });
+      return {
+        identifiedIssue: "侵占罪刑事告訴案件",
+        category: cat,
+        caseType: "CRIMINAL_COMPLAINT_REQUIRED",
+        litigationNatureText: "⚠️ 告訴乃論罪（6個月時效）",
+        legalBasis: ["刑法第335條（侵占罪）", "刑法第336條（業務侵占罪）", "刑法第337條（侵占遺失物罪）"],
+        statuteAnalysis: "刑法第335-337條、刑事訴訟法第237條",
+        isPublicProsecution: false,
+        statuteOfLimitations: "告訴乃論，自知悉犯人起6個月內提告",
+        timeLimit: "告訴乃論6個月",
+        plainExplanation: "侵占通常包含用途侵占、還物型態侵占以及侵占遺失物等型態。",
+        recommendedAction: "1.保留證明資料2.報警備案3.向檢方提告",
+        suggestedActions: ["整理證明物品歸屬的單據", "向警方報案", "向地檢署提告"],
+        evidenceChecklist: ["物品歸屬證明", "警方報案單", "可能被告供稱"],
+        targetToolCategory: cat,
+        recommendedToolId: cat,
+        readyDocumentTitle: fallbackDoc.title,
+        readyDocumentText: fallbackDoc.documentText,
+        pleadingDraft: fallbackDoc.documentText,
+        complianceChecklist: fallbackDoc.complianceChecklist,
+        antiGhostVerification: fallbackDoc.antiGhostVerification
+      };
+    }
+
+    if (毀損.test(q)) {
+      const cat = "CRIMINAL_DAMAGE";
+      const fallbackDoc = buildFallbackToolboxResult(cat, { incidentDetails: query, searchQuery: query });
+      return {
+        identifiedIssue: "毀損罪刑事告訴案件",
+        category: cat,
+        caseType: "CRIMINAL_COMPLAINT_REQUIRED",
+        litigationNatureText: "⚠️ 告訴乃論罪（6個月時效）",
+        legalBasis: ["刑法第354條（毀損罪）", "民法第184條（侵害權利）"],
+        statuteAnalysis: "刑法第354條、民法第184條",
+        isPublicProsecution: false,
+        statuteOfLimitations: "告訴乃論，自知悉犯人起6個月內提告",
+        timeLimit: "告訴乃論6個月",
+        plainExplanation: "毀損罪通常指隨便動手毀壞他人物品，包括噴漆、砸壞、破壞等，皆可提告。",
+        recommendedAction: "1.回收破壞現場2.報警備案3.向檢方提告",
+        suggestedActions: ["保留現場照片與損壞證據", "向警方報案", "向地檢署提告"],
+        evidenceChecklist: ["損壞現場照片錄影", "維修估價單", "警方報案單"],
+        targetToolCategory: cat,
+        recommendedToolId: cat,
+        readyDocumentTitle: fallbackDoc.title,
+        readyDocumentText: fallbackDoc.documentText,
+        pleadingDraft: fallbackDoc.documentText,
+        complianceChecklist: fallbackDoc.complianceChecklist,
+        antiGhostVerification: fallbackDoc.antiGhostVerification
+      };
+    }
+
+    if (恐嚇.test(q) && !/(作勢毆打|毆打|侮辱|名譽|誹謗|辱罵|公然|三字經)/.test(q)) {
+      const cat = "CRIMINAL_THREAT";
+      const fallbackDoc = buildFallbackToolboxResult(cat, { incidentDetails: query, searchQuery: query });
+      return {
+        identifiedIssue: "恐嚇危害安全罪 / 強制罪爭議",
+        category: cat,
+        caseType: "CRIMINAL_COMPLAINT_REQUIRED",
+        litigationNatureText: "⚠️ 告訴乃論罪（6個月時效）",
+        legalBasis: ["刑法第305條（恐嚇罪）"],
+        statuteAnalysis: "刑法第305條、刑事訴訟法第237條",
+        isPublicProsecution: false,
+        statuteOfLimitations: "告訴乃論，自知悉犯人起6個月內提告",
+        timeLimit: "告訴乃論6個月",
+        plainExplanation: "恐嚇罪通常指以加害他人生命、身體、自由、名譽、財產之事出惡害，需相當警惕。",
+        recommendedAction: "1.備份對話紀錄2.向警報案3.向地檢提告",
+        suggestedActions: ["保存對話截圖錄影", "向警方報案", "向地檢署提告"],
+        evidenceChecklist: ["截圖/錄影", "警方備案單", "錄音"],
+        targetToolCategory: cat,
+        recommendedToolId: cat,
+        readyDocumentTitle: fallbackDoc.title,
+        readyDocumentText: fallbackDoc.documentText,
+        pleadingDraft: fallbackDoc.documentText,
+        complianceChecklist: fallbackDoc.complianceChecklist,
+        antiGhostVerification: fallbackDoc.antiGhostVerification
+      };
+    }
+
     // 2. 傷害罪 / 互毆 / 正當防衛 (刑事告訴乃論，6個月時效)
     //
     // 「傷害」二字必須配合指向人身的行為才成立。實測誤判兩例：
