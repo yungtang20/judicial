@@ -32,6 +32,7 @@ import { toCalendarDate } from "../../src/lib/forensicGuidance.js";
 import { isProviderConfigError } from '../services/agentChat';
 import { extractJsonFromText } from './extractJson.js';
 import { toTraditionalChineseIn } from './toTraditionalIn.js';
+import { filterPrecedentsByRelevance } from '../../src/lib/precedentRelevance.js';
 
 
 /**
@@ -786,6 +787,16 @@ async function completeWorkflow(
     missing_elements: routerResult.missing_elements
   });
   state.rag = ragData;
+
+  // 前置裁判相關性過濾：先剔除主題無關者（如條號雖同但事實無關之裁判），再交由下方 verification gate 與 keepVerifiedPrecedents 查核，避免無關裁判列為可用法源。
+  const relevanceResults = filterPrecedentsByRelevance(
+    (ragData.precedents || []).map(p => ({ caseNumber: p.caseNumber, summary: p.summary, citedStatutes: p.citedStatutes })),
+    narrative,
+    routerResult.legalBasis || []
+  );
+  const relevantCaseNumbers = new Set(relevanceResults.filter(r => r.relevant).map(r => r.caseNumber));
+  ragData.precedents = (ragData.precedents || []).filter(p => relevantCaseNumbers.has(p.caseNumber));
+  state.rag.precedents = ragData.precedents;
 
   state.currentStep = 'SYLLOGISM';
   state.syllogism = await runSyllogismNode(ragData.legalElements, narrative, {

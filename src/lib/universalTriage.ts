@@ -605,40 +605,40 @@ export function buildIntelligentRuleBasedTriage(query: string) {
       };
     }
 
-    // 9. 竊盜 / 侵占// 9. 竊盜 / 侵占// 9. 竊盜 / 侵占// 9. 竊盜 / 侵占 (公訴罪，親屬同居特例為告訴乃論)
+    // 9. 竊盜 / 侵佔// 9. 竊盜 / 侵佔// 9. 竊盜 / 侵佔// 9. 竊盜 / 侵佔 (公訴罪，親屬同居特例為告訴乃論)
     // 補足「拿了不還」這類日常說法。先前只認「偷」「拿走」，
-    // 「同事把我的筆電拿去不還」會落到通用分支，沒有竊盜侵占的專屬指引。
+    // 「同事把我的筆電拿去不還」會落到通用分支，沒有竊盜侵佔的專屬指引。
     // 「不還」放在借貸分支之後才檢查，因此不會把欠錢不還的案件誤判為竊盜。
     // 但租屋押金糾紛同樣常見「押金不還」，而租屋分支排在下方，
-    // 會被這裡搶先命中，把純民事的押金返還爭議誤判為刑事竊盜侵占。
+    // 會被這裡搶先命中，把純民事的押金返還爭議誤判為刑事竊盜侵佔。
     // 實測「退租時房東扣住五萬元押金不還」即被歸為竊盜罪並引用刑法第320條。
     // 因此明確的租賃／押金語境要讓位給下方的租屋分支。
     const isRentalDepositDispute = ["租屋", "房東", "房客", "押金", "定金", "保證金", "退租", "租賃"]
       .some(k => q.includes(k));
-    if (!isRentalDepositDispute && ["偷", "竊盜", "侵占", "拿走", "偷竊", "據為己有", "占為己有", "不予歸還", "不肯歸還", "擅自取走", "擅自拿走", "不還"]
+    if (!isRentalDepositDispute && ["偷", "竊盜", "侵佔", "拿走", "偷竊", "據為己有", "占為己有", "不予歸還", "不肯歸還", "擅自取走", "擅自拿走", "不還"]
       .some(k => q.includes(k))) {
       const cat = "CRIMINAL_COMPLAINT_THEFT";
       const fallbackDoc = buildFallbackToolboxResult(cat, { incidentDetails: query, searchQuery: query });
       return {
-        identifiedIssue: "竊盜罪 / 侵占罪 / 親屬伴侶財產侵害爭議",
+        identifiedIssue: "竊盜罪 / 侵佔罪 / 親屬伴侶財產侵害爭議",
         category: cat,
         caseType: "CRIMINAL_PUBLIC",
         litigationNatureText: "⚡ 刑事非告訴乃論（一般伴侶公訴罪；同居親屬為告訴乃論）",
         legalBasis: [
           "刑法第320條（普通竊盜罪）",
           "刑法第324條（親屬同居特例）",
-          "刑法第335條（普通侵占罪）",
+          "刑法第335條（普通侵佔罪）",
           "民法第767條（所有物返還請求權）"
         ],
         statuteAnalysis: "刑法第320條（竊盜罪）、刑法第324條（親屬間竊盜特例）、民法第184條、民法第767條（所有物返還）",
         isPublicProsecution: true,
         statuteOfLimitations: "未同居一般伴侶為非告訴乃論公訴罪（隨時可追訴）；若為同居伴侶或親屬，依刑法第324條為告訴乃論，應自知悉犯人之日起6個月內提告。",
         timeLimit: "一般為公訴罪；同居親屬須於 6 個月內提告",
-        plainExplanation: "未經同意拿取他人財物或霸佔借用物拒還，構成竊盜罪或侵占罪。若雙方非同居親屬，屬於非告訴乃論公訴罪；同居親屬間則為告訴乃論。",
+        plainExplanation: "未經同意拿取他人財物或霸佔借用物拒還，構成竊盜罪或侵佔罪。若雙方非同居親屬，屬於非告訴乃論公訴罪；同居親屬間則為告訴乃論。",
         recommendedAction: "1. 保全證據（監視器、對話自承截圖、銀行金流） 2. 向地檢署提出刑事告訴狀 3. 提起刑事附帶民事訴訟或民事起訴求償。",
         suggestedActions: [
           "第一時間保全監視器、催討對話截圖與失竊物品所有權憑證",
-          "向管轄地檢署具狀提出刑事竊盜/侵占告訴",
+          "向管轄地檢署具狀提出刑事竊盜/侵佔告訴",
           "提起刑事附帶民事訴訟或民事起訴請求返還原物與損害賠償"
         ],
         evidenceChecklist: [
@@ -746,6 +746,263 @@ export function buildIntelligentRuleBasedTriage(query: string) {
       };
     }
 
+    // 10.1 酒駕／毒駕公共危險 (公訴罪與拒測罰則)
+    // 這類案情只會用「酒駕」「酒測」「拒測」等關鍵字表達，沒有具體傷害或酒後開車車輛交易，
+    // 若落到通用毀損或普通傷害，會讓使用者誤以為無公務員介入的刑事程序，所以必須優先辨識。
+    const 酒駕毒駕詞 = /(酒駕|酒後駕車|酒後開車|酒測|酒測拒測|拒測|酒精濃度|毒駕|酒醉駕駛|公共危險物|酗酒駕車)/;
+    if (酒駕毒駕詞.test(q)) {
+      const cat = "CRIMINAL_PUBLIC_DANGER";
+      const fallbackDoc = buildFallbackToolboxResult(cat, { incidentDetails: query, searchQuery: query });
+      return {
+        identifiedIssue: "酒駕／拒測或毒駕公共危險案件",
+        category: cat,
+        caseType: "CRIMINAL_PUBLIC",
+        litigationNatureText: "⚡ 刑事公訴罪（公共危險），縱未造成他人傷害仍可成立",
+        legalBasis: [
+          "刑法第185條之3（駕車不能安全駕駛罪）",
+          "刑法第185條之5（其他公眾得出入場所危害安全公共危險罪）",
+          "道路交通管理處罰條例第35條（酒後駕車）",
+          "道路交通管理處罰條例第36條（飲用酒類）"
+        ],
+        statuteAnalysis: "刑法第185條之3、第185條之5、道路交通管理處罰條例第35條",
+        isPublicProsecution: true,
+        statuteOfLimitations: "刑事公訴罪，不受告訴乃論六個月限制；警方可依法採取禁止或限制駕駛、連續測試、吊銷執照等強制手段。",
+        timeLimit: "公訴罪，但執照扣繳或酒測拒測相關行政處分仍會有期限與救濟週期，應盡早諮詢律師",
+        plainExplanation: "酒駕/拒測屬於公共危險罪的範疇，縱使沒有釀成死傷，仍可因酒精濃度或拒測而被刑事處罰並吊扣執照。若拒測，現場員警可依法連續施測、故意令無人挑戰，或移送檢察官偵辦；酒測過程有程序救濟，但必須在通知到案後提出異議。",
+        recommendedAction: "1. 確認員警是否依法告知拒測後果並已連續告知 2. 保留拒測／酒測過程錄影或錄音 3. 于處分書送達後依行政救濟或刑事抗告程序提起異議。",
+        suggestedActions: [
+          "確認員警有無依法告知拒測後果，並保留錄影錄音",
+          "向裁罰單位提出行政申訴或聲明異議",
+          "新聞媒體關注時，避免在警車前或採測範圍外錄像致使他人受影響"
+        ],
+        evidenceChecklist: [
+          "員警攔查、拒測或酒測錄影 recordings",
+          "員警身分證id與勤務編號",
+          "酒測記錄單、飲用酒類紀錄",
+          "現場證人、行車紀錄器畫面"
+        ],
+        targetToolCategory: cat,
+        recommendedToolId: cat,
+        readyDocumentTitle: fallbackDoc.title,
+        readyDocumentText: fallbackDoc.documentText,
+        pleadingDraft: fallbackDoc.documentText,
+        complianceChecklist: fallbackDoc.complianceChecklist,
+        antiGhostVerification: fallbackDoc.antiGhostVerification
+      };
+    }
+
+    // 10.2 跟蹤騷擾／跟騷 (保護要緊守, 告訴乃論)
+    // 純粹的「騷擾」「被糾纏」不一定等同跟蹤，必須有帳號多次出現、尾隨、守候等反覆模式才成立跟蹤騷擾防制法。
+    const 跟蹤騷擾詞 = /(跟蹤|跟騷|尾隨|盯梢|守候|徘徊|緊盯|監視|反覆出現|跟前向後|跟到家|騷擾|糾纏|恐嚇)/;
+    if (跟蹤騷擾詞.test(q)) {
+      const cat = "CRIMINAL_COMPLAINT_TRACKING";
+      const fallbackDoc = buildFallbackToolboxResult(cat, { incidentDetails: query, searchQuery: query });
+      return {
+        identifiedIssue: "跟蹤騷擾與保護令聲請爭議",
+        category: cat,
+        caseType: "CRIMINAL_COMPLAINT_REQUIRED",
+        litigationNatureText: "⚠️ 刑事告訴乃論罪（知悉犯人起 6 個月內須具狀提告）",
+        legalBasis: [
+          "跟蹤騷擾防制法第14條（跟蹤騷擾罪）",
+          "刑法第305條（恐嚇危害安全罪，如有恐嚇情節）",
+          "家庭暴力防治法第2條（保護令，當侵害涉及家庭成員或親密關係）"
+        ],
+        statuteAnalysis: "跟蹤騷擾防制法第14條、刑法第305條、家暴法（親密關係時）、民法第195條精神慰撫金",
+        isPublicProsecution: false,
+        statuteOfLimitations: "跟蹤騷擾罪屬告訴乃論，必須自知悉犯人之日起 6 個月內具狀提告；保護令得向地方法院家事法庭聲請。",
+        timeLimit: "告訴乃論 6 個月 / 保護令可隨時聲請",
+        plainExplanation: "面對反覆跟蹤、尾隨、守候、監視或不當接觸行為，可依據跟蹤騷擾防制法結合恐嚇罪追究；若雙方有親屬、同居、或親密關係，可一併聲請保護令禁止接近。",
+        recommendedAction: "1. 完整保留騷擾訊息截圖與不當到訪照片 2. 向社會局/婦女保護專線尋求協助 3. 6個月內向地檢署提告並向家事法庭聲請保護令。",
+        suggestedActions: [
+          "自行蒐集並保存對方不當聯繫、守候、尾隨之訊息截圖、照片或行車紀錄",
+          "未向家人透露，恐受報復時可向警察局或社會局報備",
+          "收到109/113 罵聲或威脅訊息，立即撥打110 備案",
+          "向地方法院家事法庭具狀聲請暫時保護令，禁止對方靠近住居所"
+        ],
+        evidenceChecklist: [
+          "手機截圖、LINE/LINE聊天記錄中可見對方不當騷擾內容",
+          "守候、尾隨、拍攝照片之監視器錄影或事證",
+          "通話紀錄、去電紀錄、騷擾時間帳",
+          "警方備案或社會局筆錄、申訴紀錄"
+        ],
+        targetToolCategory: cat,
+        recommendedToolId: cat,
+        readyDocumentTitle: fallbackDoc.title,
+        readyDocumentText: fallbackDoc.documentText,
+        pleadingDraft: fallbackDoc.documentText,
+        complianceChecklist: fallbackDoc.complianceChecklist,
+        antiGhostVerification: fallbackDoc.antiGhostVerification
+      };
+    }
+
+    // 10.3 偽造文書／變造（刑事公訴或追訴通常需具告訴）
+    const 偽造文書詞 = /(偽造|變造|偽造文件|偽造網站|偽造印章|盜用印章|偽造證件|假冒公務員|使公務員登載不實|未經同意使用印章|變造駕照|變造身分證|變造刑事資格)/;
+    if (偽造文書詞.test(q)) {
+      const cat = "CRIMINAL_PUBLIC_FORGERY";
+      const fallbackDoc = buildFallbackToolboxResult(cat, { incidentDetails: query, searchQuery: query });
+      return {
+        identifiedIssue: "偽造或變造文書罪名",
+        category: cat,
+        caseType: "CRIMINAL_PUBLIC",
+        litigationNatureText: "⚡ 公訴罪，包含行使偽造文書、變造特種文書",
+        legalBasis: [
+          "刑法第210條（偽造、變造文書）",
+          "刑法第211條（偽造、變造工農業登載）",
+          "刑法第217條（偽造、變造官方文書）",
+          "刑法第218條（盜用印章）"
+        ],
+        statuteAnalysis: "刑法第210條第1項、第210條第2項（行使偽造文書）、第211條、第217條、第218條",
+        isPublicProsecution: true,
+        statuteOfLimitations: "公訴罪不適用告訴乃論六個月限制；若受害者提出告訴，可在查悉後理論上於刑事訴訟法規定之期限內進行。",
+        timeLimit: "公訴罪，但受害權人提告在知悉犯人與事實後6個月內為佳，以免與積極消滅時效衝突",
+        plainExplanation: "如果有人偽造、變造身分證、駕照、印章或官方登載內容，並運用於法律關係上，即可能成立偽造文書罪。變造駕照、假冒公務員、以印章簽發不實資料等，都屬於此類別。",
+        recommendedAction: "1. 保留被偽造文件與偽造對照原本 2. 報警請求偽造文書鑑定 3. 向地檢署提出告訴或主張公訴。",
+        suggestedActions: [
+          "保留被偽造之證件、文件、印章正本及複本",
+          "向警察局或地檢署告訴並持手印、筆跡鑑定申請",
+          "向車主、銀行、學校核對文件真偽"
+        ],
+        evidenceChecklist: [
+          "偽造文件原本或高清照片",
+          "偽造者的身分資料與提供來源記錄",
+          "相關交易紀錄、合約或函文",
+          "核對真偽之官方函文或公文"
+        ],
+        targetToolCategory: cat,
+        recommendedToolId: cat,
+        readyDocumentTitle: fallbackDoc.title,
+        readyDocumentText: fallbackDoc.documentText,
+        pleadingDraft: fallbackDoc.documentText,
+        complianceChecklist: fallbackDoc.complianceChecklist,
+        antiGhostVerification: fallbackDoc.antiGhostVerification
+      };
+    }
+
+    // 10.4 背信／業務侵佔（公司或代管款項擅自處分）
+    const 背信詞 = /(背信|擅自處分|擅自扣款|未經授權挪用|業務侵佔|侵佔公司款項|侵佔公司資產|私拿公司|掏空公司|侵佔客戶)/;
+    if (背信詞.test(q)) {
+      const cat = "CRIMINAL_PUBLIC_BREACH_OF_TRUST";
+      const fallbackDoc = buildFallbackToolboxResult(cat, { incidentDetails: query, searchQuery: query });
+      return {
+        identifiedIssue: "背信罪與業務侵佔爭議",
+        category: cat,
+        caseType: "CRIMINAL_PUBLIC",
+        litigationNatureText: "⚡ 公訴罪，得向地檢署告訴",
+        legalBasis: [
+          "刑法第342條第1項（背信）",
+          "刑法第336條第2項（業務侵佔）"
+        ],
+        statuteAnalysis: "刑法第342條第1項、第336條第2項、民事請求權民法第184條",
+        isPublicProsecution: true,
+        statuteOfLimitations: "公訴罪不適用告訴乃論六個月限制，但應於得知情後儘速蒐證向地檢署告訴。",
+        timeLimit: "公訴罪，爭議對象應以實證時效較有把握的時間點估算",
+        plainExplanation: "如果被告未經授權以他人名義處分公司財產、私人代管資金或客戶資金，或未依約定用途使用款項，會觸犯背信罪；若藉業務上職務侵佔款項，則觸犯業務侵佔罪。",
+        recommendedAction: "1. 保存公司帳簿、銀行匯款單與指示文書 2. 向檢察官舉報背信與侵佔 3. 同步民事求償返還。",
+        suggestedActions: [
+          "保全公司銀行帳戶流水、轉帳紀錄與對應訊息",
+          "向地檢署檢察官提出告訴狀",
+          "對被告追索不當使用之款項並聲請保全程序"
+        ],
+        evidenceChecklist: [
+          "被挪用款項的銀行匯款單及公司帳務紀錄",
+          "指示被告處理之郵件、通訊軟體對話紀錄",
+          "公司決議、股東會紀錄或投資合約",
+          "驗證款項被移轉至何人名下及其用途"
+        ],
+        targetToolCategory: cat,
+        recommendedToolId: cat,
+        readyDocumentTitle: fallbackDoc.title,
+        readyDocumentText: fallbackDoc.documentText,
+        pleadingDraft: fallbackDoc.documentText,
+        complianceChecklist: fallbackDoc.complianceChecklist,
+        antiGhostVerification: fallbackDoc.antiGhostVerification
+      };
+    }
+
+    // 10.5 侵佔遺失物／竊佔（拿走他人遺忘物品）
+    const 侵佔遺失物詞 = /(遺失物|撿到|暫放|置身無人|竊佔|佔領|挖掘|盜掘|隱佔|撿取他人|遺忘之物)/;
+    if (侵佔遺失物詞.test(q)) {
+      const cat = "CRIMINAL_PUBLIC_MISAPPROPRIATION";
+      const fallbackDoc = buildFallbackToolboxResult(cat, { incidentDetails: query, searchQuery: query });
+      return {
+        identifiedIssue: "侵佔罪與竊佔罪",
+        category: cat,
+        caseType: "CRIMINAL_PUBLIC",
+        litigationNatureText: "⚡ 公訴或告訴乃論（視遺失或竊佔態樣而定）",
+        legalBasis: [
+          "刑法第337條（侵佔被遺忘之物）",
+          "刑法第336條第1項（業務侵佔）",
+          "刑法第320條（竊盜）",
+          "刑法第321條第1項第1款（侵入住宅竊盜）"
+        ],
+        statuteAnalysis: "刑法第337條、第336條、第320條、第321條",
+        isPublicProsecution: false,
+        statuteOfLimitations: "侵佔遺失物通常屬於告訴乃論或公訴罪，應於知悉犯人後6個月內提告。",
+        timeLimit: "告訴乃論6個月／公訴不適用告訴期",
+        plainExplanation: "遺失物或已知物品卻無正當理由持有，可能構成侵佔罪；偷挖物品、擅自挖掘或霸占他人土地建物，則可能構成竊佔罪。",
+        recommendedAction: "1. 保存警方報案三聯單與社會局登記事證 2. 向警察局提出遺失物或竊佔申告 3. 向地院安全室立案請求確定物權。",
+        suggestedActions: [
+          "立即向管轄警察局報案並取得報案三聯單",
+          "向社會局或良善流離人員孤兒代收中心交說明",
+          "查明是否為定期侵佔或竊佔並書面申告"
+        ],
+        evidenceChecklist: [
+          "遺失物照片、校對功能、彰化物物字工發",
+          "周邊監視器錄影、事務所簽到紀錄",
+          "遺失物相關單據、交付記憶或認舊物"
+        ],
+        targetToolCategory: cat,
+        recommendedToolId: cat,
+        readyDocumentTitle: fallbackDoc.title,
+        readyDocumentText: fallbackDoc.documentText,
+        pleadingDraft: fallbackDoc.documentText,
+        complianceChecklist: fallbackDoc.complianceChecklist,
+        antiGhostVerification: fallbackDoc.antiGhostVerification
+      };
+    }
+
+    // 10.6 毀損／物損（財物受損的告訴乃論）
+    const 毀損詞 = /(毀損|毀壞|弄壞|砸壞|破壞|撬開|拆壞|打翻|打碎|潑漆|噴漆|人損物毀|侵害他人財物)/;
+    if (毀損詞.test(q)) {
+      const cat = "CRIMINAL_COMPLAINT_DAMAGE";
+      const fallbackDoc = buildFallbackToolboxResult(cat, { incidentDetails: query, searchQuery: query });
+      return {
+        identifiedIssue: "毀損罪與侵權損害賠償爭議",
+        category: cat,
+        caseType: "CRIMINAL_COMPLAINT_REQUIRED",
+        litigationNatureText: "⚠️ 刑事告訴乃論罪（事發後知悉犯人6個月內提告）",
+        legalBasis: [
+          "刑法第354條（毀損）",
+          "民法第184條（侵權行為）",
+          "刑事訴訟法第237條（告訴乃論期限）"
+        ],
+        statuteAnalysis: "刑法第354條、民法第184條、第195條精神慰撫金",
+        isPublicProsecution: false,
+        statuteOfLimitations: "刑法第354條毀損罪為告訴乃論，須自知悉犯人起6個月內提告；民事侵權請求權時效2年。",
+        timeLimit: "代前告訴乃論6個月／民事2年",
+        plainExplanation: "如果因他人故意或過失毀損使物品失去原有效用或價值，可構成刑法毀損罪，並可同時請求民事侵權賠償。若毀損公共財物，或動物官方也可通知稽查。",
+        recommendedAction: "1. 保存被害物品照片與購置根據",
+        suggestedActions: [
+          "拍攝被毀損物品現場與受損情形，並保存購買發票或空箱",
+          "向警方報備或請屋主確認事發時間與對象提供線索",
+          "六個月內向地檢署具狀提告並同步請求民事賠償"
+        ],
+        evidenceChecklist: [
+          "被毀損物品的購置發票、保固單",
+          "現場照片、監視器錄影",
+          "受損物估價單或修復估價單",
+          "對話紀錄或存證信函"
+        ],
+        targetToolCategory: cat,
+        recommendedToolId: cat,
+        readyDocumentTitle: fallbackDoc.title,
+        readyDocumentText: fallbackDoc.documentText,
+        pleadingDraft: fallbackDoc.documentText,
+        complianceChecklist: fallbackDoc.complianceChecklist,
+        antiGhostVerification: fallbackDoc.antiGhostVerification
+      };
+    }
+
     // 11. 通用預設 (根據有無刑法關鍵字做嚴謹定性)
     const cat = "UNIVERSAL_AI_PLEADING";
     const fallbackDoc = buildFallbackToolboxResult(cat, { incidentDetails: query, searchQuery: query });
@@ -845,6 +1102,13 @@ export function evaluateNarrativeCompleteness(query: string): {
   }
   if (!/(診斷書|驗傷|對話紀錄|LINE|截圖|監視器|錄音|照片|證人|匯款|契約|合約|借據|本票|存證信函|單據|紀錄|憑證)/.test(trimmed)) {
     missing.push("客觀佐證資料（證據）");
+  }
+  // 詐騙或盜刷爭議未說明交易方式時，必須追問。卡片被盜用的提領方式（ATM／臨櫃／簽帳／網路轉帳）
+  // 直接決定適用的罪名（竊盜、詐欺取財或偽卡取財），缺此資訊則分流與時效可能誤判。
+  const 疑為卡片或提款爭議 = /(提領|盜刷|盜用|取款|提款|扣款|未授權|信用卡|金融卡|簽帳卡|提款卡|卡片|帳戶|銀行帳戶|持卡人|金融卡不見|金融卡遺失|現金記帳|整合卡)/;
+  const 交易方式已述 = /(ATM|提款機|自動提款機|臨櫃|櫃檯|簽帳|刷卡|轉帳|匯款|網路|線上|電子支付|行動支付|Google Pay|Apple Pay|街口|OTP|密碼|無卡|定期定額|自動扣款)/;
+  if (疑為卡片或提款爭議.test(trimmed) && !交易方式已述.test(trimmed)) {
+    missing.push("提領方式與交易地點（ATM／臨櫃／簽帳／網路轉帳）");
   }
 
   const isComplete = missing.length === 0 && !temporal.hasConflict;
@@ -1078,6 +1342,14 @@ export function enforceTriageConsistency(payload: any, query: string): any {
       if (!既有行動.some((a) => a.includes(行動.slice(0, 2)))) { 既有行動.unshift(行動); }
     }
     p.suggestedActions = 既有行動;
+    // 身分證同步被帶走時應追問掛失，避免個資被盜用後續糾紛（偽卡、貸款廣告認證等）
+    if (/(身分證|身分証|個資|個人資料|健保卡)/.test(query) && /(遺失|不見了|被偷|被拿走|一併|一起|掉在|丟了來不及找)/.test(query)) {
+      const 戶政掛失 = "可向戶政事務所辦理身分證掛失並申請補發，以防經內政部查驗、貸款申請或電子支付綁定被冒用";
+      if (!既有行動.some((a) => a.includes('戶政') || a.includes('掛失') && a.includes('身分證'))) {
+        既有行動.push(戶政掛失);
+      }
+      p.suggestedActions = 既有行動;
+    }
     // 文字必須同時說明刑事時效與民事救濟，讓當事人知道兩條路都要走。
     p.litigationNatureText =
       "⚠️ 刑事告訴乃論（須於自知悉犯人之日起 6 個月內提出告訴）"
