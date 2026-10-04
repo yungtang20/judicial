@@ -58,4 +58,15 @@ describe('precedentRelevance', () => {
     expect(relevant).toContain('A');
     expect(relevant).not.toContain('B');
   });
+
+  it('returns zero kept entries when none are relevant (fail-closed)', () => {
+    const results = filterPrecedentsByRelevance(
+      [{ caseNumber: 'X', summary: investmentFraudSummary, citedStatutes: ['民法第1條'] }],
+      walletNarrative,
+      legalBasis
+    );
+
+    expect(results[0].relevant).toBe(false);
+    expect(results[0].rejectionReason).not.toBeNull();
+  });
 });
