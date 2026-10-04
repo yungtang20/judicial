@@ -22,6 +22,9 @@
     "test:ui:e2e": "playwright test",
     "test:coverage": "vitest run --coverage",
     "test:eval": "vitest run src/lib/legalGovernance.test.ts",
+    "test:fixture": "vitest run src/test/case-fixture.test.ts src/test/case-fixture.regression.test.ts",
+    "eval:fixture-ai": "tsx scripts/evaluate-fixture-with-ai.ts",
+    "eval:fixture-compare": "tsx scripts/compare-fixture-router-vs-ai.ts",
     "test:ssrf": "tsx scripts/verifySsrf.ts",
     "prepare": "husky",
     "verify:deployable": "node scripts/verify-deployable.mjs"
