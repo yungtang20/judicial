@@ -1,0 +1,129 @@
+[
+  {
+    "案由": "查獲詐欺通緝案",
+    "ok": true,
+    "status": 200,
+    "currentStep": "QUESTIONING",
+    "cause": "誤交提款卡/存摺遭詐騙集團利用（洗錢人頭帳戶自救與刑責防禦）",
+    "missing": [
+      "具體發生時間（時）",
+      "發生地點（地）",
+      "客觀佐證資料（證據）"
+    ]
+  },
+  {
+    "案由": "詐欺案",
+    "ok": true,
+    "status": 200,
+    "currentStep": "QUESTIONING",
+    "cause": "誤交提款卡/存摺遭詐騙集團利用（洗錢人頭帳戶自救與刑責防禦）",
+    "missing": [
+      "發生地點（地）"
+    ]
+  },
+  {
+    "案由": "查獲酒駕公共危險",
+    "ok": true,
+    "status": 200,
+    "currentStep": "QUESTIONING",
+    "cause": "公然侮辱罪 / 誹謗罪 / 網路妨害名譽爭議",
+    "missing": [
+      "具體發生時間（時）",
+      "發生地點（地）",
+      "客觀佐證資料（證據）"
+    ]
+  },
+  {
+    "案由": "跟騷法告訴案",
+    "ok": true,
+    "status": 200,
+    "currentStep": "QUESTIONING",
+    "cause": "誤交提款卡/存摺遭詐騙集團利用（洗錢人頭帳戶自救與刑責防禦）",
+    "missing": []
+  },
+  {
+    "案由": "一般刑案-跟騷法",
+    "ok": true,
+    "status": 200,
+    "currentStep": "QUESTIONING",
+    "cause": "誤交提款卡/存摺遭詐騙集團利用（洗錢人頭帳戶自救與刑責防禦）",
+    "missing": [
+      "發生地點（地）"
+    ]
+  },
+  {
+    "案由": "性騷擾申訴併告訴、傷害、妨害自由案",
+    "ok": true,
+    "status": 200,
+    "currentStep": "QUESTIONING",
+    "cause": "誤交提款卡/存摺遭詐騙集團利用（洗錢人頭帳戶自救與刑責防禦）",
+    "missing": []
+  },
+  {
+    "案由": "一般刑案（毀損）",
+    "ok": true,
+    "status": 200,
+    "currentStep": "QUESTIONING",
+    "cause": "詐欺取財（刑法第339條）與民事損害賠償之並行救濟",
+    "missing": [
+      "客觀佐證資料（證據）"
+    ]
+  },
+  {
+    "案由": "妨害名譽",
+    "ok": true,
+    "status": 200,
+    "currentStep": "QUESTIONING",
+    "cause": "竊盜罪 / 侵占罪 / 親屬伴侶財產侵害爭議",
+    "missing": [
+      "發生地點（地）",
+      "客觀佐證資料（證據）"
+    ]
+  },
+  {
+    "案由": "張0菡所報偽造文書、恐嚇案",
+    "ok": true,
+    "status": 200,
+    "currentStep": "QUESTIONING",
+    "cause": "生活爭議法律案件實體法與程序法即時診斷",
+    "missing": [
+      "客觀佐證資料（證據）"
+    ]
+  },
+  {
+    "案由": "A3車禍（初報、結報）",
+    "ok": true,
+    "status": 200,
+    "currentStep": "QUESTIONING",
+    "cause": "普通傷害罪 / 互毆與正當防衛法律爭議",
+    "missing": [
+      "客觀佐證資料（證據）"
+    ]
+  },
+  {
+    "案由": "侵佔遺失物案",
+    "ok": true,
+    "status": 200,
+    "currentStep": "QUESTIONING",
+    "cause": "公然侮辱罪 / 誹謗罪 / 網路妨害名譽爭議",
+    "missing": [
+      "客觀佐證資料（證據）"
+    ]
+  },
+  {
+    "案由": "詐欺（詐欺案類－假網拍）",
+    "ok": true,
+    "status": 200,
+    "currentStep": "QUESTIONING",
+    "cause": "誤交提款卡/存摺遭詐騙集團利用（洗錢人頭帳戶自救與刑責防禦）",
+    "missing": []
+  },
+  {
+    "案由": "過失傷害、公然侮辱、強制、恐嚇案。",
+    "ok": true,
+    "status": 200,
+    "currentStep": "QUESTIONING",
+    "cause": "車禍純財損修車費侵權損害賠償爭議",
+    "missing": []
+  }
+]
