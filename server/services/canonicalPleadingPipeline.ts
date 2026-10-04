@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
-import type { CaseInput, Evidence, MissingInput, Party } from '../../src/types/compliance.js';
+import type { CaseInput, CaseType, Evidence, LegalPremise, MissingInput, Party } from '../../src/types/compliance.js';
+import { VERIFIED_REAL_STATUTES } from '../../src/lib/citationVerifier.js';
 import { buildStructuredPleadingDraft } from '../../src/lib/generator/civilPleadingGenerator.js';
 import { verifyPleadingCompliance } from '../../src/lib/compliance/pleadingComplianceEngine.js';
 import { reviewStructuredPleading } from '../../src/lib/reviewer/pleadingReviewer.js';
@@ -74,6 +75,72 @@ function text(params: CanonicalParams, ...keys: string[]): string {
     if (typeof value === 'number' && Number.isFinite(value)) return String(value);
   }
   return '';
+}
+
+/**
+ * 來源錨定三段論（大前提）。
+ *
+ * 依案件類型選擇已查證的實體請求權基礎法源；每一筆都是
+ * taiwan-legal-db MCP 查得之官方現行條文原文（civil_code_*.md 凍結檔，
+ * 與 VERIFIED_REAL_STATUTES 對照一致）。不得以 AI 生成或推測的條文充數。
+ *
+ * 涵攝僅以使用者提供的事實逐項比對構成要件；事實未提供時標 UNCONFIRMED，
+ * 與 UNIVERSAL_SYLLOGISM_RULES 第 2、5 點（不足時標示待確認，不得臆測補足）一致。
+ */
+const PREMISE_ANCHORS: Readonly<Record<string, Array<{ citation: string; element: string }>>> = Object.freeze({
+  // 消費借貸返還借款：借貸合意與金錢交付（民法第474條定義）、屆期返還（第478條）。
+  '民法第474條': [
+    { citation: '民法第474條', element: '當事人約定，一方移轉金錢所有權於他方，他方以種類、品質、數量相同之物返還（消費借貸成立）' },
+    { citation: '民法第478條', element: '借用人應於約定期限內返還借用物；屆期未還構成遲延' }
+  ],
+  // 契約解除／租賃押金返還：回復原狀（第259條第2款受領金錢附加利息償還）。
+  '民法第259條': [
+    { citation: '民法第259條', element: '契約解除時受領之給付為金錢者，應附加自受領時起之利息償還之（回復原狀）' }
+  ],
+  // 一般侵權損害賠償：故意過失、不法侵害權利、損害及因果關係。
+  '民法第184條': [
+    { citation: '民法第184條', element: '因故意或過失，不法侵害他人之權利者，負損害賠償責任' }
+  ]
+});
+
+function buildLegalPremise(
+  categoryKey: string,
+  caseType: CaseType,
+  factContent: string,
+  claimStatement: string
+): LegalPremise | undefined {
+  if (caseType !== 'civil') return undefined;
+  // 依案情選擇請求權基礎：借貸爭議錨定 474/478；押金爭議錨定 259；
+  // 其餘錨定 184 侵權。判準與 toolboxFallbacks 的爭點分類一致。
+  const 事實 = `${factContent} ${claimStatement} ${categoryKey}`;
+  const 是借貸 = /借|貸|還錢|欠款|本票|票據/.test(事實) && !/押金|租屋|租賃|房東/.test(事實);
+  const 是押金 = /押金|租屋|租賃|房東|房客|退租|保證金/.test(事實);
+  const anchorKey = 是借貸 ? '民法第474條' : 是押金 ? '民法第259條' : '民法第184條';
+  const anchors = PREMISE_ANCHORS[anchorKey];
+  if (!anchors) return undefined;
+
+  const statutes = anchors.map(anchor => {
+    const known = VERIFIED_REAL_STATUTES[anchor.citation];
+    if (!known) return null;
+    return {
+      citation: anchor.citation,
+      text: known.officialSummary,
+      sourceUrl: 'https://law.moj.gov.tw/'
+    };
+  }).filter((item): item is NonNullable<typeof item> => item !== null);
+  if (!statutes.length) return undefined;
+
+  // 涵攝：事實未提供時全部標 UNCONFIRMED，不得臆測。
+  const subsumption = anchors.map(anchor => ({
+    element: anchor.element,
+    fact: factContent ? factContent.slice(0, 120) : '',
+    met: factContent ? 'UNCONFIRMED' as const : 'UNCONFIRMED' as const
+  }));
+  const conclusion = factContent
+    ? '使用者已提供事實；涵攝結果須由使用者或律師逐項確認後，再據以主張請求權。本文件自動帶入之大前提為已查證現行法條。'
+    : '使用者未提供事實，涵攝待確認；請補充案件事實後再產製，系統不會以推測補足法律結論。';
+
+  return { statutes, subsumption, conclusion };
 }
 
 function sourceTexts(value: unknown): string[] {
@@ -153,6 +220,12 @@ export async function executeCanonicalPleadingPipeline(categoryKey: string, rawP
   const factId = factContent ? randomUUID() : '';
   const claimId = claimStatement ? randomUUID() : '';
 
+  // 來源錨定三段論（大前提）。依案件類型選擇已查證的實體請求權基礎法源；
+  // 大前提只取「官方查證過的現行條文原文」（civil_code_*.md 凍結檔，
+  // VERIFIED_REAL_STATUTES 對照），不得以 AI 生成內容充數。
+  // 涵攝僅以使用者提供的事實逐項比對；事實未提供時全部標 UNCONFIRMED。
+  const legalPremise = buildLegalPremise(categoryKey, config.caseType, factContent, claimStatement);
+
   const caseInput: CaseInput = {
     id: randomUUID(),
     caseType: config.caseType,
@@ -185,7 +258,8 @@ export async function executeCanonicalPleadingPipeline(categoryKey: string, rawP
     }] : [],
     evidence,
     attachments,
-    legalReferencesUsed: config.legalReferences.map(reference => reference.sourceReference)
+    legalReferencesUsed: config.legalReferences.map(reference => reference.sourceReference),
+    legalPremise
   };
 
   const draft = buildStructuredPleadingDraft(caseInput, config.ruleProfile);

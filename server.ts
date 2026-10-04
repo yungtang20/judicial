@@ -1,7 +1,10 @@
+// 必須第一個 import：dotenv 要在 providerRegistry 建構之前完成載入。
+// 理由見 server/loadEnv.ts 的說明。
+import "./server/loadEnv.js";
+
 import path from "path";
 import express from "express";
 import { createServer as createViteServer } from "vite";
-import dotenv from "dotenv";
 import { createExpressApp } from "./server/index.js";
 import { validateSecurityConfiguration } from "./server/middleware/auth.js";
 import { warmOfficialStatuteIndex } from "./server/services/statuteExistenceProvider.js";
@@ -12,23 +15,6 @@ import { warmOfficialStatuteIndex } from "./server/services/statuteExistenceProv
 // 刻意不 await：官方來源不可用時伺服器仍應正常啟動，
 // 該情況下查證會退回本機索引，fail-closed 行為不變。
 void warmOfficialStatuteIndex();
-
-process.env.DOTENV_CONFIG_QUIET = "true";
-const _log = console.log;
-const _warn = console.warn;
-console.log = () => {};
-console.warn = () => {};
-dotenv.config({ quiet: true });
-console.log = _log;
-console.warn = _warn;
-
-// 清理無效的 BASE_URL 金鑰字串
-const rawBaseUrl = process.env.GOOGLE_GEMINI_BASE_URL || process.env.GEMINI_BASE_URL;
-if (rawBaseUrl && !rawBaseUrl.startsWith("http://") && !rawBaseUrl.startsWith("https://")) {
-  console.log(`[Gemini Env] 清理無效的 BASE_URL 字串`);
-  delete process.env.GOOGLE_GEMINI_BASE_URL;
-  delete process.env.GEMINI_BASE_URL;
-}
 
 // 驗證與解析 APP_URL
 export function getAppUrl(port: number): string {

@@ -9,6 +9,7 @@ import {
   CRIMINAL_SUPPLEMENTARY_CIVIL_RULE_PROFILE,
   getCourtPleadingConfig
 } from '../../src/lib/rules/courtPleadingRuleProfiles.js';
+import { VERIFIED_REAL_STATUTES } from '../../src/lib/citationVerifier.js';
 
 const completeCivilInput = {
   courtName: '臺灣臺中地方法院',
@@ -95,6 +96,37 @@ describe('canonical pleading pipeline', () => {
     expect(result.documentText).not.toContain('臺灣臺北');
     expect(result.complianceChecklist.every(item => item.passed)).toBe(true);
   });
+
+  it('delivers a source-anchored syllogism: official major premise and user-fact subsumption', async () => {
+    // 借貸爭議 → 大前提錨定民法第474、478條（官方查證現行條文）。
+    const result = await executeCanonicalPleadingPipeline('CIVIL_COMPLAINT_GENERAL', completeCivilInput);
+    expect(result.documentText).toContain('請求權基礎與涵攝');
+    expect(result.documentText).toContain('民法第474條');
+    expect(result.documentText).toContain('民法第478條');
+    // 涵攝以使用者事實比對，未經人工確認前必須標示「待確認」，
+    // 不得宣稱該當或以推測補足法律結論。
+    expect(result.documentText).toContain('待確認');
+    expect(result.documentText).not.toContain('該當');
+    // 大前提條文必須逐字對照已查證法源（VERIFIED_REAL_STATUTES）。
+    for (const statute of result.legalSources) {
+      if (statute.sourceReference === 'legal_references/civil_code_474.md') {
+        expect(result.documentText).toContain(VERIFIED_REAL_STATUTES['民法第474條'].officialSummary);
+      }
+    }
+  });
+
+  it('anchors deposit disputes to Civil Code 259, not the repealed 475', async () => {
+    // 民法第475條已刪除（官方現行法規回傳「（刪除）」，實測 2026-10-01）。
+    // 押金爭議的大前提必須錨定第259條回復原狀，不得引用已刪除條文。
+    const result = await executeCanonicalPleadingPipeline('CIVIL_COMPLAINT_GENERAL', {
+      ...completeCivilInput,
+      facts: '原告承租被告房屋並交付押金，租期屆滿退租後被告以清潔費為由扣留押金不還。'
+    });
+    expect(result.documentText).toContain('民法第259條');
+    expect(result.documentText).not.toContain('民法第475條');
+    expect(result.documentText).not.toContain('民法第472條');
+  });
+
 
   it('delivers supplementary civil input through the §492-mapped civil profile', async () => {
     const result = await executeCanonicalPleadingPipeline('CRIMINAL_SUPPLEMENTARY_CIVIL', {

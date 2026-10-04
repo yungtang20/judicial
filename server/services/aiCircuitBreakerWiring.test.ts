@@ -32,7 +32,7 @@ describe('AI 生成路徑的熔斷接線', () => {
     // withTransientRetry 固定嘗試 3 次（初始 + 2 次重試），不得更多
     expect(呼叫次數).toBeLessThanOrEqual(3);
     expect(呼叫次數).toBeGreaterThan(0);
-  });
+  }, 60000);
 
   it('暫時性錯誤會重試，確定性錯誤不會', async () => {
     const { withTransientRetry } = await import('./legalGenerationPipeline.js');

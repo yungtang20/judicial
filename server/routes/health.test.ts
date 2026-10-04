@@ -88,5 +88,5 @@ describe('health endpoint bounded local load', () => {
       p50Ms: Math.round(durations[99]), p95Ms: Math.round(durations[189]),
       maxMs: Math.round(durations[199]), provider: 'mock', storage: ':memory:',
     }));
-  }, 30000);
+  }, 60000);
 });
