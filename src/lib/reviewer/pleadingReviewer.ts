@@ -377,6 +377,11 @@ function expectedSectionLines(section: StructuredPleadingDraft['sections'][numbe
       return [text(input.signature)].filter(Boolean);
     case 'subject_and_facts':
       return facts;
+    case 'legal_premise':
+      // 來源錨定三段論區段：大前提逐條列官方條文原文，涵攝與結論由
+      // canonical 管線依使用者事實組裝。此區段非 CaseInput 直接投影，
+      // 逐行比對由 legalPremise 驗證器負責（P5），不重複計入事實追溯。
+      return text(section.content).trim() ? section.content.split(/\r?\n/).map(line => line.trim()).filter(Boolean) : [];
     case 'party_identifiers':
       return input.parties.flatMap(party => Object.entries(party.identifiers || {})
         .filter(([, value]) => text(value))

@@ -46,9 +46,28 @@ class ApiError extends Error {
   }
 }
 
+/** 讀取訪客權杖；儲存區不可用時回 null，不可讓呼叫因此失敗。 */
+function 讀取訪客權杖(): string | null {
+  try {
+    return typeof sessionStorage === 'undefined' ? null : sessionStorage.getItem('judicial_guest_token');
+  } catch {
+    return null;
+  }
+}
+
+/** 寫入訪客權杖；儲存區不可用時略過，下次呼叫會重新取得。 */
+function 寫入訪客權杖(token: string): void {
+  try {
+    sessionStorage.setItem('judicial_guest_token', token);
+  } catch {
+    // 隱私模式或配額已滿：本次不保存，下次呼叫時重新取得
+  }
+}
+
 export async function fetchWithAuth(url: string, options: RequestInit = {}) {
   const headers = new Headers(options.headers);
-  const guestToken = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('judicial_guest_token') : null;
+  // 讀取訪客權杖失敗時略過快取權杖；未授權時仍走既有訪客驗證流程。
+  const guestToken = 讀取訪客權杖();
   if (guestToken) headers.set('Authorization', `Bearer ${guestToken}`);
   let guestAuthUnavailable = false;
   let res = await fetch(url, { ...options, headers });
@@ -57,7 +76,7 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}) {
     if (guestRes.ok) {
       const guestData = await guestRes.json() as { token?: string };
       if (guestData.token) {
-        sessionStorage.setItem('judicial_guest_token', guestData.token);
+        寫入訪客權杖(guestData.token);
         headers.set('Authorization', `Bearer ${guestData.token}`);
         res = await fetch(url, { ...options, headers });
       }

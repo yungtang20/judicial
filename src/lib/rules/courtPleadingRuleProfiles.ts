@@ -29,8 +29,27 @@ export const CIVIL_LEGAL_REFERENCES: LegalReference[] = [
   verified(CIVIL_PROCEDURE_244, 'ff32248360cbe6db8297292014abb0e377dcc520e5822b42c24649dc71ca03b6')
 ];
 
+// 實體請求權基礎法源（大前提錨定）。全部以 taiwan-legal-db MCP 於
+// 2026-10-01 查得官方現行條文原文後凍結（legal_references/civil_code_*.md）。
+export const CIVIL_CODE_474 = 'legal_references/civil_code_474.md';
+export const CIVIL_CODE_478 = 'legal_references/civil_code_478.md';
+export const CIVIL_CODE_259 = 'legal_references/civil_code_259.md';
+
+export const CIVIL_DEBT_LEGAL_REFERENCES: LegalReference[] = [
+  ...CIVIL_LEGAL_REFERENCES,
+  verified(CIVIL_CODE_474, '8c36fdff7dd4528cfffdaf1c1884ca38465156ba294e2f5b83885793e071576b'),
+  verified(CIVIL_CODE_478, '388e76cfa45dca9c9acd5e919c59500ffc9cbfe5a2f97543f92316a2f3593b25')
+];
+
+export const CIVIL_DEPOSIT_RETURN_LEGAL_REFERENCES: LegalReference[] = [
+  ...CIVIL_LEGAL_REFERENCES,
+  verified(CIVIL_CODE_259, '321d49a6abe09991a6269ff27944ecbfb109528c403e6537bc2451d0bd746e60')
+];
+
 export const PAYMENT_ORDER_LEGAL_REFERENCES: LegalReference[] = [
   ...CIVIL_LEGAL_REFERENCES.filter(reference => reference.sourceReference !== CIVIL_PROCEDURE_244),
+  ...CIVIL_DEBT_LEGAL_REFERENCES.filter(reference =>
+    reference.sourceReference === CIVIL_CODE_474 || reference.sourceReference === CIVIL_CODE_478),
   verified(CIVIL_PROCEDURE_508, 'db4f0f7c651a440e4d9db0dd514bef3f210297623c90a1c8bf5e33af90741af7')
 ];
 

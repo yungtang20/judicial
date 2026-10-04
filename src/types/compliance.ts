@@ -237,6 +237,28 @@ export interface Claim {
   evidenceIds?: string[];
 }
 
+/**
+ * 法律大前提（來源錨定三段論）。
+ *
+ * canonical P4–P9 管線只產出「事實排版＋欄位整理」的格式草稿，
+ * 文件 0 處法律引用、無大前提與涵攝（實測 2026-10-01，
+ * 僅有事實的民事起訴狀回傳 READY 並提供匯出）。
+ * 但 UNIVERSAL_SYLLOGISM_RULES 要求法律文件包含大前提、小前提、涵攝、結論。
+ *
+ * 大前提必須錨定「已查證現行法條」的原文： statutes 內每一筆均為
+ * taiwan-legal-db MCP 查得之官方現行條文（legal_references/civil_code_*.md 凍結檔）。
+ * 涵攝（subsumption）僅以使用者提供的事實逐項比對，不足時標示「待確認」，
+ * 不得以推測補足——與 UNIVERSAL_SYLLOGISM_RULES 第 2、5 點一致。
+ */
+export interface LegalPremise {
+  /** 已查證現行法條（大前提），每筆為官方條文原文摘錄。 */
+  statutes: Array<{ citation: string; text: string; sourceUrl?: string }>;
+  /** 涵攝：使用者事實逐項與構成要件比對之結果，不足處標「待確認」。 */
+  subsumption: Array<{ element: string; fact: string; met: 'MET' | 'NOT_MET' | 'UNCONFIRMED' }>;
+  /** 結論：依涵攝結果說明法律效果與仍需補充之處。 */
+  conclusion: string;
+}
+
 export interface CaseInput {
   id: string;
   caseType: CaseType;
@@ -254,6 +276,8 @@ export interface CaseInput {
   documentDate?: string;
   expectedRuleProfileVersion?: string;
   legalReferencesUsed?: string[];
+  /** 來源錨定三段論：大前提、涵攝與結論（官方查證法源）。 */
+  legalPremise?: LegalPremise;
 }
 
 export interface PleadingRuleProfile {

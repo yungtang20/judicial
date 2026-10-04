@@ -2,6 +2,7 @@ import type {
   CaseInput,
   ContentRule,
   DraftSection,
+  LegalPremise,
   MissingInput,
   Party,
   PleadingRuleProfile,
@@ -34,6 +35,7 @@ const SECTION_TITLES: Readonly<Record<string, string>> = {
   complaint_parties: '起訴當事人',
   subject_and_facts: '訴訟標的及原因事實',
   judgment_relief: '應受判決事項之聲明',
+  legal_premise: '請求權基礎與涵攝',
   complaint_optional_details: '起訴狀宜記載事項'
 };
 
@@ -158,11 +160,36 @@ function sectionValues(input: CaseInput): Record<string, SectionValue> {
     date: { content: text(input.documentDate) },
     party_identifiers: renderIdentifiers(input),
     signature: { content: text(input.signature) },
-    complaint_parties: partySection,
-    subject_and_facts: renderSources(referencedFacts(input), 'fact'),
-    judgment_relief: claimSection,
-    complaint_optional_details: { content: '' }
+  complaint_parties: partySection,
+  subject_and_facts: renderSources(referencedFacts(input), 'fact'),
+  judgment_relief: claimSection,
+  legal_premise: renderLegalPremise(input.legalPremise),
+  complaint_optional_details: { content: '' }
   };
+}
+
+/**
+ * 來源錨定三段論渲染。
+ *
+ * 大前提逐條列官方條文原文；涵攝逐項比對使用者事實與構成要件，
+ * 未確認處如實標示「待確認」；結論依涵攝結果說明。
+ * 大前提為空時回空內容，不臆造任何法條。
+ */
+function renderLegalPremise(premise: LegalPremise | undefined): SectionValue {
+  if (!premise || !premise.statutes.length) return { content: '' };
+  const 大前提 = premise.statutes
+    .map(statute => `${statute.citation}：${statute.text}`)
+    .join('\n');
+  const 涵攝 = premise.subsumption.length
+    ? premise.subsumption
+        .map(item => {
+          const 狀態 = item.met === 'MET' ? '該當' : item.met === 'NOT_MET' ? '不該當' : '待確認';
+          return `${item.element} — ${item.fact || '（使用者未提供事實）'}：${狀態}`;
+        })
+        .join('\n')
+    : '（使用者未提供事實，涵攝待確認）';
+  const 結論 = text(premise.conclusion) || '依涵攝結果認定請求權基礎；事實不足處應補充後再確認。';
+  return { content: `大前提（法定構成要件）\n${大前提}\n\n小前提與涵攝\n${涵攝}\n\n結論\n${結論}` };
 }
 
 function isApplicable(rule: ContentRule, input: CaseInput): boolean {

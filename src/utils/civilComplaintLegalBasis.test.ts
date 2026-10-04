@@ -22,7 +22,10 @@ describe('民事起訴狀的法律依據須與實際爭點相符', () => {
     const doc = 產製('房東扣住五萬元押金不還，說要收清潔費但沒收據。');
     expect(doc).not.toContain('向原告借得款項');
     expect(doc).not.toContain('借據');
-    expect(doc).toContain('民法第475條');
+    // 民法第475條已刪除（官方現行法規回傳「（刪除）」，實測 2026-10-01）。
+    // 押金返還錨定第259條第2款（受領金錢附加利息償還）；引用已刪除條文等同引用不存在的規定。
+    expect(doc).not.toContain('民法第475條');
+    expect(doc).toContain('民法第259條');
     expect(doc).toContain('租賃契約');
   });
 

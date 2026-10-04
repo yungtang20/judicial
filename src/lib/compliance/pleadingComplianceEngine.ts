@@ -8,6 +8,7 @@ import type {
   PleadingRuleProfile,
   StructuredPleadingDraft
 } from '../../types/compliance';
+import { VERIFIED_REAL_STATUTES } from '../citationVerifier';
 
 export interface PleadingComplianceInput {
   draft: StructuredPleadingDraft;
@@ -189,6 +190,36 @@ const validateOptionalComplaintDetails: RuleValidator = section =>
     ? result('UNVERIFIED', section, '存在宜記載內容，但目前沒有核准的結構化驗證欄位。')
     : result('WARNING', section, '未提供起訴狀宜記載事項。');
 
+/**
+ * 來源錨定三段論驗證。
+ *
+ * 大前提每一筆都必須對照 VERIFIED_REAL_STATUTES（官方查證種子）確認
+ * 條文原文逐字一致；任何一筆對不上即為 CONFLICT——不得讓未經查證的
+ * 法條文字以「大前提」名義進入書狀。
+ * 涵攝狀態僅接受 MET／NOT_MET／UNCONFIRMED；UNCONFIRMED 如實揭露。
+ */
+const validateLegalPremise: RuleValidator = (section, input) => {
+  const premise = input.legalPremise;
+  if (!premise || !premise.statutes.length) {
+    return result('WARNING', section, '未提供請求權基礎；文件不含法律引用，事實及理由仍須自行載明請求權基礎。');
+  }
+  for (const statute of premise.statutes) {
+    const known = VERIFIED_REAL_STATUTES[statute.citation];
+    if (!known) {
+      return result('CONFLICT', section, `大前提引用 ${statute.citation} 不在已查證法源種子內，拒絕以大前提名義寫入。`);
+    }
+    if (statute.text.replace(/\s+/g, '') !== known.officialSummary.replace(/\s+/g, '')) {
+      return result('CONFLICT', section, `大前提 ${statute.citation} 條文原文與已查證法源不符，拒絕寫入。`);
+    }
+  }
+  for (const item of premise.subsumption) {
+    if (!['MET', 'NOT_MET', 'UNCONFIRMED'].includes(item.met)) {
+      return result('CONFLICT', section, `涵攝狀態 ${String(item.met)} 不在允許值內。`);
+    }
+  }
+  return result('COMPLIANT', section, '大前提逐條對照已查證法源一致；涵攝僅以使用者事實比對並如實標示。');
+};
+
 function validators(input: CaseInput): Record<string, RuleValidator> {
   return {
     parties: validateParties,
@@ -204,6 +235,7 @@ function validators(input: CaseInput): Record<string, RuleValidator> {
     complaint_parties: validateParties,
     subject_and_facts: validateFacts,
     judgment_relief: validateClaims,
+    legal_premise: validateLegalPremise,
     complaint_optional_details: validateOptionalComplaintDetails
   };
 }

@@ -248,6 +248,24 @@ export const CIVIL_PLEADING_RULES: ContentRule[] = [
     sourceReference: CIVIL_PROCEDURE_116,
     targetSection: 'subject_and_facts',
     description: '民事聲請書狀應表明請求之原因事實。'
+  }),
+  // 來源錨定三段論：請求權基礎與涵攝。UNIVERSAL_SYLLOGISM_RULES 要求
+  // 法律文件包含大前提、小前提、涵攝、結論；資料不足時先追問。
+  // 大前提僅限「已查證現行法條」的原文（civil_code_*.md 凍結檔），
+  // 不得以 AI 生成的引用充數；RECOMMENDED 不阻斷產製，
+  // 但使用者若已提供 legalPremise，則必須完整呈現。
+  defineRule({
+    id: 'CIVIL_244_LEGAL_PREMISE',
+    // 法源引第116條：第116條第1項第5款「供證明或釋明用之證據」與書狀記載
+    // 是欄位與記載依據；第244條已從支付命令參考清單過濾（第508條只決定
+    // 聲請資格）。三段論要求依 UNIVERSAL_SYLLOGISM_RULES。
+    basis: '民事訴訟法第116條第1項第5款（供證明或釋明用之證據）及UNIVERSAL_SYLLOGISM_RULES',
+    level: 'RECOMMENDED',
+    appliesTo: ['civil'],
+    pleadingTypes: ['complaint', 'motion'],
+    sourceReference: CIVIL_PROCEDURE_116,
+    targetSection: 'legal_premise',
+    description: '起訴狀與聲請狀宜表明請求權基礎（大前提：已查證現行法條）與事實涵攝；事實不足處標示待確認，不得臆測補足。'
   })
 ];
 

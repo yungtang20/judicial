@@ -79,8 +79,8 @@ const initialCase = createInitialCase();
 const CASE_STORAGE_KEY = 'judicial_case_autosave_v1';
 
 function rehydrateCases(): { cases: Record<string, CaseContext>; workflowState: LegalWorkflowState | null } {
-  if (typeof sessionStorage === 'undefined') return { cases: { [CASE_ID]: initialCase }, workflowState: null };
   try {
+    if (typeof sessionStorage === 'undefined') return { cases: { [CASE_ID]: initialCase }, workflowState: null };
     const raw = sessionStorage.getItem(CASE_STORAGE_KEY);
     if (!raw) return { cases: { [CASE_ID]: initialCase }, workflowState: null };
     const parsed: unknown = JSON.parse(raw);
@@ -104,8 +104,8 @@ function rehydrateCases(): { cases: Record<string, CaseContext>; workflowState: 
 }
 
 function persistState(state: { cases: Record<string, CaseContext>; workflowState: LegalWorkflowState | null }): void {
-  if (typeof sessionStorage === 'undefined') return;
   try {
+    if (typeof sessionStorage === 'undefined') return;
     sessionStorage.setItem(CASE_STORAGE_KEY, JSON.stringify(state));
   } catch {
     // 配額爆滿或隱私模式：自動儲存失敗不得中斷操作
