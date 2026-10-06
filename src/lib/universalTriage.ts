@@ -1750,5 +1750,56 @@ export function enforceTriageConsistency(payload: any, query: string): any {
     p[key] = value;
   }
 
+  // 錯字確定性改寫：實測竊盜案 AI 輸出「物價回復」（應為物權回復）、
+  // 「刑事從訴」（應為刑事追訴）。屬使用者可見欄位的正確性缺陷。
+  if (typeof p.identifiedIssue === "string") {
+    p.identifiedIssue = p.identifiedIssue
+      .replace(/物價回復/g, "物權回復")
+      .replace(/刑事從訴/g, "刑事追訴");
+  }
+
+  // 規則 8：竊盜／侵佔的訴訟性質。
+  //
+  // 實測竊盜現行犯案：AI 輸出 isPublicProsecution=false 與 caseType=CIVIL，
+  // 但《中華民國刑法》第 320 條普通竊盜罪無「須告訴乃論」字樣，屬非告訴乃論
+  // 公訴罪；僅第 324 條直系血親、配偶或同財共居親屬（及其他五親等內血親、
+  // 三親等內姻親）間犯本章之罪才須告訴乃論。查無親屬關係卻標為告訴乃論，
+  // 會讓當事人誤以為須自行提告而錯過警方偵查，與詐欺分流的缺陷同一形態。
+  // 租賃押金等民事債務糾紛不得因此被誤判為刑事竊盜。
+  const 竊盜訊號 = /(竊盜|偷竊|偷走|偷了|行竊|遭竊|失竊|順手牽羊|扒竊|侵佔|侵占|據為己有|占為己有)/.test(query)
+    || /(現行犯|攔下|當場留置|待警方到場).{0,24}(偷|竊|遭竊物品|贓物)/.test(query);
+  const 債務民事糾紛 = /(押金|租金|租賃|借貸|欠款|退租|買賣價金|貨款)/.test(query);
+  if (竊盜訊號 && !債務民事糾紛) {
+    const 親屬關係 = /(配偶|先生|太太|老公|老婆|丈夫|妻子|父親|母親|爸爸|媽媽|兒子|女兒|兄弟|姊妹|手足|家屬|親屬|同財共居|直系血親|五親等|三親等)/.test(query);
+    if (親屬關係) {
+      p.isPublicProsecution = false;
+      if (!p.caseType?.startsWith("CRIMINAL")) p.caseType = "CRIMINAL_COMPLAINT_REQUIRED";
+      if (!p.litigationNatureText?.includes("告訴乃論")) {
+        p.litigationNatureText = "⚠️ 親屬間竊盜為告訴乃論（刑法第324條），須於知悉犯人後6個月內提出告訴";
+      }
+    } else {
+      p.isPublicProsecution = true;
+      if (!p.caseType?.startsWith("CRIMINAL")) p.caseType = "CRIMINAL_PUBLIC";
+      if (!p.litigationNatureText?.includes("非告訴乃論")) {
+        p.litigationNatureText = "⚡ 刑事非告訴乃論（公訴）：普通竊盜罪（刑法第320條）無告訴乃論規定，檢察官得依職權偵辦，不以當事人提告為必要。";
+      }
+    }
+  }
+
+  // 規則 7：刑事／民事案件類型一致性（單向）。
+  //
+  // 實測竊盜案：模型同時輸出 category=CRIMINAL 與 caseType=CIVIL，
+  // UI 依 caseType 顯示「純民事事件」，同一份回應卻引用刑法第 320 條，
+  // 屬自相矛盾且誤導當事人。此時以 category（罪名領域）為準修正 caseType。
+  // 只做單向修正：既有契約（fraud 測試「已判刑事時不得改動模型選定的類別」）
+  // 是 caseType 已為刑事時以 caseType 為權威，故不得反向把刑事改回民事。
+  if (p.category && p.caseType) {
+    const 類別為刑事 = /^CRIMINAL/.test(p.category);
+    const 型別為刑事 = /^CRIMINAL/.test(p.caseType);
+    if (類別為刑事 && !型別為刑事) {
+      p.caseType = p.isPublicProsecution === false ? "CRIMINAL_COMPLAINT_REQUIRED" : "CRIMINAL_PUBLIC";
+    }
+  }
+
   return p;
 }

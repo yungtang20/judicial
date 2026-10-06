@@ -8,6 +8,7 @@ import { officialPrecheckOptions } from "../services/statuteExistenceProvider.js
 import { LEGAL_TOOLS } from "../../src/lib/legalToolRegistry.js";
 import { defaultLegalGenerationPipeline } from "../services/legalGenerationPipeline.js";
 import { analyzeCaseScenario } from "../../src/lib/caseScenarioEngine.js";
+import { assessInterpretationRelevance } from "../../src/lib/citationRelevance.js";
 
 // Note: UNIVERSAL_SYLLOGISM_RULES and searchLegalSources are enforced centrally via defaultLegalGenerationPipeline
 
@@ -150,7 +151,45 @@ ${toolsSummary}
     finalPayload.sources = pipelineResult.legalSources;
     finalPayload.isExternalRetrievalUsed = pipelineResult.isExternalRetrievalUsed;
     finalPayload.retrievalStatusMessage = pipelineResult.retrievalStatusMessage;
-    finalPayload.allowedCitations = pipelineResult.allowedCitations;
+
+    // 函釋相關性過濾：README 明定「函釋須與案情有實質爭點交集才會顯示」。
+    //
+    // 實測家暴案：本機知識庫把 hybrid 命中的全部條目直接列入 allowedCitations，
+    // 包括消滅時效函釋種子（法律決字第0980012345號，法務部官方系統 80,215 筆
+    // 函釋查無此字號，屬種子測試資料）與民訴第441條等與本案無關的條目。
+    // 這裡以 assessInterpretationRelevance 對每筆引用做案情主題交集判定：
+    //   函釋一律過濾；法條以「出現於 legalBasis（已經一致性規則確認）」優先保留，
+    //   其餘法條同樣走主題交集，避免白名單與主要清單互相矛盾。
+    // 過濾後重建 allowedCitations 與 sources，使兩份清單一致。
+    const rawSources = pipelineResult.legalSources;
+    if (rawSources && Array.isArray(rawSources.statutes) && Array.isArray(rawSources.references)) {
+      const legalBasisText = (finalPayload.legalBasis || []).join("；");
+      const 在法源清單 = (citation: string): boolean => {
+        const core = String(citation || "").replace(/[（(].*$/, "").trim();
+        return core !== "" && legalBasisText.includes(core);
+      };
+      const 具相關性 = (title: string, excerpt: string): boolean =>
+        assessInterpretationRelevance({ text: `${title ?? ""}${excerpt ?? ""}`, narrative: rawInput }).relevant;
+
+      const 過濾後法條 = rawSources.statutes.filter((s: { citation?: string; title?: string; excerpt?: string }) =>
+        在法源清單(s.citation ?? "") || 具相關性(s.title ?? "", s.excerpt ?? ""));
+      const 過濾後函釋 = rawSources.references.filter((r: { citation?: string; title?: string; excerpt?: string }) =>
+        具相關性(r.title ?? "", r.excerpt ?? ""));
+
+      finalPayload.sources = { ...rawSources, statutes: 過濾後法條, references: 過濾後函釋 };
+      const 保留引用 = new Set<string>([
+        ...過濾後法條.map((s: { citation?: string }) => s.citation ?? ""),
+        ...過濾後函釋.map((r: { citation?: string }) => r.citation ?? "")
+      ].filter(Boolean));
+      // legalBasis 內的條文一律保留在白名單（一致性規則已確認其相關）
+      for (const b of finalPayload.legalBasis || []) {
+        const core = String(b || "").replace(/[（(].*$/, "").trim();
+        if (core) 保留引用.add(core);
+      }
+      finalPayload.allowedCitations = [...保留引用];
+    } else {
+      finalPayload.allowedCitations = pipelineResult.allowedCitations;
+    }
 
     const domainId = finalPayload.caseType?.startsWith("CRIMINAL")
       ? "CRIMINAL"
