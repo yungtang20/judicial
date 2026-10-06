@@ -26,9 +26,9 @@
 - `src/lib/mcp/mcpCitationRegistry.ts`：保存 MCP 回傳的結構化法源，要求法條狀態與判決來源雜湊。
 - `src/lib/reasoning/syllogismEngine.ts`：產生大前提、小前提、結論及其 MCP citation IDs 的結構化結果。
 - `src/lib/generation/ghostCitationInterceptor.ts`：阻擋未註冊 citation、失效法條及缺少來源雜湊的判決。
-- `src/lib/reasoning/standingAnalyzer.ts`、`legalClaimRegistry.ts`、`elementFitFilter.ts`：分離權利主體並保留證據不足狀態。
+- `src/lib/reasoning/standingAnalyzer.ts`、`elementFitFilter.ts`：分離權利主體並保留證據不足狀態。
 - `src/lib/reasoning/domainAdapters/`、`src/lib/caseScenarioEngine.ts`：提供民事、刑事、勞動、行政、性別、智財與催收領域分流。
-- `src/lib/rules/proceduralLawEngine.ts`、`proceduralStrategyEngine.ts`：程序必備事項、期間與證據缺口提示。
+- `src/lib/rules/proceduralLawEngine.ts`：程序必備事項、期間與證據缺口提示。
 - `src/lib/resources/protectionResourceEngine.ts`、`src/lib/filingGuide.ts`：安全資源、防詐、PII 遮蔽與立案提示。
 - `src/lib/ui/dashboardGenerator.ts`、`src/components/dashboard/DashboardView.tsx`：導診結果的安全、摘要、證據、Bundle、立案與進階底稿區塊。
 - `src/components/dashboard/FilingGuideModal.tsx`：獨立立案指引，顯示規費、繕本、證物編碼與 AI 免責聲明。

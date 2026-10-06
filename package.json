@@ -26,6 +26,7 @@
     "eval:fixture-ai": "tsx scripts/evaluate-fixture-with-ai.ts",
     "eval:fixture-compare": "tsx scripts/compare-fixture-router-vs-ai.ts",
     "test:ssrf": "tsx scripts/verifySsrf.ts",
+    "test:ste": "python scripts/ste-lint.py README.md docs/workflows/FAILURE_POLICY.md docs/workflows/GATE_POLICY.md docs/workflows/PERMISSION_MODEL.md docs/workflows/STATE_MACHINE.md docs/workflows/WORKFLOW.md docs/governance/LEGAL_GOVERNANCE.md",
     "prepare": "husky",
     "verify:deployable": "node scripts/verify-deployable.mjs"
   },

@@ -40,3 +40,7 @@ update_*.py
 update_*.cjs
 test_*.cjs
 !scripts/maintenance/*
+
+# AOCI agent host integration (machine-bound; do not commit)
+opencode.json
+opencode.json.backup.*
