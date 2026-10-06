@@ -1801,5 +1801,18 @@ export function enforceTriageConsistency(payload: any, query: string): any {
     }
   }
 
+  // 規則 9：敏感案件不得被分流為無關類別。
+  //
+  // 實測正式站：家暴案（丈夫潑熱水、辱罵）AI 誤判 category=CRIMINAL_COMPLAINT_THEFT
+  // ——「拿取杯子裝水」被誤讀為拿取財物，UI 因此推薦竊盜工具與告訴狀模板。
+  // query 明確命中家暴訊號、且無規則 8 的竊盜訊號時，家暴是主導爭點，
+  // 類別必須回歸家暴分支（README 規定配偶間拿取財物才歸 THEFT，本案無此行為）。
+  const 家暴訊號 = /(家暴|家庭暴力|保護令)/.test(query);
+  if (家暴訊號 && !竊盜訊號 && p.category?.includes("THEFT")) {
+    p.category = "CRIMINAL_COMPLAINT_FV";
+    p.recommendedToolId = "CRIMINAL_COMPLAINT_FV";
+    if (p.targetToolCategory?.includes("THEFT")) p.targetToolCategory = "CRIMINAL_COMPLAINT_FV";
+  }
+
   return p;
 }
