@@ -1,53 +1,22 @@
+# 靜態站：問句產出系統（fact-to-crime v15）
+# 無 build、無後端；render 靜態託管直接服務 02_網站/
+
 services:
   - type: web
-    # 服務名稱。實際部署的服務為 judicial-prod；
-    # 名稱不一致會讓人誤以為線上服務不存在。
     name: judicial-prod
-    runtime: node
+    runtime: static
     plan: free
-    buildCommand: npm ci --include=dev && npm run build
-    startCommand: npm start
-    healthCheckPath: /api/health
+    # 靜態根目錄：02_網站/（index.html）
+    # JSON 資料在 00_資料/，網頁用相對路徑 ../00_資料/... 讀取 → 需從倉庫根目錄服務
+    staticPublishPath: .
+    routes:
+      - type: rewrite
+        source: /
+        destination: /02_網站/index.html
+    headers:
+      - path: /*
+        name: Content-Type-Charset
+        value: utf-8
     envVars:
-      - key: NODE_ENV
-        value: production
       - key: NODE_VERSION
         value: 22.23.2
-      - key: AI_PROVIDER
-        value: agnes
-      - key: ALLOW_GUEST_MODE
-        value: "true"
-      # 實測正式站 defense-triage 的 p90 為 30.5 秒。
-      # 供應商預設 30 秒會截斷真實回應、強制退回本機規則，
-      # 使用者等了近 30 秒卻拿到降級答案。設為 60 秒讓真實回應完成。
-      - key: AGNES_TIMEOUT_MS
-        value: "60000"
-      # 實測正式站對話回應需 6.7~14.3 秒；原硬寫 15 秒會把正當回覆
-      # 誤判為逾時並回 503。設為 45 秒留足餘裕。
-      - key: AGENT_CHAT_TIMEOUT_MS
-        value: "45000"
-      # 外部判例檢索（tw-legal-rag）。實測服務可用、查詢 680~723ms，
-      # 押金與違約金類問題都能檢索到切題裁判。
-      # 開啟後判例僅作為分析脈絡進入提示詞，不作為書狀的引用授權來源
-      # （allowedCitations 維持空白），引用查證仍由本機索引與
-      # 官方法規資料庫決定——理由見 legalGenerationPipeline.ts。
-      - key: TLR_ENABLED
-        value: "true"
-      - key: TLR_BASE_URL
-        value: https://tlr.dr-legal.com.tw
-      - key: JWT_SECRET
-        sync: false
-      - key: HCNSEC_API_KEY
-        sync: false
-      - key: HCNSEC_BASE_URL
-        value: https://api.hcnsec.cn/v1
-      - key: HCNSEC_MODEL
-        value: DeepSeek-V4-Pro
-      - key: AGNES_API_KEY
-        sync: false
-      - key: AGNES_BASE_URL
-        value: https://apihub.agnes-ai.com/v1
-      - key: AGNES_MODEL
-        value: agnes-3.0-flash
-      - key: APP_URL
-        sync: false

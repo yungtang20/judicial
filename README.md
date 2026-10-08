@@ -1,186 +1,259 @@
-# Smart Legal Assistant
+# fact-to-crime 事實→元件→罪名 比對引擎
 
-[![CI](https://github.com/yungtang20/judicial/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/yungtang20/judicial/actions/workflows/ci.yml)
+基於「交接手冊 v15」建立的本地規則引擎。
+**分工**：LLM 抽取事實與映射元件；本引擎跑全部 **17 層**。**LLM 不直接輸出罪名**（v15 R30）。
 
-面向臺灣使用者的法律情境導診、客觀法理分析與法律文件生成系統。系統協助整理事實、證據、法律爭點與程序風險；不取代律師、法院或其他權責機關的判斷。
+## 狀態
 
-## 核心能力
+| 項目 | 狀態 |
+|---|---|
+| **17 層覆蓋** | **全部實作** |
+| **罪章覆蓋** | **15 個族群** |
+| 元件庫 | **167 筆**（**153 verified / 0 partial / 0 unverified**） |
+| 罪名庫 | **76 筆** |
+| 互斥/競合 | **40 筆** |
+| 規則引擎 | `01_規則/rule_engine.js`（12A+12B+13+R18+R30+R43+6C） |
+| **前 15 層** | `01_規則/layers.js` |
+| **前 15 層細項** | `01_規則/layers_detail.js` |
+| **第 7/9 層** | `01_規則/laws_7_9.js` |
+| **第 10 層** | `01_規則/criminal_form.js` |
+| **第 11 層** | `01_規則/justifications.js` |
+| **第 17 層** | `01_規則/s14_contract.js` |
+| **整合執行入口** | `01_規則/integration.js`（P1 切分 → 1A 身分 → 2A 分流 → S-14） |
+| **驗證腳本** | `03_轉換工具/check.js`（**15/15 PASS**） |
+| **伺服器腳本** | `03_轉換工具/serve.sh` |
+| **問句引擎** | `01_規則/question_engine.js` + `question_library.js`（15 章全覆蓋） |
+| **R33 審計** | `01_規則/audit.js`（71 題，0 法律用語） |
+| **LLM 骨架** | `01_規則/llm_generator.js` + `llm_config.json` |
+| **法規查證** | `00_資料/法規查證/criminal_code_general.json`（14 條 verified）+ 元件庫 **153 verified / 0 待查證** |
+| 測試 | `02_評測/test.js`（**21/21 PASS**）+ S-14 整合測試 |
 
-- 白話案情輸入、文件上傳入口與語音輸入 hook。
-- 客觀法理分析：三段論、請求權／權利主體分離、構成要件證據狀態與領域適配器。
-- **即時法源查核**：法條與裁判均向全國法規資料庫（`law.moj.gov.tw`）與司法院裁判書系統即時查詢；未通過查驗者一律移出主要分析清單，改列於「不可引用」區塊，並依原因標示「查無此條」（官方查無收錄）或「待查驗」（本次未能完成官方即時查驗）；兩者一律不得用於書狀。
-- **相關性過濾**：函釋須與案情有實質爭點交集才會顯示，僅條號相同者（如民法第184條對應到物之毀損折舊函釋）不予呈現。
-- **詐欺／盜刷案型分流**：偵測詐欺、盜刷、冒用、未授權消費等特徵（含錢包遺失後否認交易之複合訊號），自動納入刑法第339條與刑事訴訟法第244條（6個月告訴乃論），行動指引優先報警、掛失與爭議帳款；犯人不明時加註時效起算。假冒公務金融人員（假客服、假銀行、假檢警）與誘騙話術亦納入偵測；照片圖文遭盜用排除於詐欺之外。
-- **家暴敏感偵測**：案由含「家庭暴力」四字即標敏感並載入保護面板（113／110／1925），不因中間隔字而漏判。
-- **領域覆蓋與誤判防護**：跟蹤騷擾（陌生／親密分流）、毒品查獲、兒少性影像勒索、毀損通用偵測、傷害動詞擴充；竊盜／侵佔案依刑法第320條分流為非告訴乃論公訴（親屬間依第324條轉告訴乃論，並強制 caseType 與罪名領域一致）；本機知識庫引用一律經案情實質爭點交集過濾，種子測試函釋不得作為真實法源呈現；舊案（事發逾6個月／2年）自動加註時效警示；動物分支遇侮辱語境或刑事訊號時讓路，避免寵物糾紛誤判。
-- **少年事件分支**：行為人或被害人未滿18歲時納入少年事件處理法指引與法定代理人陪同，器物毀損一併評估刑法第354條。
-- **模型輸出一致性攔截（fail-closed）**：AI 產生的法律分析若與本機法律規則矛盾（公訴罪被說成準親告、項別與罪名錯置、沿用已廢止的「強姦罪」舊稱），該段分析會被擋下並改以可稽核的違規清單呈現。
-- **條件式採證時效**：系統從案情抽取事發日期並與當下時間比對，據以決定輸出「72 小時急迫採證」或「採證窗口已過，改以數位事證為主軸」兩種指引；抽取不到日期時一律採保守（已過期）表述，且使用者可手動覆寫。統一入口回應全面附帶採證時效摘要（時效內／事發日期／說明文字），不限敏感案件。
-- **敏感案件保護面板**：性自主／家暴案件固定載入 113／110／1925 熱線、立即行動與證據保全指引，該內容由本機規則產生，不依賴模型輸出。
-- 案件 Dashboard：安全資源、白話摘要、證據清單、文件組合包、立案指引與進階底稿。
-- Draft Refiner：在既有白名單範圍內微調草稿，微調後重新執行引用檢核。
-- 官方書狀範本、格式檢查、程序合規與 P4–P9 文件交付管線。
+## 罪章清單（15 個族群）
 
-## 安全與治理邊界
+| 族群目錄 | 條號 | 元件 | 罪名 | 測試 |
+|---|---|---|---|---|
+| `criminal_221` | §221、§222、§226、§227、§229-1 | 24 | 5 | POS/NEG/AGG |
+| `criminal_fraud` | §339、§339-1、§339-4、詐防條例§43/§44、§341 未遂 | 11 | 6 | POS/NEG |
+| `criminal_theft_embezzle` | §320、§321、§335、§337 | 15 | 5 | POS/LOST |
+| `criminal_harm_dv` | §277、§284、§287 + 家暴法§3/§50/§61 | 16 | 9 | POS/DV |
+| `criminal_defame` | §309、§310 | 7 | 2 | POS |
+| `criminal_public_danger` | §185-3 | 7 | 3 | POS |
+| `criminal_traffic` | 道交法§35 + §185-4、§185-6 | 10 | 4 | POS |
+| `criminal_drugs` | 毒條§4-13 | 13 | 10 | POS |
+| `criminal_sexual_harassment` | 性騷法§25 + 性工法§12 + 性別平等教育法 | 7 | 4 | POS |
+| `criminal_forgery` | §210、§214、§216、§217、§218 | 8 | 5 | POS |
+| `criminal_gambling` | §266、§268 | 7 | 2 | POS |
+| `criminal_intimidation` | §302、§304、§305、§346 | 6 | 4 | POS |
+| `criminal_computer` | §358-362 | 6 | 4 | POS |
+| `criminal_obscenity` | §231、§235 + 兒少性剝削 | 6 | 3 | POS |
+| `criminal_robbery` | §325、§328、§329、§330、§347 | 9 | 5 | POS |
 
-所有法律文件均須通過下列單一路徑：
+## 快速啟動
+
+```bash
+cd D:/工作用/judicial1/fact-to-crime
+
+# 1. 驗證資料完整性（15 章 schema/id/cross_reference）
+node 03_轉換工具/check.js
+
+# 2. 跑全部測試（21 個案例）
+node 02_評測/test.js
+
+# 3. R33 審計
+node 01_規則/audit.js
+
+# 4. 全 17 層整合執行入口（P1 切分 → 1A 身分 → 2A 分流 → S-14）
+node 01_規則/integration.js 02_評測/cases/S14-INPUT-TE-001.json
+
+# 5. S-14 契約
+node 01_規則/s14_contract.js 02_評測/cases/S14-INPUT-TE-001.json
+
+# 6. 罪名比對
+node 01_規則/rule_engine.js 00_資料/罪章/criminal_221 02_評測/cases/TC-221-POS-001.json
+
+# 7. 前 15 層細項
+node 01_規則/layers_detail.js <input.json>
+
+# 8. 問句生成
+node 01_規則/question_engine.js criminal_221 02_評測/cases/TC-221-POS-001.json 被害人
+
+# 9. LLM 生成（需配置 llm_config.json）
+node 01_規則/llm_generator.js
+
+# 10. 本機伺服器（解決 file:// fetch 限制）
+bash 03_轉換工具/serve.sh 8000
+```
+
+## 整合執行入口（`01_規則/integration.js`）
+
+從陳報檔（LINE 文本或 CSV）到 S-14 契約的完整流程：
 
 ```text
-案情／導診
-  → 法律分析與受控引用
-  → ghost citation 攔截
-  → executeCanonicalPleadingPipeline
-  → P4 Compliance
-  → P6 Reviewer
-  → P8 Re-review
-  → P9 Final Gate
+LINE 陳報文本
+  ↓ P1 案件切分（R41）
+  ↓ 欄位抽取（案由/時間/地點/金額/年次）
+  ↓ P2 日期正規化（R42：推定值標「推定」）
+  ↓ 1A 身分判定（R23/R38/代理）
+  ↓ 2A 分流（行政/刑罰/非刑案/程序案，R40）
+  ↓（程序案/非刑案不進元件比對）
+  ↓ S-14 契約（全 17 層）
+  ↓ 輸出 JSON
 ```
 
-硬性原則：
+## 17 層覆蓋
 
-- 未驗證、引用來源不足或安全檢查失敗時，一律 fail-closed。
-- AI 生成的書狀必須通過 `status === 'VERIFIED'` 才視為完成引用查核；canonical 管線產出但尚未查核者一律擋下交付，需人工複核後才解鎖。
-- `ghostCitationInterceptor` 會阻擋不在白名單、無效法條或缺少來源雜湊的引用。
-- `INSUFFICIENT_EVIDENCE` 會保留可能適用的 claim，標記待補證據，不以刪除法源掩蓋不確定性。
-- `standingAnalyzer` 分離通知受領人與適格權利主體，避免把非本人直接當作權利人。
-- AI 不得執行 `APPROVE`、`DEPLOY` 或 `ADMIN`；最終法律與部署決策由授權人員負責。沙盒層級另有 `SANDBOX` 角色與獨立稽核紀錄，不得用於上線或系統管理授權。
-- 案件切換時舊案的書狀文件、爭點、引用與人工核准紀錄一律保留；只有使用者明確執行「開立新案件」才會清除。
-- 系統輸出不是勝訴保證，也不是正式法律意見；重要事實、法條與裁判仍須人工確認。
+| 層 | 模組 | 狀態 |
+|---|---|---|
+| P1/P2 | `layers.js` + `integration.js` | ✅ |
+| 1A~1I | `layers.js` + `layers_detail.js` | ✅ |
+| 2A~2I | `layers.js` + `layers_detail.js` | ✅ |
+| 3A~3F | `layers_detail.js` | ✅ |
+| 4A~4C | `layers.js` + `layers_detail.js` | ✅ |
+| 5A~5F | `layers.js` + `layers_detail.js` | ✅ |
+| 6A~6C | `layers_detail.js` + `rule_engine.js` | ✅ |
+| 7 | `laws_7_9.js` | ✅ |
+| 8A~8G | `rule_engine.js` + `layers_detail.js` | ✅ |
+| 9 | `laws_7_9.js` | ✅ |
+| 10A~10F | `criminal_form.js` | ✅ |
+| 11A/11B | `justifications.js` | ✅ |
+| 12A~12D | `rule_engine.js` | ✅ |
+| 13 | `rule_engine.js` | ✅ |
+| 14A~14D | `layers.js` + `layers_detail.js` | ✅ |
+| 15A~15D | `layers.js` + `layers_detail.js` | ✅ |
+| 16 | `question_engine.js` + `question_library.js` | ✅ |
+| 17 | `s14_contract.js` | ✅ |
+| R18/R30/R33/R43/6C | `rule_engine.js` + `audit.js` | ✅ |
 
-外部文件檢核器用於檢查對造書狀、外部律師文件、其他 AI 產出或使用者匯入的法律資料。系統自行生成的文件不需要使用者再次手動貼入檢核器，因為生成流程已在交付前經過相同的引用與文件驗證管線。
+## 法規查證（115.07.22 最新版）
 
-## 主要模組
+`00_資料/法規查證/criminal_code_general.json` 已查證 14 條：
 
-| 區域 | 內容 |
-| --- | --- |
-| `src/lib/mcp/` | MCP 法源 registry、引用白名單與來源證據 |
-| `src/lib/reasoning/` | 三段論、權利主體、claim、構成要件與領域適配 |
-| `src/lib/generation/` | ghost citation 攔截、草稿生成與微調檢核 |
-| `src/lib/forensicGuidance.ts` | 事發日期抽取與條件式採證時效指引 |
-| `src/lib/legalAnalysisConsistency.ts` | 模型輸出一致性檢查（fail-closed 攔截） |
-| `src/lib/citationRelevance.ts` | 函釋相關性判斷與法條即時查驗判定 |
-| `src/lib/finalGate/` | P9 交付閘門與瀏覽器端閘門 |
-| `src/lib/reviewer/` | P6 審查與獨立複核 |
-| `src/lib/compliance/` | P4 程序合規引擎 |
-| `src/lib/caseScenarioEngine.ts` | 案件情境分析與文件 Bundle 生成 |
-| `src/lib/generatedDocumentPipeline.ts` | 文件驗證與 P4–P9 交付前檢查 |
-| `src/components/dashboard/` | Dashboard、StorytellingInput、FilingGuideModal、DraftRefiner |
-| `src/components/unified/` | 統一入口、動態追問、保護面板與分析結果 |
-| `server/routes/` | toolbox 生成、Agent Chat、導診與草稿微調 API |
-| `data/official-templates/` | 官方範本來源與產物驗證相關資料 |
-| `server/knowledge-base/seeds/` | 本機法規與函釋快照（僅供離線檢索參考） |
-| `src/lib/universalTriage.ts` | 智慧分流引擎：案型偵測、時效警示、採證時效解析 |
-| `src/lib/workflow/unifiedStateGraph.ts` | 統一入口狀態機：Router／追問／RAG／三段論／驗證閘門的狀態定義 |
+| 條號 | 內容 | 狀態 |
+|---|---|---|
+| 刑§2 | 從舊從輕 | ✅ |
+| 刑§16 | 法律之不知與減刑 | ✅ |
+| 刑§17 | 加重結果犯（不能預見不適用） | ✅ |
+| 刑§18 | 未成年人、滿 80 歲人之責任能力 | ✅ |
+| 刑§19 | 責任能力－精神狀態 | ✅ |
+| 刑§23 | 正當防衛 | ✅ |
+| 刑§24 | 緊急避難 | ✅ |
+| 刑§26 | 不能犯不罰 | ✅ |
+| 刑§27 | 中止犯 | ✅ |
+| 刑§28 | 共同正犯 | ✅ |
+| 刑§29 | 教唆犯 | ✅ |
+| 刑§30 | 幫助犯 | ✅ |
+| 刑§214 | 使公務員登載不實 | ✅ |
+| 刑§330 | **加重強盜罪**（非法條常業竊盜；常業竊盜 2006 年已併入§321） | ✅ |
 
-完整模組邊界與資料流請見 [`ARCHITECTURE.md`](ARCHITECTURE.md)。
+## 測試結果（21/21 PASS）
 
-## 本機啟動
+| Case | 族群 | 類型 |
+|---|---|---|
+| TC-221-POS/NEG/AGG | §221 | 正/反/加重 |
+| TC-FR-POS/NEG | §339 | 正/反 |
+| TC-TE-POS/LOST | §320 | 正/互斥 |
+| TC-HD-POS/DV | §277 | 正/家暴 |
+| TC-PD-POS | §185-3 | 正 |
+| TC-DF-POS | §309 | 正 |
+| TC-FG-POS | §210 | 正 |
+| TC-GB-POS | §266 | 正 |
+| TC-IN-POS/R18 | §346 | 正/12B |
+| TC-CP-POS | §358-362 | 正 |
+| TC-TR-POS | 道交法§35 | 正 |
+| TC-DR2-POS | 毒條§12 | 正 |
+| TC-SH2-POS | 性騷法§25 | 正 |
+| TC-OB-POS | §235 | 正 |
+| TC-RB-POS | §325 | 正 |
+| S14-INPUT-TE-001 | §320 | S-14 整合 |
 
-需求：Node.js `>=22.23.2 <23`。
+## 修復記錄
 
-```bash
-npm install
-npm run dev
-```
+### Round 9（本次）— 全罪章交叉驗證完成
 
-開發伺服器啟動後，依終端機顯示的網址開啟瀏覽器。Production 建置：
+**question_engine 15 章全測試**（0 dups 全部通過）：
 
-```bash
-npm run build
-npm start
-```
+| 族群 | 問句 | rule_library | llm 缺口 | dups |
+|---|---|---|---|---|
+| criminal_221 | 27 | 12 | 15 | 0 |
+| criminal_fraud | 18 | 13 | 5 | 0 |
+| criminal_theft_embezzle | 18 | 9 | 9 | 0 |
+| criminal_harm_dv | 19 | 11 | 8 | 0 |
+| criminal_defame | 15 | 11 | 4 | 0 |
+| criminal_public_danger | 12 | 7 | 5 | 0 |
+| criminal_traffic | 11 | 8 | 3 | 0 |
+| criminal_drugs | 17 | 6 | 11 | 0 |
+| criminal_sexual_harassment | 15 | 8 | 7 | 0 |
+| criminal_forgery | 12 | 6 | 6 | 0 |
+| criminal_gambling | 11 | 8 | 3 | 0 |
+| criminal_intimidation | 13 | 10 | 3 | 0 |
+| criminal_computer | 14 | 9 | 5 | 0 |
+| criminal_obscenity | 11 | 7 | 4 | 0 |
+| criminal_robbery | 15 | 9 | 6 | 0 |
+| **合計** | **218** | **133** | **92** | **0** |
 
-## 正式服務
+**S-14 契約 9 章整合測試**（27 layer key 全通過）：criminal_221、fraud、theft_embezzle、harm_dv、defame、intimidation、computer、forgery、gambling，每章 candidates 正確浮現、問句 11~19 題。
 
-唯一正式服務網址：[https://judicial-prod.onrender.com/](https://judicial-prod.onrender.com/)
+**rule_library 問句統計**：63 題（不含 common 8 題）；**R33 審計 71 題 0 洩漏**。
 
-若使用 AI provider 或外部法律檢索服務，請透過環境變數設定；金鑰不得放入前端、README、Git history 或 audit log。Production 必須確認 authentication、CSP、MCP／官方來源連線與 audit persistence 設定，服務不可用時應維持 fail-closed。
+### Round 8 — 最後 2 個 partial 查證完成，0 待查證
 
-Production API 需持有效 Bearer Token；允許訪客模式的 demo 環境可經 POST /api/auth/guest 取得 4 小時短效 token（獨立 tenant 隔離）。
+1. **§339-3 查證完成**：正確為「**違法製作財產權紀錄**」——以不正方法將虛偽資料或不正指令輸入電腦，製作財產權之得喪、變更紀錄，而取得他人之財產。**非「三人以上共同」**（三人以上共同是§339-4①②）。7 年以下有期徒刑+70 萬以下罰金；未遂犯罰之；**不需證明對方陷於錯誤**（電腦無法被騙）。E-FR-005、charge_fraud_special 已更正。
+2. **兒少性剝削條例查證完成**：§2 定義四款行為（使為有對價之性交猥褻、利用供人觀覽、拍攝製造重製持有散布播送交付公然陳列販賣性影像、使坐檯陪酒伴遊），113.08.07 修正；前身為兒童及少年性交易防制條例（2017 年改名、106.01.01 施行）。新增 §36① 拍攝製造兒少性影像（1年以上7年以下+10萬以上100萬以下罰金）。E-OB-005 已查證、E-OB-007 新增、charge_minor_sex_trade 更新為§36。
+3. **元件庫狀態**：**153 verified / 0 partial / 0 unverified**。
 
-## 驗證指令
+### Round 7 — §221 條文結構重大更正
 
-Windows 執行測試前，請使用 UTF-8 編碼環境，以免繁體中文路徑或測試名稱造成誤判。
+查證發現**原 §221 元件庫有結構性錯誤**，已全面重寫：
 
-```bash
-npm run lint          # TypeScript 型別檢查
-npm test              # 單元與整合測試
-npm run test:eval     # 法治治理回歸
-npm run test:ssrf     # 直接驗證 production SSRF exports
-npm run test:coverage  # 覆蓋率（含 P4–P9 交付閘門 per-file 門檻）
-npm run test:e2e      # Vitest 案件生命週期 E2E
-npm run test:ui:e2e   # Playwright 真實瀏覽器交付 E2E
-npm run build         # Vite + esbuild 建置
-```
+1. **條號錯誤更正**：原用「§221-1」「§221-1之2」**不存在**。正確條號：§222（加重強制性交）、§226（加重結果犯）、§227（與幼年性交）、§229-1（告訴乃論）。
+2. **§221 法定刑錯誤更正**：原寫「五年以上二十年以下」→ 正確「**三年以上十年以下有期徒刑**」。
+3. **§221 方法重構**：原 3 方法（強暴/脅迫/其他）→ 正確 4 方法（**強暴/脅迫/恐嚇/催眠術或其他違反意願之方法**）。
+4. **新增核心要件「違反被害人意願」**（E-221-006）：§221 為核心，§227 不需要。
+5. **§222 九款加重要件補全**：二人以上共同、未滿14歲、精神身體障礙、藥劑、凌虐、駕駛交通工具、侵入住宅、攜帶兇器、照相錄音錄影散布。
+6. **§226 加重結果犯重構**：致於死（無期或10年↑）、致重傷（10年↑）、致羞忿自殺（10年↑）。
+7. **§227 兩個新罪名**：未滿14歲（3~10年）、14~16歲（7年↓），均不需要「違反意願」要件。
+8. **§229-1 告訴乃論**：對配偶犯§221/§224、未滿18犯§227 須告訴乃論。
+9. **§339-4 重構**：加重詐欺四款（冒用政府名義、三人以上共同、傳播工具散布、電腦合成不實影像）。
+10. **詐防條例§43 三級化重懲查證**：100萬↑（3~10年+3000萬罰金）、1000萬↑（5~12年+3億罰金）、1億↑（7年↑或無期+5億罰金），115.01.23 施行。
+11. **§44 複合型態加重查證**：加重二分之一，最高度及最低度同加。
+12. **§214 查證完成**：明知為不實之事項，使公務員登載於職務上所掌之公文書。
+13. **§330 更正**：為「加重強盜罪」（非「常業犯」）；常業竊盜 2006 年修法已併入§321。
+14. **兒少性交易→兒少性剝削**：兒童及少年性交易防制條例已於 2017 年改名為「兒童及少年性剝削防制條例」。
+15. **測試案例對齊**：TC-221-POS/NEG/AGG 更新為新元件 ID 與新預期結果。
 
-覆蓋率與完整 CI 相關設定請以 `package.json`、`.github/workflows/ci.yml` 及 `docs/architecture/AUDIT.md` 為準。不要以固定測試數字判斷版本狀態，應以當次命令輸出為準。
+### Round 6
 
-## Bundle 交付鏈
+1. **`03_轉換工具/check.js`**：驗證腳本（schema/必填/id 唯一/cross_reference），發現 5 章 intra_chapter exclusions 缺 `between_charges` → 已修
+2. **`03_轉換工具/serve.sh`**：本機伺服器啟動腳本
+3. **`01_規則/integration.js`**：全 17 層整合執行入口（P1 → 1A → 2A → S-14）
+4. **刑法條號查證**：14 條 verified（via LawPlayer 115.07.22）；`criminal_robbery` 元件 verification 更新
+5. **`00_資料/法規查證/criminal_code_general.json`**：查證結果寫入
 
-Dashboard 的文件卡片會復用既有 `/api/toolbox/generate` 路徑，不建立第二條 P9 管線。只有在回應明確通過 P9 且取得 `DOWNLOAD_TEXT` 授權後，前端才允許下載。
+### Round 5
 
-正式 Browser E2E 位於：
+6. **問句庫 15 章全覆蓋**、**6 個未測罪章測試**、**1B~1I 整合到 S-14**
 
-```text
-scripts/bundleDelivery.e2e.spec.ts
-playwright.config.ts
-```
+### Round 4
 
-此測試由獨立 CI job 執行，驗證工具箱交付、P9 fingerprint 防篡改與下載按鈕；fixture response 僅用於前端交付防護測試，不宣稱代替真實法律來源查核。`scripts/bundleDelivery.playwright.py` 保留為 Windows 本機人工工具，不是正式 CI gate。
+7. **前 15 層細項**：`layers_detail.js`
+8. **criminal_robbery**、**llm_config.json**
 
-## 引用查核的官方升級路徑
+### Round 3
 
-本機法規種子僅收錄 24 條，未收錄的引用原本一律 `verified: false` 而被 fail-closed 擋下。實測導致「存證信函」模板引用的民事訴訟法第249條第2項（真實且現行有效）永遠產製失敗。
+9. **第 7/9/10/11/17 層**、**§321/§339-1/§341/§230/家暴法細項**
 
-現在 `verifyGeneratedDocumentWithOfficialSources` 會在本機驗證之後，對「本機查不到、且未被判定為幽靈／明顯虛構」的引用補做全國法規資料庫即時查核：
+### Round 2
 
-- 官方確認有效 → 升級為已驗證，附上官方來源與條文摘要。
-- 官方同樣查不到、或官方來源不可用 → 維持未驗證，仍然擋下交付。
+10. **R18/R30/R43/layers.js 補建**
 
-## 法律檢索端點
+### Round 1
 
-`POST /api/legal-search` 供查詢外部法源。未設定 `TLR_ENABLED` 時一律回傳 `enabled: false` 與免責聲明，**不得以空結果冒充「查無此資料」**。
-## 統一入口 API
+11. **rule_engine 硬編碼**、**determineState 漏 any_result**、**EX-HD-005**
 
-`POST /api/workflow/execute` 接受白話案情，先經 Router 分流與動態追問；事實補齊後以 `POST /api/workflow/supplement` 推進至涵攝分析與驗證閘門。
-回應包含：`router`（領域、案由、法條、時效、行動建議）、`syllogism`（大前提／小前提／涵攝／結論）、`verification`（`PASS`／`NEEDS_REVIEW`／`FAIL`＋官方證據）、`forensic`（採證時效內／事發日期／說明文字）。
-分析入口不產出法院書狀；書狀交付一律走 `/api/toolbox/generate` P4–P9 管線。
+## 已知限制（依 v15 第十三節）
 
-## 產製類別一致性
-
-UI 可選的法院書狀類別必須有對應的 canonical 設定。`src/lib/documentCatalogParity.test.ts` 以不變量形式釘死這條規則：沒有核准結構與 rule profile 的類別（例如刑事告訴狀線上產生器）一律 `selectionEnabled: false`，避免使用者填完表單才收到 422。
-
-## 已廢止罪名
-
-模型可能沿用已廢止的「強姦罪」舊稱。系統分兩種處理：
-
-- 正式法律分析：屬法律論述，與本機規則矛盾時整段擋下並列出違規。
-- 動態追問與分流文字：屬引導，採確定性改寫為「強制性交罪」，不中斷流程。
-
-使用者自己的原話（`userNarrative`／`factHistory`）一律逐字保留，不做任何改寫。
-
-## 覆蓋率統計範圍
-
-`npm run test:coverage` 的統計範圍包含 `src/lib/` 下的 `finalGate`、`reviewer`、`compliance` 三個 P4–P9 交付閘門目錄，並對 `pleadingExportGate.ts` 與 `pleadingFinalGate.ts` 設定 per-file 門檻（statements 90／lines 90／branches 85／functions 95）。P9 交付路徑不得以「不在統計內」的方式規避覆蓋率要求。
-
-請以當次命令輸出為準判斷版本狀態，不要引用過往報告中的固定數字。
-
-## 上線 Gate
-
-上線前必須由授權人員在本機或 staging 執行 [`SMOKE_TEST.md`](SMOKE_TEST.md) 的五項人工情境：
-
-1. 債務案件：Dashboard → Bundle → `/api/toolbox/generate` → P4–P9 → 下載。
-2. 催收張貼：顯示 `SUBJECT_MISMATCH` 並保留適格主體分離結果。
-3. 家暴／性騷／立即危險：`SafetyAndResourcePanel` 置頂。
-4. 逾期上訴：顯示紅色逾期與不變期間警告。
-5. Draft Refiner：新增未白名單法條時回傳 `GHOST_CITATION_BLOCKED`，不得更新或下載。
-
-任何 `UNKNOWN`、P9 失敗、MCP 不可用或人工情境未驗證，均停止部署並交由人工決定。AI 不得代替人工 `APPROVE` 或 `DEPLOY`。
-
-## 相關文件
-
-- [`ARCHITECTURE.md`](ARCHITECTURE.md)：系統架構、模組與安全原則。
-- [`SMOKE_TEST.md`](SMOKE_TEST.md)：staging／production 前人工驗收標準。
-- [`AGENTS.md`](AGENTS.md)：開發、測試、Git 與治理規則。
-- [`docs/architecture/AUDIT.md`](docs/architecture/AUDIT.md)：架構與 CI 審查資料。
-- [`docs/governance/LEGAL_GOVERNANCE.md`](docs/governance/LEGAL_GOVERNANCE.md)：法律文件生成治理規範。
+- **R30 LLM 不直接輸出罪名**：`llm_guard` 欄位明示，但倉庫無強制防堵機制。
+- **R18**：`warnings` 仍列出。
+- **4A 正式抽取**：由 LLM 責任，需 `llm_config.json` 注入真實 LLM。
+- **問句生成（S-11）**：非核心缺口標 `generated_by: llm`，實際 LLM 生成需注入。
+- **待查證**：**0**（Round 8 全部查證完成；153 verified / 0 partial / 0 unverified）
